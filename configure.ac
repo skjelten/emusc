@@ -23,7 +23,7 @@ useWin32="no"
 dnl   Check for ALSA
 dnl -================-
 AC_CHECK_LIB(asound, snd_seq_open,
-             LIBS="-lasound $LIBS"
+             LIBS="-lasound -lpthread $LIBS"
 	     CXXFLAGS="$CXXFLAGS -D__ALSA__"
 	     useAlsa="yes",
 	     AC_MSG_WARN(ALSA library not found and will not be supported))
