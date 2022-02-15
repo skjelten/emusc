@@ -1,0 +1,28 @@
+# Source & build
+src/*.o
+src/emusc
+src/emusc.exe
+src/*.cc~
+src/*.h~
+Makefile
+
+# automake
+Makefile.in
+/compile
+.deps/
+
+# autoconf
+autom4te.cache
+/aclocal.m4
+/config.cache
+/config.guess
+/config.h.in
+/config.log
+/config.status
+/config.sub
+/configure
+/configure.scan
+/depcomp
+/install-sh
+/missing
+/stamp-h1
