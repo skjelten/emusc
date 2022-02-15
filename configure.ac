@@ -10,9 +10,6 @@ AC_CONFIG_HEADERS(config.h)
 
 AM_INIT_AUTOMAKE
 
-dnl Needed on some platforms for POSIX support.
-AC_ISC_POSIX
-
 dnl Tools
 AC_PROG_CXX
 dnl AC_HEADER_STDC
