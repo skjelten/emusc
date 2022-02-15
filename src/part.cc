@@ -292,7 +292,8 @@ int Part::add_note(uint8_t midiChannel, uint8_t key, uint8_t velocity)
   struct Note n;
   n.key = key;
   n.velocity = velocity;
-
+  n.state = adsr_Attack;
+  
   // 3. Find partial(s) used by instrument or drum set
   int i;
   if (_mode == mode_Norm)
