@@ -178,7 +178,7 @@ bool Synth::_dump_rom_data(std::string rootPath)
   i=0;
   for(const auto& prt: _partials) {
     char setNum[5];
-    snprintf(setNum, 5, "%.4x", i++);
+    snprintf(setNum, 5, "%.4hx", i++);
     sampleDir.assign(rootPath + "/samples/set_" + setNum);
 
     if (mkdir(sampleDir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH))
@@ -210,7 +210,7 @@ bool Synth::_dump_rom_data(std::string rootPath)
   i = 0;
   for(const auto& inst: _instruments) {
     char prNum[5];
-    snprintf(prNum, 5, "%.4x", i++);
+    snprintf(prNum, 5, "%.4hx", i++);
     std::string presetPath = presetsDir + "/" + prNum;
     if (mkdir(presetPath.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH))
       throw (Ex(-1, "Failed to create directory " + presetPath));
@@ -247,7 +247,7 @@ bool Synth::_dump_rom_data(std::string rootPath)
   i = 0;
   for(const auto& v: _variations) {
     char chNum[3];
-    snprintf(chNum, 3, "%.2x", i);
+    snprintf(chNum, 3, "%.2hx", i);
     std::string variationPath = variationDir + "/channel_" + chNum;
     if (mkdir(variationPath.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH))
       throw (Ex(-1, "Failed to create directory " + variationPath));
@@ -263,7 +263,8 @@ bool Synth::_dump_rom_data(std::string rootPath)
 	std::string target("../../presets/");
 	target.append(prNum);
 	std::string linkPath(variationPath + "/instrument_"+std::to_string(i));
-	symlink(target.c_str(), linkPath.c_str());
+	// Ignore error on symlinks if file system does not support it
+	int ret = symlink(target.c_str(), linkPath.c_str());
       }
     }
     file.close();
@@ -455,10 +456,8 @@ void Synth::midi_input(struct MidiInput::MidiEvent *midiEvent)
 
 int Synth::get_next_sample(int16_t *sampleOut, int sampleRate, int channels)
 {
-  int32_t partSample[2] = { 0, 0 };
+  int32_t partSample[2];
   int32_t accumulatedSample[2] = { 0, 0 };
-
-  int32_t accSample = 0;
 
   // Write silence
   for (int i = 0; i < channels; i++) {
@@ -469,6 +468,7 @@ int Synth::get_next_sample(int16_t *sampleOut, int sampleRate, int channels)
 
   // Iterate all parts and ask for next sample
   for (auto &p : _parts) {
+    partSample[0] = partSample[1] = 0;
     p.get_next_sample(partSample);
 
     accumulatedSample[0] += partSample[0];

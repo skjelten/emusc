@@ -137,7 +137,7 @@ int PcmRom::get_samples(std::vector<int32_t> *samples, uint32_t address,int len)
     uint8_t sByte = _romData[((sAddress & 0xFFFFF) >> 5)|(sAddress & 0xF00000)];
     uint8_t sNibble = (sAddress & 0x10) ? (sByte >> 4 ) : (sByte & 0x0F);
     int32_t final = ((data << sNibble) << 14); // Shift nibbles th}
-    final = final >> 3;       // FIXME: works most of the time, need compressor?
+    final = final >> 1;       // FIXME: works most of the time, need compressor?
 
     samples->push_back(final);
   }
