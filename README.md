@@ -2,28 +2,38 @@
 Emulating the Sound Canvas
 
 ## About
-EmuSC is a software synthesiser that uses the original ROM files of the Roland SC-55 (and hopefully the SC-88 in the future) to recreate the original sounds of these 90s era synthesizers. The project is in no way endorsed by or affiliated with Roland Corp.
+EmuSC is a software synthesizer that aims to use the ROM files of the Roland Sound Canvas SC-55 lineup (and perhaps the SC-88 in the future) to recreate the original sounds of these '90s era synthesizers.
 
-EmuSC is currently in an early development stage and is not able to reproduce sounds anywhere near the orignal, but aims towards the same perfection as [munt](https://github.com/munt/munt) has for the MT-32. If you are interested in emulating the Sound Canvas today your best bet is to use the [sound font made by Kitrinx and NewRisingSun](https://github.com/Kitrinx/SC55_Soundfont).
+EmuSC is currently in an early development stage and is not able to reproduce sounds anywhere near the original synths, but the goal is to be able to reproduce sounds that will make it difficult to notice the difference. If you are interested in emulating the SC-55 today your best bet is to try the [SC-55 sound font](https://github.com/Kitrinx/SC55_Soundfont) made by Kitrinx and NewRisingSun.
+
+This project is in no way endorsed by or affiliated with Roland Corp.
+
+## Status
+We are currently able to decode most of the ROM's content and recreate the correct PCM samples for each instrument. Current focus is on investigating how to apply some kind of RIAA filter and adding support for ADSR (volume) envelope. Note that development is for the time being focused on the original SC-55 (mkI) ROMs. Other versions, such as the mkII, might not work at this stage.
 
 ## Requirements
-In order to emulate the Sound Canvas you need the original control ROM and the PCM / wave ROMs. These ROMs can either be extracted from your own hardware synthesizer, or you can download the ROMs from someone else. Google is your friend.
+In order to emulate the Sound Canvas you need the original control ROM and the PCM ROM(s). These ROM files can either be extracted from a physical unit by desoldering the ROM chips and read their content, or you can download the ROM files from the Internet.
 
-Currently only ALSA MIDI input is supported. ALSA, PulseAudio and wind32 are supported for audio output. Note that PulseAudio has a much higher latency (with default settings) than ALSA, so ALSA is recommended. The win32 output is not really useful before we also have win32 MIDI input. Support for MAC is expected soon.
+### Linux
+ALSA sequencer is needed for MIDI input. Both ALSA and PulseAudio are supported for audio output. Note that PulseAudio has a lot of latency in its default configuration so it is recommended to use ALSA if possible.
+
+### Windows
+There is currently no support for MIDI input on windows. There is however support for audio output through winmm, but this has limited value without MIDI input (it is possible to do basic audio tests via keyboard commands).
+
+### MacOSX
+Currently not supported, but work in progress.
 
 ## Building
 Download the source tree and build with GNU build tools:
-`./autogen.sh`
-`./configure`
-`make`
+```
+./autogen.sh
+./configure
+make
+```
 
-EmuSC needs C++17 and std::threads to compile.
+A C++17 compiler with support for std::threads is required. Library dependencies depends on which MIDI input and audio output systems that are needed.
 
 ## Contribute
-All contributions are welcome! This project's success depends on other people to join as there is a lot of work ahead.
+Interested in contributing to this project? All contributions are welcome! Download / fork the source code and have a look. Create an issue if you have any questions (or input / suggestions) and we will do our best to help you out getting the hang of how it all works!
 
-All code is released under the GPL 3+ license.
-
-
-## Known issues
-Too many to comment at the moment as the project is in an early stage of development.
+All source code is released under the GPL 3+ license.
