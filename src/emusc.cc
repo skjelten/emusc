@@ -36,6 +36,11 @@
 #include "audio_output_pulse.h"
 #endif
 
+#ifdef __CORE__
+#include "midi_input_core.h"
+#include "audio_output_core.h"
+#endif
+
 #ifdef __ALSA__
 #include "midi_input_alsa.h"
 #include "audio_output_alsa.h"
@@ -81,6 +86,12 @@ int main(int argc, char *argv[])
 #else
       throw(Ex(-1, "'alsa' MIDI input is missing in this build"));
 #endif
+    } else if (config->get("input") == "core") {
+#ifdef __CORE__
+      midiInput = new MidiInputCore(synth);
+#else
+      throw(Ex(-1, "'core' MIDI input is missing in this build"));
+#endif
     } else if (config->get("input") == "keyboard") {
       midiInput = new MidiInputKeyboard();
     }
@@ -99,6 +110,12 @@ int main(int argc, char *argv[])
       audioOutput = new AudioOutputWin32(config);
 #else
       throw(Ex(-1, "'win32' audio ouput is missing in this build"));
+#endif
+    } else if (config->get("output") == "core") {
+#ifdef __CORE__
+      audioOutput = new AudioOutputCore(config, synth);
+#else
+      throw(Ex(-1, "'core' audio ouput is missing in this build"));
 #endif
     } else if (config->get("output") == "pulse") {
 #ifdef __PULSE__

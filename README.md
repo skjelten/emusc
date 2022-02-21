@@ -21,7 +21,7 @@ ALSA sequencer is needed for MIDI input. Both ALSA and PulseAudio are supported 
 There is currently no support for MIDI input on windows. There is however support for audio output through winmm, but this has limited value without MIDI input (it is possible to do basic audio tests via keyboard commands).
 
 ### MacOSX
-Currently not supported, but work in progress.
+There is rudimentary support for macOS 10.6 and newer for both MIDI input and audio output.
 
 ## Building
 Download the source tree and build with GNU build tools:
@@ -32,6 +32,8 @@ make
 ```
 
 A C++17 compiler with support for std::threads is required. Library dependencies depends on which MIDI input and audio output systems that are needed.
+
+Note that Clang is needed for compiling MIDI support on MacOSX.
 
 ## Contribute
 Interested in contributing to this project? All contributions are welcome! Download / fork the source code and have a look. Create an issue if you have any questions (or input / suggestions) and we will do our best to help you out getting the hang of how it all works!

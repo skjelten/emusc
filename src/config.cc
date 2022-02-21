@@ -64,9 +64,8 @@ Config::Config(int argc, char *argv[])
   for (std::string line; std::getline(inFile, line);) {
     std::istringstream iss(line);
     std::string id, eq, val;
-
-    if (((iss >> id) && (id[0] != '#')) &&
-	(iss >> eq >> val >> std::ws) && eq == "=") {
+    iss >> id >> eq >> val >> std::ws;
+    if (id[0] != '#' && eq == "=") {
       _options[id] = val;
       if (verbose())
 	std::cout << "EmuSC:  -> Config: " << id << " = " << val << std::endl;

@@ -8,6 +8,7 @@ emusc_SOURCES =			\
 	emusc.cc		\
 	audio_output.cc		\
 	audio_output_alsa.cc	\
+	audio_output_core.cc	\
 	audio_output_null.cc	\
 	audio_output_pulse.cc	\
 	audio_output_win32.cc	\
@@ -16,6 +17,7 @@ emusc_SOURCES =			\
 	control_rom.cc		\
 	midi_input.cc		\
 	midi_input_alsa.cc	\
+	midi_input_core.cc	\
 	midi_input_keyboard.cc	\
 	part.cc			\
 	pcm_rom.cc		\
