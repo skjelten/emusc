@@ -19,6 +19,8 @@ emusc_SOURCES =			\
 	midi_input_alsa.cc	\
 	midi_input_core.cc	\
 	midi_input_keyboard.cc	\
+	note.cc			\
+	note_partial.cc		\
 	part.cc			\
 	pcm_rom.cc		\
 	synth.cc

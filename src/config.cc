@@ -54,7 +54,7 @@ Config::Config(int argc, char *argv[])
       if (!_write_default_config())	
 	throw(Ex(-1, "Please edit new config file: " + _configFilePath));
       else
-	throw(Ex(-1, "Error while writing new config file: " + _configFilePath));
+	throw(Ex(-1, "Error while writing new config file: " +_configFilePath));
     }
   }
 
@@ -86,13 +86,6 @@ void Config::_parse_command_line(int argc, char *argv[])
     if (param == "-h" || param == "--help") {
       _show_usage(std::string(argv[0]));
       throw(Ex(0,""));
-    } else if (param == "-r" || param == "--dump-pcm-rom") {
-      if (i < (argc - 1)) {
-	_options["dump-pcm-rom"] = argv[++i];
-      }	else {
-	_show_usage(std::string(argv[0]));
-	throw(Ex(0,"Error: Missing path to dump decoded PCM ROM"));
-      }
     } else if (param == "-d" || param == "--dump-rom-data") {
       if (i < (argc - 1)) {
 	_options["dump-rom-data"] = argv[++i];
@@ -149,7 +142,6 @@ void Config::_show_usage(std::string program)
 {
   std::cerr << "Usage: " << program << " [OPTION...]\n\n"
 	<< "Options:\n"
-	<< "  -r, --dump-pcm-rom PATH \tDump decoded PCM ROM to PATH\n"
 	<< "  -d, --dump-pcm-data DIR \tDump decoded PCM data to DIR\n"
         << "  -D, --dump-midi DIR     \tDump MIDI demo songs from ROM to DIR\n"
 	<< "  -c, --config PATH       \tUse configuration file at PATH\n"
@@ -199,10 +191,10 @@ bool Config::_write_default_config(void)
   
   configFile << "# Configuration file for EmuSC\n"
 	     << std::endl
-	     << "# Input system [ alsa | keyboard ]\n"
+	     << "# Input system [ alsa | core | keyboard ]\n"
 	     << "input = alsa\n"
 	     << std::endl
-	     << "# Output system [ alsa | pulse | win32 | null ]\n"
+	     << "# Output system [ alsa | pulse | win32 | core | null ]\n"
 	     << "output = alsa\n"
 	     << std::endl
 	     << "# Output device, e.g. 'default' or 'hw:0.1' for alsa.\n"
@@ -216,6 +208,7 @@ bool Config::_write_default_config(void)
 	     << "# ROM files" << std::endl
 	     << "control_rom = /SC-55/roland_r15209363.ic23" << std::endl
 	     << std::endl
+	     << "# Some models use up 3 PCM ROMs (must be in correct order)\n"
 	     << "pcm_rom_1 = /SC-55/roland-gss.a_r15209276.ic28" << std::endl
 	     << "pcm_rom_2 = /SC-55/roland-gss.b_r15209277.ic27" << std::endl
 	     << "pcm_rom_3 = /SC-55/roland-gss.c_r15209281.ic26" << std::endl;

@@ -79,7 +79,8 @@ AudioOutputCore::AudioOutputCore(Config *config, Synth *synth)
   if (result != noErr)
     throw (Ex(-1, "Couldn't initialize CoreAudio unit"));
 
-  std::cout << "EmuSC: Core audio output initialized" << std::endl;
+  std::cout << "EmuSC: Audio output [Core] successfully initialized"
+	    << std::endl;
 }
 
 

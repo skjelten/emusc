@@ -111,11 +111,10 @@ AudioOutputAlsa::AudioOutputAlsa(Config *config)
   if (ret = snd_pcm_start(_pcmHandle))
     throw(Ex(-1, "[ALSA] PCM start error. " + std::string(snd_strerror(ret))));
 
-  std::cout << "EmuSC: ALSA audio output successfully initialized" << std::endl
+  std::cout << "EmuSC: Audio output [ALSA] successfully initialized" <<std::endl
 	    << " -> device=\"" << _deviceName << "\" (16 bit, "
 	    << _sampleRate << " Hz, "
-	    << _channels << " channels)"
-	    << std::endl;
+	    << _channels << " channels)" << std::endl;
 
   sigset_t sigmask;
   sigemptyset(&sigmask);

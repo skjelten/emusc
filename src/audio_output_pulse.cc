@@ -73,8 +73,8 @@ AudioOutputPulse::AudioOutputPulse(Config *config, Synth *synth)
   char spec[PA_SAMPLE_SPEC_SNPRINT_MAX];
   pa_sample_spec_snprint(spec, sizeof(spec), &_sampleSpec);
 
-  std::cout << "EmuSC: PulseAudio output successfully initialized" << std::endl
-	    << " -> " << spec << std::endl;
+  std::cout << "EmuSC: Audio output [PulseAudio] successfully initialized"
+	    << std::endl << " -> " << spec << std::endl;
 }
 
 

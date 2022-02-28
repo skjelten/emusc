@@ -22,6 +22,8 @@
 
 
 #include "control_rom.h"
+#include "pcm_rom.h"
+#include "note.h"
 
 #include <list>
 #include <vector>
@@ -46,8 +48,8 @@ private:
   uint8_t _mode;              // [0-2] 0=Norm, 1=Drum1, 2=Drum2
   uint8_t _bendRange;         // [0-24] Default 2
   uint8_t _modDepth;          // [0-127] Default 10
-  int _keyRangeL;             // [c1-g9] Default C1
-  int _keyRangeH;             // [c1-g9] Default G9
+  uint8_t _keyRangeL;         // [c1-g9] Default  24 => C1
+  uint8_t _keyRangeH;         // [c1-g9] Default 127 => G9
   uint8_t _velSensDepth;      // [0-127] Default 64
   uint8_t _velSensOffset;     // [0-127] Default 64
   uint8_t _partialReserve;    // [0-24] Default 2
@@ -64,6 +66,8 @@ private:
 
   bool _mute;                 // Part muted
 //    uint8_t lever;          // [0-127]
+
+  float _pitchBend;
   
   enum Mode {
     mode_Norm  = 0,
@@ -80,33 +84,15 @@ private:
     adsr_Done
   };
 
-  // All data for producing correct audio with PCM bank
-  struct Note {
-    uint8_t key;              // [0-127] Key number
-    uint8_t velocity;         // [0-127] Velocity 0 => note off
-
-    uint16_t sampleNum[2];    // [0-~1000] ID to the correct sample
-    float samplePos[2];       // Can two partials have different length / loop?
-    int8_t sampleDirection[2];// [-1-1] -1 = backward & 1 = foreward 
-
-    enum AdsrState state;     // Need state for ADSR?
-  };
-  struct std::list<Note> _notes;
   std::list<int>_drumSetBanks;
-    
-  struct std::vector<ControlRom::Instrument>& _instruments;
-  struct std::vector<ControlRom::Partial>& _partials;
-  struct std::vector<ControlRom::Sample>& _samples;
-  struct std::vector<ControlRom::DrumSet>& _drumSets;
 
-  int _clear_unused_notes(void);
-  
+  struct std::list<Note*> _notes;
+
+  ControlRom &_ctrlRom;
+  PcmRom &_pcmRom;
+
 public:
-  Part(uint8_t id, uint8_t mode, uint8_t type,
-       std::vector<ControlRom::Instrument> &i,
-       std::vector<ControlRom::Partial> &p,
-       std::vector<ControlRom::Sample> &s,
-       std::vector<ControlRom::DrumSet> &d);
+  Part(uint8_t id, uint8_t mode, uint8_t type, ControlRom &cRom, PcmRom &pRom);
   ~Part();
 
   enum ControlMsg {
@@ -124,10 +110,11 @@ public:
   int add_note(uint8_t midiChannel, uint8_t key, uint8_t velocity);
   int delete_note(uint8_t midiChannel, uint8_t key);
   int clear_all_notes(void);
-  
-  int set_program(uint8_t midiChannel, uint8_t index, uint16_t instrument);
 
+  int set_program(uint8_t midiChannel, uint8_t index, uint8_t bank);
   int set_control(enum ControlMsg m, uint8_t midiChannel, uint8_t value);
+  int set_pitchBend(uint8_t midiChannel, int16_t pitchbend);
+
 };
 
 

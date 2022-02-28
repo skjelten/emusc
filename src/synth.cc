@@ -16,10 +16,6 @@
  *  along with EmuSC.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-// Much of the source code for decoding and storing ROM data is based on
-// the SC55 Soundfont Converter written by Kitrinx and NewRisingSun.
-// https://github.com/Kitrinx/SC55_Soundfont
-
 
 #include "synth.h"
 #include "ex.h"
@@ -37,10 +33,9 @@
 #include <fcntl.h>
 
 
-Synth::Synth(Config &config)
+Synth::Synth(Config &config, ControlRom &controlRom, PcmRom &pcmRom)
   : _config(config),
     _bank(0),
-    _effects(16),
     _volume(127),
     _pan(0),
     _reverb(64),
@@ -50,25 +45,6 @@ Synth::Synth(Config &config)
     _reverbType(5),
     _choursType(3)
 {
-  ControlRom controlRom(config);
-
-  controlRom.get_instruments(_instruments);
-  controlRom.get_partials(_partials);
-  controlRom.get_samples(_samples);
-  controlRom.get_variations(_variations);
-  controlRom.get_drumSet(_drumSets);
-
-  PcmRom pcmRom(config);
-
-  // Add raw samples data from the PCM ROM to our samples vector
-  for (ControlRom::Sample &s : _samples)
-    pcmRom.get_samples(&s.sampleSet, s.address, s.sampleLen);
-
-  std::cout << "EmuSC: Found " << _instruments.size() << " instruments, "
-	    << _partials.size() << " parts, "
-	    << _samples.size() << " samples and "
-	    << _drumSets.size() << " drum sets" << std::endl;
-  
   // Note: SC-88 also has a "SC-55" mode
   std::string mode = _config.get("mode");
   std::transform(mode.begin(), mode.end(), mode.begin(), ::toupper);
@@ -80,7 +56,7 @@ Synth::Synth(Config &config)
     _mode = mode_MT32;
 
   for (int i = 0; i < 16; i++) {
-    Part part(i, _mode, 0, _instruments, _partials, _samples, _drumSets);
+    Part part(i, _mode, 0, controlRom, pcmRom);
     _parts.push_back(part);
   }
   if (_mode == mode_GS)
@@ -105,176 +81,16 @@ Synth::Synth(Config &config)
       if (_parts[i].mute()) std::cout << i << " ";
     std::cout << "]" << std::endl;
   }
-
-  // Dump data to disk if requested -- call from separate function
-  if (!config.get("dump-pcm-rom").empty())
-    pcmRom.dump_rom(config.get("dump-pcm-rom"));
-  if (!config.get("dump-rom-data").empty())
-    _dump_rom_data(config.get("dump-rom-data"));
-  if (!config.get("dump-midi").empty())
-    controlRom.dump_demo_songs(config.get("dump-midi"));
 }
 
 
 Synth::~Synth()
-{}
-
-
-bool Synth::_dump_rom_data(std::string rootPath)
 {
-  if (rootPath.back() != '/')
-    rootPath.append("/");
-  rootPath.append("emusc-pcm-dump");
-
-  std::cout << "EmuSC: Dumping ROM data to " << rootPath << std::endl;
-  
-  if (mkdir(rootPath.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH))
-    throw (Ex(-1, "Failed to create directory " + rootPath));
-
-  int i = 0;
-  std::string drumSetDir = rootPath + "/drumsets";
-  if (mkdir(drumSetDir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH))
-    throw (Ex(-1, "Failed to create directory " + drumSetDir));
-
-  for(const auto& d: _drumSets) {
-    std::string drumSetPath = rootPath + "/drumsets/" + _drumSets[i].name;
-    mkdir(drumSetPath.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-    
-    std::ofstream file(std::string(drumSetPath + "/drumsets.ini"));
-    file << "Preset=";
-    for (int x = 0; x < 128; x++)
-      file << (int) _drumSets[i].preset[x] << ",";
-    file << std::endl << "Volume=";
-    for (int x = 0; x < 128; x++)
-      file << (int) _drumSets[i].volume[x] << ",";
-    file << std::endl << "Key=";
-    for (int x = 0; x < 128; x++)
-      file << (int) _drumSets[i].key[x] << ",";
-    file << std::endl << "Assign group=";
-    for (int x = 0; x < 128; x++)
-      file << (int) _drumSets[i].assignGroup[x] << ",";
-    file << std::endl << "Panpot=";
-    for (int x = 0; x < 128; x++)
-      file << (int) _drumSets[i].panpot[x] << ",";
-    file << std::endl << "Reverb=";
-    for (int x = 0; x < 128; x++)
-      file << (int) _drumSets[i].reverb[x] << ",";
-    file << std::endl << "Chorus=";
-    for (int x = 0; x < 128; x++)
-      file << (int) _drumSets[i].chorus[x] << ",";
-    file << std::endl << "Flags=";
-    for (int x = 0; x < 128; x++)
-      file << (int) _drumSets[i].flags[x] << ",";
-    file << std::endl;
-
-    file.close();
-    i++;
-  }
-
-  std::string sampleDir = rootPath + "/samples";
-  if (mkdir(sampleDir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH))
-    throw (Ex(-1, "Failed to create directory " + sampleDir));  
-
-  i=0;
-  for(const auto& prt: _partials) {
-    char setNum[5];
-    snprintf(setNum, 5, "%.4hx", i++);
-    sampleDir.assign(rootPath + "/samples/set_" + setNum);
-
-    if (mkdir(sampleDir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH))
-      throw (Ex(-1, "Failed to create dir: " + sampleDir));
-
-    std::ofstream name(std::string(sampleDir + "/" + prt.name + ".name"));
-    name.close();
-    
-    std::ofstream file(std::string(sampleDir + "/samples.ini"));
-    file << prt.name << std::endl << "breaks=";
-    for (int x = 0; x < 16; x++)
-      file << (int) prt.breaks[x] << ",";
-    file << std::endl << "samples=";
-    for (int x = 0; x < 16; x++)
-      file << (int) prt.samples[x] << ",";
-    file << std::endl;
-    file.close();
-
-    for (int x = 0; x < 16; x++)
-      if (prt.samples[x] != 0xffff)
-	_export_sample_24(_samples[prt.samples[x]].sampleSet,
-			  sampleDir + "/samples_" + std::to_string(x) +".wav");
-  }
-
-  // Dump instrument (preset) table
-  std::string presetsDir = rootPath + "/presets";
-  if (mkdir(presetsDir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH))
-    throw (Ex(-1, "Failed to create directory " + presetsDir));
-  i = 0;
-  for(const auto& inst: _instruments) {
-    char prNum[5];
-    snprintf(prNum, 5, "%.4hx", i++);
-    std::string presetPath = presetsDir + "/" + prNum;
-    if (mkdir(presetPath.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH))
-      throw (Ex(-1, "Failed to create directory " + presetPath));
-
-    std::ofstream name(std::string(presetPath + "/" + inst.name + ".name"));
-    name.close();
-
-    std::ofstream file(std::string(presetPath + "/preset.ini"));
-    file << inst.name << std::endl;
-    file.close();
-
-    std::string partialDir = presetPath + "/partials";
-    if (mkdir(partialDir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH))
-      throw (Ex(-1, "Failed to create directory " + partialDir));
-
-    for (int x = 0; x < 2; x++) {
-      if (inst.partials[x].partialIndex == 0xffff)
-	continue;
-      
-      std::string partDir = partialDir + "/" + std::to_string(x+1);
-      if (mkdir(partDir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH))
-	throw (Ex(-1, "Failed to create directory " + partDir));
-
-      std::ofstream file(std::string(partDir + "/partial.ini"));
-      file << "Partial index=" << inst.partials[x].partialIndex << std::endl;
-      file.close(); // Add a lot of more data
-    }
-  }
-
-  // Dump variations table
-  std::string variationDir = rootPath + "/variations";
-  if (mkdir(variationDir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH))
-    throw (Ex(-1, "Failed to create directory " + variationDir));  
-  i = 0;
-  for(const auto& v: _variations) {
-    char chNum[3];
-    snprintf(chNum, 3, "%.2hx", i);
-    std::string variationPath = variationDir + "/channel_" + chNum;
-    if (mkdir(variationPath.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH))
-      throw (Ex(-1, "Failed to create directory " + variationPath));
-
-    std::ofstream file(std::string(variationPath + "/variations.ini"));
-    for (int x = 0; x < 128; x++) {
-      if (_variations[i].variation[x] != 0xffff) {
-	file << "[" << i << "]=" << _variations[i].variation[x] << std::endl;
-
-	// Try to add sym-links for file systems that supports it
-	char prNum[5];
-	snprintf(prNum, 5, "%.4x", _variations[i].variation[x]);
-	std::string target("../../presets/");
-	target.append(prNum);
-	std::string linkPath(variationPath + "/instrument_"+std::to_string(i));
-	// Ignore error on symlinks if file system does not support it
-	int ret = symlink(target.c_str(), linkPath.c_str());
-      }
-    }
-    file.close();
-    i++;
-  }
-
-  return 0;
+  _parts.clear();
 }
 
 
+/* Not used -> PcmRom as part of sample dump to disk
 int Synth::_export_sample_24(std::vector<int32_t> &sampleSet,
 			     std::string filename)
 {
@@ -318,20 +134,7 @@ int Synth::_export_sample_24(std::vector<int32_t> &sampleSet,
 
   return 0;
 }
-
-
-// Finds correct instrument variation from variations table
-// Implemented according to SC-55 Owner's Manual page 42-45
-uint16_t Synth::_get_instrument_from_variations(int bank, int preset)
-{
-  uint16_t instrument = _variations[bank].variation[preset];
-
-  if (bank < 63 && preset < 120)
-    while (instrument == 0xffff)
-      instrument = _variations[--bank].variation[preset];
-
-  return instrument;
-}
+*/
 
 
 void Synth::midi_input(struct MidiInput::MidiEvent *midiEvent)
@@ -346,10 +149,8 @@ void Synth::midi_input(struct MidiInput::MidiEvent *midiEvent)
 		  << " bank=" << (int) _bank
 		  << " program=" << (int) midiEvent->data1 << "]" << std::endl;
       {
-	uint16_t instrument = _get_instrument_from_variations(_bank,
-							      midiEvent->data1);
 	for (auto &p : _parts)
-	  p.set_program(midiEvent->channel, midiEvent->data1, instrument);
+	  p.set_program(midiEvent->channel, midiEvent->data1, _bank);
       }
       break;
 
@@ -379,10 +180,11 @@ void Synth::midi_input(struct MidiInput::MidiEvent *midiEvent)
       break;
     
     case MidiInput::se_PitchBend:                        // Data -8192 <-> 8192
-      if (_config.verbose())
+      if (1) //_config.verbose())
 	std::cout << "EmuSC MIDI: Pitchbend [ch=" << (int) midiEvent->channel
 		  << " data=" << (int) midiEvent->data << "]" << std::endl;
-      _effects[midiEvent->channel].pitchbend = midiEvent->data / 8192.0;
+      for (auto &p: _parts)
+	p.set_pitchBend(midiEvent->channel, midiEvent->data);      
       break;
 
     case MidiInput::se_ChPressure:                        // Data -8192 <-> 8192
@@ -479,9 +281,7 @@ int Synth::get_next_sample(int16_t *sampleOut, int sampleRate, int channels)
   midiMutex.unlock();
 
 
-  // Apply all kinds of filters and stuff on global data
-  // See 
-  _volume = 100;
+  // Apply sample effects that applies to "system" level (all parts & notes)
 
   // Apply pan
   if (_pan > 0)

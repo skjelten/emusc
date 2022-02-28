@@ -20,8 +20,10 @@
 #include "audio_output.h"
 #include "audio_output_null.h"
 #include "config.h"
+#include "control_rom.h"
 #include "midi_input.h"
 #include "midi_input_keyboard.h"
+#include "pcm_rom.h"
 #include "synth.h"
 
 #include "ex.h"
@@ -59,27 +61,79 @@ void ext_quit(int sig)
 }
 
 
-int main(int argc, char *argv[])
+void display_error_msg(std::string message)
 {
-  Config *config = NULL;
+#ifdef __WIN32__
+  MessageBox(NULL, message.c_str(), "Info", MB_OK | MB_ICONERROR);
+#else
+  std::cerr << "EmuSC: Error during initialization:" << std::endl
+	    << "  -> " << message << std::endl;
+#endif
+}
+
+
+// Needs to be rewritten
+// ControlRom & PcmRom dumping their own data to disk
+void dump_rom_data(Config *config)
+{
+  std::cout << "This feature is currently disabled" << std::endl;
+  /*
+  ControlRom *ctrlRom;
+  PcmRom *pcmRom;
+
+  ctrlRom = new ControlRom(config->get("control_rom"), config->verbose());
+
+    std::vector<std::string> romPath;
+    for (int i = 1; i < 4; i ++) {
+      if (!config->get(std::string("pcm_rom_" + std::to_string(i))).empty())
+	romPath.push_back(config->get(std::string("pcm_rom_" +
+						  std::to_string(i))));
+    }
+
+    pcmRom = new PcmRom(romPath, *ctrlRom);
+  */
+}
+
+
+void dump_midi_files(Config *config)
+{
+  ControlRom *ctrlRom;
+  try {
+    ctrlRom = new ControlRom(config->get("control_rom"), 1);
+
+  } catch(Ex ex) {
+    display_error_msg(ex.errorMsg);
+    return;
+  }
+
+  ctrlRom->dump_demo_songs(config->get("dump-midi"));
+  delete ctrlRom;
+}
+
+
+void run_synth(Config *config)
+{
   Synth *synth = NULL;
   MidiInput *midiInput = NULL;
   AudioOutput *audioOutput = NULL;
+  ControlRom *ctrlRom;
+  PcmRom *pcmRom;
 
   try {
-    // Open configuration and parse parameters
-    config = new Config(argc, argv);
+    ctrlRom = new ControlRom(config->get("control_rom"), config->verbose());
 
-    // Initialize synth including ROM files and internal data structurs
-    synth = new Synth(*config);
+    std::vector<std::string> romPath;
+    for (int i = 1; i < 4; i ++) {
+      if (!config->get(std::string("pcm_rom_" + std::to_string(i))).empty())
+	romPath.push_back(config->get(std::string("pcm_rom_" +
+						  std::to_string(i))));
+    }
+    pcmRom = new PcmRom(romPath, *ctrlRom);
 
-    // If we are only doing disk dump of various parts, exit immediately
-    if (!config->get("dump-pcm-rom").empty() ||
-	!config->get("dump-rom-data").empty() ||
-      	!config->get("dump-midi").empty())
-      exit(0);
+    // Initialize synth
+    synth = new Synth(*config, *ctrlRom, *pcmRom);
 
-    // Initialize MIDI input [alsa | keyboard]
+    // Initialize MIDI input [alsa | core | keyboard]
     if (config->get("input") == "alsa") {
 #ifdef __ALSA__
       midiInput = new MidiInputAlsa();
@@ -98,7 +152,7 @@ int main(int argc, char *argv[])
     if (!midiInput)
       throw(Ex(-1, "No valid 'input' defined, check configuration file"));
 
-    // Initialize audio output [alsa]
+    // Initialize audio output [ alsa | pulse | win32 | core ]
     if (config->get("output") == "alsa") {
 #ifdef __ALSA__
       audioOutput = new AudioOutputAlsa(config);
@@ -130,22 +184,8 @@ int main(int argc, char *argv[])
       throw(Ex(-1, "No valid audio output defined, check configuration file"));
 
   } catch(Ex ex) {
-    if (!ex.errorNr) {
-#ifdef __WIN32__
-      MessageBox(NULL, ex.errorMsg.c_str(), "Info", MB_OK | MB_ICONERROR);
-#else
-      std::cout << ex.errorMsg << std::endl << std::endl;
-#endif
-      return 0;
-    }
-
-#ifdef __WIN32__
-    MessageBox(NULL, ex.errorMsg.c_str(), "Info", MB_OK | MB_ICONERROR);
-#else
-    std::cout << "EmuSC: Error during initialization:" << std::endl
-	      << "  -> " << ex.errorMsg << std::endl;
-#endif
-    return -1;
+    display_error_msg(ex.errorMsg);
+    return;
   }
   
   std::signal(SIGINT, ext_quit);
@@ -166,6 +206,31 @@ int main(int argc, char *argv[])
 
   delete audioOutput;
   delete midiInput;
+  delete ctrlRom;
+  delete pcmRom;
   delete synth;
+}
+
+
+
+int main(int argc, char *argv[])
+{
+  Config *config = NULL;
+
+  try {
+    config = new Config(argc, argv);
+  } catch(Ex ex) {
+    display_error_msg(ex.errorMsg);
+    return -1;
+  }
+
+  if (!config->get("dump-rom-data").empty()) {
+    dump_rom_data(config);
+  } else if (!config->get("dump-midi").empty()) {
+    dump_midi_files(config);
+  } else {
+    run_synth(config);
+  }
+
   delete config;
 }

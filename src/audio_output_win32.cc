@@ -82,12 +82,12 @@ AudioOutputWin32::AudioOutputWin32(Config *config)
   if (!waveOutGetDevCaps(deviceId, &woc, sizeof(WAVEOUTCAPS)))
     deviceName.assign(woc.szPname);
 
-  std::cout << "EmuSC: WIN32 audio output successfully initialized" << std::endl
+  std::cout << "EmuSC: Audio output [Win32] successfully initialized"
+	    << std::endl
 	    << " -> device=\"" << deviceName << "\" ("
 	    << pwfx.wBitsPerSample << " bit, "
 	    << pwfx.nSamplesPerSec << " Hz, "
-	    << pwfx.nChannels << " channels)"
-	    << std::endl;
+	    << pwfx.nChannels << " channels)" << std::endl;
 
   if (config->verbose())
     std::cout << "EmuSC: Win32 audio buffer = " << _bufferSize << "B"

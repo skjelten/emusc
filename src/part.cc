@@ -25,10 +25,7 @@
 
 
 Part::Part(uint8_t id, uint8_t mode, uint8_t type,
-	   std::vector<ControlRom::Instrument>& i,
-	   std::vector<ControlRom::Partial>& p,
-	   std::vector<ControlRom::Sample>& s,
-  	   std::vector<ControlRom::DrumSet>& d)
+	   ControlRom &ctrlRom, PcmRom &pcmRom)
   : _id(id),
     _midiChannel(id),
     _instrument(0),
@@ -41,8 +38,8 @@ Part::Part(uint8_t id, uint8_t mode, uint8_t type,
     _mode(mode_Norm),
     _bendRange(2),
     _modDepth(10),
-    _keyRangeL(1),         // FIXME C1
-    _keyRangeH(9),         // FIXME G9
+    _keyRangeL(24),                     // => C1
+    _keyRangeH(127),                    // => G9
     _velSensDepth(64),
     _velSensOffset(64),
     _partialReserve(2),
@@ -55,41 +52,29 @@ Part::Part(uint8_t id, uint8_t mode, uint8_t type,
     _attackTime(0),
     _decayTime(0),
     _releaseTime(0),
+    _pitchBend(0),
     _mute(false),
-    _instruments(i),
-    _partials(p),
-    _samples(s),
-    _drumSets(d)
+    _ctrlRom(ctrlRom),
+    _pcmRom(pcmRom)
 {
   // Part 10 is factory preset for MIDI channel 10 and standard drum set
   if (id == 9)
     _mode = 1;
 
-  // Banks used for drum sets (not found in ROM, but by using the real thing)
-  // Only true for SC-55, the SC-88 has more drum sets
-  _drumSetBanks.assign({0, 8, 16, 24, 25, 32, 40, 48, 56, 57, 58, 59, 60, 127});
+  // Drum sets as defined inn owner's manual
+  if (ctrlRom.synthModel == ControlRom::sm_SC55 ||
+      ctrlRom.synthModel == ControlRom::sm_SC55mkII)
+    _drumSetBanks.assign({0,8,16,24,25,32,40,48,56,57,58,59,60,127});
+  else if (ctrlRom.synthModel == ControlRom::sm_SC88)
+    _drumSetBanks.assign({0,1,8,16,24,25,26,32,40,48,49,50,56,57,58,59,60,127});
+  else if (ctrlRom.synthModel == ControlRom::sm_SC88Pro)
+    _drumSetBanks.assign({0,1,2,8,9,10,11,16,24,25,26,27,28,29,30,31,32,40,48,49,50,52,53,56,57,58,59,60,127});
 }
 
 
 Part::~Part()
-{}
-
-
-int Part::_clear_unused_notes(void)
 {
-  int i;
-  std::list<Note>::const_iterator itr = _notes.begin();
-  while (itr != _notes.end()) {
-    if ((*itr).state == adsr_Done) {
-//      std::cout << "Automatically cleard one key" << std::endl;
-      itr = _notes.erase(itr);
-      i++;
-    } else {
-      itr++;
-    }
-  }
-
-  return i;
+  clear_all_notes();
 }
 
 
@@ -101,182 +86,40 @@ int Part::get_next_sample(int32_t *sampleOut)
   if (_notes.size() == 0)
     return 0;
 
-  bool needCleanup = false;
-  
-  // Write silence
-  sampleOut[0] = sampleOut[1] = 0;
-  
   int32_t partSample[2] = { 0, 0 };
   int32_t accSample = 0;
 
-  // Iterate through the list of active notes
-  for (auto &n : _notes) {
+  // Get next sample from active notes, delete those which are finished
+  std::list<Note*>::iterator itr = _notes.begin();
+  while (itr != _notes.end()) {
+    bool finished = (*itr)->get_next_sample(partSample, _pitchBend);
 
-    // Iterate both partials for each note
-    for (int prt = 0; prt < 2; prt ++) {
-
-      // Skip this iteration if the partial in not used
-      if  (n.sampleNum[prt] == 0xffff || n.state == adsr_Done)
-	break;
-
-      // Update sample position going in forward direction
-      if (n.sampleDirection[prt] > 0) {
-	if (0)
-	  std::cout << "-> FW " << std::dec << "pos=" << (int) n.samplePos[prt]
-		    << " length=" << (int) _samples[n.sampleNum[prt]].sampleLen
-		    << " loopMode=" << (int) _samples[n.sampleNum[prt]].loopMode
-		    << " loopLength=" << _samples[n.sampleNum[prt]].loopLen
-		    << " partial=" << (int) prt << std::endl;
-
-	// Do not adjust pitch for parts configured for drum sets
-	if (_mode != mode_Norm) {
-	  n.samplePos[prt] += 1;
-
-	} else {
-	// Adjust sample pos. / pitch for distance between original note and key
-	  int diff_t = n.key - _samples[n.sampleNum[prt]].rootKey;
-	  n.samplePos[prt] += 1.0 * exp(diff_t * (log(2)/12));
-
-	  /*
-	  // Apply pitch bend messages to partial
-	  if (_effects[n.midiChannel].pitchbend != 0) {
-	    	  std::cout << "Pitchbend this sucker! - "
-		  << _effects[i.midiChannel].pitchbend << " : "
-		  << (float) 1.0 * exp(diff_t * (log(2)/12))
-		  << std::endl;
-
-		  // FIXME: Verify scale for pitchbend & fix rounding error!
-		  i.samplePos[prt] += _effects[i.midiChannel].pitchbend *
-		                      exp(_parts[i.part].bendRange * log(2)/12);
-				      }*/
-	}
-	// Check for sample position passing sample boundary
-	if (n.samplePos[prt] >= _samples[n.sampleNum[prt]].sampleLen) {
-
-	  // Keep track of correct position switching position
-	  int remaining = _samples[n.sampleNum[prt]].sampleLen -
-	                  n.samplePos[prt];
-
-	  // loopMode == 0 => Forward only w/loop jump back "loopLen + 1"
-	  if (_samples[n.sampleNum[prt]].loopMode == 0) {
-	    n.samplePos[prt] = _samples[n.sampleNum[prt]].sampleLen -
-	      _samples[n.sampleNum[prt]].loopLen - 1 + remaining;
-
-	    // loopMode == 1 => Forward-backward. Start moving backwards
-	  } else if (_samples[n.sampleNum[prt]].loopMode == 1) {
-	    n.samplePos[prt] = _samples[n.sampleNum[prt]].sampleLen - remaining;
-	    n.sampleDirection[prt] = -1;                       // Turn backward
-
-	    // loopMode == 2 => Forward-stop. End playback
-	  } else if (_samples[n.sampleNum[prt]].loopMode == 2) {
-	    if (n.samplePos[prt] >=_samples[n.sampleNum[prt]].sampleLen){
-	      // Remove key
-	      n.state = adsr_Done;
-	      needCleanup = true;
-	      continue;
-	    }
-	  }
-	}
-
-      // Same procedure while looping backwards  // MOVE TO SAME LOOP AS ABOVE!
-      } else if (n.sampleDirection[prt] < 0) {
-	if (0)
-	  std::cout << "<- BW " << std::dec << "pos=" << (int) n.samplePos[prt]
-		    << " length=" << (int) _samples[n.sampleNum[prt]].sampleLen 
-		    << " partial=" << (int) prt << std::endl;
-
-	// Do not adjust pitch for parts configured for drum sets
-	if (_mode != mode_Norm) {
-	  n.samplePos[prt] -= 1;
-
-	} else {
-
-	  // Adjust sample pos. / pitch for distance between original note and key
-	  int diff_t = n.key - _samples[n.sampleNum[prt]].rootKey;
-	  n.samplePos[prt] -= 1.0 * exp(diff_t * (log(2)/12));
-
-	  // Apply pitch bend messages to partial
-//	  if (_effects[n.midiChannel].pitchbend != 0) {
-//	    n.samplePos[prt] -= _effects[n.midiChannel].pitchbend * exp(2 * log(2)/12);
-//	  }
-	}
-	// Check for sample position passing sample boundary
-	if (n.samplePos[prt] <= _samples[n.sampleNum[prt]].sampleLen -
-	                        _samples[n.sampleNum[prt]].loopLen - 1) {
-
-	  // Keep track of correct position switching position
-	  int remaining = _samples[n.sampleNum[prt]].sampleLen -
-	    _samples[n.sampleNum[prt]].loopLen - 1 -n.samplePos[prt];
-
-	  // Start moving forward
-	  n.samplePos[prt] = _samples[n.sampleNum[prt]].sampleLen -
-	                     _samples[n.sampleNum[prt]].loopLen - 1 + remaining;
-	  n.sampleDirection[prt] = 1;
-	}    
-      }
-
-      // Final sample for the partial to be sent to audio out
-      partSample[prt] = _samples[n.sampleNum[prt]].sampleSet[n.samplePos[prt]];
-
-      // 1. Add volume correction for each sample
-      // TODO: Add
-      // * drum volum if drum
-      // * ADSR volume
-      // * ++
-      // Reduce divisions / optimize calculations
-
-      // WIP
-      // Sample volum: 7f - 0
-      float scale = 1.0 / 127.;
-      float sample = partSample[prt];
-      // Fine Volum correction (?):  10^((fineVolume - 0x0400) / 10000)
-      float fineVol = powf(10, ((float) _samples[n.sampleNum[prt]].fineVolume -
-				0x0400) / 10000.);
-
-      sample *= scale * _samples[n.sampleNum[prt]].volume * fineVol;
-
-//      if (drum)
-//      sample *= drumvol
-
-      partSample[prt] = sample;
-
-      //std::cout << "finevol=" << fineVol << std::endl;
-
-      
-      
+    if (finished) {
+      delete *itr;
+      itr = _notes.erase(itr);
+    } else {
+      ++itr;
     }
-    // Apply all kinds of filters and stuff on instrument (both partials)
-    // -> use temp variable and update sampleData here.
-
-    // Sample for both partials as long as key state != Done
-//      if (i.state != ves_Done) {
-
-//    uint32_t combinedSample = partSample[0] + partSample[1]; WHY NOT?
-    double combinedSample = partSample[0] + partSample[1];
-    
-    // Add volume parameters from key and MIDI channel / part
-    float velocity = (n.velocity / 127.0) * (_volume / 127.0);
-    combinedSample *= velocity ;
-    // Finally add to accumulated sample data
-//if(i.midiChannel == 9) 
-    accSample += combinedSample;
- //     }
-
   }
-    
-  sampleOut[0] += accSample;
-  sampleOut[1] += accSample;
+
+  // Add volume parameters from key and MIDI channel / part
+  float fpartSample[2] = { 0, 0 };
+  fpartSample[0] = partSample[0];
+  fpartSample[1] = partSample[1];
+
+  float volume = _volume / 127.0;
+  fpartSample[0] *= volume;
+  fpartSample[1] *= volume;
 
   // Add pan from part
   if (_pan > 64)
-    sampleOut[0] *= 1.0 - (_pan - 64) / 63.0;
+    fpartSample[0] *= 1.0 - (_pan - 64) / 63.0;
   else if (_pan < 64)
-    sampleOut[1] *= ((_pan - 1) / 64.0); 
+    fpartSample[1] *= ((_pan - 1) / 64.0);
 
-  // Remove any notes that has expired (completed the release phase)
-  if (needCleanup)
-    _clear_unused_notes();
-  
+  sampleOut[0] += fpartSample[0];
+  sampleOut[1] += fpartSample[1];
+
   return 0;
 }
 
@@ -288,74 +131,25 @@ int Part::add_note(uint8_t midiChannel, uint8_t key, uint8_t velocity)
   if (midiChannel != _midiChannel || _mute)
     return 0;
 
-  // 2. Create new note and set default values
-  struct Note n;
-  n.key = key;
-  n.velocity = velocity;
-  n.state = adsr_Attack;
-  
-  // 3. Find partial(s) used by instrument or drum set
-  int i;
-  if (_mode == mode_Norm)
-    i = _instrument;
-  else
-    i = _drumSets[_drumSet].preset[key];
-
-  if (i == 0xffff)                     // Ignore undefined instruments / drums
+  // 2. Find partial(s) used by instrument or drum set
+  uint16_t instrumentIndex = (_mode == mode_Norm) ? _instrument :
+                             _ctrlRom.drumSet(_drumSet).preset[key];
+  if (instrumentIndex == 0xffff)        // Ignore undefined instruments / drums
     return 0;
 
-  uint16_t partial[2];
-  partial[0] = _instruments[i].partials[0].partialIndex;
-  partial[1] = _instruments[i].partials[1].partialIndex;
-
-    // 4. Find correct original tone from break table  TODO->one loop!
-  for (int x = 0; x < 16; x ++) {
-    if (_partials[partial[0]].breaks[x] >= key ||
-	_partials[partial[0]].breaks[x] == 0x7f) {
-      n.sampleNum[0] = _partials[partial[0]].samples[x];
-      n.samplePos[0] = 0;
-      n.sampleDirection[0] = 1;
-      break;
-    }
-  }
-  if (partial[1] == 0xffff) {
-    n.sampleNum[1] = 0xffff;
-  } else {
-    for (int x = 0; x < 16; x ++) {
-      if (_partials[partial[1]].breaks[x] >= key ||
-	  _partials[partial[1]].breaks[x] == 0x7f) {
-	n.sampleNum[1] = _partials[partial[1]].samples[x];
-	n.samplePos[1] = 0;
-	n.sampleDirection[1] = 1;
-	break;
-      }
-    }
-  }
-
+  bool drum = (_mode == mode_Norm) ? 0 : 1;
+  
+  // 2. Create new note and set default values (note: using pointers)
+  Note *n = new Note(key, velocity, instrumentIndex, drum,
+		     _ctrlRom, _pcmRom);
   _notes.push_back(n);
 
   if (0)
-  if (_mode == mode_Norm)
-    std::cout << "EmuSC: DEBUG New instr. note: part=" << (int) _id
+    std::cout << "EmuSC: New note [ part=" << (int) _id
 	      << " key=" << (int) key
 	      << " velocity=" << (int) velocity
-//	      << " partial[0]=" << _instruments[_instrument].partials[0].partialIndex
-//	      << " partial[1]=" << _instruments[_instrument].partials[1].partialIndex
-	      << " loopMode=" << (int) _samples[_partials[_instruments[_instrument].partials[0].partialIndex].samples[0]].loopMode
-//	      << " part0Name=" << _partials[_instruments[_instrument].partials[0].partialIndex].name
-//     	      << " part0sample0=" << (std::hex) << (int) _partials[_instruments[_instrument].partials[0].partialIndex].samples[0]
-      	      << " name=" << _instruments[_instrument].name << std::endl;
-  else
-    std::cout << "EmuSC: DEBUG New drum note: part=" << (int) _id
-	      << " key=" << (int) key
-	      << " velocity=" << (int) velocity
-	      << " prt2=" << partial[1]
-	      << " lm[0]=" << (int) _samples[_partials[_instruments[_instrument].partials[0].partialIndex].samples[0]].loopMode
-	      << " index=" << _drumSets[_drumSet].preset[key]
-	      << " drum set=" << _drumSets[_drumSet].name
-	      << "(" << (int) _drumSet << ")"
-	      << " name=" << _instruments[_drumSets[_drumSet].preset[key]].name
-	      << std::endl;
+	      << " preset=" << _ctrlRom.instrument(instrumentIndex).name
+	      << " ]" << std::endl;
   
     return 1;
 }
@@ -369,27 +163,11 @@ int Part::delete_note(uint8_t midiChannel, uint8_t key)
 
   // 2. Iterate through notes list and set them to release phase. FIXME!
   int i;
-  std::list<Note>::const_iterator itr = _notes.begin();
-  while (itr != _notes.end()) {
-    // Check if we have the right instrument / drum
-    if ((*itr).key == key) {
-
-      // Check if we are dealing with drums, and if yes check note off flag
-      // FIXME: Figure out how to properly end looping sounds
-      if (_mode != mode_Norm && !(_drumSets[_drumSet].flags[key] & 0x01)
-	  && _samples[(*itr).sampleNum[0]].loopMode == 2) {  // This is a hack!
-	++itr;
-
-      // We have an interuptable instrument / drum -> erase (FIXME: -> Release)
-      } else { 
-	itr = _notes.erase(itr);
-	i++;
-      }
-    } else {
-      ++itr;
-    }
+  for (auto &n : _notes) {
+    bool ret = n->stop(key);
+    i += ret;
   }
-    
+
   return i;
 }
 
@@ -397,20 +175,29 @@ int Part::delete_note(uint8_t midiChannel, uint8_t key)
 int Part::clear_all_notes(void)
 {
   int i = _notes.size();
+  for (auto n : _notes)
+    delete n;
+
   _notes.clear();
 
   return i;
 }
 
 
-int Part::set_program(uint8_t midiChannel, uint8_t index, uint16_t instrument)
+int Part::set_program(uint8_t midiChannel, uint8_t index, uint8_t bank)
 {
   if (midiChannel != _midiChannel)
     return 0;
 
-  if (_mode == mode_Norm) {
-    _instrument = instrument;
-  } else {
+  // Finds correct instrument variation from variations table
+  // Implemented according to SC-55 Owner's Manual page 42-45
+  _instrument = _ctrlRom.variation(bank).variation[index];
+  if (bank < 63 && index < 120)
+    while (_instrument == 0xffff)
+      _instrument = _ctrlRom.variation(--bank).variation[index];
+
+  // If part is used for drums, select correct drum set
+  if (_mode != mode_Norm) {
     std::list<int>::iterator it = std::find(_drumSetBanks.begin(),
 					    _drumSetBanks.end(),
 					    (int) index);
@@ -434,6 +221,18 @@ int Part::set_control(enum ControlMsg m, uint8_t midiChannel, uint8_t value)
     _volume = value;
   else if (m == cmsg_Pan)
     _pan = (value == 0) ? 1 : value;
+
+  return 1;
+}
+
+
+// Note: One semitone = log(2)/12
+int Part::set_pitchBend(uint8_t midiChannel, int16_t pitchBend)
+{
+  if (midiChannel != _midiChannel)
+    return 0;
+
+  _pitchBend = exp((pitchBend/8192.0) * _bendRange * 0.5  * (log(2)/12)) - 1;
 
   return 1;
 }

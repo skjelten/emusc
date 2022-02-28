@@ -30,27 +30,24 @@
 #include <string>
 #include <vector>
 
+#include <stdint.h>
+
 
 class ControlRom
 {
 private:
-  Config &_config;
-  uint32_t _banksVSC[8] = { 0x00034, 0x0BD34, 0x0DEF4, 0x10034,
-                            0x1BD34, 0x1DEF4, 0x20034, 0x30000 };
+  std::string _romPath;
+
+  std::string _model;
+  std::string _version;
+  std::string _date;
+
+  int _verbose;
+
   uint32_t _banksSC55[8] = { 0x10000, 0x1BD00, 0x1DEC0, 0x20000,
                              0x2BD00, 0x2DEC0, 0x30000, 0x38080 };
 
-  enum SynthModel {
-    sm_VSC,
-    sm_SC55,
-    sm_SC55mkII,
-    sm_SC88
-  };
-  enum SynthModel _synthModel;
-
-  std::vector<uint8_t> _romData;
-
-  int _identify_model(void);
+  int _identify_model(std::ifstream &romFile);
   uint32_t *_get_banks(void);
 
   // To be replaced with std::endian::native from C++20
@@ -60,11 +57,25 @@ private:
   uint32_t _native_endian_3bytes_uint32(uint8_t *ptr);
   uint32_t _native_endian_4bytes_uint32(uint8_t *ptr);
 
+  int _read_instruments(std::ifstream &romFile);
+  int _read_partials(std::ifstream &romFile);
+  int _read_variations(std::ifstream &romFile);
+  int _read_samples(std::ifstream &romFile);
+  int _read_drum_sets(std::ifstream &romFile);
+
   ControlRom();
 
 public:
-  ControlRom(Config &config);
+  ControlRom(std::string romPath, int verbosity);
   ~ControlRom();
+
+  enum SynthModel {
+    sm_SC55,
+    sm_SC55mkII,
+    sm_SC88,
+    sm_SC88Pro
+  };
+  enum SynthModel synthModel;
 
   // Internal data structures extracted from the control ROM file
 
@@ -81,13 +92,12 @@ public:
     uint16_t pitch;       // Fine pitch adjustment, 2048 to 0. Pos. incr. pitch.
     uint16_t fineVolume;  // Always 0x400 on VSC, appears to be 1000ths of a
                           // decibel. Positive is higher volume.
-    std::vector<int32_t> sampleSet; // All samples stored in 24 bit 32kHz mono 
   };
 
   struct Partial {        // 48 bytes in total
     std::string name;
     uint8_t breaks[16];   // Note breakpoints corresponding to sample addresses
-    uint16_t samples[16]; // Set of addresses to the sample table. 0 is default,
+    uint16_t samples[16]; // Set of addresses to the sample table. 0 is default
   };                      // and above corresponds to breakpoints
 
   struct InstPartial {    // 92 bytes in total
@@ -158,13 +168,23 @@ public:
     uint16_t variation[128];  // All models have 128 x 128 variation table
   };
 
-  int get_instruments(std::vector<Instrument> &instruments);
-  int get_partials(std::vector<Partial> &partials);
-  int get_samples(std::vector<Sample> &samples);
-  int get_variations(std::vector<Variation> &variations);
-  int get_drumSet(std::vector<DrumSet> &drumSets);
-
   int dump_demo_songs(std::string path);
+
+  inline struct Instrument& instrument(int i) { return _instruments[i]; }
+  inline struct Partial& partial(int p) { return _partials[p]; }
+  inline struct Sample& sample(int s) { return _samples[s]; }
+  inline struct Variation& variation(int v) { return _variations[v]; }
+  inline struct DrumSet& drumSet(int ds) { return _drumSets[ds]; }
+
+  inline int numSampleSets(void) { return _samples.size(); }
+
+private:
+  std::vector<Instrument> _instruments;
+  std::vector<Partial> _partials;
+  std::vector<Sample> _samples;
+  std::vector<Variation> _variations;
+  std::vector<DrumSet> _drumSets;
+
 };
 
 

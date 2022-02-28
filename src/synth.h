@@ -56,21 +56,6 @@ private:
   };
   enum Mode _mode;
 
-  enum Model {
-    model_VSC,
-    model_SC55,
-    model_SC55mkII,
-    model_SC88,
-    model_SC88Pro
-  };
-  enum Model _model;
-
-  // Effects that relates to MIDI channels
-  struct effect {
-    float pitchbend;
-    //  float _pressure[16];
-  };
-
   // System function settings
   struct System {
     bool rxInstChg;           // Off / On. Default On
@@ -85,7 +70,6 @@ private:
   };
   struct System _system;
 
-  struct std::vector<effect> _effects;
   struct std::vector<Part> _parts;
 
   struct std::vector<ControlRom::Instrument> _instruments;
@@ -94,15 +78,12 @@ private:
   struct std::vector<ControlRom::DrumSet> _drumSets;
   struct std::vector<ControlRom::Variation> _variations;
 
-  bool _dump_rom_data(std::string rootPath);
-  int _export_sample_24(std::vector<int32_t> &sampleSet, std::string filename);
-
-  uint16_t _get_instrument_from_variations(int bank, int preset);
+// int _export_sample_24(std::vector<int32_t> &sampleSet, std::string filename);
 
   Synth();
   
  public:
-  Synth(Config &config);
+  Synth(Config &config, ControlRom &cRom, PcmRom &pRom);
   ~Synth();
 
   void midi_input(struct MidiInput::MidiEvent *midiEvent);

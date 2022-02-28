@@ -27,28 +27,27 @@
 #include <iostream>
 
 
-PcmRom::PcmRom(Config &config)
+PcmRom::PcmRom(std::vector<std::string> romPath, ControlRom &ctrlRom)
 {
-  for (int i = 1; i <= 3; i++ ) {
-    std::string romName = "pcm_rom_" + std::to_string(i);
-    std::string romPath = config.get(romName);
-    std::ifstream romFile(romPath, std::ios::binary | std::ios::in);
+  std::vector<char> romData;
+
+  if (romPath.empty())
+    throw (Ex(-1, "No PCM Rom file specified"));
+
+  for (int i = 1; i < 4; i++ ) {
+    std::ifstream romFile(romPath[i-1], std::ios::binary | std::ios::in);
     if (!romFile.is_open()) {
-      throw(Ex(-1,"Unable to open PCM ROM file: " + romPath));
+      throw(Ex(-1,"Unable to open PCM ROM file: " + romPath[i-1]));
     }
-    
-    if (config.verbose()) {
-      std::cout << "EmuSC: Sucsessfully opened " << std::to_string(i)
-		<< ". PCM ROM file " << romPath << std::endl;
-    }
+
     std::vector<char> encBuf((std::istreambuf_iterator<char>(romFile)),
 			     std::istreambuf_iterator<char>());
-    int offset = _romData.size();
-    _romData.resize(_romData.size() + encBuf.size());
+    int offset = romData.size();
+    romData.resize(romData.size() + encBuf.size());
 
     int j = 0;
     for (auto it = std::begin(encBuf); it != std::end(encBuf); ++it) {
-      _romData[_unscramble_pcm_rom_address(j) + offset] =
+      romData[_unscramble_pcm_rom_address(j) + offset] =
 	j >= 0x20 ? _unscramble_pcm_rom_data(encBuf[j]) : encBuf[j];
       j++;
     }
@@ -56,9 +55,15 @@ PcmRom::PcmRom(Config &config)
     romFile.close();
   }
 
+  // Read through the entire memory and extract sample sets
+  for (int i = 0; i < ctrlRom.numSampleSets(); i ++)
+    _read_samples(romData,
+		  ctrlRom.sample(i).address,
+		  ctrlRom.sample(i).sampleLen);
+
   std::cout << "EmuSC: PCM ROM(s) found and decrypted [version="
-	    << std::string(&_romData[0x1c], 4) << " date="
-	    << std::string(&_romData[0x30], 10) << "]" << std::endl;
+	    << std::string(&romData[0x1c], 4) << " date="
+	    << std::string(&romData[0x30], 10) << "]" << std::endl;
 }
 
 
@@ -98,24 +103,7 @@ int8_t PcmRom::_unscramble_pcm_rom_data(int8_t byte)
 }
 
 
-int PcmRom::dump_rom(std::string path)
-{
-  std::ofstream ofs(path, std::ios::out | std::ios::binary);
-
-  if (_romData.empty())
-    return -1;
-  
-  ofs.write(reinterpret_cast<char*>(&_romData[0]),
-	    _romData.size() * sizeof(_romData[0]));
-  ofs.close();
-
-  std::cout << "EmuSC: Decoded PCM ROM written to " << path << std::endl;
-
-  return 0;
-}
-
-
-int PcmRom::get_samples(std::vector<int32_t> *samples, uint32_t address,int len)
+int PcmRom::_read_samples(std::vector<char> romData, uint32_t address, uint16_t length)
 {
   uint32_t bank = 0;
   switch ((address & 0x700000) >> 20)
@@ -130,17 +118,21 @@ int PcmRom::get_samples(std::vector<int32_t> *samples, uint32_t address,int len)
 
   // Finally the correct address inside the ROM
   uint32_t romAddress = (address & 0xFFFFF) | bank;
-  
-  for (int i = 0; i < len; i++) {
+
+  struct Samples s;
+
+  for (int i = 0; i < length; i++) {
     uint32_t sAddress = romAddress + i;
-    int8_t data = _romData[sAddress];
-    uint8_t sByte = _romData[((sAddress & 0xFFFFF) >> 5)|(sAddress & 0xF00000)];
+    int8_t data = romData[sAddress];
+    uint8_t sByte = romData[((sAddress & 0xFFFFF) >> 5)|(sAddress & 0xF00000)];
     uint8_t sNibble = (sAddress & 0x10) ? (sByte >> 4 ) : (sByte & 0x0F);
     int32_t final = ((data << sNibble) << 14); // Shift nibbles th}
     final = final >> 1;       // FIXME: works most of the time, need compressor?
 
-    samples->push_back(final);
+    s.samples.push_back(final);
   }
 
-  return samples->size();
+  _sampleSets.push_back(s);
+
+  return s.samples.size();
 }

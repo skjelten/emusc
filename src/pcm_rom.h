@@ -25,27 +25,35 @@
 
 
 #include "config.h"
+#include "control_rom.h"
 
 #include <string>
 #include <vector>
+
+#include <stdint.h>
 
 
 class PcmRom
 {
 private:
-  std::vector<char> _romData;
-  
+  struct Samples {
+    std::vector<int32_t> samples;    // All samples stored in 24 bit 32kHz mono
+    std::vector<float> fsamples;     // 32 bit float, 32kHz, mono
+  };
+  std::vector<struct Samples> _sampleSets;
+
   uint32_t _unscramble_pcm_rom_address(uint32_t address);
   int8_t   _unscramble_pcm_rom_data(int8_t byte);
 
+  int _read_samples(std::vector<char> rom, uint32_t address, uint16_t length);
+
   PcmRom();
-  
+
 public:
-  PcmRom(Config &config);
+  PcmRom(std::vector<std::string> romPath, ControlRom &ctrlRom);
   ~PcmRom();
 
-  int dump_rom(std::string path);
-  int get_samples(std::vector<int32_t> *samples, uint32_t address, int len);
+  inline struct Samples& samples(uint16_t ss) { return _sampleSets[ss]; }
 
 };
 

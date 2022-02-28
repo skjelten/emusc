@@ -30,23 +30,34 @@
 #include <iomanip>
 
 
-ControlRom::ControlRom(Config &config)
-  : _config(config)
+ControlRom::ControlRom(std::string romPath, int verbose)
+  : _romPath(romPath),
+    _verbose(verbose)
 {
-  std::string romPath = config.get("control_rom");
   std::ifstream romFile(romPath, std::ios::binary | std::ios::in);
-  if (!romFile.is_open()) {
+  if (!romFile.is_open())
     throw(Ex(-1,"Unable to open control ROM: " + romPath));
-  }
 
-  _romData.assign((std::istreambuf_iterator<char>(romFile)),
-		   std::istreambuf_iterator<char>());
+  if (_identify_model(romFile))
+    throw(Ex(-1,"Unknown control ROM file!"));
+
+  // Read internal data structures from ROM file
+  _read_instruments(romFile);
+  _read_partials(romFile);
+  _read_samples(romFile);
+  _read_variations(romFile);
+  _read_drum_sets(romFile);
 
   romFile.close();
 
-  if (_identify_model()) {
-    throw(Ex(-1,"Unknown control ROM file! Terminating."));
-  }
+  std::cout << "EmuSC: " << _model << " control ROM found [version=" << _version
+	    << " date=" << _date << "]" << std::endl;
+
+  if (verbose)
+    std::cout << "EmuSC: Found " << _instruments.size() << " instruments, "
+	      << _partials.size() << " parts, "
+	      << _samples.size() << " samples and "
+	      << _drumSets.size() << " drum sets" << std::endl;
 }
 
 
@@ -101,33 +112,32 @@ uint32_t ControlRom::_native_endian_4bytes_uint32(uint8_t *ptr)
 }
 
 
-int ControlRom::_identify_model(void)
+int ControlRom::_identify_model(std::ifstream &romFile)
 {
-  std::string model;
-  std::string version;
-  std::string date;
+  char data[32];
 
   // Search for SC-55 control ROM files
-  if (!strncmp((char *) &_romData[0xf380], "Ver", 3)) {
-    _synthModel = sm_SC55;
-    model.assign("SC-55");
-    version.assign((char *) &_romData[0xf383], 4); 
-    date.assign((char *) &_romData[0xf398], 14); 
+  romFile.seekg(0xf380);
+  romFile.read(data, 29);
+  if (!strncmp(data, "Ver", 3)) {
+    _version.assign(&data[3], 4);
+    _date.assign(&data[24], 5);
+    _model.assign("SC-55");
+    synthModel = sm_SC55;
   }
 
   // Search for SC-55mkII control ROM files
-  if (!strncmp((char *)&_romData[0x3d148], "GS-28 VER=2.00  SC", 18)) {
-    _synthModel = sm_SC55mkII;
-    model.assign("SC-55mkII");
-    version.assign("2.00");
-    date.assign("?");
+  romFile.seekg(0x3d148);
+  romFile.read(data, 18);
+  if (!strncmp(&data[0], "GS-28 VER=2.00  SC", 18)) {
+    _version.assign("2.00");
+    _date.assign("?");
+    _model.assign("SC-55mkII");
+    synthModel = sm_SC55mkII;
   }
 
-  if (model.empty())         // No valid ROM file found    TODO: SC88 ??
+  if (_model.empty())         // No valid ROM file found    TODO: SC88 ??
     return -1;
-  
-  std::cout << "EmuSC: " << model << " control ROM found [version=" << version
-	    << " date=" << date << "]" << std::endl;
 
   return 0;
 }
@@ -135,11 +145,8 @@ int ControlRom::_identify_model(void)
 
 uint32_t *ControlRom::_get_banks(void)
 {
-  switch(_synthModel)
+  switch(synthModel)
     {
-    case sm_VSC:
-      return _banksVSC;
-        
     case sm_SC55:
     case sm_SC55mkII:                   // Are these banks actually the same?
       return _banksSC55;
@@ -153,7 +160,7 @@ uint32_t *ControlRom::_get_banks(void)
 
 
 // Note: instrument partials (instPartial) contains 90 unused bytes! ADSR?
-int ControlRom::get_instruments(std::vector<Instrument> &instruments)
+int ControlRom::_read_instruments(std::ifstream &romFile)
 {
   // ROM is split in 8 banks
   uint32_t *banks = _get_banks();
@@ -165,24 +172,33 @@ int ControlRom::get_instruments(std::vector<Instrument> &instruments)
     if (x == banks[1])
       x = banks[3];
 
+    char data[12];
+    romFile.seekg(x);
     struct Instrument i;
 
     // First 12 bytes are the instrument name
-    i.name.assign((char *)&_romData[x], 12); 
+    romFile.read(data, 12);
+    i.name.assign(data , 12);
     i.name.erase(std::find_if(i.name.rbegin(), i.name.rend(),
 			      std::bind1st(std::not_equal_to<char>(),
 					   ' ')).base(), i.name.end());
 
     // Partial indexes has bank position 34 & 126
-    i.partials[0].partialIndex = _native_endian_uint16(&_romData[x + 34]);
-    i.partials[1].partialIndex = _native_endian_uint16(&_romData[x + 126]);
+    romFile.seekg(x + 34);
+    romFile.read(data, 2);
+    i.partials[0].partialIndex = _native_endian_uint16((uint8_t *) data);
+    romFile.seekg(x + 126);
+    romFile.read(data, 2);
+    i.partials[1].partialIndex = _native_endian_uint16((uint8_t *) data);
 
     // Skip empty slots in the ROM file that has no instrument name
     if (i.name[0]) {
-      instruments.push_back(i);
+      _instruments.push_back(i);
 
-      if (_config.verbose())
-	std::cout << "  -> Instrument " << instruments.size() << ": " << i.name
+      if (_verbose)
+	std::cout << "  -> Instrument " << _instruments.size() << ": " << i.name
+		  << " partial0=" << (int) i.partials[0].partialIndex
+		  << " partial1=" << (int) i.partials[1].partialIndex
 		  << std::endl;
     }
   }
@@ -191,7 +207,7 @@ int ControlRom::get_instruments(std::vector<Instrument> &instruments)
 }
 
 
-int ControlRom::get_partials(std::vector<Partial> &partials)
+int ControlRom::_read_partials(std::ifstream &romFile)
 {
   // ROM is split in 8 banks
   uint32_t *banks = _get_banks();
@@ -203,28 +219,34 @@ int ControlRom::get_partials(std::vector<Partial> &partials)
     if (x == banks[2])
       x = banks[4];
 
+    char data[32];
+    romFile.seekg(x);
     struct Partial p;
 
-    p.name.assign((char *)&_romData[x], 12);
+    // First 12 bytes are the partial name
+    romFile.read(data, 12);
+    p.name.assign(data, 12);
     p.name.erase(std::find_if(p.name.rbegin(), p.name.rend(),
 			      std::bind1st(std::not_equal_to<char>(),
 					   ' ')).base(), p.name.end());
-    
+
     // 16 byte array of break values for tone pitch
+    romFile.read(data, 16);
     for (int i = 0; i < 16; i++)
-      p.breaks[i] = _romData[x + 12 + i];
+      p.breaks[i] = data[i];
 
     // 16 2-byte array with accompanying sample IDs
+    romFile.read(data, 32);
     for (int i = 0; i < 16; i++)
-      p.samples[i] = _native_endian_uint16(&_romData[x + 28 + (2 * i)]);
+      p.samples[i] = _native_endian_uint16((uint8_t *) &data[2 * i]);
 
 
     // Skip empty slots in the ROM file that has no partial name
     if (p.name[0]) {
-      partials.push_back(p);
+      _partials.push_back(p);
 
-      if (_config.verbose())
-	std::cout << "  -> Partial group " << partials.size() <<  ": "
+      if (_verbose)
+	std::cout << "  -> Partial group " << _partials.size() <<  ": "
 		  << p.name << std::endl;
     }
   }
@@ -233,7 +255,44 @@ int ControlRom::get_partials(std::vector<Partial> &partials)
 }
 
 
-int ControlRom::get_samples(std::vector<Sample> &samples)
+int ControlRom::_read_variations(std::ifstream &romFile)
+{
+  // ROM is split in 8 banks
+  uint32_t *banks = _get_banks();
+
+  // Variations are in bank 6, a table of 128 x 128 2 byte values
+  for (int32_t x = banks[6]; x < (banks[7] - 128); x += 256) {
+
+    char data[2];
+    romFile.seekg(x);
+    struct Variation v;
+
+    for (int y = 0; y < 128; y++) {
+      romFile.read(data, 2);
+      v.variation[y] = _native_endian_uint16((uint8_t *) &data[0]);
+    }
+
+    _variations.push_back(v);
+  }
+
+  if (_verbose) {
+    int i = 0;
+    for (struct Variation v : _variations) {
+      std::cout << "  -> Variations " << i++ << ": ";
+      for (int y = 0; y < 128; y++)
+	if (v.variation[y] == 0xffff)
+	  std::cout << "-,";
+	else
+	  std::cout << v.variation[y] << ",";
+      std::cout << '\b' << " " << std::endl;
+    }
+  }
+
+  return 0;
+}
+
+
+int ControlRom::_read_samples(std::ifstream &romFile)
 {
   // ROM is split in 8 banks
   uint32_t *banks = _get_banks();
@@ -245,23 +304,26 @@ int ControlRom::get_samples(std::vector<Sample> &samples)
     if (x == banks[3])
       x = banks[5];
 
+    char data[16];
+    romFile.seekg(x);
     struct Sample s;
 
-    s.volume = _romData[x];
-    s.address = _native_endian_3bytes_uint32(&_romData[x + 1]);
-    s.attackEnd = _native_endian_uint16(&_romData[x + 4]);
-    s.sampleLen = _native_endian_uint16(&_romData[x + 6]);
-    s.loopLen = _native_endian_uint16(&_romData[x + 8]);
-    s.loopMode = _romData[x + 10];
-    s.rootKey = _romData[x + 11];
-    s.pitch = _native_endian_uint16(&_romData[x + 12]);
-    s.fineVolume = _native_endian_uint16(&_romData[x + 14]);
+    romFile.read(data, 16);
+    s.volume = data[0];
+    s.address = _native_endian_3bytes_uint32((uint8_t *) &data[1]);
+    s.attackEnd = _native_endian_uint16((uint8_t *) &data[4]);
+    s.sampleLen = _native_endian_uint16((uint8_t *) &data[6]);
+    s.loopLen = _native_endian_uint16((uint8_t *) &data[8]);
+    s.loopMode = data[10];
+    s.rootKey = data[11];
+    s.pitch = _native_endian_uint16((uint8_t *) &data[12]);
+    s.fineVolume = _native_endian_uint16((uint8_t *) &data[14]);
     
     if (s.sampleLen) {                          // Ignore empty parts
-      samples.push_back(s);
+      _samples.push_back(s);
       
-      if (_config.verbose()) {
-	std::cout << "  -> Sample " << std::setw(3) << samples.size()
+      if (_verbose)
+	std::cout << "  -> Sample " << std::setw(3) << _samples.size()
 		  << ": V=" << std::setw(3) << +s.volume
 		  << " AE=" << std::setw(5) << +s.attackEnd
 		  << " SL=" << std::setw(5) << +s.sampleLen
@@ -271,7 +333,6 @@ int ControlRom::get_samples(std::vector<Sample> &samples)
 		  << " P="  << std::setw(5) << +s.pitch - 1024
 		  << " FV=" << std::setw(4) << +s.fineVolume - 1024
 		  << std::endl;
-      }
     }
   }
   
@@ -279,40 +340,7 @@ int ControlRom::get_samples(std::vector<Sample> &samples)
 }           
 
 
-int ControlRom::get_variations(std::vector<Variation> &variations)
-{
-  // ROM is split in 8 banks
-  uint32_t *banks = _get_banks();
-
-  // Variations are in bank 6, a table of 128 x 128 2 byte values
-  for (int32_t x = banks[6]; x < (banks[7] - 128); x += 256) {
-
-    struct Variation v;
-    for (int y = 0; y < 128; y++) {
-      v.variation[y] = _native_endian_uint16(&_romData[x + (2 * y)]);
-    }
-
-    variations.push_back(v);
-  }
-
-  if (0) { //_config.verbose()) {
-    int i = 0;
-    for (struct Variation v : variations) {
-      std::cout << "  -> Variations " << i++ << ": ";
-      for (int y = 0; y < 128; y++)
-	if (v.variation[y] == 0xffff)
-	  std::cout << "-,";
-	else
-	  std::cout << v.variation[y] << ",";
-      std::cout << '\b' << " " << std::endl;
-    }
-  }
-  
-  return 0;
-}
-
-
-int ControlRom::get_drumSet(std::vector<DrumSet> &drums)
+int ControlRom::_read_drum_sets(std::ifstream &romFile)
 {
   // ROM is split in 8 banks
   uint32_t *banks = _get_banks();
@@ -320,32 +348,39 @@ int ControlRom::get_drumSet(std::vector<DrumSet> &drums)
   // The drum set is in bank 7, a total of 14 drums in 1164 byte blocks 
   for (int32_t x = banks[7]; x < 0x03c028; x += 1164) {
 
+    char data[128];
+    romFile.seekg(x);
     struct DrumSet d;
 
-    for (int i = 0; i < 128; i++)
-      d.preset[i] = _native_endian_uint16(&_romData[x + (i * 2)]);
+    // First array is 16 bit instrument reference
+    for (int i = 0; i < 128; i++) {
+      romFile.read(data, 2);
+      d.preset[i] = _native_endian_uint16((uint8_t *) &data[0]);
+    }
 
-    std::memcpy(d.volume,      &_romData[x +  256], 128);
-    std::memcpy(d.key,         &_romData[x +  384], 128);
-    std::memcpy(d.assignGroup, &_romData[x +  512], 128);
-    std::memcpy(d.panpot,      &_romData[x +  640], 128);
-    std::memcpy(d.reverb,      &_romData[x +  768], 128);
-    std::memcpy(d.chorus,      &_romData[x +  896], 128);
-    std::memcpy(d.flags,       &_romData[x + 1024], 128);
+    // Next 7 arrays are 8 bit data
+    romFile.read((char *) d.volume, 128);
+    romFile.read((char *) d.key, 128);
+    romFile.read((char *) d.assignGroup, 128);
+    romFile.read((char *) d.panpot, 128);
+    romFile.read((char *) d.reverb, 128);
+    romFile.read((char *) d.chorus, 128);
+    romFile.read((char *) d.flags, 128);
     
     // Last 12 bytes are the drum name
-    d.name.assign((char *) &_romData[x + 1152], 12); 
+    romFile.read(data, 12);
+    d.name.assign(data, 12);
     d.name.erase(std::find_if(d.name.rbegin(), d.name.rend(),
 			      std::bind1st(std::not_equal_to<char>(),
 					   ' ')).base(), d.name.end());
-    drums.push_back(d);
+    _drumSets.push_back(d);
 
-    if (_config.verbose())
-      std::cout << "  -> Drum " << drums.size() << ": " << d.name
+    if (_verbose)
+      std::cout << "  -> Drum " << _drumSets.size() << ": " << d.name
 		<< std::endl;
   }
 
-  return 0;
+  return _drumSets.size();
 }
 
 
@@ -353,25 +388,37 @@ int ControlRom::dump_demo_songs(std::string path)
 {
   int index = 1;
   std::cout << "EmuSC: Searching for MIDI songs in control ROM" << std::endl;
-  
-  for (uint32_t i = 0; i < _get_banks()[0] - 6; i++) {
-    if (_romData[i + 0] == 0x4d &&
-	_romData[i + 1] == 0x54 &&
-	_romData[i + 2] == 0x68 &&
-	_romData[i + 3] == 0x64 &&
-	_romData[i + 4] == 0x00 &&
-	_romData[i + 5] == 0x00 &&
-	_romData[i + 6] == 0x00 &&
-	_romData[i + 7] == 0x06) {
 
-      uint16_t numTracks = _native_endian_uint16(&_romData[i+10]);
+  std::ifstream romFile(_romPath, std::ios::binary | std::ios::in);
+  if (!romFile.is_open()) {
+    std::cerr << "Unable to open control ROM: " << _romPath << std::endl;
+    return -1;
+  }
+
+  // MIDI files are placed between the start of the ROM and the first bank
+  int romSize = _get_banks()[0];
+  std::vector<uint8_t> romData(romSize);
+  romFile.read((char*) &romData[0], romSize);
+  romFile.close();
+  
+  for (uint32_t i = 0; i < romSize - 6; i++) {
+    if (romData[i + 0] == 0x4d &&
+	romData[i + 1] == 0x54 &&
+	romData[i + 2] == 0x68 &&
+	romData[i + 3] == 0x64 &&
+	romData[i + 4] == 0x00 &&
+	romData[i + 5] == 0x00 &&
+	romData[i + 6] == 0x00 &&
+	romData[i + 7] == 0x06) {
+
+      uint16_t numTracks = _native_endian_uint16(&romData[i+10]);
       uint32_t fileSize = 14;
       for (int n = 0; n < numTracks; n++) {
-	if (_romData[i + fileSize] == 0x4d &&
-	    _romData[i + fileSize + 1] == 0x54 &&
-	    _romData[i + fileSize + 2] == 0x72 &&
-	    _romData[i + fileSize + 3] == 0x6b) {
-	  fileSize += _native_endian_4bytes_uint32(&_romData[i + fileSize + 4]);
+	if (romData[i + fileSize] == 0x4d &&
+	    romData[i + fileSize + 1] == 0x54 &&
+	    romData[i + fileSize + 2] == 0x72 &&
+	    romData[i + fileSize + 3] == 0x6b) {
+	  fileSize += _native_endian_4bytes_uint32(&romData[i + fileSize + 4]);
 	  fileSize += 8;                                    // Add track header
 	} else {
 	  return -1;
@@ -384,7 +431,7 @@ int ControlRom::dump_demo_songs(std::string path)
       std::string fileName = "sc_song_" + std::to_string(index++) + ".mid";
 
       std::ofstream midiFile(path + fileName, std::ios::out | std::ios::binary);
-      midiFile.write((char*) &_romData[i], fileSize);
+      midiFile.write((char*) &romData[i], fileSize);
       if (midiFile.good())
 	std::cout << " -> Found demo song at 0x" << std::hex << i
 		  << " (" << std::dec << (int) fileSize << " bytes)"
