@@ -62,13 +62,14 @@ Part::Part(uint8_t id, uint8_t mode, uint8_t type,
     _mode = 1;
 
   // Drum sets as defined inn owner's manual
+  // TODO: Take into account which mode is set in addition to actual ROM files
   if (ctrlRom.synthModel == ControlRom::sm_SC55 ||
       ctrlRom.synthModel == ControlRom::sm_SC55mkII)
-    _drumSetBanks.assign({0,8,16,24,25,32,40,48,56,57,58,59,60,127});
+    _drumSetBanks = ctrlRom.get_drum_set_banks(ControlRom::sm_SC55);
   else if (ctrlRom.synthModel == ControlRom::sm_SC88)
-    _drumSetBanks.assign({0,1,8,16,24,25,26,32,40,48,49,50,56,57,58,59,60,127});
+    _drumSetBanks = ctrlRom.get_drum_set_banks(ControlRom::sm_SC88);
   else if (ctrlRom.synthModel == ControlRom::sm_SC88Pro)
-    _drumSetBanks.assign({0,1,2,8,9,10,11,16,24,25,26,27,28,29,30,31,32,40,48,49,50,52,53,56,57,58,59,60,127});
+    _drumSetBanks = ctrlRom.get_drum_set_banks(ControlRom::sm_SC88Pro);
 }
 
 

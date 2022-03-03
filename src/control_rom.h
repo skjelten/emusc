@@ -27,6 +27,7 @@
 #include "config.h"
 
 #include <fstream>
+#include <list>
 #include <string>
 #include <vector>
 
@@ -45,6 +46,10 @@ private:
   int _verbose;
 
   uint32_t _banksSC55[8] = { 0x10000, 0x1BD00, 0x1DEC0, 0x20000,
+                             0x2BD00, 0x2DEC0, 0x30000, 0x38080 };
+
+  // Only a placeholder, SC-88 layout is currently unkown
+  uint32_t _banksSC88[8] = { 0x10000, 0x1BD00, 0x1DEC0, 0x20000,
                              0x2BD00, 0x2DEC0, 0x30000, 0x38080 };
 
   int _identify_model(std::ifstream &romFile);
@@ -168,6 +173,7 @@ public:
     uint16_t variation[128];  // All models have 128 x 128 variation table
   };
 
+  std::list<int> get_drum_set_banks(enum SynthModel mode);
   int dump_demo_songs(std::string path);
 
   inline struct Instrument& instrument(int i) { return _instruments[i]; }

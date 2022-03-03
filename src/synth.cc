@@ -184,7 +184,7 @@ void Synth::midi_input(struct MidiInput::MidiEvent *midiEvent)
 	std::cout << "EmuSC MIDI: Pitchbend [ch=" << (int) midiEvent->channel
 		  << " data=" << (int) midiEvent->data << "]" << std::endl;
       for (auto &p: _parts)
-	p.set_pitchBend(midiEvent->channel, midiEvent->data);      
+	p.set_pitchBend(midiEvent->channel, midiEvent->data);
       break;
 
     case MidiInput::se_ChPressure:                        // Data -8192 <-> 8192

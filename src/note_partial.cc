@@ -59,6 +59,7 @@ bool NotePartial::get_next_sample(int32_t *noteSample, float pitchBend)
   if (_sampleDir == 1) {
     if (0)
       std::cout << "-> FW " << std::dec << "pos=" << (int)_samplePos
+		<< " sIndex=" << (int) _sampleIndex
 		<< " sLength=" << (int) _ctrlRom.sample(_sampleIndex).sampleLen
 		<< " lpMode=" << (int) _ctrlRom.sample(_sampleIndex).loopMode
 		<< " lpLength=" << _ctrlRom.sample(_sampleIndex).loopLen
@@ -97,6 +98,7 @@ bool NotePartial::get_next_sample(int32_t *noteSample, float pitchBend)
   } else {   // => _sampleDir == 0
     if (0)
       std::cout << "<- BW " << std::dec << "pos=" << (int) _samplePos
+		<< " sIndex=" << (int) _sampleIndex
 		<< " length=" << (int) _ctrlRom.sample(_sampleIndex).sampleLen 
 		<< std::endl;
 

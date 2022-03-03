@@ -32,27 +32,46 @@ PcmRom::PcmRom(std::vector<std::string> romPath, ControlRom &ctrlRom)
   std::vector<char> romData;
 
   if (romPath.empty())
-    throw (Ex(-1, "No PCM Rom file specified"));
+    throw (Ex(-1, "No PCM ROM file specified"));
 
-  for (int i = 1; i < 4; i++ ) {
-    std::ifstream romFile(romPath[i-1], std::ios::binary | std::ios::in);
+  for (auto rp : romPath) {
+    std::ifstream romFile(rp, std::ios::binary | std::ios::in);
     if (!romFile.is_open()) {
-      throw(Ex(-1,"Unable to open PCM ROM file: " + romPath[i-1]));
+      throw(Ex(-1,"Unable to open PCM ROM file: " + rp));
     }
 
     std::vector<char> encBuf((std::istreambuf_iterator<char>(romFile)),
 			     std::istreambuf_iterator<char>());
-    int offset = romData.size();
+
+    if (!(encBuf.size() == 0x100000 || encBuf.size() == 0x200000)) {
+      throw (Ex(-1, "Incorrect file size of PCM ROM file " + rp +
+		". PCM ROM files are always either 1MB or 2MB"));
+    }
+
+    uint32_t offset = romData.size();
     romData.resize(romData.size() + encBuf.size());
 
-    int j = 0;
-    for (auto it = std::begin(encBuf); it != std::end(encBuf); ++it) {
-      romData[_unscramble_pcm_rom_address(j) + offset] =
-	j >= 0x20 ? _unscramble_pcm_rom_data(encBuf[j]) : encBuf[j];
-      j++;
+    // TODO: Add support for decoding SC-88 ROMs
+    for (uint32_t i = 0; i < 0x100000; i++) {
+      romData[_unscramble_pcm_rom_address(i) + offset] =
+	i >= 0x20 ? _unscramble_pcm_rom_data(encBuf[i]) : encBuf[i];
+    }
+
+    if (encBuf.size() == 0x200000) {
+      offset += 0x100000;
+      for (uint32_t i = 0; i < 0x100000; i++) {
+	romData[_unscramble_pcm_rom_address(i) + offset] =
+	  i >= 0x20 ? _unscramble_pcm_rom_data(encBuf[i + offset]) : encBuf[i + offset];
+      }
     }
 
     romFile.close();
+  }
+
+  if (0) {  // Dump complete ROM to file
+    std::ofstream dump("/tmp/pcm_rom_mk2.bin", std::ios::binary);
+    dump.write(&romData[0], romData.size());
+    dump.close();
   }
 
   // Read through the entire memory and extract sample sets

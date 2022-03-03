@@ -41,6 +41,10 @@ ControlRom::ControlRom(std::string romPath, int verbose)
   if (_identify_model(romFile))
     throw(Ex(-1,"Unknown control ROM file!"));
 
+  // Temporarily block SC-88 ROMs since we don't know how to read them yet
+  if (_model == "SC-88")
+    throw(Ex(-1,"SC-88 ROM files are not supported yet!"));
+
   // Read internal data structures from ROM file
   _read_instruments(romFile);
   _read_partials(romFile);
@@ -128,12 +132,29 @@ int ControlRom::_identify_model(std::ifstream &romFile)
 
   // Search for SC-55mkII control ROM files
   romFile.seekg(0x3d148);
-  romFile.read(data, 18);
+  romFile.read(data, 24);
   if (!strncmp(&data[0], "GS-28 VER=2.00  SC", 18)) {
-    _version.assign("2.00");
+    romFile.seekg(0xfff0);
+    romFile.read(data, 4);
+    _version.assign(data, 4);
     _date.assign("?");
     _model.assign("SC-55mkII");
     synthModel = sm_SC55mkII;
+  } else if (!strncmp(&data[0], "GS-28 VER=2.00  LCGS-3", 22)) {
+    _version.assign("?");
+    _date.assign("?");
+    _model.assign("SCB-55 (SC-55mkII)");
+    synthModel = sm_SC55mkII;
+  }
+
+  // Search for SC-88 control ROM files
+  romFile.seekg(0x7fc0);
+  romFile.read(data, 24);
+  if (!strncmp(&data[0], "GS-64 VER=3.00  SC-88   ", 24)) {
+    _version.assign("?");
+    _date.assign("?");
+    _model.assign("SC-88");
+    synthModel = sm_SC88;
   }
 
   if (_model.empty())         // No valid ROM file found    TODO: SC88 ??
@@ -148,11 +169,11 @@ uint32_t *ControlRom::_get_banks(void)
   switch(synthModel)
     {
     case sm_SC55:
-    case sm_SC55mkII:                   // Are these banks actually the same?
+    case sm_SC55mkII:
       return _banksSC55;
       
-      case sm_SC88:                     // No work has been done here yet
-	return 0;
+    case sm_SC88:                       // No work has been done here yet
+      return _banksSC88;
     }
 
   return 0;
@@ -239,7 +260,6 @@ int ControlRom::_read_partials(std::ifstream &romFile)
     romFile.read(data, 32);
     for (int i = 0; i < 16; i++)
       p.samples[i] = _native_endian_uint16((uint8_t *) &data[2 * i]);
-
 
     // Skip empty slots in the ROM file that has no partial name
     if (p.name[0]) {
@@ -373,6 +393,11 @@ int ControlRom::_read_drum_sets(std::ifstream &romFile)
     d.name.erase(std::find_if(d.name.rbegin(), d.name.rend(),
 			      std::bind1st(std::not_equal_to<char>(),
 					   ' ')).base(), d.name.end());
+
+    // Ignore undocumented drum sets and unused memory slots
+    if ((d.name.rfind("AC.", 0) == 0) || data[0] < 0)
+      continue;
+
     _drumSets.push_back(d);
 
     if (_verbose)
@@ -381,6 +406,18 @@ int ControlRom::_read_drum_sets(std::ifstream &romFile)
   }
 
   return _drumSets.size();
+}
+
+
+std::list<int> ControlRom::get_drum_set_banks(enum SynthModel model)
+{
+  if (model == sm_SC55 || model == sm_SC55mkII)
+    return std::list<int> ({0, 8, 16, 24, 25, 32, 40, 48, 56, 127});
+  else if (model == sm_SC88)
+    return std::list<int> ({0, 1, 8, 16, 24, 25, 26, 32, 40, 48, 49, 50,56,57});
+  else  // model == sm_SC88Pro
+    return std::list<int> ({0, 1, 2, 8, 9, 10, 11, 16, 24, 25, 26, 27, 28, 29,
+	30, 31, 32, 40, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57,58,59,60,61,62});
 }
 
 
@@ -395,13 +432,28 @@ int ControlRom::dump_demo_songs(std::string path)
     return -1;
   }
 
-  // MIDI files are placed between the start of the ROM and the first bank
-  int romSize = _get_banks()[0];
-  std::vector<uint8_t> romData(romSize);
+  // MIDI files are placed at different places in the ROM depending on model
+  int romIndex;
+  int romSize;
+  if (synthModel == sm_SC55) {
+    romIndex = 0;
+    romSize = _get_banks()[0];
+  } else if (synthModel == sm_SC55mkII) {
+    romIndex = 0x03fff0;
+    romFile.seekg(0, std::ios::end);
+    romSize = romFile.tellg();
+  } else {          // Unkown structures for SC-88, just read entire ROM
+    romIndex = 0;
+    romFile.seekg(0, std::ios::end);
+    romSize = romFile.tellg();
+  }
+
+  std::vector<uint8_t> romData(romSize - romIndex);
+  romFile.seekg(romIndex);
   romFile.read((char*) &romData[0], romSize);
   romFile.close();
-  
-  for (uint32_t i = 0; i < romSize - 6; i++) {
+
+  for (uint32_t i = 0; i < romData.size() - 6; i++) {
     if (romData[i + 0] == 0x4d &&
 	romData[i + 1] == 0x54 &&
 	romData[i + 2] == 0x68 &&
@@ -433,7 +485,7 @@ int ControlRom::dump_demo_songs(std::string path)
       std::ofstream midiFile(path + fileName, std::ios::out | std::ios::binary);
       midiFile.write((char*) &romData[i], fileSize);
       if (midiFile.good())
-	std::cout << " -> Found demo song at 0x" << std::hex << i
+	std::cout << " -> Found demo song at 0x" << std::hex << romIndex + i
 		  << " (" << std::dec << (int) fileSize << " bytes)"
 		  << std::endl
 		  << "  -> File written to " << path + fileName << std::endl;

@@ -123,7 +123,7 @@ void run_synth(Config *config)
     ctrlRom = new ControlRom(config->get("control_rom"), config->verbose());
 
     std::vector<std::string> romPath;
-    for (int i = 1; i < 4; i ++) {
+    for (int i = 1; i < 5; i ++) {
       if (!config->get(std::string("pcm_rom_" + std::to_string(i))).empty())
 	romPath.push_back(config->get(std::string("pcm_rom_" +
 						  std::to_string(i))));
