@@ -31,6 +31,9 @@ class MidiInput
 {
 private:
 
+protected:
+  void send_raw_std_msg(Synth *synth, uint8_t status, char data1, char data2);
+
 public:
   MidiInput();
   virtual ~MidiInput() = 0;

@@ -191,10 +191,14 @@ bool Config::_write_default_config(void)
   
   configFile << "# Configuration file for EmuSC\n"
 	     << std::endl
-	     << "# Input system [ alsa | core | keyboard ]\n"
+	     << "# MIDI input system [ alsa | win32 | core | keyboard ]\n"
 	     << "input = alsa\n"
 	     << std::endl
-	     << "# Output system [ alsa | pulse | win32 | core | null ]\n"
+	     << "# MIDI input device [0 .. ]. Specifies MIDI device id (win32 "
+	     << "only)\n"
+	     << "#input_device=0\n"
+	     << std::endl
+	     << "# Audio output system [ alsa | pulse | win32 | core | null ]\n"
 	     << "output = alsa\n"
 	     << std::endl
 	     << "# Output device, e.g. 'default' or 'hw:0.1' for alsa.\n"

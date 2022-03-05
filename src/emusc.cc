@@ -50,6 +50,7 @@
 
 #ifdef __WIN32__
 #include <windows.h>
+#include "midi_input_win32.h"
 #include "audio_output_win32.h"
 #endif
 
@@ -133,12 +134,18 @@ void run_synth(Config *config)
     // Initialize synth
     synth = new Synth(*config, *ctrlRom, *pcmRom);
 
-    // Initialize MIDI input [alsa | core | keyboard]
+    // Initialize MIDI input [ alsa | win32 | core | keyboard ]
     if (config->get("input") == "alsa") {
 #ifdef __ALSA__
       midiInput = new MidiInputAlsa();
 #else
       throw(Ex(-1, "'alsa' MIDI input is missing in this build"));
+#endif
+    } else if (config->get("input") == "win32") {
+#ifdef __WIN32__
+      midiInput = new MidiInputWin32(config, synth);
+#else
+      throw(Ex(-1, "'win32' MIDI input is missing in this build"));
 #endif
     } else if (config->get("input") == "core") {
 #ifdef __CORE__
@@ -152,7 +159,7 @@ void run_synth(Config *config)
     if (!midiInput)
       throw(Ex(-1, "No valid 'input' defined, check configuration file"));
 
-    // Initialize audio output [ alsa | pulse | win32 | core ]
+    // Initialize audio output [ alsa | pulse | win32 | core | null ]
     if (config->get("output") == "alsa") {
 #ifdef __ALSA__
       audioOutput = new AudioOutputAlsa(config);
@@ -210,7 +217,6 @@ void run_synth(Config *config)
   delete pcmRom;
   delete synth;
 }
-
 
 
 int main(int argc, char *argv[])

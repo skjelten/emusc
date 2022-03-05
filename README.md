@@ -18,9 +18,9 @@ In order to emulate the Sound Canvas you need the original control ROM and the P
 ALSA sequencer is needed for MIDI input. Both ALSA and PulseAudio are supported for audio output. Note that PulseAudio has a lot of latency in its default configuration so it is recommended to use ALSA if possible.
 
 ### Windows
-There is currently no support for MIDI input on windows. There is however support for audio output through winmm, but this has limited value without MIDI input (it is possible to do basic audio tests via keyboard commands).
+There is rudimentary support for all modern versions of Windows for both MIDI input and audio output. Windows has however no default MIDI sequencer, so you will either need to have a hardware MIDI port with appropriate device driver, or you will have to use a "virtual loopback MIDI cable" program. There is unfortunately no free software alternative for the latter alternative today, but for example [LoopBe1](https://www.nerds.de/en/loopbe1.html) and [loopMIDI](https://www.nerds.de/en/loopbe1.html) are freely available for non-commercial use.
 
-### MacOSX
+### macOS
 There is rudimentary support for macOS 10.6 and newer for both MIDI input and audio output.
 
 ## Building
@@ -33,7 +33,7 @@ make
 
 A C++17 compiler with support for std::threads is required. Library dependencies depends on which MIDI input and audio output systems that are needed.
 
-Note that Clang is needed for compiling MIDI support on MacOSX.
+Note that Clang is needed for compiling MIDI support on macOS. For ALSA support in Linux you need to have the libasound2-dev package installed.
 
 ## Contribute
 Interested in contributing to this project? All contributions are welcome! Download / fork the source code and have a look. Create an issue if you have any questions (or input / suggestions) and we will do our best to help you out getting the hang of how it all works!
