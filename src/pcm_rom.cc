@@ -22,7 +22,10 @@
 
 #include "pcm_rom.h"
 #include "ex.h"
+#include "riaa_filter.h"
+#include "highpass_filter.h"
 
+#include <cmath>
 #include <fstream>
 #include <iostream>
 
@@ -76,9 +79,7 @@ PcmRom::PcmRom(std::vector<std::string> romPath, ControlRom &ctrlRom)
 
   // Read through the entire memory and extract sample sets
   for (int i = 0; i < ctrlRom.numSampleSets(); i ++)
-    _read_samples(romData,
-		  ctrlRom.sample(i).address,
-		  ctrlRom.sample(i).sampleLen);
+    _read_samples(romData, ctrlRom.sample(i));
 
   std::cout << "EmuSC: PCM ROM(s) found and decrypted [version="
 	    << std::string(&romData[0x1c], 4) << " date="
@@ -122,7 +123,7 @@ int8_t PcmRom::_unscramble_pcm_rom_data(int8_t byte)
 }
 
 
-int PcmRom::_read_samples(std::vector<char> romData, uint32_t address, uint16_t length)
+uint32_t PcmRom::_find_samples_rom_address(uint32_t address)
 {
   uint32_t bank = 0;
   switch ((address & 0x700000) >> 20)
@@ -135,23 +136,36 @@ int PcmRom::_read_samples(std::vector<char> romData, uint32_t address, uint16_t 
 		      std::to_string(address & 0x700000)));
     }
 
-  // Finally the correct address inside the ROM
-  uint32_t romAddress = (address & 0xFFFFF) | bank;
+  return (address & 0xFFFFF) | bank;
+}
+
+
+int PcmRom::_read_samples(std::vector<char> romData, struct ControlRom::Sample &ctrlSample)
+{
+  RiaaFilter rf1(32000, 15); // Gain 28 seems right, but becomes too much later
+  RiaaFilter rf2(32000, 15);
+
+  uint32_t romAddress = _find_samples_rom_address(ctrlSample.address);
 
   struct Samples s;
 
-  for (int i = 0; i < length; i++) {
+  // Read PCM samples from ROM
+  for (int i = 0; i < ctrlSample.sampleLen; i++) {
     uint32_t sAddress = romAddress + i;
     int8_t data = romData[sAddress];
     uint8_t sByte = romData[((sAddress & 0xFFFFF) >> 5)|(sAddress & 0xF00000)];
     uint8_t sNibble = (sAddress & 0x10) ? (sByte >> 4 ) : (sByte & 0x0F);
-    int32_t final = ((data << sNibble) << 14); // Shift nibbles th}
-    final = final >> 1;       // FIXME: works most of the time, need compressor?
+    int32_t final = ((data << sNibble) << 14);
 
-    s.samples.push_back(final);
+    // Move to float and apply 2x RIAA deemphasis filters
+    float ffinal = (float) final / (1 << 31);
+    ffinal = rf1.apply(ffinal);
+    ffinal = rf2.apply(ffinal);
+
+    s.samplesF.push_back(ffinal);
   }
 
   _sampleSets.push_back(s);
 
-  return s.samples.size();
+  return s.samplesF.size();
 }

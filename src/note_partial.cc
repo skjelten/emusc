@@ -49,7 +49,7 @@ void NotePartial::stop(void)
 
 // Pitch is the only variable input for a note's get_next_sample
 // Pitch < 0 => fixed pitch (e.g. for drums)
-bool NotePartial::get_next_sample(int32_t *noteSample, float pitchBend)
+bool NotePartial::get_next_sample(float *noteSample, float pitchBend)
 {
   // 1. Skip this partial if it's not in use
   if  (_ahdsrState == ahdsr_Inactive)
@@ -68,8 +68,10 @@ bool NotePartial::get_next_sample(int32_t *noteSample, float pitchBend)
     // Update partial sample position based on pitch input
     if (_drum)
       _samplePos += 1;
+//	round((double) _ctrlRom.sample(_sampleIndex).pitch - 1024 / 10.0);
     else
       _samplePos += exp(_keyDiff * (log(2)/12)) * (pitchBend + 1);
+//	round((double) _ctrlRom.sample(_sampleIndex).pitch - 1024 / 10.0);
 
     // Check for sample position passing sample boundary
     if (_samplePos >= _ctrlRom.sample(_sampleIndex).sampleLen) {
@@ -131,8 +133,8 @@ bool NotePartial::get_next_sample(int32_t *noteSample, float pitchBend)
   // Final sample for the partial to be sent to audio out
 
   // Temporary samples for LEFT and RIGHT channel
-  int32_t sample[2] = {0, 0};
-  sample[0] = _pcmRom.samples(_sampleIndex).samples[(int)_samplePos];
+  float sample[2] = {0, 0};
+  sample[0] = _pcmRom.samples(_sampleIndex).samplesF[(int)_samplePos];
 
   // Add volume correction for each sample
   // TODO: ADSR volume
@@ -141,22 +143,17 @@ bool NotePartial::get_next_sample(int32_t *noteSample, float pitchBend)
   // WIP
   // Sample volum: 7f - 0
   float scale = 1.0 / 127.;
-  float fsample[2];
-  fsample[0] = (float) sample[0];
   // Fine Volum correction (?):  10^((fineVolume - 0x0400) / 10000)
   float fineVol = powf(10, ((float) _ctrlRom.sample(_sampleIndex).fineVolume -
 			    0x0400) / 10000.);
 
-  fsample[0] *= scale * _ctrlRom.sample(_sampleIndex).volume * fineVol;
-
-  // Both channelse are set identical before applying pan data
-  fsample[1] = fsample[0];
+  sample[0] *= scale * _ctrlRom.sample(_sampleIndex).volume * fineVol;
 
   // panpot? TODO
 
   // Finally add samples to the sample pointers (always 2 channels / stereo)
-  noteSample[0] += (int32_t) fsample[0];
-  noteSample[1] += (int32_t) fsample[1];
+  noteSample[0] += sample[0];
+  noteSample[1] += sample[0];
 
   return 0;
 }

@@ -36,7 +36,7 @@
 Synth::Synth(Config &config, ControlRom &controlRom, PcmRom &pcmRom)
   : _config(config),
     _bank(0),
-    _volume(127),
+    _volume(100),
     _pan(0),
     _reverb(64),
     _chours(64),
@@ -81,6 +81,7 @@ Synth::Synth(Config &config, ControlRom &controlRom, PcmRom &pcmRom)
       if (_parts[i].mute()) std::cout << i << " ";
     std::cout << "]" << std::endl;
   }
+
 }
 
 
@@ -258,8 +259,8 @@ void Synth::midi_input(struct MidiInput::MidiEvent *midiEvent)
 
 int Synth::get_next_sample(int16_t *sampleOut, int sampleRate, int channels)
 {
-  int32_t partSample[2];
-  int32_t accumulatedSample[2] = { 0, 0 };
+  float partSample[2];
+  float accumulatedSample[2] = { 0, 0 };
 
   // Write silence
   for (int i = 0; i < channels; i++) {
@@ -292,10 +293,10 @@ int Synth::get_next_sample(int16_t *sampleOut, int sampleRate, int channels)
   // Apply master volume and sample rate conversion
   accumulatedSample[0] *= (_volume / 127.0) * (32000.0 / sampleRate);
   accumulatedSample[1] *= (_volume / 127.0) * (32000.0 / sampleRate);
-  
+
   // Send to audio output. FIXME: Add support for PAN (stereo)!
   for (int c = 0; c < channels; c++)
-    sampleOut[c] += (int16_t) (accumulatedSample[c] >> 16);  // >> 16 original
+    sampleOut[c] += (int16_t) (accumulatedSample[c] * 0xffff);
 
   return 0;
 }

@@ -82,12 +82,12 @@ bool Note::stop(uint8_t key)
 
 // Pitch is the only variable input for a note's get_next_sample
 // Pitch < 0 => fixed pitch (e.g. for drums)
-bool Note::get_next_sample(int32_t *partSample, float pitchBend)
+bool Note::get_next_sample(float *partSample, float pitchBend)
 {
-  int finished[2] = {0, 0};
+  bool finished[2] = {0, 0};
 
   // Temporary samples for LEFT and RIGHT channel
-  int32_t samples[2] = {0, 0};
+  float samples[2] = {0, 0};
 
   // Iterate both partials
   for (int p = 0; p < 2; p ++) {
@@ -102,17 +102,17 @@ bool Note::get_next_sample(int32_t *partSample, float pitchBend)
     finished[p] = _notePartial[p]->get_next_sample(samples, pitchBend);
   }
 
-  if (finished[0] == 1 && finished[0] == finished[1])
+  if (finished[0] == true && finished[1] == true)
     return 1;
-  
+
   // Apply velocity
   float scale = 1.0 / 127.;
   float fsample[2];
   fsample[0] = samples[0] * scale * _velocity;
   fsample[1] = samples[1] * scale * _velocity;
 
-  partSample[0] += (int32_t) fsample[0];
-  partSample[1] += (int32_t) fsample[1];
+  partSample[0] += fsample[0];
+  partSample[1] += fsample[1];
 
   return 0;
 }

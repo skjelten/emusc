@@ -102,7 +102,7 @@ public:
     cmsg_Volume
   };
 
-  int get_next_sample(int32_t *sampleOut);
+  int get_next_sample(float *sampleOut);
 
   inline bool mute() { return(_mute); }
   inline void set_mute(bool mute) { _mute = mute; }

@@ -12,6 +12,7 @@ emusc_SOURCES =			\
 	audio_output_null.cc	\
 	audio_output_pulse.cc	\
 	audio_output_win32.cc	\
+	biquad_filter.cc	\
 	ex.cc			\
 	config.cc		\
 	control_rom.cc		\
@@ -23,4 +24,5 @@ emusc_SOURCES =			\
 	note_partial.cc		\
 	part.cc			\
 	pcm_rom.cc		\
+	riaa_filter.cc		\
 	synth.cc

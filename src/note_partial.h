@@ -57,7 +57,7 @@ public:
   ~NotePartial();
 
   void stop(void);
-  bool get_next_sample(int32_t *sampleOut, float pitchBend);
+  bool get_next_sample(float *sampleOut, float pitchBend);
 
 };
 

@@ -424,7 +424,7 @@ std::list<int> ControlRom::get_drum_set_banks(enum SynthModel model)
 int ControlRom::dump_demo_songs(std::string path)
 {
   int index = 1;
-  std::cout << "EmuSC: Searching for MIDI songs in control ROM" << std::endl;
+  std::cout << "EmuSC: Searching for MIDI songs in control ROM..." << std::endl;
 
   std::ifstream romFile(_romPath, std::ios::binary | std::ios::in);
   if (!romFile.is_open()) {
@@ -497,5 +497,8 @@ int ControlRom::dump_demo_songs(std::string path)
     }
   }
 
-  return 0;
+  if (index == 1)
+    std::cout << "EmuSC: Control ROM contained no MIDI files " << std::endl;
+
+  return index;
 }

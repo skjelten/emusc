@@ -37,15 +37,16 @@ class PcmRom
 {
 private:
   struct Samples {
-    std::vector<int32_t> samples;    // All samples stored in 24 bit 32kHz mono
-    std::vector<float> fsamples;     // 32 bit float, 32kHz, mono
+//  std::vector<int32_t> samplesI;    // All samples stored in 24 bit 32kHz mono
+    std::vector<float>   samplesF;    // 32 bit float, 32kHz, mono
   };
   std::vector<struct Samples> _sampleSets;
 
   uint32_t _unscramble_pcm_rom_address(uint32_t address);
   int8_t   _unscramble_pcm_rom_data(int8_t byte);
 
-  int _read_samples(std::vector<char> rom, uint32_t address, uint16_t length);
+  uint32_t _find_samples_rom_address(uint32_t address);
+  int _read_samples(std::vector<char> rom, struct ControlRom::Sample &ctrlSample);
 
   PcmRom();
 

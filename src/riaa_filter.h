@@ -1,4 +1,4 @@
-/* 
+/*  
  *  EmuSC - Sound Canvas emulator
  *  Copyright (C) 2022  Håkon Skjelten
  *
@@ -17,35 +17,27 @@
  */
 
 
-#ifndef __NOTE_H__
-#define __NOTE_H__
+#ifndef __RIAA_FILTER_H__
+#define __RIAA_FILTER_H__
 
 
-#include "control_rom.h"
-#include "pcm_rom.h"
-#include "note_partial.h"
+#include "biquad_filter.h"
 
 #include <stdint.h>
 
 
-class Note
+class RiaaFilter: public BiquadFilter
 {
 private:
-  uint8_t _key;
-  uint8_t _velocity;
-  bool _drum;
-
-  struct NotePartial *_notePartial[2];
+  RiaaFilter();
   
 public:
-  Note(uint8_t key, uint8_t velocity, uint16_t instrument, bool drum,
-       ControlRom &ctrlRom, PcmRom &pcmRom);
-  ~Note();
+  RiaaFilter(int sampleRate, long double dcgain);
+  ~RiaaFilter();
 
-  bool stop(uint8_t key);
-  bool get_next_sample(float *sampleOut, float pitchBend);
+  float apply(float sample);
 
 };
 
 
-#endif  // __NOTE_H__
+#endif  // __RIAA_FILTER_H__

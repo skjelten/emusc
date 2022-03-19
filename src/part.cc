@@ -81,14 +81,14 @@ Part::~Part()
 
 // Parts always produce 2 channel & 32kHz (native) output. Other channel
 // numbers and sample rates are handled by the calling Synth class.
-int Part::get_next_sample(int32_t *sampleOut)
+int Part::get_next_sample(float *sampleOut)
 {
   // Return immediately if we have no notes to play
   if (_notes.size() == 0)
     return 0;
 
-  int32_t partSample[2] = { 0, 0 };
-  int32_t accSample = 0;
+  float partSample[2] = { 0, 0 };
+  float accSample = 0;
 
   // Get next sample from active notes, delete those which are finished
   std::list<Note*>::iterator itr = _notes.begin();

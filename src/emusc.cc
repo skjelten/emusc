@@ -99,7 +99,7 @@ void dump_midi_files(Config *config)
 {
   ControlRom *ctrlRom;
   try {
-    ctrlRom = new ControlRom(config->get("control_rom"), 1);
+    ctrlRom = new ControlRom(config->get("control_rom"), config->verbose());
 
   } catch(Ex ex) {
     display_error_msg(ex.errorMsg);

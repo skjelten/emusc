@@ -1,5 +1,5 @@
-/* 
- *  EmuSC - Sound Canvas emulator
+/*
+ *  EmuSC - Emulating the Sound Canvas
  *  Copyright (C) 2022  Håkon Skjelten
  *
  *  EmuSC is free software: you can redistribute it and/or modify it
@@ -17,35 +17,18 @@
  */
 
 
-#ifndef __NOTE_H__
-#define __NOTE_H__
+#include "biquad_filter.h"
 
 
-#include "control_rom.h"
-#include "pcm_rom.h"
-#include "note_partial.h"
-
-#include <stdint.h>
-
-
-class Note
+BiquadFilter::BiquadFilter()
 {
-private:
-  uint8_t _key;
-  uint8_t _velocity;
-  bool _drum;
+  _in[0] = 0;
+  _in[1] = 0;
 
-  struct NotePartial *_notePartial[2];
-  
-public:
-  Note(uint8_t key, uint8_t velocity, uint16_t instrument, bool drum,
-       ControlRom &ctrlRom, PcmRom &pcmRom);
-  ~Note();
-
-  bool stop(uint8_t key);
-  bool get_next_sample(float *sampleOut, float pitchBend);
-
-};
+  _out[0] = 0;
+  _out[1] = 0;
+}
 
 
-#endif  // __NOTE_H__
+BiquadFilter::~BiquadFilter()
+{}
