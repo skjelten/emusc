@@ -42,9 +42,9 @@ private:
 
   int _channels;
   unsigned int _sampleRate;
-  
+
   uint32_t _bufferSize;
-  
+
   int _fill_buffer(char *audioBuffer, Synth *synth);
 
   AudioOutputWin32();
@@ -54,7 +54,6 @@ public:
   ~AudioOutputWin32();
 
   void run(Synth *synth);
-  void stop(void);
 
 };
 

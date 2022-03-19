@@ -17,28 +17,45 @@
  */
 
 
-#ifndef __AUDIO_OUTPUT_H__
-#define __AUDIO_OUTPUT_H__
+#ifdef __WIN32__
+
+#ifndef __MIDI_INPUT_WIN32_H__
+#define __MIDI_INPUT_WIN32_H__
 
 
-class Synth;
+#include "config.h"
+#include "midi_input.h"
+#include "synth.h"
+
+#include <windows.h>
+#include <mmsystem.h>
 
 
-class AudioOutput
+class MidiInputWin32: public MidiInput
 {
 private:
+  Synth *_synth;
 
-protected:
-  bool _quit;
-  
+  HMIDIIN _handle;
+
+  MIDIHDR _header;
+  char _data[256];            // Data buffer for MIDI messages
+
+  void _midi_callback(HMIDIIN handle, UINT uMsg, DWORD dwParam1,DWORD dwParam2);
+
 public:
-  AudioOutput();
-  virtual ~AudioOutput() = 0;
+  MidiInputWin32(Config *config, Synth *synth);
+  virtual ~MidiInputWin32();
 
-  virtual void run(Synth *synth) = 0;
+  virtual void run(Synth *synth);
   virtual void stop(void);
+
+  static void CALLBACK midi_callback(HMIDIIN handle, UINT uMsg,DWORD dwInstance,
+				     DWORD dwParam1, DWORD dwParam2);
 
 };
 
 
-#endif  // __AUDIO_OUTPUT_H__
+#endif  // __MIDI_INPUT_WIN32_H__
+
+#endif  // __WIN32__

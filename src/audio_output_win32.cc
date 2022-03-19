@@ -75,7 +75,7 @@ AudioOutputWin32::AudioOutputWin32(Config *config)
     throw (Ex(-1, "Failed to initialize WIN32 audio output driver [" +
 	      error + "]"));
 
-  _bufferSize = (pwfx.nAvgBytesPerSec * (bufferTime / 1000)) / 1000;
+  _bufferSize = ((pwfx.nAvgBytesPerSec * (bufferTime / 1000)) / (1000 * 2)) &~3;
 
   std::string deviceName = "default";
   WAVEOUTCAPS woc;
@@ -98,51 +98,60 @@ AudioOutputWin32::AudioOutputWin32(Config *config)
 AudioOutputWin32::~AudioOutputWin32()
 {
   CloseHandle(_eHandle);
-
-  //  LocalUnlock(_abc); 
-  //  LocalFree(_abc);
 }
 
 
 void AudioOutputWin32::run(Synth *synth)
-{  
-  char audioBuffer[_bufferSize] = {};
+{
+  char audioBuffer[2][_bufferSize];
+  WAVEHDR wHeader[2];
 
-  WAVEHDR wHeader;
-  wHeader.lpData = audioBuffer;
-  wHeader.dwBufferLength = _bufferSize;
-  wHeader.dwFlags = 0;
+  for (int i = 0; i < 2; i++) {
+    wHeader[i].lpData = (LPSTR) audioBuffer[i];
+    wHeader[i].dwBufferLength = _bufferSize;
+    wHeader[i].dwFlags = 0;
+    waveOutPrepareHeader(_hWave, &wHeader[i], sizeof(WAVEHDR));
+    _fill_buffer(audioBuffer[i], synth);
+    waveOutWrite(_hWave, &wHeader[i], sizeof(WAVEHDR));
+  }
 
-  waveOutPrepareHeader(_hWave, &wHeader, sizeof(WAVEHDR));
-
+  bool index = 0;
   while (!_quit) {
     DWORD res = WaitForSingleObject(_eHandle, INFINITE);
     ResetEvent(_eHandle);
- 
+
     switch(res)
       {
       case WAIT_OBJECT_0:
-//	std::cout << "Win32 audio thread: new event triggered!" << std::endl;
+	{
+	  waveOutUnprepareHeader(_hWave, &wHeader[index], sizeof(WAVEHDR));
+	  wHeader[index].lpData = audioBuffer[index];
+	  wHeader[index].dwBufferLength = _bufferSize;
+	  wHeader[index].dwFlags = 0;
+	  waveOutPrepareHeader(_hWave, &wHeader[index], sizeof(WAVEHDR));
+	  _fill_buffer(audioBuffer[index], synth);
+	  waveOutWrite(_hWave, &wHeader[index], sizeof(WAVEHDR));
 
-	_fill_buffer(audioBuffer, synth);
-	
-	waveOutWrite(_hWave, &wHeader, sizeof(WAVEHDR));
-	break;
-
+	  index = !index;
+	  break;
+	}
       default:                   // Fixme: Add proper error messages and actions
-	std::cerr << "Error during Win32 audio thread!" << std::endl;
+	{
+	  std::cerr << "Error during Win32 audio thread!" << std::endl;
+	}
       }
   }
 
-  // Do we have to wait for some signal that the buffer is used?
-  waveOutUnprepareHeader(_hWave, &wHeader, sizeof(WAVEHDR));
+  waveOutUnprepareHeader(_hWave, &wHeader[0], sizeof(WAVEHDR));
+  waveOutUnprepareHeader(_hWave, &wHeader[1], sizeof(WAVEHDR));
 }
 
 
 // Only 16 bit supported
 int AudioOutputWin32::_fill_buffer(char *audioBuffer, Synth *synth)
 {
-  int16_t sample[2];
+  int i = 0;
+  int16_t sample[_channels];
 
   int frames = _bufferSize / (2 * _channels);
   
@@ -152,14 +161,12 @@ int AudioOutputWin32::_fill_buffer(char *audioBuffer, Synth *synth)
     for (int channel=0; channel < _channels; channel++) {
       int16_t* dest = (int16_t*) &audioBuffer[(frame * 4) + (2 * channel)];
       *dest = sample[channel];
+      i += 2;
     }
   }
 
-  return 0;
+  return i;
 }
-
-void AudioOutputWin32::stop()
-{}
 
 
 #endif  // __WIN32__

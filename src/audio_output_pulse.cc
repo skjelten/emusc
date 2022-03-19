@@ -177,9 +177,6 @@ int AudioOutputPulse::_fill_buffer(int8_t *data, size_t length)
   for (unsigned int frame = 0; frame < frames; frame++) {
     _synth->get_next_sample(sample, _sampleRate, _channels);// FIXME 16/24/32bit
 
-    if (*sample > 0xffffff)
-      std::cout << "Audio overflow" << std::endl;
-    
     for (int channel=0; channel < _channels; channel++) {
       int16_t* dest = (int16_t *) &data[(frame * 4) + (2 * channel)];
       *dest = sample[channel];

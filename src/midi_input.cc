@@ -18,6 +18,9 @@
 
 
 #include "midi_input.h"
+#include "synth.h"
+
+#include <iostream>
 
 
 MidiInput::MidiInput()
@@ -32,4 +35,71 @@ MidiInput::~MidiInput()
 void MidiInput::stop(void)
 {
   _quit = true;
+}
+
+
+void MidiInput::send_raw_std_msg(Synth *synth, uint8_t status, char data1, char data2)
+{
+  MidiEvent midiEvent;
+
+  if ((status >> 4) == 0x08) {                           // Note Off
+    midiEvent.type = se_NoteOff;
+    midiEvent.channel = status & 0x0f;
+    midiEvent.data1 = data1;
+    midiEvent.data2 = data2;
+    midiEvent.status = 0xff;
+    synth->midi_input(&midiEvent);
+
+  } else if ((status >> 4) == 0x09) {                    // Note On
+    midiEvent.type = se_NoteOn;
+    midiEvent.channel = status & 0x0f;
+    midiEvent.data1 = data1;
+    midiEvent.data2 = data2;
+    midiEvent.status = 0xff;
+    synth->midi_input(&midiEvent);
+
+  } else if ((status >> 4) == 0x0a) {                    // Key pressure
+    midiEvent.type = se_KeyPressure;
+    midiEvent.channel = status & 0x0f;
+    midiEvent.data1 = data1;
+    midiEvent.data2 = data2;
+    midiEvent.status = 0xff;
+    synth->midi_input(&midiEvent);
+
+  } else if ((status >> 4) == 0x0b) {                    // Control change
+   midiEvent.type = se_CtrlChange;
+    midiEvent.channel = status & 0x0f;
+    midiEvent.data1 = data1;
+    midiEvent.data2 = data2;
+    midiEvent.status = 0xff;
+    synth->midi_input(&midiEvent);
+
+  } else if ((status >> 4) == 0x0c) {                    // Program change
+    midiEvent.type = se_PrgChange;
+    midiEvent.channel = status & 0x0f;
+    midiEvent.data1 = data1;
+    midiEvent.data2 = data2;
+    midiEvent.status = 0xff;
+    synth->midi_input(&midiEvent);
+
+  } else if ((status >> 4) == 0x0d) {                    // Channel pressure
+    midiEvent.type = se_ChPressure;
+    midiEvent.channel = status & 0x0f;
+    midiEvent.data1 = data1;
+    midiEvent.data2 = data2;
+    midiEvent.status = 0xff;
+    synth->midi_input(&midiEvent);
+
+  } else if ((status >> 4) == 0x0e) {                    // Pitch bend
+    midiEvent.type = se_PitchBend;
+    midiEvent.channel = status & 0x0f;
+    midiEvent.data = ((data2 << 7) | data1) - 0x2000;
+    midiEvent.status = 0xff;
+    synth->midi_input(&midiEvent);
+  }
+
+  if (0)
+    std::cout << "EmuSC: Raw MIDI event -> S=0x" << std::hex << (int) status
+	      << " D1=0x" << (int) data1
+	      << " D2=0x" << (int) data2 << std::endl;
 }
