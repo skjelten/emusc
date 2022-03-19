@@ -23,7 +23,6 @@
 #include "pcm_rom.h"
 #include "ex.h"
 #include "riaa_filter.h"
-#include "highpass_filter.h"
 
 #include <cmath>
 #include <fstream>
