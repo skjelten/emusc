@@ -26,4 +26,5 @@ emusc_SOURCES =			\
 	part.cc			\
 	pcm_rom.cc		\
 	riaa_filter.cc		\
-	synth.cc
+	synth.cc		\
+	volume_envelope.cc

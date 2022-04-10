@@ -22,8 +22,9 @@
 #include <iostream>
 
 
-AudioOutputNull::AudioOutputNull(Config *config)
+AudioOutputNull::AudioOutputNull(Config *config, Synth *synth)
 {
+  synth->set_audio_format(44100, 2);
   std::cout << "EmuSC: Audio output disabled (null)" << std::endl;
 }
 
@@ -32,5 +33,5 @@ AudioOutputNull::~AudioOutputNull()
 {}
 
 
-void AudioOutputNull::run(Synth *synth)
+void AudioOutputNull::run(void)
 {}

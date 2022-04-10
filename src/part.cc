@@ -96,6 +96,7 @@ int Part::get_next_sample(float *sampleOut)
     bool finished = (*itr)->get_next_sample(partSample, _pitchBend);
 
     if (finished) {
+//      std::cout << "Both partials have finished -> delete note" << std::endl;
       delete *itr;
       itr = _notes.erase(itr);
     } else {
@@ -126,7 +127,8 @@ int Part::get_next_sample(float *sampleOut)
 
 
 // Should mute => not accept key - or play silently in the background?
-int Part::add_note(uint8_t midiChannel, uint8_t key, uint8_t velocity)
+int Part::add_note(uint8_t midiChannel, uint8_t key, uint8_t velocity,
+		   uint32_t sampleRate)
 {
   // 1. Check if this message is relevant for this part
   if (midiChannel != _midiChannel || _mute)
@@ -138,14 +140,18 @@ int Part::add_note(uint8_t midiChannel, uint8_t key, uint8_t velocity)
   if (instrumentIndex == 0xffff)        // Ignore undefined instruments / drums
     return 0;
 
-  bool drum = (_mode == mode_Norm) ? 0 : 1;
-  
-  // 2. Create new note and set default values (note: using pointers)
-  Note *n = new Note(key, velocity, instrumentIndex, drum,
-		     _ctrlRom, _pcmRom);
+  int drumSet = (_mode == mode_Norm) ? -1 : _drumSet;
+
+  // 3. If note is a drum -> check if drum accepts note on
+  if (drumSet >= 0 && !(_ctrlRom.drumSet(drumSet).flags[key] & 0x10))
+    return 0;
+
+  // 4. Create new note and set default values (note: using pointers)
+  Note *n = new Note(key, velocity, instrumentIndex, drumSet,
+		     _ctrlRom, _pcmRom, sampleRate);
   _notes.push_back(n);
 
-  if (0)
+  if (1)
     std::cout << "EmuSC: New note [ part=" << (int) _id
 	      << " key=" << (int) key
 	      << " velocity=" << (int) velocity
@@ -156,13 +162,13 @@ int Part::add_note(uint8_t midiChannel, uint8_t key, uint8_t velocity)
 }
 
 
-int Part::delete_note(uint8_t midiChannel, uint8_t key)
+int Part::stop_note(uint8_t midiChannel, uint8_t key)
 {
   // 1. Check if this message is relevant for this part. Check:Hanging note bug?
   if (midiChannel != _midiChannel)
     return 0;
 
-  // 2. Iterate through notes list and set them to release phase. FIXME!
+  // 2. Iterate through notes list and send stop signal (-> release)
   int i;
   for (auto &n : _notes) {
     bool ret = n->stop(key);

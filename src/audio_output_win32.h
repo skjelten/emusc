@@ -37,6 +37,8 @@
 class AudioOutputWin32: public AudioOutput
 {
 private:
+  Synth *_synth;
+
   HANDLE _eHandle;
   HWAVEOUT _hWave;
 
@@ -45,15 +47,15 @@ private:
 
   uint32_t _bufferSize;
 
-  int _fill_buffer(char *audioBuffer, Synth *synth);
+  int _fill_buffer(char *audioBuffer);
 
   AudioOutputWin32();
 
 public:
-  AudioOutputWin32(Config *config);
+  AudioOutputWin32(Config *config, Synth *synth);
   ~AudioOutputWin32();
 
-  void run(Synth *synth);
+  void run(void);
 
 };
 

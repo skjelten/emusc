@@ -162,13 +162,13 @@ void run_synth(Config *config)
     // Initialize audio output [ alsa | pulse | win32 | core | null ]
     if (config->get("output") == "alsa") {
 #ifdef __ALSA__
-      audioOutput = new AudioOutputAlsa(config);
+      audioOutput = new AudioOutputAlsa(config, synth);
 #else
       throw(Ex(-1, "'alsa' audio ouput is missing in this build"));
 #endif
     } else if (config->get("output") == "win32") {
 #ifdef __WIN32__
-      audioOutput = new AudioOutputWin32(config);
+      audioOutput = new AudioOutputWin32(config, synth);
 #else
       throw(Ex(-1, "'win32' audio ouput is missing in this build"));
 #endif
@@ -185,7 +185,7 @@ void run_synth(Config *config)
       throw(Ex(-1, "'pulse' audio ouput is missing in this build"));
 #endif
     } else if (config->get("output") == "null") {
-      audioOutput = new AudioOutputNull(config);
+      audioOutput = new AudioOutputNull(config, synth);
     }
     if (!audioOutput)
       throw(Ex(-1, "No valid audio output defined, check configuration file"));
@@ -198,7 +198,7 @@ void run_synth(Config *config)
   std::signal(SIGINT, ext_quit);
   std::signal(SIGTERM, ext_quit);
 
-  std::thread audioThread(&AudioOutput::run, audioOutput, synth);
+  std::thread audioThread(&AudioOutput::run, audioOutput);
   std::thread midiThread(&MidiInput::run, midiInput, synth);
   
   while(!quit) { sleep(1); }

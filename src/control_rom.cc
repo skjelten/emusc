@@ -193,7 +193,7 @@ int ControlRom::_read_instruments(std::ifstream &romFile)
     if (x == banks[1])
       x = banks[3];
 
-    char data[12];
+    char data[88];
     romFile.seekg(x);
     struct Instrument i;
 
@@ -204,13 +204,55 @@ int ControlRom::_read_instruments(std::ifstream &romFile)
 			      std::bind1st(std::not_equal_to<char>(),
 					   ' ')).base(), i.name.end());
 
-    // Partial indexes has bank position 34 & 126
-    romFile.seekg(x + 34);
-    romFile.read(data, 2);
-    i.partials[0].partialIndex = _native_endian_uint16((uint8_t *) data);
-    romFile.seekg(x + 126);
-    romFile.read(data, 2);
-    i.partials[1].partialIndex = _native_endian_uint16((uint8_t *) data);
+    // We have 2 partial parameters sets; starting in bank position 34 & 126
+    for (int p = 0; p < 2; p++) {
+      romFile.seekg(x + 34 + (p * 92));
+      romFile.read(data, 2);
+      i.partials[p].partialIndex = _native_endian_uint16((uint8_t *) data);
+
+      romFile.read(data, 88);
+      i.partials[p].panpot      = data[5];
+      i.partials[p].coarsePitch = data[6];
+      i.partials[p].finePitch   = data[7];
+      i.partials[p].randPitch   = data[8];
+      i.partials[p].PitchKeyFlw = data[9];
+      i.partials[p].TvpLfoDepth = data[10];
+      i.partials[p].pitchMult   = data[12];
+      i.partials[p].pitchLvlP0  = data[14];
+      i.partials[p].pitchLvlP1  = data[15];
+      i.partials[p].pitchLvlP2  = data[16];
+      i.partials[p].pitchLvlP3  = data[17];
+      i.partials[p].pitchLvlP4  = data[18];
+      i.partials[p].pitchDurP1  = data[19];
+      i.partials[p].pitchDurP2  = data[20];
+      i.partials[p].pitchDurP3  = data[21];
+      i.partials[p].pitchDurP4  = data[22];
+      i.partials[p].pitchDurRel = data[23];
+      i.partials[p].TVFBaseFlt  = data[33];
+      i.partials[p].TVFResonance= data[34];
+      i.partials[p].LowVelClear = data[35];
+      i.partials[p].TVFLvlInit  = data[40];
+      i.partials[p].TVFLvlP1    = data[41];
+      i.partials[p].TVFLvlP2    = data[42];
+      i.partials[p].TVFLvlP3    = data[43];
+      i.partials[p].TVFLvlP4    = data[44];
+      i.partials[p].TVFDurP1    = data[46];
+      i.partials[p].TVFDurP2    = data[47];
+      i.partials[p].TVFDurP3    = data[48];
+      i.partials[p].TVFDurP4    = data[49];
+      i.partials[p].TVFDurRel   = data[50];
+      i.partials[p].volume      = data[65];
+      i.partials[p].TVFLFODepth = data[68];
+      i.partials[p].TVAVolP1    = data[70];
+      i.partials[p].TVAVolP2    = data[71];
+      i.partials[p].TVAVolP3    = data[72];
+      i.partials[p].TVAVolP4    = data[73];
+      i.partials[p].TVALenP1    = data[74];
+      i.partials[p].TVALenP2    = data[75];
+      i.partials[p].TVALenP3    = data[76];
+      i.partials[p].TVALenP4    = data[77];
+      i.partials[p].TVALenP5    = data[78];
+    }
 
     // Skip empty slots in the ROM file that has no instrument name
     if (i.name[0]) {

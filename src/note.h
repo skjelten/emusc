@@ -33,13 +33,12 @@ class Note
 private:
   uint8_t _key;
   uint8_t _velocity;
-  bool _drum;
 
   struct NotePartial *_notePartial[2];
   
 public:
-  Note(uint8_t key, uint8_t velocity, uint16_t instrument, bool drum,
-       ControlRom &ctrlRom, PcmRom &pcmRom);
+  Note(uint8_t key, uint8_t velocity, uint16_t instrument, int drum,
+       ControlRom &ctrlRom, PcmRom &pcmRom, uint32_t sampleRate);
   ~Note();
 
   bool stop(uint8_t key);

@@ -73,6 +73,7 @@ AudioOutputPulse::AudioOutputPulse(Config *config, Synth *synth)
   char spec[PA_SAMPLE_SPEC_SNPRINT_MAX];
   pa_sample_spec_snprint(spec, sizeof(spec), &_sampleSpec);
 
+  synth->set_audio_format(_sampleRate, _channels);
   std::cout << "EmuSC: Audio output [PulseAudio] successfully initialized"
 	    << std::endl << " -> " << spec << std::endl;
 }
@@ -175,7 +176,7 @@ int AudioOutputPulse::_fill_buffer(int8_t *data, size_t length)
   int frames = length / 4;
   
   for (unsigned int frame = 0; frame < frames; frame++) {
-    _synth->get_next_sample(sample, _sampleRate, _channels);// FIXME 16/24/32bit
+    _synth->get_next_sample(sample);  // FIXME: Assumes 16 bit, 44.1 kHz, 2 ch
 
     for (int channel=0; channel < _channels; channel++) {
       int16_t* dest = (int16_t *) &data[(frame * 4) + (2 * channel)];
@@ -213,7 +214,7 @@ void AudioOutputPulse::_stream_state_callback(pa_stream *s)
 }
 
 
-void AudioOutputPulse::run(Synth *synth)
+void AudioOutputPulse::run(void)
 {
   int ret;
 

@@ -23,27 +23,57 @@
 #include <cmath>
 
 
-NotePartial::NotePartial(int8_t keyDiff, uint16_t sampleIndex,
-			 bool drum, ControlRom &ctrlRom, PcmRom &pcmRom)
-  : _keyDiff(keyDiff),
+NotePartial::NotePartial(uint8_t key, int8_t keyDiff, uint16_t sampleIndex,
+			 int drumSet, ControlRom &ctrlRom, PcmRom &pcmRom,
+			 uint16_t instrument, bool partialIndex,
+			 uint32_t sampleRate)
+  : _key(key),
+    _keyDiff(keyDiff),
     _sampleIndex(sampleIndex),
-    _drum(drum),
-    _ahdsrState(ahdsr_Attack),
+    _drumSet(drumSet),
+    _instrument(instrument),
+    _partialIndex(partialIndex),
     _samplePos(0),
     _sampleDir(1),
     _ctrlRom(ctrlRom),
     _pcmRom(pcmRom)
-{}
+{
+  _sampleFactor = 32000.0 / sampleRate;
+
+  // Calculate coarse & fine pitch correction from instrument partial definition
+  _coarsePitch = exp((_ctrlRom.instrument(_instrument).partials[0].coarsePitch
+		      - 0x40) * log(2)/12);
+  _finePitch = exp((_ctrlRom.instrument(_instrument).partials[0].finePitch
+		    - 0x40) * log(2)/1200);
+
+  // Calculate fine pitch from instument definition
+  _instFinePitch = exp((_ctrlRom.sample(_sampleIndex).pitch - 1024) / 16
+		       * log(2)/1200);
+
+  // Volume (TVA) envelope
+  _volumeEnvelope =
+    new VolumeEnvelope(ctrlRom.instrument(instrument).partials[partialIndex],
+		       sampleRate);
+}
 
 
 NotePartial::~NotePartial()
-{}
+{
+  delete _volumeEnvelope;
+}
+
+
+double NotePartial::_convert_volume(uint8_t volume)
+{
+  return (0.1 * pow(2.0, (double)(volume) / 36.7111) - 0.1);
+}
 
 
 void NotePartial::stop(void)
 {
-  // TODO: Add proper logic for stopping samples -> ahdsr_Release
-  _ahdsrState = ahdsr_Inactive;
+  // Ignore note off for uninterruptible drums (set by drum set flag)
+  if (!(_drumSet >= 0 && !(_ctrlRom.drumSet(_drumSet).flags[_key] & 0x01)))
+    _volumeEnvelope->note_off();
 }
 
 
@@ -51,8 +81,8 @@ void NotePartial::stop(void)
 // Pitch < 0 => fixed pitch (e.g. for drums)
 bool NotePartial::get_next_sample(float *noteSample, float pitchBend)
 {
-  // 1. Skip this partial if it's not in use
-  if  (_ahdsrState == ahdsr_Inactive)
+  // Terminate this partial if its volume envelope is finished
+  if  (_volumeEnvelope->finished())
     return 1;
 
   // Update sample position going in forward direction
@@ -64,14 +94,13 @@ bool NotePartial::get_next_sample(float *noteSample, float pitchBend)
 		<< " lpMode=" << (int) _ctrlRom.sample(_sampleIndex).loopMode
 		<< " lpLength=" << _ctrlRom.sample(_sampleIndex).loopLen
 		<< std::endl;
-    float a = _samplePos;
+
     // Update partial sample position based on pitch input
-    if (_drum)
-      _samplePos += 1;
-//	round((double) _ctrlRom.sample(_sampleIndex).pitch - 1024 / 10.0);
+    if (_drumSet >= 0)
+      _samplePos += _coarsePitch * _finePitch * _instFinePitch * _sampleFactor;
     else
-      _samplePos += exp(_keyDiff * (log(2)/12)) * (pitchBend + 1);
-//	round((double) _ctrlRom.sample(_sampleIndex).pitch - 1024 / 10.0);
+      _samplePos += exp(_keyDiff * (log(2)/12)) * (pitchBend + 1) * _coarsePitch
+	* _finePitch * _instFinePitch * _sampleFactor;
 
     // Check for sample position passing sample boundary
     if (_samplePos >= _ctrlRom.sample(_sampleIndex).sampleLen) {
@@ -92,7 +121,7 @@ bool NotePartial::get_next_sample(float *noteSample, float pitchBend)
 	// loopMode == 2 => Forward-stop. End playback
       } else if (_ctrlRom.sample(_sampleIndex).loopMode == 2) {
 	if (_samplePos >=_ctrlRom.sample(_sampleIndex).sampleLen)
-	  _ahdsrState = ahdsr_Inactive;                // Set partial inactive
+	  return 1;                 // Terminate this partial
       }
     }
 
@@ -105,14 +134,11 @@ bool NotePartial::get_next_sample(float *noteSample, float pitchBend)
 		<< std::endl;
 
     // Update partial sample position based on pitch input
-    if (_drum) {
-      _samplePos -= 1;
+    if (_drumSet >= 0) {
+      _samplePos -= _coarsePitch * _finePitch * _instFinePitch * _sampleFactor;
     } else {
-      _samplePos -= exp(_keyDiff * (log(2)/12));
-      if (pitchBend > 0)
-	_samplePos -= exp((pitchBend/8192.0) * (log(2)/12));
-      else if (pitchBend < 0)
-	_samplePos -= 1.0 + exp((pitchBend/8192.0) * (log(2)/12));
+      _samplePos -= exp(_keyDiff * (log(2)/12)) * (pitchBend + 1) * _coarsePitch
+	* _finePitch * _instFinePitch * _sampleFactor;
     }
 
     // Check for sample position passing sample boundary
@@ -130,30 +156,48 @@ bool NotePartial::get_next_sample(float *noteSample, float pitchBend)
     }
   }
 
-  // Final sample for the partial to be sent to audio out
-
   // Temporary samples for LEFT and RIGHT channel
   float sample[2] = {0, 0};
-  sample[0] = _pcmRom.samples(_sampleIndex).samplesF[(int)_samplePos];
+  sample[0] = _pcmRom.samples(_sampleIndex).samplesF[(int) _samplePos];
 
-  // Add volume correction for each sample
-  // TODO: ADSR volume
-  //       Reduce divisions / optimize calculations
+  // Calculate volume correction from sample definition (7f - 0)
+  double sampleVol = _convert_volume(_ctrlRom.sample(_sampleIndex).volume +
+				     ((_ctrlRom.sample(_sampleIndex).fineVolume
+				       - 1024) / 1000.0));
 
-  // WIP
-  // Sample volum: 7f - 0
-  float scale = 1.0 / 127.;
-  // Fine Volum correction (?):  10^((fineVolume - 0x0400) / 10000)
-  float fineVol = powf(10, ((float) _ctrlRom.sample(_sampleIndex).fineVolume -
-			    0x0400) / 10000.);
+  // Calculate volume correction from partial definition (7f - 0)
+  double partialVol = _convert_volume(_ctrlRom.instrument(_instrument).partials[_partialIndex].volume);
 
-  sample[0] *= scale * _ctrlRom.sample(_sampleIndex).volume * fineVol;
+  // Calculate volume correction from drum set definition
+  double drumVol = 1;
+  if (_drumSet >= 0)
+    drumVol = _convert_volume(_ctrlRom.drumSet(_drumSet).volume[_key]);
+  
+  // Apply volume changes
+  sample[0] *= sampleVol * partialVol * drumVol;
 
-  // panpot? TODO
+  // Apply volume envelope
+  sample[0] *= _volumeEnvelope->get_next_value();
+
+  // Make both channels equal before adding pan (stereo position)
+  sample[1] = sample[0];
+
+  // Add panpot (stereo positioning of sounds)
+  double panpot;
+  if (_drumSet < 0)
+    panpot = (_ctrlRom.instrument(_instrument).partials[_partialIndex].panpot
+	      - 0x40) / 64.0;
+  else
+    panpot = (_ctrlRom.drumSet(_drumSet).panpot[_key] - 0x40) / 64.0;
+
+  if (panpot < 0)
+    sample[1] *= (1 + panpot);
+  else if (panpot > 0)
+    sample[0] *= (1 - panpot);
 
   // Finally add samples to the sample pointers (always 2 channels / stereo)
   noteSample[0] += sample[0];
-  noteSample[1] += sample[0];
+  noteSample[1] += sample[1];
 
   return 0;
 }

@@ -32,10 +32,10 @@ private:
   AudioOutputNull();
 
 public:
-  AudioOutputNull(Config *config);
+  AudioOutputNull(Config *config, Synth *synth);
   ~AudioOutputNull();
 
-  void run(Synth *synth);
+  void run(void);
 
 
 };

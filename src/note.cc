@@ -22,15 +22,14 @@
 #include <iostream>
 
 
-Note::Note(uint8_t key, uint8_t velocity, uint16_t instrument, bool drum,
-	   ControlRom &ctrlRom, PcmRom &pcmRom)
+Note::Note(uint8_t key, uint8_t velocity, uint16_t instrument, int drumSet,
+	   ControlRom &ctrlRom, PcmRom &pcmRom, uint32_t sampleRate)
   : _key(key),
-    _velocity(velocity),
-    _drum(drum)
+    _velocity(velocity)
 {
   _notePartial[0] = _notePartial[1] = NULL;
 
-  // Every Sound Canvas always uses either 1 or 2 partials for each instrument
+  // Every Sound Canvas uses either 1 or 2 partials for each instrument
   // Find correct original tone from break table if partial is in use
   for (int i = 0; i < 2; i ++) {
     uint16_t pIndex = ctrlRom.instrument(instrument).partials[i].partialIndex;
@@ -46,8 +45,9 @@ Note::Note(uint8_t key, uint8_t velocity, uint16_t instrument, bool drum,
 	  break;
 	}
 	int8_t keyDiff = key - ctrlRom.sample(sampleIndex).rootKey;
-	_notePartial[i] = new NotePartial(keyDiff, sampleIndex, drum,
-					  ctrlRom, pcmRom);
+	_notePartial[i] = new NotePartial(key, keyDiff, sampleIndex, drumSet,
+					  ctrlRom, pcmRom, instrument, i,
+					  sampleRate);
 	break;
       }
     }
@@ -80,8 +80,6 @@ bool Note::stop(uint8_t key)
 }
 
 
-// Pitch is the only variable input for a note's get_next_sample
-// Pitch < 0 => fixed pitch (e.g. for drums)
 bool Note::get_next_sample(float *partSample, float pitchBend)
 {
   bool finished[2] = {0, 0};

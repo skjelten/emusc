@@ -29,8 +29,9 @@
 #include <signal.h>
 
 
-AudioOutputAlsa::AudioOutputAlsa(Config *config)
-  : _wakeup(0),
+AudioOutputAlsa::AudioOutputAlsa(Config *config, Synth *synth)
+  : _synth(synth),
+    _wakeup(0),
     _bufferTime(75000),
     _periodTime(25000),
     _sampleRate(44100),
@@ -111,6 +112,7 @@ AudioOutputAlsa::AudioOutputAlsa(Config *config)
   if (ret = snd_pcm_start(_pcmHandle))
     throw(Ex(-1, "[ALSA] PCM start error. " + std::string(snd_strerror(ret))));
 
+  synth->set_audio_format(_sampleRate, _channels);
   std::cout << "EmuSC: Audio output [ALSA] successfully initialized" <<std::endl
 	    << " -> device=\"" << _deviceName << "\" (16 bit, "
 	    << _sampleRate << " Hz, "
@@ -313,7 +315,7 @@ int AudioOutputAlsa::_fill_buffer(const snd_pcm_channel_area_t *areas,
   int16_t sample[_channels];
 
   for (unsigned int frame = 0; frame < frames; frame++) {
-    synth->get_next_sample(sample, _sampleRate, _channels);// FIXME 16/24/32bit
+    synth->get_next_sample(sample);   // FIXME: Assumes 16 bit, 44.1 kHz, 2 ch
 
     if (*sample > 0xffffff)
       std::cout << "Audio overflow" << std::endl;
@@ -360,7 +362,7 @@ int AudioOutputAlsa::xrun_recovery(snd_pcm_t *handle, int err)
 }
 
 
-void AudioOutputAlsa::run(Synth *synth)
+void AudioOutputAlsa::run(void)
 {
   sigset_t sigmask;
   sigemptyset(&sigmask);
@@ -376,7 +378,7 @@ void AudioOutputAlsa::run(Synth *synth)
     if (_wakeup) {
       _wakeup = 0;
   
-     _private_callback(synth);
+     _private_callback(_synth);
     }
   }
 

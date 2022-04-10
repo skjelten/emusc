@@ -107,8 +107,8 @@ public:
   inline bool mute() { return(_mute); }
   inline void set_mute(bool mute) { _mute = mute; }
 
-  int add_note(uint8_t midiChannel, uint8_t key, uint8_t velocity);
-  int delete_note(uint8_t midiChannel, uint8_t key);
+  int add_note(uint8_t midiChannel, uint8_t key, uint8_t velocity, uint32_t sr);
+  int stop_note(uint8_t midiChannel, uint8_t key);
   int clear_all_notes(void);
 
   int set_program(uint8_t midiChannel, uint8_t index, uint8_t bank);

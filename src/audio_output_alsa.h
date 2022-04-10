@@ -39,6 +39,8 @@ private:
   snd_pcm_t *_pcmHandle;
   snd_async_handler_t *_aHandler;
 
+  Synth *_synth;
+
   volatile int _wakeup;
   
   int _channels;
@@ -64,13 +66,13 @@ private:
   AudioOutputAlsa();
 
 public:
-  AudioOutputAlsa(Config *config);
+  AudioOutputAlsa(Config *config, Synth *synth);
   virtual ~AudioOutputAlsa();
 
   static int xrun_recovery(snd_pcm_t *handle, int err);
   static void alsa_callback(snd_async_handler_t *aHandler);
 
-  virtual void run(Synth *synth);
+  virtual void run(void);
 
 };
 

@@ -55,7 +55,7 @@ public:
   AudioOutputCore(Config *config, Synth *synth);
   ~AudioOutputCore();
 
-  void run(Synth *synth);
+  void run(void);
   void stop(void);
   static OSStatus callback(void *inRefCon,
 			   AudioUnitRenderActionFlags *ioActionFalgs,

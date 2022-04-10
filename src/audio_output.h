@@ -21,9 +21,6 @@
 #define __AUDIO_OUTPUT_H__
 
 
-class Synth;
-
-
 class AudioOutput
 {
 private:
@@ -35,7 +32,7 @@ public:
   AudioOutput();
   virtual ~AudioOutput() = 0;
 
-  virtual void run(Synth *synth) = 0;
+  virtual void run(void) = 0;
   virtual void stop(void);
 
 };

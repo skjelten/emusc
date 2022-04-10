@@ -43,7 +43,9 @@ Synth::Synth(Config &config, ControlRom &controlRom, PcmRom &pcmRom)
     _keyShift(0),
     _masterTune(440.0),
     _reverbType(5),
-    _choursType(3)
+    _choursType(3),
+    _sampleRate(0),
+    _channels(0)
 {
   // Note: SC-88 also has a "SC-55" mode
   std::string mode = _config.get("mode");
@@ -211,10 +213,11 @@ void Synth::midi_input(struct MidiInput::MidiEvent *midiEvent)
       
       if (!midiEvent->data2) {          // Note On with velocity = 0 => Note Off
 	for (auto &p: _parts)
-	  p.delete_note(midiEvent->channel, midiEvent->data1);
+	  p.stop_note(midiEvent->channel, midiEvent->data1);
       } else {
 	for (auto &p: _parts)
-	  p.add_note(midiEvent->channel, midiEvent->data1, midiEvent->data2);
+	  p.add_note(midiEvent->channel, midiEvent->data1, midiEvent->data2,
+		     _sampleRate);
       }
       break;
 
@@ -227,7 +230,7 @@ void Synth::midi_input(struct MidiInput::MidiEvent *midiEvent)
       
       // TODO: Change state to ADSR release
       for (auto &p: _parts)
-	p.delete_note(midiEvent->channel, midiEvent->data1);
+	p.stop_note(midiEvent->channel, midiEvent->data1);
      break;
 
     case MidiInput::se_Sysex:
@@ -257,13 +260,13 @@ void Synth::midi_input(struct MidiInput::MidiEvent *midiEvent)
 }
 
 
-int Synth::get_next_sample(int16_t *sampleOut, int sampleRate, int channels)
+int Synth::get_next_sample(int16_t *sampleOut)
 {
   float partSample[2];
   float accumulatedSample[2] = { 0, 0 };
 
   // Write silence
-  for (int i = 0; i < channels; i++) {
+  for (int i = 0; i < _channels; i++) {
     sampleOut[i] = 0;
   }
 
@@ -290,13 +293,20 @@ int Synth::get_next_sample(int16_t *sampleOut, int sampleRate, int channels)
   else if (_pan < 0)
     accumulatedSample[1] *= 1.0 - (abs(_pan) / 63.0);
 
-  // Apply master volume and sample rate conversion
-  accumulatedSample[0] *= (_volume / 127.0) * (32000.0 / sampleRate);
-  accumulatedSample[1] *= (_volume / 127.0) * (32000.0 / sampleRate);
+  // Apply master volume conversion
+  accumulatedSample[0] *= (_volume / 127.0);
+  accumulatedSample[1] *= (_volume / 127.0);
 
   // Send to audio output. FIXME: Add support for PAN (stereo)!
-  for (int c = 0; c < channels; c++)
+  for (int c = 0; c < _channels; c++)
     sampleOut[c] += (int16_t) (accumulatedSample[c] * 0xffff);
 
   return 0;
+}
+
+
+void Synth::set_audio_format(uint32_t sampleRate, uint8_t channels)
+{
+  _sampleRate = sampleRate;
+  _channels = channels;
 }

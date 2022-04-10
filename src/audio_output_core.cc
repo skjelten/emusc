@@ -79,6 +79,7 @@ AudioOutputCore::AudioOutputCore(Config *config, Synth *synth)
   if (result != noErr)
     throw (Ex(-1, "Couldn't initialize CoreAudio unit"));
 
+  synth->set_audio_format(_sampleRate, _channels);
   std::cout << "EmuSC: Audio output [Core] successfully initialized"
 	    << std::endl;
 }
@@ -112,7 +113,7 @@ int AudioOutputCore::_fill_buffer(AudioBufferList *data, UInt32 frames)
   Float32 *right = (Float32 *) data->mBuffers[1].mData;
 	  
   for (unsigned int frame = 0; frame < frames; frame++) {
-    _synth->get_next_sample(sample, _sampleRate, _channels);//FIXME 16/24/32bit
+    _synth->get_next_sample(sample);
     *left = (Float32) sample[0] / (1 << 15);
     *right = (Float32) sample[1] / (1 << 15);
 
@@ -125,7 +126,7 @@ int AudioOutputCore::_fill_buffer(AudioBufferList *data, UInt32 frames)
 }
 
 
-void AudioOutputCore::run(Synth *synth)
+void AudioOutputCore::run(void)
 {
   OSStatus result = AudioOutputUnitStart(_audioUnit);
   if (result != noErr)

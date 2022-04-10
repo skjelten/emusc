@@ -61,7 +61,7 @@ public:
   AudioOutputPulse(Config *config, Synth *synth);
   ~AudioOutputPulse();
 
-  void run(Synth *synth);
+  void run(void);
   void stop(void);
 
   // Static functions for external callbacks -> calling private callbacks

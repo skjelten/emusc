@@ -106,13 +106,12 @@ public:
   };                      // and above corresponds to breakpoints
 
   struct InstPartial {    // 92 bytes in total
-    uint16_t partialIndex;// Part table index, 0xFFFF for unused
-
-    // From heatmap spreadsheet found online. Not used yet.
-    int8_t panpot;
-    int8_t coarsePitch;
-    int8_t finePitch;
+    uint16_t partialIndex;// Partial table index, 0xFFFF for unused
+    int8_t panpot;        // [-64, 64]. Default 0x40 (0-127)
+    int8_t coarsePitch;   // Default 0x40
+    int8_t finePitch;     // Default 0x40
     int8_t randPitch;
+    int8_t volume;        // Volume attenuation (7f - 0)
     int8_t PitchKeyFlw;
     int8_t TvpLfoDepth;
     int8_t pitchMult;
@@ -127,8 +126,9 @@ public:
     int8_t pitchDurP4;
     int8_t pitchDurRel;
     int8_t TVFBaseFlt;
-    int8_t LowVelClear;
     int8_t TVFResonance;
+    int8_t LowVelClear;
+
     int8_t TVFLvlInit;
     int8_t TVFLvlP1;
     int8_t TVFLvlP2;
@@ -139,16 +139,19 @@ public:
     int8_t TVFDurP3;
     int8_t TVFDurP4;
     int8_t TVFDurRel;
-    int8_t TVFLFODepth;   // TCA LFO Depth
-    int8_t TVALvl1;       // TVA Level 1 (Attack)
-    int8_t TVALvl2;       // TVA Level 1 (Hold)
-    int8_t TVALvl3;       // TVA Level 1 (Decay)
-    int8_t TVALvl4;       // TVA Level 1 (Sustain)
-    int8_t TVADur1;       // TVA Level 1 (Attack)
-    int8_t TVADur2;       // TVA Level 1 (Hold)
-    int8_t TVADur3;       // TVA Level 1 (Decay)
-    int8_t TVADur4;       // TVA Level 1 (Sustain)
-    int8_t TVADur5;       // TVA Level 1 (Release)
+
+    int8_t TVFLFODepth;    // TVF LFO Depth
+    int8_t TVALFODepth;    // TVA LFO Depth
+
+    uint8_t TVAVolP1;      // TVA level phase 1 (Attack)     Default 0x7f
+    uint8_t TVAVolP2;      // TVA level phase 2 (Hold)       Default 0x7f
+    uint8_t TVAVolP3;      // TVA level phase 3 (Decay)      Default 0x7f
+    uint8_t TVAVolP4;      // TVA level phase 4 (Sustain)    Default 0x7f
+    uint8_t TVALenP1;      // TVA duration phase 1 (Attack)  Default 0x80
+    uint8_t TVALenP2;      // TVA duration phase 2 (Hold)    Default 0x80
+    uint8_t TVALenP3;      // TVA duration phase 3 (Decay)   Default 0
+    uint8_t TVALenP4;      // TVA duration phase 4 (Sustain) Default 0
+    uint8_t TVALenP5;      // TVA duration phase 5 (Release) Default 0x09
     
   };
 
@@ -165,7 +168,7 @@ public:
     uint8_t panpot[128];
     uint8_t reverb[128];
     uint8_t chorus[128];
-    uint8_t flags[128];   // 0x10 -> note on,  0x01 -> note_off
+    uint8_t flags[128];   // 0x10 -> accept note on,  0x01 -> accept note off
     std::string name;     // 12 chars
   };
 

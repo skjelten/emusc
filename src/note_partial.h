@@ -23,6 +23,7 @@
 
 #include "control_rom.h"
 #include "pcm_rom.h"
+#include "volume_envelope.h"
 
 #include <stdint.h>
 
@@ -30,30 +31,34 @@
 class NotePartial
 {
 private:
+  uint8_t _key;
   int8_t _keyDiff;        // Difference in number of keys from original tone
-  bool _drum;
+  int _drumSet;           // < 0 => not drums (normal instrument)
 
+  uint16_t _instrument;
   uint16_t _sampleIndex;
+  bool _partialIndex;
 
   float _samplePos;       // Sample position in number of samples from start
-  bool _sampleDir;        // 0 = backward & 1 = foreward 
-  
+  bool _sampleDir;        // 0 = backward & 1 = foreward
+
   ControlRom &_ctrlRom;
   PcmRom &_pcmRom;
-  
-  enum AhdsrState {
-    ahdsr_Attack,
-    ahdsr_Hold,
-    ahdsr_Decay,
-    ahdsr_Sustain,
-    ahdsr_Release,
-    ahdsr_Inactive
-  };
-  enum AhdsrState _ahdsrState;
+
+  float _sampleFactor;
+
+  double _coarsePitch;    // Partial coarse pitch factor in semitone steps
+  double _finePitch;      // Partial fine pitch factor in cents
+  double _instFinePitch;  // Instrument fine pitch factor in cents
+
+  VolumeEnvelope *_volumeEnvelope;
+
+  double _convert_volume(uint8_t volume);
 
 public:
-  NotePartial(int8_t keyDiff, uint16_t sampleIndex, bool drum,
-	      ControlRom &ctrlRom, PcmRom &pcmRom);
+  NotePartial(uint8_t key, int8_t keyDiff, uint16_t sampleIndex, int drumSet,
+	      ControlRom &ctrlRom, PcmRom &pcmRom, uint16_t instrument,
+	      bool partialIndex, uint32_t sampleRate);
   ~NotePartial();
 
   void stop(void);

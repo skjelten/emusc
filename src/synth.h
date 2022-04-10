@@ -48,6 +48,9 @@ private:
   
   Config &_config;
 
+  uint32_t _sampleRate;
+  uint8_t _channels;
+
   std::mutex midiMutex;
 
   enum Mode {
@@ -87,7 +90,8 @@ private:
   ~Synth();
 
   void midi_input(struct MidiInput::MidiEvent *midiEvent);
-  int get_next_sample(int16_t *sample, int sampleRate, int channels);
+  int get_next_sample(int16_t *sample);
+  void set_audio_format(uint32_t sampleRate, uint8_t channels);
 
 };
 

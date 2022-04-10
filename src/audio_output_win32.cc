@@ -27,8 +27,9 @@
 #include <iostream>
 
 
-AudioOutputWin32::AudioOutputWin32(Config *config)
-  : _channels(2),
+AudioOutputWin32::AudioOutputWin32(Config *config, Synth *synth)
+  : _synth(_synth),
+    _channels(2),
     _sampleRate(44100)
 {
   uint32_t bufferTime = 75000;
@@ -82,6 +83,7 @@ AudioOutputWin32::AudioOutputWin32(Config *config)
   if (!waveOutGetDevCaps(deviceId, &woc, sizeof(WAVEOUTCAPS)))
     deviceName.assign(woc.szPname);
 
+  synth->set_audio_format(_sampleRate, _channels);
   std::cout << "EmuSC: Audio output [Win32] successfully initialized"
 	    << std::endl
 	    << " -> device=\"" << deviceName << "\" ("
@@ -101,7 +103,7 @@ AudioOutputWin32::~AudioOutputWin32()
 }
 
 
-void AudioOutputWin32::run(Synth *synth)
+void AudioOutputWin32::run(void)
 {
   char audioBuffer[2][_bufferSize];
   WAVEHDR wHeader[2];
@@ -111,7 +113,7 @@ void AudioOutputWin32::run(Synth *synth)
     wHeader[i].dwBufferLength = _bufferSize;
     wHeader[i].dwFlags = 0;
     waveOutPrepareHeader(_hWave, &wHeader[i], sizeof(WAVEHDR));
-    _fill_buffer(audioBuffer[i], synth);
+    _fill_buffer(audioBuffer[i]);
     waveOutWrite(_hWave, &wHeader[i], sizeof(WAVEHDR));
   }
 
@@ -129,7 +131,7 @@ void AudioOutputWin32::run(Synth *synth)
 	  wHeader[index].dwBufferLength = _bufferSize;
 	  wHeader[index].dwFlags = 0;
 	  waveOutPrepareHeader(_hWave, &wHeader[index], sizeof(WAVEHDR));
-	  _fill_buffer(audioBuffer[index], synth);
+	  _fill_buffer(audioBuffer[index]);
 	  waveOutWrite(_hWave, &wHeader[index], sizeof(WAVEHDR));
 
 	  index = !index;
@@ -148,7 +150,7 @@ void AudioOutputWin32::run(Synth *synth)
 
 
 // Only 16 bit supported
-int AudioOutputWin32::_fill_buffer(char *audioBuffer, Synth *synth)
+int AudioOutputWin32::_fill_buffer(char *audioBuffer)
 {
   int i = 0;
   int16_t sample[_channels];
@@ -156,7 +158,7 @@ int AudioOutputWin32::_fill_buffer(char *audioBuffer, Synth *synth)
   int frames = _bufferSize / (2 * _channels);
   
   for (unsigned int frame = 0; frame < frames; frame++) {
-    synth->get_next_sample(sample, _sampleRate, _channels);
+    _synth->get_next_sample(sample);
     
     for (int channel=0; channel < _channels; channel++) {
       int16_t* dest = (int16_t*) &audioBuffer[(frame * 4) + (2 * channel)];
