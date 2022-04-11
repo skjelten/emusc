@@ -41,7 +41,8 @@ private:
   MIDIHDR _header;
   char _data[256];            // Data buffer for MIDI messages
 
-  void _midi_callback(HMIDIIN handle, UINT uMsg, DWORD dwParam1,DWORD dwParam2);
+  void _midi_callback(HMIDIIN handle, UINT uMsg,
+		      DWORD_PTR dwParam1, DWORD_PTR dwParam2);
 
 public:
   MidiInputWin32(Config *config, Synth *synth);
@@ -50,8 +51,8 @@ public:
   virtual void run(Synth *synth);
   virtual void stop(void);
 
-  static void CALLBACK midi_callback(HMIDIIN handle, UINT uMsg,DWORD dwInstance,
-				     DWORD dwParam1, DWORD dwParam2);
+  static void CALLBACK midi_callback(HMIDIIN handle, UINT uMsg, DWORD_PTR dwInstance,
+				     DWORD_PTR dwParam1, DWORD_PTR dwParam2);
 
 };
 

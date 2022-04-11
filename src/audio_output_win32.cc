@@ -28,7 +28,7 @@
 
 
 AudioOutputWin32::AudioOutputWin32(Config *config, Synth *synth)
-  : _synth(_synth),
+  : _synth(synth),
     _channels(2),
     _sampleRate(44100)
 {

@@ -55,7 +55,7 @@ MidiInputWin32::MidiInputWin32(Config *config, Synth *synth)
   std::cout << "EmuSC: Win32 MIDI input initialized" << std::endl;
 
   MIDIINCAPS caps;
-  res = midiInGetDevCaps((UINT) _handle, &caps, sizeof(MIDIINCAPS));
+  res = midiInGetDevCaps((UINT_PTR) deviceID, &caps, sizeof(MIDIINCAPS));
   if (res == MMSYSERR_NOERROR)
     std::cout << " -> device=" << deviceID << " name=" << caps.szPname
 	      << std::endl;
@@ -73,7 +73,7 @@ MidiInputWin32::~MidiInputWin32()
 
 
 void MidiInputWin32::_midi_callback(HMIDIIN handle, UINT msg,
-				    DWORD dwParam1, DWORD dwParam2)
+				    DWORD_PTR dwParam1, DWORD_PTR dwParam2)
 {
   switch(msg)
     {
@@ -129,8 +129,8 @@ void MidiInputWin32::run(Synth *synth)
 }
 
 
-void MidiInputWin32::midi_callback(HMIDIIN handle, UINT uMsg, DWORD dwInstance,
-				   DWORD dwParam1, DWORD dwParam2)
+void MidiInputWin32::midi_callback(HMIDIIN handle, UINT uMsg, DWORD_PTR dwInstance,
+				   DWORD_PTR dwParam1, DWORD_PTR dwParam2)
 {
   MidiInputWin32 *miw = (MidiInputWin32 *) dwInstance;
   miw->_midi_callback(handle, uMsg, dwParam1, dwParam2);
