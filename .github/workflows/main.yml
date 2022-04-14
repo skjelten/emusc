@@ -2,7 +2,7 @@ name: Hello World
 on: [push, pull_request]
 
 jobs:
-  build:
+  build-win:
     runs-on: windows-latest
     defaults:
       run:
@@ -14,3 +14,4 @@ jobs:
         install: gcc make autotools
     - run: ./autogen.sh
     - run: ./configure
+    - run: make
