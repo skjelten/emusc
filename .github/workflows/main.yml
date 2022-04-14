@@ -1,26 +1,25 @@
 name: EmuSC CI
-on: [push]
+on:
+  push:
+    branches: [ master ]
 
 jobs:
-  build-win:
-    runs-on: windows-latest
+  build:
+    strategy:
+      matrix:
+        os: ["windows-latest", "ubuntu-latest"]
+        cc: ["g++", "g++"]
+    runs-on: ${{matrix.os}}
     defaults:
       run:
         shell: msys2 {0}
     steps:
     - uses: actions/checkout@v2
-    - uses: msys2/setup-msys2@v2
+    - if: ${{matrix.os == 'windows-latest'}}
+      uses: msys2/setup-msys2@v2
       with:
         msystem: mingw64
         install: mingw-w64-x86_64-gcc make autotools
     - run: ./autogen.sh
     - run: ./configure
-    - run: make CXX=g++
-    - run: mv src/emusc.exe src/emusc_win32.exe
-    - uses: "marvinpinto/action-automatic-releases@latest"
-      with:
-        repo_token: "${{ secrets.GITHUB_TOKEN }}"
-        prerelease: true
-        automatic_release_tag: "latest"
-        files: |
-          src/emusc_win32.exe
+    - run: make CXX=${{matrix.cc}}
