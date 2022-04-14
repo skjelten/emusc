@@ -15,11 +15,12 @@ jobs:
         install: mingw-w64-x86_64-gcc make autotools
     - run: ./autogen.sh
     - run: ./configure
-    - run: make CXX=g++ bin_PROGRAMS=emusc_win32$(EXEEXT)
+    - run: make CXX=g++
+    - run: mv src/emusc.exe src/emusc_win32.exe
     - uses: "marvinpinto/action-automatic-releases@latest"
       with:
         repo_token: "${{ secrets.GITHUB_TOKEN }}"
         prerelease: true
         automatic_release_tag: "latest"
         files: |
-          src/emusc.exe
+          src/emusc_win32.exe
