@@ -10,7 +10,7 @@ jobs:
        include:
         - { os: windows-latest, cc: g++, shell: 'msys2 {0}'}
         - { os: ubuntu-latest, cc: g++-10, shell: bash}
-        - { os: macos-latest, cc: clang, shell: bash}
+        - { os: macos-latest, cc: g++, shell: bash}
     runs-on: ${{matrix.os}}
     defaults:
       run:
