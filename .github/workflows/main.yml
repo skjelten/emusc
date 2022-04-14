@@ -13,3 +13,4 @@ jobs:
       with:
         install: gcc make autotools
     - run: ./autogen.sh
+    - run: ./configure
