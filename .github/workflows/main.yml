@@ -1,5 +1,5 @@
-name: Hello World
-on: [push, pull_request]
+name: EmuSC CI
+on: [push]
 
 jobs:
   build-win:
