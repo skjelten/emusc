@@ -2,7 +2,7 @@ name: Hello World
 on: [push, pull_request]
 
 jobs:
-  amd64_windows_gcc:
+  build:
     runs-on: windows-latest
     defaults:
       run:
@@ -12,4 +12,4 @@ jobs:
     - uses: msys2/setup-msys2@v2
       with:
         install: gcc make autotools
-    - run: gcc -v
+    - run: ./autogen.sh
