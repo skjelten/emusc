@@ -29,6 +29,10 @@ jobs:
     - run: ./autogen.sh
     - if: ${{matrix.os == 'ubuntu-latest'}}
       run: ./configure CXXFLAGS='-pthread'
-    - if: ${{matrix.os != 'ubuntu-latest'}}
+    - if: ${{matrix.os != 'windows-latest'}}
       run: ./configure
+    - if: ${{runner.os == 'macOS'}}
+      run: ./configure CXXFLAGS='-std=c++11'
     - run: make CXX=${{matrix.cc}}
+
+
