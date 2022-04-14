@@ -22,5 +22,9 @@ jobs:
         msystem: mingw64
         install: mingw-w64-x86_64-gcc make autotools
     - run: ./autogen.sh
-    - run: ./configure
+    - if: ${{matrix.os == 'ubuntu-latest'}}
+      run: ./configure CXXFLAGS='-pthread'
+    - if: ${{matrix.os == 'windows-latest'}}
+      run: ./configure
     - run: make CXX=${{matrix.cc}}
+    
