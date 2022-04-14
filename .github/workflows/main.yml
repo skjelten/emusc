@@ -8,24 +8,27 @@ jobs:
     strategy:
       matrix:
        include:
-        - { os: windows-latest, cc: g++ , shell: 'msys2 {0}'}
-        - { os: ubuntu-latest, cc: g++-10 , shell: bash}
+        - { os: windows-latest, cc: g++, shell: 'msys2 {0}'}
+        - { os: ubuntu-latest, cc: g++-10, shell: bash}
+        - { os: macos-latest, cc: clang, shell: bash}
     runs-on: ${{matrix.os}}
     defaults:
       run:
         shell: ${{matrix.shell}}
     steps:
+    - if: ${{runner.os == 'macOS'}}
+      run: brew install autoconf automake libtool
+    - if: ${{matrix.os == 'ubuntu-latest'}}
+      run: sudo apt-get install -y libasound2-dev
     - uses: actions/checkout@v2
     - if: ${{matrix.os == 'windows-latest'}}
       uses: msys2/setup-msys2@v2
       with:
         msystem: mingw64
         install: mingw-w64-x86_64-gcc make autotools
-    - if: ${{matrix.os == 'ubuntu-latest'}}
-      run: sudo apt-get install -y libasound2-dev
     - run: ./autogen.sh
     - if: ${{matrix.os == 'ubuntu-latest'}}
       run: ./configure CXXFLAGS='-pthread'
-    - if: ${{matrix.os == 'windows-latest'}}
+    - if: ${{matrix.os != 'ubuntu-latest'}}
       run: ./configure
     - run: make CXX=${{matrix.cc}}
