@@ -7,8 +7,9 @@ jobs:
   build:
     strategy:
       matrix:
-        os: ["windows-latest", "ubuntu-latest"]
-        cc: ["g++", "g++"]
+       include:
+        - { os: windows-latest, cc: g++ }
+        - { os: ubuntu-latest, cc: g++ }
     runs-on: ${{matrix.os}}
     defaults:
       run:
