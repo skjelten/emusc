@@ -2,19 +2,17 @@ name: Hello World
 on: [push, pull_request]
 
 jobs:
-  build:
-    runs-on: windows-latest
+  amd64_windows_gcc:
+    runs-on: windows-2019
     defaults:
       run:
         shell: msys2 {0}
     steps:
-      - uses: actions/checkout@v2
-      - uses: msys2/setup-msys2@v2
-        with:
-          msystem: MINGW64
-          update: true
-          install: git mingw-w64-x86_64-cc
-      - name: CI-Build
-        run: |
-          echo 'Running in MSYS2!'
-          ./ci-build.sh
+    - uses: actions/checkout@v2
+    - uses: msys2/setup-msys2@v2
+      with:
+        install: gcc make
+    - run: gcc -v
+    - run: make CC=gcc
+    - run: file ./hello.exe
+    - run: ./hello
