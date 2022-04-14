@@ -4,6 +4,10 @@ on: [push, pull_request]
 jobs:
   build-win:
     runs-on: windows-latest
+    strategy:
+      matrix:
+        include:
+          - { sys: mingw64, env: x86_64 }
     defaults:
       run:
         shell: msys2 {0}
@@ -11,8 +15,8 @@ jobs:
     - uses: actions/checkout@v2
     - uses: msys2/setup-msys2@v2
       with:
-        msystem: MINGW64
-        install: gcc make autotools
+        msystem: ${{matrix.sys}}
+        install: mingw-w64-x86_64-gcc make autotools
     - run: ./autogen.sh
     - run: ./configure
     - run: make CXX=g++
