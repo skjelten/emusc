@@ -22,32 +22,35 @@ jobs:
     - if: ${{runner.os == 'Linux'}}
       name: Install Linux Dependencies 
       run: sudo apt-get install -y libasound2-dev
-    - name: Checkout Repo  
-      uses: actions/checkout@v2
     - if: ${{runner.os == 'Windows'}}
       name: Install Windows Dependencies 
       uses: msys2/setup-msys2@v2
       with:
         msystem: mingw64
         install: mingw-w64-x86_64-gcc make autotools
+    - name: Checkout Repo  
+      uses: actions/checkout@v2
     - name: Run Autotools
       run: ./autogen.sh
+    - if: ${{runner.os == 'macOS'}}
+      name: Run Configure (macOS)
+      run: ./configure CXXFLAGS='-std=c++11'
     - if: ${{runner.os == 'Linux'}}
       name: Run Configure (Linux)
       run: ./configure CXXFLAGS='-pthread'
     - if: ${{runner.os == 'Windows'}}
       name: Run Configure (Windows)
       run: ./configure
-    - if: ${{runner.os == 'macOS'}}
-      name: Run Configure (macOS)
-      run: ./configure CXXFLAGS='-std=c++11'
     - name: Compile Code
       run: make CXX=${{matrix.cc}}
-    - if: ${{runner.os != 'Windows'}}
-      name: Rename ${{runner.os}} Binary
+    - if: ${{runner.os == 'macOS'}}
+      name: Rename macOS Binary
+      run: mv src/emusc src/emusc-${{matrix.bin}}
+    - if: ${{runner.os == 'Linux'}}
+      name: Rename Linux Binary
       run: mv src/emusc src/emusc-${{matrix.bin}}
     - if: ${{runner.os == 'Windows'}}
-      name: Rename ${{runner.os}} Binary
+      name: Rename Windows Binary
       run: mv src/emusc.exe src/emusc-${{matrix.bin}}.exe
     - name: Upload All Binaries
       uses: actions/upload-artifact@v2
@@ -63,19 +66,23 @@ jobs:
       - name: Get Build Tag
         id: get_tag
         run: echo ::set-output name=BUILD_TAG::build-$(date +'%Y%m%d%H%M')
-      - uses: actions/download-artifact@v2
-        with:
-          name: build-Linux
-          path: build-Linux
-      - uses: actions/download-artifact@v2
+      - name: Get macOS Binary
+        uses: actions/download-artifact@v2
         with:
           name: build-macOS
           path: build-macOS
-      - uses: actions/download-artifact@v2
+      - name: Get Linux Binary
+        uses: actions/download-artifact@v2
+        with:
+          name: build-Linux
+          path: build-Linux
+      - name: Get Windows Binary
+        uses: actions/download-artifact@v2
         with:
           name: build-Windows
           path: build-Windows
       - if: github.event_name == 'push' 
+        name: Create Release
         uses: softprops/action-gh-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -84,6 +91,6 @@ jobs:
           tag_name: ${{ steps.get_tag.outputs.BUILD_TAG }}
           prerelease: true
           files: |
+            build-macOS/*
             build-Linux/*
             build-Windows/*
-            build-macOS/*
