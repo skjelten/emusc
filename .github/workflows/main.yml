@@ -112,6 +112,6 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         with:
           upload_url: ${{ steps.get_release.outputs.upload_url }}
-          asset_path: ./build-Windows
+          asset_path: build-Windows/emusc-win32.exe
           asset_name: emusc-win32.exe
           asset_content_type: application/octet-stream
