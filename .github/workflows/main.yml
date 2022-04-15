@@ -5,8 +5,7 @@ on:
     branches: [ master ]
   push:
     branches: [ master ]
-  release:
-    types: [created]
+  create:
     tags: ['v*'] # Push events to matching v*, i.e. v1.0, v20.15.10
     
 jobs:
@@ -88,30 +87,23 @@ jobs:
           name: build-Windows
           path: build-Windows
       - if: github.event_name == 'push' # snapshot builds
-        name: Create Release
-        uses: softprops/action-gh-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        name: Create Snapshot Release
+        uses: "marvinpinto/action-automatic-releases@latest"
         with:
-          name: ${{ steps.get_tag.outputs.BUILD_TAG }}
-          tag_name: ${{ steps.get_tag.outputs.BUILD_TAG }}
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          automatic_release_tag: ${{ steps.get_tag.outputs.BUILD_TAG }}
           prerelease: true
           files: |
             build-macOS/*
             build-Linux/*
             build-Windows/*
-      - if: github.event_name == 'release' # release versioned builds
-        name: Get Existing Release
-        id: get_release
-        uses: bruceadams/get-release@v1.2.3
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-      - name: Upload Windows Binary
-        uses: actions/upload-release-asset@v1.0.2
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
+      - if: github.event_name == 'create' && startsWith(github.ref, 'refs/tags/v') # release versioned builds
+        name: Create Tagged Release
+        uses: "marvinpinto/action-automatic-releases@latest"
         with:
-          upload_url: ${{ steps.get_release.outputs.upload_url }}
-          asset_path: build-Windows/emusc-win32.exe
-          asset_name: emusc-win32.exe
-          asset_content_type: application/octet-stream
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          prerelease: false
+          files: |
+            build-macOS/*
+            build-Linux/*
+            build-Windows/*
