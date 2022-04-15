@@ -69,6 +69,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           name: ${{ steps.get_version.outputs.VERSION }}
+          tag_name: ${{ github.ref }}
           prerelease: true
           files: |
             build-Linux/*
