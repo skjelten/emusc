@@ -6,16 +6,16 @@ on:
   push:
     branches: [ master ]
   create:
-    tags: ['v*'] # Push events to matching v*, i.e. v1.0, v20.15.10
+      tags: ['v*'] # Push events to matching v*, i.e. v1.0, v20.15.10
     
 jobs:
   build:
     strategy:
       matrix:
        include:
-        - { os: windows-latest, cc: g++, shell: 'msys2 {0}', bin: 'win32'}
-        - { os: ubuntu-latest, cc: g++-10, shell: bash, bin: 'linux'}
-        - { os: macos-latest, cc: g++, shell: bash, bin: 'macOS'}
+        - { os: windows-latest, cc: g++, shell: 'msys2 {0}', bin: 'win32-x86_64'}
+        - { os: ubuntu-latest, cc: g++-10, shell: bash, bin: 'linux-x86_64'}
+        - { os: macos-latest, cc: g++, shell: bash, bin: 'macOS-x86_64'}
     runs-on: ${{matrix.os}}
     defaults:
       run:
@@ -99,6 +99,45 @@ jobs:
             build-Linux/*
             build-Windows/*
       - if: github.event_name == 'create' && startsWith(github.ref, 'refs/tags/v') # release versioned builds
+        name: Find Existing Release
+        id: find_release
+        uses: cardinalby/git-get-release-action@v1
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          doNotFailIfNotFound: true
+          tag: ${{ github.ref }}
+      - if: github.event_name == 'create' && startsWith(github.ref, 'refs/tags/v') && steps.find_release.outputs.id != 0 # release exists - upload macOS binary
+        name: Updated Tagged Release (macOS)
+        uses: actions/upload-release-asset@v1.0.2
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          upload_url: ${{ steps.find_release.outputs.upload_url }}
+          asset_path: build-macOS/emusc-macOS-x86_64
+          asset_name: emusc-macOS-x86_64
+          asset_content_type: application/octet-stream
+      - if: github.event_name == 'create' && startsWith(github.ref, 'refs/tags/v') && steps.find_release.outputs.id != 0 # release exists - upload Linux binary
+        name: Updated Tagged Release (Windows)
+        uses: actions/upload-release-asset@v1.0.2
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          upload_url: ${{ steps.find_release.outputs.upload_url }}
+          asset_path: build-Linux/emusc-linux-x86_64
+          asset_name: emusc-linux-x86_64
+          asset_content_type: application/octet-stream
+      - if: github.event_name == 'create' && startsWith(github.ref, 'refs/tags/v') && steps.find_release.outputs.id != 0 # release exists - upload Windows binary
+        name: Updated Tagged Release (Windows)
+        uses: actions/upload-release-asset@v1.0.2
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          upload_url: ${{ steps.find_release.outputs.upload_url }}
+          asset_path: build-Windows/emusc-win32-x86_64.exe
+          asset_name: emusc-win32-x86_64.exe
+          asset_content_type: application/octet-stream
+      - if: github.event_name == 'create' && startsWith(github.ref, 'refs/tags/v') && steps.find_release.outputs.id == 0 # release does not exist
         name: Create Tagged Release
         uses: "marvinpinto/action-automatic-releases@latest"
         with:
