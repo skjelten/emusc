@@ -17,38 +17,48 @@ jobs:
         shell: ${{matrix.shell}}
     steps:
     - if: ${{runner.os == 'macOS'}}
+      name: Install macOS Dependencies 
       run: brew install autoconf automake libtool
     - if: ${{matrix.os == 'ubuntu-latest'}}
+      name: Install Linux Dependencies 
       run: sudo apt-get install -y libasound2-dev
     - uses: actions/checkout@v2
     - if: ${{matrix.os == 'windows-latest'}}
+      name: Install Windows Dependencies 
       uses: msys2/setup-msys2@v2
       with:
         msystem: mingw64
         install: mingw-w64-x86_64-gcc make autotools
-    - run: ./autogen.sh
+    - name: Run Autotools
+      run: ./autogen.sh
     - if: ${{matrix.os == 'ubuntu-latest'}}
+      name: Run Configure (Linux)
       run: ./configure CXXFLAGS='-pthread'
     - if: ${{matrix.os == 'windows-latest'}}
+      name: Run Configure (Windows)
       run: ./configure
     - if: ${{runner.os == 'macOS'}}
+      name: Run Configure (macOS)
       run: ./configure CXXFLAGS='-std=c++11'
     - run: make CXX=${{matrix.cc}}
     - if: ${{matrix.os != 'windows-latest'}}
+      name: Rename ${{matrix.os}} Binary
       run: mv src/emusc src/emusc-${{matrix.bin}}
     - if: ${{matrix.os == 'windows-latest'}}
+      name: Rename ${{matrix.os}} Binary
       run: mv src/emusc.exe src/emusc-${{matrix.bin}}.exe
-    - uses: actions/upload-artifact@v2
+    - name: Upload All Binaries
+      uses: actions/upload-artifact@v2
       with:
         name: build-${{runner.os}}
         path: |
           src/emusc-${{matrix.bin}}*
           
-  release:
+  publish:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - name: Get build tag
+      - name: Get Build Tag
         id: get_tag
         run: echo ::set-output name=BUILD_TAG::build-$(date +'%Y%m%d%H%M')
       - uses: actions/download-artifact@v2
