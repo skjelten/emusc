@@ -4,13 +4,18 @@ on:
     branches: [ master ]
 
 jobs:
+  datetime:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set current date as env variable
+        run: echo "DATETIME::$(date +'%Y-%m-%dT%H:%M:%S')" >> $GITHUB_ENV
   build:
     strategy:
       matrix:
        include:
-        - { os: windows-latest, cc: g++, shell: 'msys2 {0}'}
-        - { os: ubuntu-latest, cc: g++-10, shell: bash}
-        - { os: macos-latest, cc: g++, shell: bash}
+        - { os: windows-latest, cc: g++, shell: 'msys2 {0}', bin: 'win32'}
+        - { os: ubuntu-latest, cc: g++-10, shell: bash, bin: 'linux'}
+        - { os: macos-latest, cc: g++, shell: bash, bin: 'macOS'}
     runs-on: ${{matrix.os}}
     defaults:
       run:
@@ -34,5 +39,12 @@ jobs:
     - if: ${{runner.os == 'macOS'}}
       run: ./configure CXXFLAGS='-std=c++11'
     - run: make CXX=${{matrix.cc}}
-
-
+    - if: ${{matrix.os != 'windows-latest'}}
+      run: mv src/emusc src/emusc-${{matrix.bin}}
+    - if: ${{matrix.os == 'windows-latest'}}
+      run: mv src/emusc.exe src/emusc-${{matrix.bin}}.exe
+    - uses: actions/upload-artifact@v2
+      with:
+        name: build-${{runner.os}}
+        path: |
+          src/emusc-${{matrix.bin}}*
