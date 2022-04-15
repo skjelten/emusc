@@ -48,9 +48,9 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - name: Get the version
-        id: get_version
-        run: echo ::set-output name=VERSION::$(date +'%Y-%m-%dT%H:%M:%S')
+      - name: Get build tag
+        id: get_tag
+        run: echo ::set-output name=BUILD_TAG::build-$(date +'%Y%m%d%H%M')
       - uses: actions/download-artifact@v2
         with:
           name: build-Linux
@@ -68,8 +68,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          name: ${{ steps.get_version.outputs.VERSION }}
-          tag_name: ${{ github.ref }}
+          name: ${{ steps.get_tag.outputs.BUILD_TAG }}
+          tag_name: ${{ steps.get_tag.outputs.BUILD_TAG }}
           prerelease: true
           files: |
             build-Linux/*
