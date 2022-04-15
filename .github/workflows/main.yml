@@ -4,11 +4,6 @@ on:
     branches: [ master ]
 
 jobs:
-  datetime:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Set current date as env variable
-        run: echo "DATETIME::$(date +'%Y-%m-%dT%H:%M:%S')" >> $GITHUB_ENV
   build:
     strategy:
       matrix:
@@ -48,3 +43,35 @@ jobs:
         name: build-${{runner.os}}
         path: |
           src/emusc-${{matrix.bin}}*
+          
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get the version
+        id: get_version
+        run: echo ::set-output name=VERSION::$(date +'%Y-%m-%dT%H:%M:%S')
+      - uses: actions/download-artifact@v2
+        with:
+          name: build-Linux
+          path: build-Linux
+      - uses: actions/download-artifact@v2
+        with:
+          name: build-macOS
+          path: build-macOS
+      - uses: actions/download-artifact@v2
+        with:
+          name: build-Windows
+          path: build-Windows
+      - if: github.event_name == 'push' 
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.get_version.outputs.VERSION }}
+          prerelease: true
+          files: |
+            build-Linux/*
+            build-Windows/*
+            build-macOS/*
+            
