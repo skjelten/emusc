@@ -1,8 +1,14 @@
 name: EmuSC CI
+
 on:
+  pull_request:
+    branches: [ master ]
   push:
     branches: [ master ]
-
+  release:
+    types: [created]
+    tags: ['v*'] # Push events to matching v*, i.e. v1.0, v20.15.10
+    
 jobs:
   build:
     strategy:
@@ -81,7 +87,7 @@ jobs:
         with:
           name: build-Windows
           path: build-Windows
-      - if: github.event_name == 'push' 
+      - if: github.event_name == 'push' # snapshot builds
         name: Create Release
         uses: softprops/action-gh-release@v1
         env:
@@ -94,3 +100,18 @@ jobs:
             build-macOS/*
             build-Linux/*
             build-Windows/*
+      - if: github.event_name == 'release' # release versioned builds
+        name: Get Existing Release
+        id: get_release
+        uses: bruceadams/get-release@v1.2.3
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+      - name: Upload Windows Binary
+        uses: actions/upload-release-asset@v1.0.2
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          upload_url: ${{ steps.get_release.outputs.upload_url }}
+          asset_path: ./build-Windows
+          asset_name: emusc-win32.exe
+          asset_content_type: application/octet-stream
