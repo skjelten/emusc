@@ -90,6 +90,8 @@ jobs:
         name: Create Snapshot Release
         uses: softprops/action-gh-release@v1
         with:
+          name: ${{ steps.get_tag.outputs.BUILD_TAG }}
+          tag_name: ${{ steps.get_tag.outputs.BUILD_TAG }}
           generate_release_notes: true
           prerelease: true
           files: |
