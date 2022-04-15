@@ -106,7 +106,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         with:
           doNotFailIfNotFound: true
-          tag: ${{ github.ref }}
+          tag: ${{ github.ref_name }}
       - run: echo ${{ steps.find_release.outputs.id }}
       - if: github.event_name == 'create' && startsWith(github.ref, 'refs/tags/v') && steps.find_release.outputs.id != 0 # release exists - upload macOS binary
         name: Updated Tagged Release (macOS)
