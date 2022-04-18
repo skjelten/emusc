@@ -317,9 +317,6 @@ int AudioOutputAlsa::_fill_buffer(const snd_pcm_channel_area_t *areas,
   for (unsigned int frame = 0; frame < frames; frame++) {
     synth->get_next_sample(sample);   // FIXME: Assumes 16 bit, 44.1 kHz, 2 ch
 
-    if (*sample > 0xffffff)
-      std::cout << "Audio overflow" << std::endl;
-    
     for (int channel=0; channel < _channels; channel++) {
       int16_t* dest =
 	(int16_t*) ( ((char*) areas[channel].addr)  

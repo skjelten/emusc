@@ -39,6 +39,7 @@ VolumeEnvelope::VolumeEnvelope(ControlRom::InstPartial instPartial,
   _phaseVolume[2] = _convert_volume(instPartial.TVAVolP2);
   _phaseVolume[3] = _convert_volume(instPartial.TVAVolP3);
   _phaseVolume[4] = _convert_volume(instPartial.TVAVolP4);
+  _phaseVolume[5] = 0;
 
   _phaseDuration[1] = _convert_time_to_sec(instPartial.TVALenP1 & 0x7F);
   _phaseDuration[2] = _convert_time_to_sec(instPartial.TVALenP2 & 0x7F);

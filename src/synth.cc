@@ -45,7 +45,8 @@ Synth::Synth(Config &config, ControlRom &controlRom, PcmRom &pcmRom)
     _reverbType(5),
     _choursType(3),
     _sampleRate(0),
-    _channels(0)
+    _channels(0),
+    _ctrlRom(controlRom)
 {
   // Note: SC-88 also has a "SC-55" mode
   std::string mode = _config.get("mode");
@@ -92,6 +93,25 @@ Synth::~Synth()
   _parts.clear();
 }
 
+
+void Synth::_add_note(uint8_t midiChannel, uint8_t key, uint8_t velocity)
+{
+  int partialsUsed = 0;
+  for (auto &p: _parts)
+    partialsUsed += p.get_num_partials();
+
+  // TODO: Prioritize parts / MIDI channels based on info in owners manual
+  // FIXME: Reduce voice count to 24/28 when volume envelope is corrected!
+  if (_ctrlRom.synthModel == ControlRom::sm_SC55 && partialsUsed >= 50) //24)
+    std::cout << "EmuSC: New note on ignored due to SC55 voice limit (24)"
+	      << std::endl;
+  else if (_ctrlRom.synthModel == ControlRom::sm_SC55mkII && partialsUsed >= 50) // 28)
+    std::cout << "EmuSC: New note on ignored due to SC55mkII voice limit (28)"
+	      << std::endl;
+  else
+    for (auto &p: _parts)
+      p.add_note(midiChannel, key, velocity, _sampleRate);
+}
 
 /* Not used -> PcmRom as part of sample dump to disk
 int Synth::_export_sample_24(std::vector<int32_t> &sampleSet,
@@ -183,7 +203,7 @@ void Synth::midi_input(struct MidiInput::MidiEvent *midiEvent)
       break;
     
     case MidiInput::se_PitchBend:                        // Data -8192 <-> 8192
-      if (1) //_config.verbose())
+      if (_config.verbose())
 	std::cout << "EmuSC MIDI: Pitchbend [ch=" << (int) midiEvent->channel
 		  << " data=" << (int) midiEvent->data << "]" << std::endl;
       for (auto &p: _parts)
@@ -215,9 +235,7 @@ void Synth::midi_input(struct MidiInput::MidiEvent *midiEvent)
 	for (auto &p: _parts)
 	  p.stop_note(midiEvent->channel, midiEvent->data1);
       } else {
-	for (auto &p: _parts)
-	  p.add_note(midiEvent->channel, midiEvent->data1, midiEvent->data2,
-		     _sampleRate);
+	_add_note(midiEvent->channel, midiEvent->data1, midiEvent->data2);
       }
       break;
 
@@ -287,17 +305,29 @@ int Synth::get_next_sample(int16_t *sampleOut)
 
   // Apply sample effects that applies to "system" level (all parts & notes)
 
+  /* Fix global pan (how does it add up to exising pan?). Use a MIDI channel 17?
   // Apply pan
   if (_pan > 0)
     accumulatedSample[0] *= 1.0 - (_pan / 63.0);
   else if (_pan < 0)
     accumulatedSample[1] *= 1.0 - (abs(_pan) / 63.0);
+  */
 
   // Apply master volume conversion
   accumulatedSample[0] *= (_volume / 127.0);
   accumulatedSample[1] *= (_volume / 127.0);
 
-  // Send to audio output. FIXME: Add support for PAN (stereo)!
+  // Check if sound is too loud => clipping
+  if (accumulatedSample[0] > 1 || accumulatedSample[0] < -1) {
+    std::cout << "EmuSC: Warning - audio clipped (too loud)" << std::endl;
+    accumulatedSample[0] = (accumulatedSample[0] > 1) ? 1 : -1;
+  }
+  if (accumulatedSample[1] > 1 || accumulatedSample[1] < -1) {
+    std::cout << "EmuSC: Warning - audio clipped (too loud)" << std::endl;
+    accumulatedSample[1] = (accumulatedSample[1] > 1) ? 1 : -1;
+  }
+
+  // Convert to 16 bit and update sample data in audio output driver
   for (int c = 0; c < _channels; c++)
     sampleOut[c] += (int16_t) (accumulatedSample[c] * 0xffff);
 

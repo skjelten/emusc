@@ -81,7 +81,10 @@ private:
   struct std::vector<ControlRom::DrumSet> _drumSets;
   struct std::vector<ControlRom::Variation> _variations;
 
+  ControlRom &_ctrlRom;
+
 // int _export_sample_24(std::vector<int32_t> &sampleSet, std::string filename);
+  void _add_note(uint8_t midiChannel, uint8_t key, uint8_t velocity);
 
   Synth();
   

@@ -54,6 +54,7 @@ Part::Part(uint8_t id, uint8_t mode, uint8_t type,
     _releaseTime(0),
     _pitchBend(0),
     _mute(false),
+    _7bScale(1/127.0),
     _ctrlRom(ctrlRom),
     _pcmRom(pcmRom)
 {
@@ -104,25 +105,33 @@ int Part::get_next_sample(float *sampleOut)
     }
   }
 
-  // Add volume parameters from key and MIDI channel / part
-  float fpartSample[2] = { 0, 0 };
-  fpartSample[0] = partSample[0];
-  fpartSample[1] = partSample[1];
+  // Apply volume from part (MIDI channel)
+  partSample[0] *= _volume * _7bScale;
+  partSample[1] *= _volume * _7bScale;
 
-  float volume = _volume / 127.0;
-  fpartSample[0] *= volume;
-  fpartSample[1] *= volume;
-
-  // Add pan from part
+  // Apply pan from part (MIDI Channel)
   if (_pan > 64)
-    fpartSample[0] *= 1.0 - (_pan - 64) / 63.0;
+    partSample[0] *= 1.0 - (_pan - 64) / 63.0;
   else if (_pan < 64)
-    fpartSample[1] *= ((_pan - 1) / 64.0);
+    partSample[1] *= ((_pan - 1) / 64.0);
 
-  sampleOut[0] += fpartSample[0];
-  sampleOut[1] += fpartSample[1];
+  sampleOut[0] += partSample[0];
+  sampleOut[1] += partSample[1];
 
   return 0;
+}
+
+
+int Part::get_num_partials(void)
+{
+  if (_notes.size() == 0)
+    return 0;
+
+  int numPartials = 0;
+  for (auto &n: _notes)
+    numPartials += n->get_num_partials();
+
+  return numPartials;
 }
 
 
@@ -151,7 +160,7 @@ int Part::add_note(uint8_t midiChannel, uint8_t key, uint8_t velocity,
 		     _ctrlRom, _pcmRom, sampleRate);
   _notes.push_back(n);
 
-  if (1)
+  if (0)
     std::cout << "EmuSC: New note [ part=" << (int) _id
 	      << " key=" << (int) key
 	      << " velocity=" << (int) velocity

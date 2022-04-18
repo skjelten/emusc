@@ -34,6 +34,8 @@ private:
   uint8_t _key;
   uint8_t _velocity;
 
+  const double _7bScale;     // Constant: 1 / 127
+
   struct NotePartial *_notePartial[2];
   
 public:
@@ -43,6 +45,7 @@ public:
 
   bool stop(uint8_t key);
   bool get_next_sample(float *sampleOut, float pitchBend);
+  int get_num_partials(void);
 
 };
 

@@ -25,7 +25,8 @@
 Note::Note(uint8_t key, uint8_t velocity, uint16_t instrument, int drumSet,
 	   ControlRom &ctrlRom, PcmRom &pcmRom, uint32_t sampleRate)
   : _key(key),
-    _velocity(velocity)
+    _velocity(velocity),
+    _7bScale(1/127.0)
 {
   _notePartial[0] = _notePartial[1] = NULL;
 
@@ -85,7 +86,7 @@ bool Note::get_next_sample(float *partSample, float pitchBend)
   bool finished[2] = {0, 0};
 
   // Temporary samples for LEFT and RIGHT channel
-  float samples[2] = {0, 0};
+  float sample[2] = {0, 0};
 
   // Iterate both partials
   for (int p = 0; p < 2; p ++) {
@@ -96,21 +97,30 @@ bool Note::get_next_sample(float *partSample, float pitchBend)
       continue;
     }
 
-    // Note: Samples are added to samples
-    finished[p] = _notePartial[p]->get_next_sample(samples, pitchBend);
+    finished[p] = _notePartial[p]->get_next_sample(sample, pitchBend);
   }
 
   if (finished[0] == true && finished[1] == true)
     return 1;
 
-  // Apply velocity
-  float scale = 1.0 / 127.;
-  float fsample[2];
-  fsample[0] = samples[0] * scale * _velocity;
-  fsample[1] = samples[1] * scale * _velocity;
+  // Apply key velocity
+  sample[0] *= _velocity * _7bScale;
+  sample[1] *= _velocity * _7bScale;
 
-  partSample[0] += fsample[0];
-  partSample[1] += fsample[1];
+  partSample[0] += sample[0];
+  partSample[1] += sample[1];
 
   return 0;
+}
+
+
+int Note::get_num_partials()
+{
+  int numPartials = 0;
+  if (_notePartial[0])
+    numPartials ++;
+  if (_notePartial[1])
+    numPartials ++;
+
+  return numPartials;
 }

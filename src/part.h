@@ -68,7 +68,9 @@ private:
 //    uint8_t lever;          // [0-127]
 
   float _pitchBend;
-  
+
+  const double _7bScale;      // Constant: 1 / 127
+
   enum Mode {
     mode_Norm  = 0,
     mode_Drum1,
@@ -103,6 +105,7 @@ public:
   };
 
   int get_next_sample(float *sampleOut);
+  int get_num_partials(void);
 
   inline bool mute() { return(_mute); }
   inline void set_mute(bool mute) { _mute = mute; }

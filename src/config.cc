@@ -196,18 +196,18 @@ bool Config::_write_default_config(void)
 	     << std::endl
 	     << "# MIDI input device [0 .. ]. Specifies MIDI device id (win32 "
 	     << "only)\n"
-	     << "#input_device=0\n"
+	     << "#input_device = 0\n"
 	     << std::endl
 	     << "# Audio output system [ alsa | pulse | win32 | core | null ]\n"
 	     << "output = alsa\n"
 	     << std::endl
 	     << "# Output device, e.g. 'default' or 'hw:0.1' for alsa.\n"
-	     << "output_device=default\n"
+	     << "output_device = default\n"
 	     << "# Output buffer time in us. Default = 75000\n"
-	     << "output_buffer_time=75000\n"
+	     << "output_buffer_time = 75000\n"
 	     << std::endl
 	     << "# Output period time in us. Used for alsa. default = 25000\n"
-	     << "output_period_time=25000\n"
+	     << "output_period_time = 25000\n"
 	     << std::endl
 	     << "# ROM files" << std::endl
 	     << "control_rom = /SC-55/roland_r15209363.ic23" << std::endl

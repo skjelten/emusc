@@ -105,6 +105,7 @@ AudioOutputWin32::~AudioOutputWin32()
 
 void AudioOutputWin32::run(void)
 {
+  MMRESULT res;
   char audioBuffer[2][_bufferSize];
   WAVEHDR wHeader[2];
 
@@ -112,17 +113,24 @@ void AudioOutputWin32::run(void)
     wHeader[i].lpData = (LPSTR) audioBuffer[i];
     wHeader[i].dwBufferLength = _bufferSize;
     wHeader[i].dwFlags = 0;
-    waveOutPrepareHeader(_hWave, &wHeader[i], sizeof(WAVEHDR));
+
+    res = waveOutPrepareHeader(_hWave, &wHeader[i], sizeof(WAVEHDR));
+    if (res != MMSYSERR_NOERROR)
+      std::cerr << "EmuSC: Error when preparing waveOut header" << std::endl;
+
     _fill_buffer(audioBuffer[i]);
-    waveOutWrite(_hWave, &wHeader[i], sizeof(WAVEHDR));
+
+    res = waveOutWrite(_hWave, &wHeader[i], sizeof(WAVEHDR));
+    if (res != MMSYSERR_NOERROR)
+      std::cerr << "EmuSC: Error when writing audio wave data" << std::endl;
   }
 
   bool index = 0;
   while (!_quit) {
-    DWORD res = WaitForSingleObject(_eHandle, INFINITE);
+    DWORD object = WaitForSingleObject(_eHandle, INFINITE);
     ResetEvent(_eHandle);
 
-    switch(res)
+    switch(object)
       {
       case WAIT_OBJECT_0:
 	{
@@ -130,9 +138,18 @@ void AudioOutputWin32::run(void)
 	  wHeader[index].lpData = audioBuffer[index];
 	  wHeader[index].dwBufferLength = _bufferSize;
 	  wHeader[index].dwFlags = 0;
-	  waveOutPrepareHeader(_hWave, &wHeader[index], sizeof(WAVEHDR));
+
+	  res = waveOutPrepareHeader(_hWave, &wHeader[index], sizeof(WAVEHDR));
+	  if (res != MMSYSERR_NOERROR)
+	    std::cerr << "EmuSC: Error when preparing waveOut header"
+		      << std::endl;
+
 	  _fill_buffer(audioBuffer[index]);
-	  waveOutWrite(_hWave, &wHeader[index], sizeof(WAVEHDR));
+
+	  res = waveOutWrite(_hWave, &wHeader[index], sizeof(WAVEHDR));
+	  if (res != MMSYSERR_NOERROR)
+	    std::cerr << "EmuSC: Error when writing audio wave data"
+		      << std::endl;
 
 	  index = !index;
 	  break;

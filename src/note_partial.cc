@@ -106,7 +106,7 @@ bool NotePartial::get_next_sample(float *noteSample, float pitchBend)
     if (_samplePos >= _ctrlRom.sample(_sampleIndex).sampleLen) {
 
       // Keep track of correct samplePos switching samplePos
-      int remaining = _ctrlRom.sample(_sampleIndex).sampleLen - _samplePos;
+      float remaining = _ctrlRom.sample(_sampleIndex).sampleLen - _samplePos;
 
       // loopMode == 0 => Forward only w/loop jump back "loopLen + 1"
       if (_ctrlRom.sample(_sampleIndex).loopMode == 0) {
@@ -115,7 +115,7 @@ bool NotePartial::get_next_sample(float *noteSample, float pitchBend)
 
 	// loopMode == 1 => Forward-backward. Start moving backwards
       } else if (_ctrlRom.sample(_sampleIndex).loopMode == 1) {
-	_samplePos = _ctrlRom.sample(_sampleIndex).sampleLen - remaining;
+	_samplePos = _ctrlRom.sample(_sampleIndex).sampleLen - remaining - 1;
 	_sampleDir = 0;                                // Turn backward
 
 	// loopMode == 2 => Forward-stop. End playback
