@@ -1,0 +1,151 @@
+name: EmuSC CI
+
+on:
+  pull_request:
+    branches: [ master ]
+  push:
+    branches: [ '*' ]
+  create:
+      tags: ['v*'] # Push events to matching v*, i.e. v1.0, v20.15.10
+    
+jobs:
+  build:
+    strategy:
+      matrix:
+       include:
+        - { os: windows-latest, cc: g++,     shell: 'msys2 {0}', out: 'emusc.exe', bin: 'emusc-win32-x86_64.exe', dep: 'mingw-w64-x86_64-gcc make autotools',    flags: ''}
+        - { os: ubuntu-latest,  cc: g++-10,  shell: bash,        out: 'emusc',     bin: 'emusc-linux-x86_64',     dep: 'sudo apt-get install -y libasound2-dev', flags: "CXXFLAGS='-pthread'" }
+        - { os: macos-latest,   cc: clang++, shell: bash,        out: 'emusc',     bin: 'emusc-macOS-x86_64',     dep: 'brew install autoconf automake libtool', flags: "CXXFLAGS='-std=c++11'" }
+    runs-on: ${{matrix.os}}
+    defaults:
+      run:
+        shell: ${{matrix.shell}}
+    steps:
+    - if: ${{runner.os != 'Windows'}}
+      name: Install Linux/macOS Dependencies 
+      run: ${{matrix.dep}}
+
+    - if: ${{runner.os == 'Windows'}}
+      name: Install Windows Dependencies 
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: mingw64
+        install: ${{matrix.dep}}
+
+    - name: Checkout Repo
+      uses: actions/checkout@v2
+
+    - name: Run Autotools
+      run: ./autogen.sh
+
+    - name: Run Configure
+      run: ./configure ${{matrix.flags}}
+
+    - name: Compile Code
+      run: make CXX='${{matrix.cc}}'
+
+    - name: Rename Binary
+      run: mv src/${{matrix.out}} src/${{matrix.bin}}
+
+    - name: Upload All Binaries
+      uses: actions/upload-artifact@v2
+      with:
+        name: build-${{runner.os}}
+        path: |
+          src/${{matrix.bin}}
+
+  publish:
+    needs: build
+    if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v'))
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get Build Tag
+        id: get_tag
+        run: echo ::set-output name=BUILD_TAG::build-$(date +'%Y%m%d%H%M')
+
+      - name: Get macOS Binary
+        uses: actions/download-artifact@v2
+        with:
+          name: build-macOS
+          path: build-macOS
+
+      - name: Get Linux Binary
+        uses: actions/download-artifact@v2
+        with:
+          name: build-Linux
+          path: build-Linux
+          
+      - name: Get Windows Binary
+        uses: actions/download-artifact@v2
+        with:
+          name: build-Windows
+          path: build-Windows
+
+      - if: github.event_name == 'push' # this is a snapshot build. create a release and upload binaries
+        name: Create Snapshot Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: ${{ steps.get_tag.outputs.BUILD_TAG }}
+          tag_name: ${{ steps.get_tag.outputs.BUILD_TAG }}
+          generate_release_notes: true
+          prerelease: true
+          files: |
+            build-macOS/*
+            build-Linux/*
+            build-Windows/*
+
+      - if: github.event_name == 'create' && startsWith(github.ref, 'refs/tags/v') # this is a versioned build. check if release already exists
+        name: Find Existing Release
+        id: find_release
+        uses: cardinalby/git-get-release-action@v1
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          doNotFailIfNotFound: true
+          tag: ${{ github.ref_name }}
+
+      - if: github.event_name == 'create' && startsWith(github.ref, 'refs/tags/v') && steps.find_release.outputs.id != 0 # release exists - upload macOS binary
+        name: Update Tagged Release (macOS)
+        uses: actions/upload-release-asset@v1.0.2
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          upload_url: ${{ steps.find_release.outputs.upload_url }}
+          asset_path: build-macOS/emusc-macOS-x86_64
+          asset_name: emusc-macOS-x86_64
+          asset_content_type: application/octet-stream
+
+      - if: github.event_name == 'create' && startsWith(github.ref, 'refs/tags/v') && steps.find_release.outputs.id != 0 # release exists - upload Linux binary
+        name: Update Tagged Release (Linux)
+        uses: actions/upload-release-asset@v1.0.2
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          upload_url: ${{ steps.find_release.outputs.upload_url }}
+          asset_path: build-Linux/emusc-linux-x86_64
+          asset_name: emusc-linux-x86_64
+          asset_content_type: application/octet-stream
+
+      - if: github.event_name == 'create' && startsWith(github.ref, 'refs/tags/v') && steps.find_release.outputs.id != 0 # release exists - upload Windows binary
+        name: Update Tagged Release (Windows)
+        uses: actions/upload-release-asset@v1.0.2
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          upload_url: ${{ steps.find_release.outputs.upload_url }}
+          asset_path: build-Windows/emusc-win32-x86_64.exe
+          asset_name: emusc-win32-x86_64.exe
+          asset_content_type: application/octet-stream
+
+      - if: github.event_name == 'create' && startsWith(github.ref, 'refs/tags/v') && steps.find_release.outputs.id == 0 # otherwise release does not exist, create one and upload binaries
+        name: Create Tagged Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: ${{ github.ref_name }}
+          tag_name: ${{ github.ref_name }}
+          generate_release_notes: true
+          prerelease: false
+          files: |
+            build-macOS/*
+            build-Linux/*
+            build-Windows/*
