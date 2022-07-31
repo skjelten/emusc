@@ -181,7 +181,6 @@ uint32_t *ControlRom::_get_banks(void)
     {
     case sm_SC55:
     case sm_SCC1:
-    case sm_SCC1A:
     case sm_SC55mkII:
       return _banksSC55;
     case sm_SC88:                       // No work has been done here yet
