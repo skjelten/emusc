@@ -157,6 +157,17 @@ int ControlRom::_identify_model(std::ifstream &romFile)
     synthModel = sm_SC88;
   }
 
+  // Search for SCC-1 control ROM files
+  romFile.seekg(0x3D155);
+  romFile.read(data, 29);
+  if (!strncmp(data, "VER", 3)) {
+    _version.assign(&data[3], 4);
+    _date.assign(&data[24], 5);
+    _model.assign("SCC-1");
+    synthModel = sm_SCC1;
+  }
+
+
   if (_model.empty())         // No valid ROM file found    TODO: SC88 ??
     return -1;
 
@@ -169,9 +180,10 @@ uint32_t *ControlRom::_get_banks(void)
   switch(synthModel)
     {
     case sm_SC55:
+    case sm_SCC1:
+    case sm_SCC1A:
     case sm_SC55mkII:
       return _banksSC55;
-      
     case sm_SC88:                       // No work has been done here yet
       return _banksSC88;
     }
