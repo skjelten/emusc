@@ -78,7 +78,8 @@ public:
     sm_SC55,
     sm_SC55mkII,
     sm_SC88,
-    sm_SC88Pro
+    sm_SC88Pro,
+    sm_SCC1
   };
   enum SynthModel synthModel;
 
