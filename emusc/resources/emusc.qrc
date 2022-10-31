@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/fonts">
+        <file>retro_synth.ttf</file>
+    </qresource>
+</RCC>
