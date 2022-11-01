@@ -93,7 +93,7 @@ AC_CHECK_LIB(winmm, main,
 dnl   Check for Core Audio / MIDI   FIXME->Proper test for audio/MIDI framework
 dnl -=============================-
 AC_CHECK_HEADER(CoreAudio/CoreAudio.h,
-	     LIBS="-framework CoreMIDI -framework CoreFoundation -framework CoreServices -framework AudioUnit $LIBS"
+	     LIBS="-framework CoreAudio -framework CoreMIDI -framework CoreFoundation -framework CoreServices -framework AudioUnit $LIBS"
 	     CXXFLAGS="$CXXFLAGS -D__CORE_AUDIO__ -D__CORE_MIDI__"
 	     useCoreAudio="yes"
 	     useCoreMIDI="yes",
