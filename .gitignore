@@ -1,23 +1,27 @@
 # Source & build
+Makefile
 emusc/src/*.o
 emusc/src/emusc
 emusc/src/emusc.exe
 emusc/src/*.cc~
 emusc/src/*.h~
-emusc/Makefile
+emusc/src/*.moc
+emusc/src/qrc_emusc.cc
 
 libemusc/src/*.o
+libemusc/src/*.lo
 libemusc/src/*.cc~
 libemusc/src/*.h~
-libemusc/Makefile
 
 # automake
-emusc/Makefile.in
+Makefile.in
 emusc/compile
-libemusc/Makefile.in
 libemusc/compile
 .deps/
 .libs/
+emusc/INSTALL
+libemusc/INSTALL
+
 
 # autoconf
 emusc/autom4te.cache
@@ -26,6 +30,7 @@ emusc/config.cache
 emusc/config.guess
 emusc/config.h
 emusc/config.h.in
+emusc/config.h.in~
 emusc/config.log
 emusc/config.status
 emusc/config.sub
@@ -42,6 +47,7 @@ libemusc/config.cache
 libemusc/config.guess
 libemusc/config.h
 libemusc/config.h.in
+libemusc/config.h.in~
 libemusc/config.log
 libemusc/config.status
 libemusc/config.sub
@@ -52,3 +58,8 @@ libemusc/install-sh
 libemusc/missing
 libemusc/stamp-h1
 
+# libtool
+libemusc/ltmain.sh
+libemusc/libtool
+libemusc/m4
+libemusc/src/libemusc.la
