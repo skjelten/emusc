@@ -12,7 +12,7 @@ AM_INIT_AUTOMAKE
 
 dnl Tools
 AC_PROG_CXX
-
+AX_CXX_COMPILE_STDCXX([11], [noext], [mandatory])
 
 dnl   Check for libEmuSC
 dnl -====================-

@@ -15,6 +15,7 @@ AM_INIT_AUTOMAKE
 LT_INIT
 
 AC_PROG_CXX
+AX_CXX_COMPILE_STDCXX([11], [noext], [mandatory])
 
 dnl ABI version: current : revision : age. Rule for updating:
 dnl - Always increase the revision value
