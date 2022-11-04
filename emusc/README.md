@@ -39,13 +39,32 @@ A C++11 compiler with support for std::threads is required. Library dependencies
 Note that libasound2-dev is needed for ALSA support and libpulse-dev for PulseAudio support.
 
 ### Windows
-Windows can be crosscompiled from a Linux environment by specifying the correct host to configure, e.g. ./configure --host=x86_64-w64-mingw32
+The GNU build tools can be somewhat challenging to use on windows, so here is a short tutorial for compiling EmuSC on Windows:
+1. Install MSYS2 and follow the [instructions for building and installing libEmuSC](../libemusc/README.md)
+2. Start the **MSYS2 UCRT64** console and install extra libraries needed by EmuSC
+```
+pacman -S mingw-w64-ucrt-x86_64-qt5-base mingw-w64-ucrt-x86_64-qt5-multimedia mingw-w64-ucrt-x86_64-pkg-config
+```
+3. Enter the correct build direcotory
+```
+cd emusc/emusc
+```
+4. Run the generic build commands as specified above:
+```
+./autogen.sh
+./configure
+make
+```
+The `emusc.exe` binary is located in `emusc/src/`. Note that you will need to include a list of DLL-files if you want to use the binary in another location / computer.
+
+If you have a running Linux environment you can also crosscompile a Windows binary by specifying the correct host to configure, e.g. `./configure --host=x86_64-w64-mingw32`. This obviously requires that you have the crosscompiler toolchain installed.
+
 
 ### macOS
 For some weird reason Apple decided to not follow the C standard in their MIDI implementation. Due to this, Clang is needed for compiling MIDI support on macOS.
 
 If you are using homebrew, install autoconf, automake, llvm and qt@5. Remember to also specify the correct paths to configure, e.g.
-QT_BIN_DIRECTORY=/usr/local/Cellar/qt@5/5.15.6/bin  PKG_CONFIG_PATH=/usr/local/Cellar/qt@5/5.15.6/lib/pkgconfig CXX=/usr/local/opt/llvm/bin/clang++ ./configure
+`QT_BIN_DIRECTORY=/usr/local/Cellar/qt@5/5.15.6/bin  PKG_CONFIG_PATH=/usr/local/Cellar/qt@5/5.15.6/lib/pkgconfig ./configure`
 
 ## Contribute
 Interested in contributing to this project? All contributions are welcome! Download / fork the source code and have a look. Create an issue if you have any questions (or input / suggestions) and we will do our best to help you out getting the hang of how it all works!

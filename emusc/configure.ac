@@ -25,11 +25,11 @@ dnl   Check for libQt5 and tools
 dnl -============================-
 dnl Note: Using PKG_CHECK_MODULES on libQt to find correct paths
 QT_REQUIRED=5.7.0
-PKG_CHECK_MODULES(QT,Qt5Core >= $QT_REQUIRED Qt5Gui >= $QT_REQUIRED Qt5Widgets >= $QT_REQUIRED,
-		  CXXFLAGS="$CXXFLAGS $QT_CFLAGS -fPIC"
-	    	  LIBS="$LIBS $QT_LIBS"
+PKG_CHECK_MODULES([QT],[Qt5Core >= $QT_REQUIRED Qt5Gui >= $QT_REQUIRED Qt5Widgets >= $QT_REQUIRED],
+		  [CXXFLAGS="$CXXFLAGS $QT_CFLAGS -fPIC"]
+		  [LIBS="$LIBS $QT_LIBS"]
 		  ,
-		  AC_MSG_ERROR(Valid Qt library is required but not found!))
+		  [AC_MSG_ERROR(Valid Qt library is required but not found!)])
 
 AC_PATH_PROG([QT_MOC], [moc], [no], ["${QT_BIN_DIRECTORY}:${PATH}"])
 if test x${QT_MOC} = xno ; then
@@ -75,11 +75,11 @@ AC_CHECK_LIB(pulse, main,
 dnl   Check for QtMultimedia
 dnl -========================-
 dnl Note: Using PKG_CHECK_MODULES on libQt to find correct paths
-PKG_CHECK_MODULES(QTMULTIMEDIA, Qt5Multimedia >= $QT_REQUIRED,
-		  CXXFLAGS="$CXXFLAGS $QTMULTIMEDIA_CFLAGS"
-	    	  LIBS="$LIBS $QTMULTIMEDIA_LIBS"
-		  useQtAudio="yes",
-		  AC_MSG_WARN(Qt5 Multimedia library not found and will not be supported))	     
+PKG_CHECK_MODULES([QTMULTIMEDIA], [Qt5Multimedia >= $QT_REQUIRED],
+		  [CXXFLAGS="$CXXFLAGS $QTMULTIMEDIA_CFLAGS"
+		  LIBS="$LIBS $QTMULTIMEDIA_LIBS"]
+		  [useQtAudio="yes"],
+		  [AC_MSG_WARN(Qt5 Multimedia library not found and will not be supported)])
 
 dnl   Check for Winmm
 dnl -=================-
@@ -104,8 +104,7 @@ dnl   Setting some architecture dependent compiler options
 dnl -======================================================-
 case "$host" in
      	*-*-mingw32*)
-		LDFLAGS="$LDFLAGS -static-libstdc++ -static"
-		CXX=i686-w64-mingw32-g++-posix
+		LDFLAGS="$LDFLAGS -static-libstdc++"
 		;;
 	*-*-darwin*)
 dnl		CXXFLAGS="$CXXFLAGS -O3 -mdynamic-no-pic"		

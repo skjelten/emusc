@@ -25,6 +25,32 @@ Download the source tree and build with GNU build tools:
 make
 ```
 
+### Building on Windows
+The GNU build tools can be somewhat challenging to use on windows, so here is a short tutorial for compiling libEmuSC on Windows:
+1. Install MSYS2 as build environment: https://www.msys2.org
+2. Start the **MSYS2 UCRT64** console and install the neccessary programs by running
+```
+pacman -S git make automake autoconf libtool mingw-w64-ucrt-x86_64-gcc
+```
+3. Download the source code from GitHub by running
+```
+git clone https://github.com/skjelten/emusc.git
+```
+4. Enter the correct build direcotory
+```
+cd emusc/libemusc
+```
+5. Run the generic build commands as specified above:
+```
+./autogen.sh
+./configure
+make
+```
+6. And finally install the library by running
+```
+make install
+```
+
 ## Contribute
 Interested in contributing to this project? All contributions are welcome! Download / fork the source code and have a look. Create an issue if you have any questions (or input / suggestions) and we will do our best to help you out getting the hang of how it all works!
 
