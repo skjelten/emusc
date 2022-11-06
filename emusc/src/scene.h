@@ -33,7 +33,6 @@
 #include <QVector>
 #include <QColor>
 #include <QBrush>
-#include <QTimer>
 #include <QKeyEvent>
 
 
@@ -67,36 +66,42 @@ private:
   QGraphicsTextItem *_lcdKshiftText;
   QGraphicsTextItem *_lcdMidichText;
 
+  QPushButton *_allButton;
+  QPushButton *_muteButton;
+
+  QPushButton *_partLButton;
+  QPushButton *_partRButton;
+  QPushButton *_instrumentLButton;
+  QPushButton *_instrumentRButton;
+  QPushButton *_panRButton;
+  QPushButton *_panLButton;
+  QPushButton *_chorusRButton;
+  QPushButton *_chorusLButton;
+  QPushButton *_midichRButton;
+  QPushButton *_midichLButton;
+  QPushButton *_levelRButton;
+  QPushButton *_levelLButton;
+  QPushButton *_reverbRButton;
+  QPushButton *_reverbLButton;
+  QPushButton *_keyshiftRButton;
+  QPushButton *_keyshiftLButton;
+
   QColor _lcdBackgroundOnColor;
   QColor _lcdBackgroundOffColor;
   QColor _lcdOnActiveColor;
   QColor _lcdOnInactiveColor;
   QColor _lcdOffFontColor;
-
-  QTimer *_lcdDisplayTimer;
-
-  int _introFrameIndex;
-  QVector<uint8_t> _introAnimData;
-  
-  struct lcdBarDisplayPartHist {
-    bool falling;
-    int value;
-    int time;
-  }; 
-  QVector<struct lcdBarDisplayPartHist> _lcdBarDisplayHistVect;
  
-  void _init_lcd_display(void);
-
   void keyPressEvent(QKeyEvent *keyEvent);
 
 public:
   Scene(Emulator *emulator, QWidget *parent = nullptr);
   virtual ~Scene();
 
+public slots:
   void display_on(void);
   void display_off(void);
 
-private slots:
   void update_lcd_instrument_text(QString text);
   void update_lcd_part_text(QString text);
   void update_lcd_level_text(QString text);
@@ -105,9 +110,10 @@ private slots:
   void update_lcd_chorus_text(QString text);
   void update_lcd_kshift_text(QString text);
   void update_lcd_midich_text(QString text);
+  void update_lcd_bar_display(QVector<bool> *partAmp);
 
-  void update_intro_anim(void);
-  void update_bar_display(void);
+  void update_all_button(bool status);
+  void update_mute_button(bool status);
 };
 
 

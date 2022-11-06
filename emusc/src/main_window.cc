@@ -54,12 +54,12 @@
 
 
 MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent),
-      _scene(NULL),
-      _powerState(0),
-      _emulator(NULL)
+  : QMainWindow(parent),
+    _emulator(NULL),
+    _scene(NULL),
+    _powerState(0)
 {
-  resize(700, 280);
+  resize(1150, 280);
 
   QMenu *fileMenu = menuBar()->addMenu("&File");
   QAction *quitAct = new QAction("&Quit", this);
@@ -91,13 +91,12 @@ MainWindow::MainWindow(QWidget *parent)
   helpMenu->addAction(aboutAct);
 
   _emulator = new Emulator();
-
   _scene = new Scene(_emulator, this);
 
   auto *gView = new QGraphicsView(this);
   gView->setScene(_scene);
 
-//    _scene->setSceneRect(280, 60, 60, 25);
+  _scene->setSceneRect(0, -10, 1100, 200);
 //    gView->fitInView(_scene->sceneRect(), Qt::KeepAspectRatio);
 
   QSettings settings;
@@ -216,7 +215,6 @@ void MainWindow::power_switch(int newPowerState)
     _midiAct->setDisabled(true);
     _romAct->setDisabled(true);
 
-    _scene->display_on();
     _powerState = 1;
 
   } else if ((newPowerState == 0 && _powerState == 1) ||
@@ -226,20 +224,11 @@ void MainWindow::power_switch(int newPowerState)
 
     _emulator->stop();
 
-    _scene->display_off();
-
     _allSoundsOffAct->setDisabled(true);
     _audioAct->setDisabled(false);
     _midiAct->setDisabled(false);
     _romAct->setDisabled(false);
   }
-}
-
-
-void MainWindow::volume_changed(int volume)
-{
-  if (_emulator != NULL)
-    _emulator->volume(volume);
 }
 
 

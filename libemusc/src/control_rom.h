@@ -164,6 +164,7 @@ public:
   inline struct DrumSet& drumSet(int ds) { return _drumSets[ds]; }
 
   inline int numSampleSets(void) { return _samples.size(); }
+  inline int numInstruments(void) { return _instruments.size(); }
 
 private:
   std::string _romPath;

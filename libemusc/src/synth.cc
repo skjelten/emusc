@@ -99,11 +99,7 @@ void Synth::unmute_parts(std::vector<uint8_t> mutePartsList)
 
 void Synth::volume(uint8_t volume)
 {
-  std::cout << "libEmuSC: set volume=" << (int) volume << std::endl;
-  if (volume > 100)
-    _volume = 100;
-  else
-    _volume = volume;
+  _volume = (volume > 127) ? 127 : volume;
 }
 
 
@@ -399,12 +395,12 @@ int Synth::get_next_sample(int16_t *sampleOut)
 }
 
 
-std::vector<float> Synth::get_last_part_samples(void)
+std::vector<float> Synth::get_parts_last_peak_sample(void)
 {
   std::vector<float> partVolumes;
   
   for (auto &p : _parts)
-    partVolumes.push_back(p.get_last_sample());
+    partVolumes.push_back(p.get_last_peak_sample());
   
   return partVolumes;
 }
@@ -420,6 +416,94 @@ void Synth::set_audio_format(uint32_t sampleRate, uint8_t channels)
 std::string Synth::version(void)
 {
   return VERSION;
+}
+
+
+bool Synth::get_part_mute(uint8_t partId)
+{
+  return _parts[partId].mute();
+}
+
+uint16_t Synth::get_part_instrument(uint8_t partId)
+{
+  return _parts[partId].get_instrument();
+}
+
+uint8_t Synth::get_part_level(uint8_t partId)
+{
+  return _parts[partId].get_level();
+}
+
+int8_t Synth::get_part_pan(uint8_t partId)
+{
+  return _parts[partId].get_pan();
+}
+
+uint8_t Synth::get_part_reverb(uint8_t partId)
+{
+  return _parts[partId].get_reverb();
+}
+
+uint8_t Synth::get_part_chorus(uint8_t partId)
+{
+  return _parts[partId].get_chorus();
+}
+
+int8_t Synth::get_part_key_shift(uint8_t partId)
+{
+  return _parts[partId].get_key_shift();
+}
+
+uint8_t Synth::get_part_midi_channel(uint8_t partId)
+{
+  return _parts[partId].get_midi_channel();
+}
+
+// Update part state; needed for adapting to button inputs
+void Synth::set_part_mute(uint8_t partId, bool mute)
+{
+  _parts[partId].set_mute(mute);
+}
+
+void Synth::set_part_instrument(uint8_t partId, uint16_t instrument)
+{
+  _parts[partId].set_instrument(instrument);
+}
+
+
+void Synth::set_part_level(uint8_t partId, uint8_t level)
+{
+  _parts[partId].set_level(level);
+}
+
+
+void Synth::set_part_pan(uint8_t partId, uint8_t pan)
+{
+  _parts[partId].set_pan(pan);
+}
+
+
+void Synth::set_part_reverb(uint8_t partId, uint8_t reverb)
+{
+  _parts[partId].set_reverb(reverb);
+}
+
+
+void Synth::set_part_chorus(uint8_t partId, uint8_t chorus)
+{
+  _parts[partId].set_chorus(chorus);
+}
+
+
+void Synth::set_part_key_shift(uint8_t partId, int8_t keyShift)
+{
+  _parts[partId].set_key_shift(keyShift);
+}
+
+
+void Synth::set_part_midi_channel(uint8_t partId, uint8_t midiChannel)
+{
+  _parts[partId].set_midi_channel(midiChannel);
 }
 
 }

@@ -50,9 +50,6 @@ public:
   MainWindow(QWidget *parent = nullptr);
   ~MainWindow();
 
-public slots:
-  void volume_changed(int volume);
-
 private slots:
   void cleanUp(void);
   

@@ -61,7 +61,7 @@ Part::Part(uint8_t id, uint8_t mode, uint8_t type,
     _portamento(false),
     _holdPedal(false),
     _7bScale(1/127.0),
-    _lastSample(0),
+    _lastPeakSample(0),
     _ctrlRom(ctrlRom),
     _pcmRom(pcmRom)
 {
@@ -117,7 +117,8 @@ int Part::get_next_sample(float *sampleOut)
   partSample[1] *= _volume * _7bScale * (_expression * _7bScale);
 
   // Store last (highest) value for future queries (typically for bar display)
-  _lastSample = (_lastSample >= partSample[0]) ? _lastSample : partSample[0];
+  _lastPeakSample =
+    (_lastPeakSample >= partSample[0]) ? _lastPeakSample : partSample[0];
   
   // Apply pan from part (MIDI Channel)
   if (_pan > 64)
@@ -132,10 +133,13 @@ int Part::get_next_sample(float *sampleOut)
 }
 
 
-float Part::get_last_sample(void)
+float Part::get_last_peak_sample(void)
 {
-  float ret = _lastSample;
-  _lastSample = 0;
+  if (_mute)
+    return -1;
+
+  float ret = std::abs(_lastPeakSample);
+  _lastPeakSample = 0;
 
   return ret;
 }
@@ -296,6 +300,78 @@ int Part::set_pitchBend(uint8_t midiChannel, int16_t pitchBend)
   _pitchBend = exp(((pitchBend-8192)/8192.0) * _bendRange * 0.5  * (log(2)/12)) - 1;
 
   return 1;
+}
+
+
+uint16_t Part::get_instrument(void)
+{
+  return _instrument;
+}
+
+uint8_t Part::get_level(void)
+{
+  return _volume;
+}
+
+int8_t Part::get_pan(void)
+{
+  return _pan;
+}
+
+uint8_t Part::get_reverb(void)
+{
+  return _reverb;
+}
+
+uint8_t Part::get_chorus(void)
+{
+  return _chorus;
+}
+
+int8_t Part::get_key_shift(void)
+{
+  return _keyShift;
+}
+
+uint8_t Part::get_midi_channel(void)
+{
+  return _midiChannel;
+}
+
+
+void Part::set_instrument(uint16_t instrument)
+{
+  _instrument = instrument;
+}
+
+void Part::set_level(uint8_t level)
+{
+  _volume = level;
+}
+
+void Part::set_pan(int8_t pan)
+{
+  _pan = pan;
+}
+
+void Part::set_reverb(uint8_t reverb)
+{
+  _reverb = reverb;
+}
+
+void Part::set_chorus(uint8_t chorus)
+{
+  _chorus = chorus;
+}
+
+void Part::set_key_shift(int8_t keyShift)
+{
+  _keyShift = keyShift;
+}
+
+void Part::set_midi_channel(uint8_t midiChannel)
+{
+  _midiChannel = midiChannel;
 }
 
 }

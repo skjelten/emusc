@@ -66,7 +66,7 @@ public:
   void midi_input(uint8_t status, uint8_t data1, uint8_t data2);
 
   int get_next_sample(int16_t *sample);
-  std::vector<float> get_last_part_samples(void);
+  std::vector<float> get_parts_last_peak_sample(void);
 
   void set_audio_format(uint32_t sampleRate, uint8_t channels);
 
@@ -90,6 +90,26 @@ public:
 
   // Returns libEmuSC version as a string
   static std::string version(void);
+
+  // Get part information; needed for emulating the LCD display
+  bool get_part_mute(uint8_t partId);
+  uint16_t get_part_instrument(uint8_t partId);
+  uint8_t get_part_level(uint8_t partId);
+  int8_t get_part_pan(uint8_t partId);
+  uint8_t get_part_reverb(uint8_t partId);
+  uint8_t get_part_chorus(uint8_t partId);
+  int8_t get_part_key_shift(uint8_t partId);
+  uint8_t get_part_midi_channel(uint8_t partId);
+
+  // Update part state; needed for adapting to button inputs
+  void set_part_mute(uint8_t partId, bool mute);
+  void set_part_instrument(uint8_t partId, uint16_t instrument);
+  void set_part_level(uint8_t partId, uint8_t level);
+  void set_part_pan(uint8_t partId, uint8_t pan);
+  void set_part_reverb(uint8_t partId, uint8_t reverb);
+  void set_part_chorus(uint8_t partId, uint8_t chorus);
+  void set_part_key_shift(uint8_t partId, int8_t keyShift);
+  void set_part_midi_channel(uint8_t partId, uint8_t midiChannel);
 
   /* End of public API. Below are internal data structures only */
 

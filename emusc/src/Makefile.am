@@ -34,6 +34,7 @@ nodist_emusc_SOURCES =			\
 	midi_config_dialog.moc		\
 	rom_config_dialog.moc		\
 	scene.moc			\
+	emulator.moc			\
 	qrc_emusc.cc
 
 BUILT_SOURCES =				\
@@ -44,6 +45,7 @@ BUILT_SOURCES =				\
 	midi_config_dialog.moc		\
 	rom_config_dialog.moc		\
 	scene.moc			\
+	emulator.moc			\
 	qrc_emusc.cc
 
 CLEANFILES =				\
@@ -54,6 +56,7 @@ CLEANFILES =				\
 	midi_config_dialog.moc		\
 	rom_config_dialog.moc		\
 	scene.moc			\
+	emulator.moc			\
 	qrc_emusc.cc
 
 qrc_emusc.cc: Makefile
@@ -78,4 +81,7 @@ rom_config_dialog.moc: rom_config_dialog.h
 	$(QT_MOC) -i $< -o $@
 
 scene.moc: scene.h
+	$(QT_MOC) -i $< -o $@
+
+emulator.moc: emulator.h
 	$(QT_MOC) -i $< -o $@

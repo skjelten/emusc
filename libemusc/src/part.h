@@ -80,7 +80,7 @@ private:
 
   const double _7bScale;      // Constant: 1 / 127
 
-  float _lastSample;
+  float _lastPeakSample;
   
   enum Mode {
     mode_Norm  = 0,
@@ -122,11 +122,8 @@ public:
   };
 
   int get_next_sample(float *sampleOut);
-  float get_last_sample(void);
+  float get_last_peak_sample(void);
   int get_num_partials(void);
-
-  inline bool mute() { return(_mute); }
-  inline void set_mute(bool mute) { _mute = mute; }
 
   int add_note(uint8_t midiChannel, uint8_t key, uint8_t velocity, uint32_t sr);
   int stop_note(uint8_t midiChannel, uint8_t key);
@@ -135,6 +132,25 @@ public:
   int set_program(uint8_t midiChannel, uint8_t index, uint8_t bank);
   int set_control(enum ControlMsg m, uint8_t midiChannel, uint8_t value);
   int set_pitchBend(uint8_t midiChannel, int16_t pitchbend);
+
+  inline bool mute() { return(_mute); }
+  inline void set_mute(bool mute) { _mute = mute; }
+
+  uint16_t get_instrument(void);
+  uint8_t get_level(void);
+  int8_t get_pan(void);
+  uint8_t get_reverb(void);
+  uint8_t get_chorus(void);
+  int8_t get_key_shift(void);
+  uint8_t get_midi_channel(void);
+
+  void set_instrument(uint16_t instrument);
+  void set_level(uint8_t level);
+  void set_pan(int8_t pan);
+  void set_reverb(uint8_t reverb);
+  void set_chorus(uint8_t chorus);
+  void set_key_shift(int8_t keyShift);
+  void set_midi_channel(uint8_t midiChannel);
 
 };
 
