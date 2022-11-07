@@ -160,6 +160,7 @@ private:
   void set_key_shift(int8_t value, bool update);
   void set_midi_channel(uint8_t value, bool update);
 
+  void part_mod_callback(const int partId);
 };
 
 

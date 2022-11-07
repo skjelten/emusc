@@ -193,7 +193,8 @@ void Synth::midi_input(uint8_t status, uint8_t data1, uint8_t data2)
 		  << " key=" << (int) data1 << std::endl;
 
       for (auto &p: _parts)
-	p.stop_note(channel, data1);
+	if (p.midi_channel() == channel)
+	  p.stop_note(channel, data1);
       break;
 
     case midi_NoteOn:
@@ -202,7 +203,8 @@ void Synth::midi_input(uint8_t status, uint8_t data1, uint8_t data2)
 		  << " key=" << (int) data1 << std::endl;
       if (!data2) {                   // Note On with velocity = 0 => Note Off
 	for (auto &p: _parts)
-	  p.stop_note(channel, data1);
+	  if (p.midi_channel() == channel)
+	    p.stop_note(channel, data1);
       } else {
 	_add_note(channel, data1, data2);
       }
@@ -280,9 +282,16 @@ void Synth::midi_input(uint8_t status, uint8_t data1, uint8_t data2)
 	  break;
 	}
 
-	for (auto &p : _parts)
-	  p.set_control(cMsg, channel, data2);
+	for (auto &p : _parts) {
+	  if (p.midi_channel() == channel) {
+	    p.set_control(cMsg, channel, data2);
+
+	    for (const auto &cb : _partMidiModCallbacks)
+	      cb(p.id());
+	  }
+	}
       }
+
       break;
 
     case midi_PrgChange:
@@ -291,8 +300,14 @@ void Synth::midi_input(uint8_t status, uint8_t data1, uint8_t data2)
 		  << std::endl;
       {
 	for (auto &p : _parts)
-	  p.set_program(channel, data1, _bank);
+	  if (p.midi_channel() == channel) {
+	    p.set_program(channel, data1, _bank);
+
+	    for (const auto &cb : _partMidiModCallbacks)
+	      cb(p.id());
+	  }
       }
+
       break;
 
     case midi_ChPressure:                         // Data 0 <-> 16383
@@ -426,37 +441,37 @@ bool Synth::get_part_mute(uint8_t partId)
 
 uint16_t Synth::get_part_instrument(uint8_t partId)
 {
-  return _parts[partId].get_instrument();
+  return _parts[partId].instrument();
 }
 
 uint8_t Synth::get_part_level(uint8_t partId)
 {
-  return _parts[partId].get_level();
+  return _parts[partId].level();
 }
 
 int8_t Synth::get_part_pan(uint8_t partId)
 {
-  return _parts[partId].get_pan();
+  return _parts[partId].pan();
 }
 
 uint8_t Synth::get_part_reverb(uint8_t partId)
 {
-  return _parts[partId].get_reverb();
+  return _parts[partId].reverb();
 }
 
 uint8_t Synth::get_part_chorus(uint8_t partId)
 {
-  return _parts[partId].get_chorus();
+  return _parts[partId].chorus();
 }
 
 int8_t Synth::get_part_key_shift(uint8_t partId)
 {
-  return _parts[partId].get_key_shift();
+  return _parts[partId].key_shift();
 }
 
 uint8_t Synth::get_part_midi_channel(uint8_t partId)
 {
-  return _parts[partId].get_midi_channel();
+  return _parts[partId].midi_channel();
 }
 
 // Update part state; needed for adapting to button inputs
@@ -504,6 +519,18 @@ void Synth::set_part_key_shift(uint8_t partId, int8_t keyShift)
 void Synth::set_part_midi_channel(uint8_t partId, uint8_t midiChannel)
 {
   _parts[partId].set_midi_channel(midiChannel);
+}
+
+
+void Synth::add_part_midi_mod_callback(std::function<void(const int)> callback)
+{
+  _partMidiModCallbacks.push_back(callback);
+}
+
+
+void Synth::clear_part_midi_mod_callback(void)
+{
+  _partMidiModCallbacks.clear();
 }
 
 }

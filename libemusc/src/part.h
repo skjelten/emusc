@@ -133,24 +133,32 @@ public:
   int set_control(enum ControlMsg m, uint8_t midiChannel, uint8_t value);
   int set_pitchBend(uint8_t midiChannel, int16_t pitchbend);
 
-  inline bool mute() { return(_mute); }
-  inline void set_mute(bool mute) { _mute = mute; }
+  uint8_t id(void) { return _id; }
 
-  uint16_t get_instrument(void);
-  uint8_t get_level(void);
-  int8_t get_pan(void);
-  uint8_t get_reverb(void);
-  uint8_t get_chorus(void);
-  int8_t get_key_shift(void);
-  uint8_t get_midi_channel(void);
+  bool mute() { return(_mute); }
+  void set_mute(bool mute) { _mute = mute; }
 
-  void set_instrument(uint16_t instrument);
-  void set_level(uint8_t level);
-  void set_pan(int8_t pan);
-  void set_reverb(uint8_t reverb);
-  void set_chorus(uint8_t chorus);
-  void set_key_shift(int8_t keyShift);
-  void set_midi_channel(uint8_t midiChannel);
+  uint16_t instrument(void) { return _instrument; }
+  void set_instrument(uint16_t instrument) { _instrument = instrument; }
+
+  uint8_t level(void) { return _volume; }
+  void set_level(uint8_t level) { _volume = level; }
+
+  int8_t pan(void) { return _pan; }
+  void set_pan(int8_t pan) { _pan = pan; }
+
+  uint8_t reverb(void) { return _reverb; }
+  void set_reverb(uint8_t reverb) { _reverb = reverb; }
+
+  uint8_t chorus(void) { return _chorus; }
+  void set_chorus(uint8_t chorus) { _chorus = chorus; }
+
+  int8_t key_shift(void) { return _keyShift; }
+  void set_key_shift(int8_t keyShift) { _keyShift = keyShift; }
+
+  uint8_t midi_channel(void) { return _midiChannel; }
+  void set_midi_channel(uint8_t midiChannel) { _midiChannel = midiChannel; }
+
 
 };
 

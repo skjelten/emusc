@@ -40,6 +40,7 @@ emusc/depcomp
 emusc/install-sh
 emusc/missing
 emusc/stamp-h1
+emusc/configure~
 
 libemusc/autom4te.cache
 libemusc/aclocal.m4
@@ -57,6 +58,7 @@ libemusc/depcomp
 libemusc/install-sh
 libemusc/missing
 libemusc/stamp-h1
+libemusc/configure~
 
 # libtool
 libemusc/ltmain.sh

@@ -24,6 +24,7 @@
 #include "control_rom.h"
 #include "pcm_rom.h"
 
+#include <functional>
 #include <mutex>
 #include <string>
 #include <vector>
@@ -111,6 +112,9 @@ public:
   void set_part_key_shift(uint8_t partId, int8_t keyShift);
   void set_part_midi_channel(uint8_t partId, uint8_t midiChannel);
 
+  void add_part_midi_mod_callback(std::function<void(const int)> callback);
+  void clear_part_midi_mod_callback(void);
+
   /* End of public API. Below are internal data structures only */
 
   
@@ -148,6 +152,7 @@ private:
   struct System _system;
 
   struct std::vector<Part> _parts;
+  std::vector<std::function<void(const int)>> _partMidiModCallbacks;
 
   struct std::vector<ControlRom::Instrument> _instruments;
   struct std::vector<ControlRom::Partial> _partials;
@@ -165,7 +170,7 @@ private:
   static const uint8_t midi_PrgChange   = 0xc0;
   static const uint8_t midi_ChPressure  = 0xd0;
   static const uint8_t midi_PitchBend   = 0xe0;
-  
+
 // int _export_sample_24(std::vector<int32_t> &sampleSet, std::string filename);
   void _add_note(uint8_t midiChannel, uint8_t key, uint8_t velocity);
 

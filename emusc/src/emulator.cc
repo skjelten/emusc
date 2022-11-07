@@ -144,6 +144,10 @@ void Emulator::start(void)
       connect(_lcdDisplayTimer, SIGNAL(timeout()),
 	      this, SLOT(generate_bar_display()));
       set_part(_selectedPart = 0);
+      _emuscSynth->add_part_midi_mod_callback(std::bind(&Emulator::part_mod_callback,
+							this,
+							std::placeholders::_1));
+
     } else {
       connect(_lcdDisplayTimer, SIGNAL(timeout()),
 	      this, SLOT(play_intro_anim_bar_display()));
@@ -152,10 +156,20 @@ void Emulator::start(void)
     connect(_lcdDisplayTimer, SIGNAL(timeout()),
 	    this, SLOT(generate_bar_display()));
     set_part(_selectedPart = 0);
+    _emuscSynth->add_part_midi_mod_callback(std::bind(&Emulator::part_mod_callback,
+						      this,
+						      std::placeholders::_1));
   }
 
   // Start LCD update timer at ~16,67 FPS
   _lcdDisplayTimer->start(60);
+}
+
+
+void Emulator::part_mod_callback(const int partId)
+{
+  if (partId == _selectedPart)
+    set_part(partId);
 }
 
 
@@ -258,6 +272,8 @@ void Emulator::_start_audio_subsystem(void)
 // Stop synth emulation
 void Emulator::stop(void)
 {
+  _emuscSynth->clear_part_midi_mod_callback();
+
   emit emulator_stopped();
   _lcdDisplayTimer->stop();
   _introFrameIndex = 0;
@@ -637,6 +653,9 @@ void Emulator::play_intro_anim_bar_display(void)
     connect(_lcdDisplayTimer, SIGNAL(timeout()),
 	    this, SLOT(generate_bar_display()));
     set_part(_selectedPart = 0);
+    _emuscSynth->add_part_midi_mod_callback(std::bind(&Emulator::part_mod_callback,
+						      this,
+						      std::placeholders::_1));
   }
 }
 
