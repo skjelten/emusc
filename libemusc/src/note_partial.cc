@@ -100,11 +100,9 @@ bool NotePartial::get_next_sample(float *noteSample, float pitchBend)
 		<< std::endl;
 
     // Update partial sample position based on pitch input
-    if (_drumSet >= 0)
-      _samplePos += _instPitchTune * _sampleFactor;
-    else
-      _samplePos += exp(_keyDiff * (log(2)/12)) * (pitchBend + 1) *
-	_instPitchTune * _sampleFactor;
+    // FIXME: Should drumsets be modified by pitch bend messages?
+    _samplePos += exp(_keyDiff * (log(2)/12)) * (pitchBend + 1) *
+      _instPitchTune * _sampleFactor;
 
     // Check for sample position passing sample boundary
     if (_samplePos >= _ctrlRom.sample(_sampleIndex).sampleLen) {
@@ -138,11 +136,9 @@ bool NotePartial::get_next_sample(float *noteSample, float pitchBend)
 		<< std::endl;
 
     // Update partial sample position based on pitch input
-    if (_drumSet >= 0)
-      _samplePos -= _instPitchTune * _sampleFactor;
-    else
-      _samplePos -= exp(_keyDiff * (log(2)/12)) * (pitchBend + 1) *
-	_instPitchTune * _sampleFactor;
+    // FIXME: Should drumsets be modified by pitch bend messages?
+    _samplePos -= exp(_keyDiff * (log(2)/12)) * (pitchBend + 1) *
+      _instPitchTune * _sampleFactor;
 
     // Check for sample position passing sample boundary
     if (_samplePos <= _ctrlRom.sample(_sampleIndex).sampleLen -

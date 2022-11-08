@@ -47,7 +47,13 @@ Note::Note(uint8_t key, uint8_t velocity, uint16_t instrument, int drumSet,
 	  std::cerr << "EmuSC: Internal error when reading sample" << std::endl;
 	  break;
 	}
-	int8_t keyDiff = key - ctrlRom.sample(sampleIndex).rootKey;
+
+	int8_t keyDiff;
+	if (drumSet >= 0)
+	  keyDiff = ctrlRom.drumSet(drumSet).key[key] - 0x3c;
+	else
+	  keyDiff = key - ctrlRom.sample(sampleIndex).rootKey;
+
 	_notePartial[i] = new NotePartial(key, keyDiff, sampleIndex, drumSet,
 					  ctrlRom, pcmRom, instrument, i,
 					  sampleRate);
