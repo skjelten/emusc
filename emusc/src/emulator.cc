@@ -104,8 +104,8 @@ void Emulator::load_pcm_rom(QVector<QString> romPaths)
     throw(QString(errorMsg.c_str()));
   }
 
-  _pcmRomVersion = _emuscPcmRom->get_info_version().c_str();
-  _pcmRomDate = _emuscPcmRom->get_info_date().c_str();
+  _pcmRomVersion = _emuscPcmRom->version().c_str();
+  _pcmRomDate = _emuscPcmRom->date().c_str();
 }
 
 

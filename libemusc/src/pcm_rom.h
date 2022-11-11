@@ -26,10 +26,10 @@
 
 #include "control_rom.h"
 
+#include <stdint.h>
+
 #include <string>
 #include <vector>
-
-#include <stdint.h>
 
 
 namespace EmuSC {
@@ -46,8 +46,8 @@ private:
   };
   std::vector<struct Samples> _sampleSets;
 
-  uint32_t _unscramble_pcm_rom_address(uint32_t address);
-  int8_t   _unscramble_pcm_rom_data(int8_t byte);
+  uint32_t _unscramble_address(uint32_t address);
+  int8_t   _unscramble_data(int8_t byte);
 
   uint32_t _find_samples_rom_address(uint32_t address);
   int _read_samples(std::vector<char> rom, struct ControlRom::Sample &ctrlSample);
@@ -60,8 +60,8 @@ public:
 
   inline struct Samples& samples(uint16_t ss) { return _sampleSets[ss]; }
 
-  std::string get_info_version(void) { return _version; }
-  std::string get_info_date(void) { return _date; }
+  std::string version(void) { return _version; }
+  std::string date(void) { return _date; }
 };
 
 }

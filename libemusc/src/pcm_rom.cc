@@ -47,33 +47,26 @@ PcmRom::PcmRom(std::vector<std::string> romPath, ControlRom &ctrlRom)
     std::vector<char> encBuf((std::istreambuf_iterator<char>(romFile)),
 			     std::istreambuf_iterator<char>());
 
-    if (!(encBuf.size() == 0x100000 || encBuf.size() == 0x200000)) {
+    if (encBuf.size() % 0x100000)
       throw (std::string("Incorrect file size of PCM ROM file ") + rp +
-	     std::string(". PCM ROM files are always either 1MB or 2MB"));
-    }
+	     std::string(". PCM ROM files are always a factor of 1 MB"));
 
     uint32_t offset = romData.size();
     romData.resize(romData.size() + encBuf.size());
 
-    // TODO: Add support for decoding SC-88 ROMs
-    for (uint32_t i = 0; i < 0x100000; i++) {
-      romData[_unscramble_pcm_rom_address(i) + offset] =
-	i >= 0x20 ? _unscramble_pcm_rom_data(encBuf[i]) : encBuf[i];
-    }
-
-    if (encBuf.size() == 0x200000) {
-      offset += 0x100000;
+    for (int m = 0; m < encBuf.size(); m += 0x100000) {
       for (uint32_t i = 0; i < 0x100000; i++) {
-	romData[_unscramble_pcm_rom_address(i) + offset] =
-	  i >= 0x20 ? _unscramble_pcm_rom_data(encBuf[i + offset]) : encBuf[i + offset];
+	romData[_unscramble_address(i) + m + offset] =
+	  i >= 0x20 ? _unscramble_data(encBuf[i + m]) : encBuf[i + m];
       }
     }
 
     romFile.close();
   }
 
-  if (0) {  // Dump complete ROM to file
-    std::ofstream dump("/tmp/pcm_rom_mk2.bin", std::ios::binary);
+  // Debug: Dump complete decrypted ROM to file
+  if (0) {
+    std::ofstream dump("/tmp/pcm_rom.bin", std::ios::binary);
     dump.write(&romData[0], romData.size());
     dump.close();
   }
@@ -92,7 +85,7 @@ PcmRom::~PcmRom()
 
 
 // Discovered and written by NewRisingSun
-uint32_t PcmRom::_unscramble_pcm_rom_address(uint32_t address)
+uint32_t PcmRom::_unscramble_address(uint32_t address)
 {
   uint32_t newAddress = 0;
   if (address >= 0x20) {	// The first 32 bytes are not encrypted
@@ -110,7 +103,7 @@ uint32_t PcmRom::_unscramble_pcm_rom_address(uint32_t address)
 }
 
 
-int8_t PcmRom::_unscramble_pcm_rom_data(int8_t byte)
+int8_t PcmRom::_unscramble_data(int8_t byte)
 {
   uint8_t byteOrder[8] = {2, 0, 4, 5, 7, 6, 3, 1};
   uint32_t newByte = 0;
