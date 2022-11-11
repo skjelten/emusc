@@ -94,23 +94,25 @@ public:
 
   // Get part information; needed for emulating the LCD display
   bool get_part_mute(uint8_t partId);
-  uint16_t get_part_instrument(uint8_t partId);
+  uint8_t get_part_instrument(uint8_t partId, uint8_t &bank);
   uint8_t get_part_level(uint8_t partId);
   int8_t get_part_pan(uint8_t partId);
   uint8_t get_part_reverb(uint8_t partId);
   uint8_t get_part_chorus(uint8_t partId);
   int8_t get_part_key_shift(uint8_t partId);
   uint8_t get_part_midi_channel(uint8_t partId);
+  uint8_t get_part_mode(uint8_t partId);
 
   // Update part state; needed for adapting to button inputs
   void set_part_mute(uint8_t partId, bool mute);
-  void set_part_instrument(uint8_t partId, uint16_t instrument);
+  void set_part_instrument(uint8_t partId, uint8_t index, uint8_t bank);
   void set_part_level(uint8_t partId, uint8_t level);
   void set_part_pan(uint8_t partId, uint8_t pan);
   void set_part_reverb(uint8_t partId, uint8_t reverb);
   void set_part_chorus(uint8_t partId, uint8_t chorus);
   void set_part_key_shift(uint8_t partId, int8_t keyShift);
   void set_part_midi_channel(uint8_t partId, uint8_t midiChannel);
+  void set_part_mode(uint8_t partId, uint8_t mode);
 
   void add_part_midi_mod_callback(std::function<void(const int)> callback);
   void clear_part_midi_mod_callback(void);
@@ -158,7 +160,7 @@ private:
   struct std::vector<ControlRom::Partial> _partials;
   struct std::vector<ControlRom::Sample> _samples;
   struct std::vector<ControlRom::DrumSet> _drumSets;
-  struct std::vector<ControlRom::Variation> _variations;
+  std::vector<std::vector<uint16_t>> _variations;
 
   ControlRom &_ctrlRom;
 

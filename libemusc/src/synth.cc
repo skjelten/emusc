@@ -120,16 +120,14 @@ void Synth::_add_note(uint8_t midiChannel, uint8_t key, uint8_t velocity)
     partialsUsed += p.get_num_partials();
 
   // TODO: Prioritize parts / MIDI channels based on info in owners manual
-  // FIXME: Reduce voice count to 24/28 when volume envelope is corrected!
-  if (_ctrlRom.synthModel == ControlRom::sm_SC55 && partialsUsed >= 50) //24)
-    std::cout << "EmuSC: New note on ignored due to SC55 voice limit (24)"
-	      << std::endl;
-  else if (_ctrlRom.synthModel == ControlRom::sm_SC55mkII && partialsUsed >= 50) // 28)
-    std::cout << "EmuSC: New note on ignored due to SC55mkII voice limit (28)"
+  // FIXME: Reduce voice count when volume envelope is corrected!
+  if (partialsUsed > _ctrlRom.max_polyphony() * 2)
+    std::cout << "EmuSC: New note on ignored due to voice limit"
 	      << std::endl;
   else
     for (auto &p: _parts)
-      p.add_note(midiChannel, key, velocity, _sampleRate);
+      if (p.midi_channel() == midiChannel)
+	p.add_note(key, velocity, _sampleRate);
 }
 
 /* Not used -> PcmRom as part of sample dump to disk
@@ -194,7 +192,7 @@ void Synth::midi_input(uint8_t status, uint8_t data1, uint8_t data2)
 
       for (auto &p: _parts)
 	if (p.midi_channel() == channel)
-	  p.stop_note(channel, data1);
+	  p.stop_note(data1);
       break;
 
     case midi_NoteOn:
@@ -204,7 +202,7 @@ void Synth::midi_input(uint8_t status, uint8_t data1, uint8_t data2)
       if (!data2) {                   // Note On with velocity = 0 => Note Off
 	for (auto &p: _parts)
 	  if (p.midi_channel() == channel)
-	    p.stop_note(channel, data1);
+	    p.stop_note(data1);
       } else {
 	_add_note(channel, data1, data2);
       }
@@ -284,7 +282,7 @@ void Synth::midi_input(uint8_t status, uint8_t data1, uint8_t data2)
 
 	for (auto &p : _parts) {
 	  if (p.midi_channel() == channel) {
-	    p.set_control(cMsg, channel, data2);
+	    p.set_control(cMsg, data2);
 
 	    for (const auto &cb : _partMidiModCallbacks)
 	      cb(p.id());
@@ -301,7 +299,7 @@ void Synth::midi_input(uint8_t status, uint8_t data1, uint8_t data2)
       {
 	for (auto &p : _parts)
 	  if (p.midi_channel() == channel) {
-	    p.set_program(channel, data1, _bank);
+	    p.set_program(data1, _bank);
 
 	    for (const auto &cb : _partMidiModCallbacks)
 	      cb(p.id());
@@ -325,9 +323,9 @@ void Synth::midi_input(uint8_t status, uint8_t data1, uint8_t data2)
       {
 	for (auto &p: _parts) {
 //	  if (_ctrlRom.synthModel == ControlRom::sm_SC55)   // 12 bit resolution
-//	    p.set_pitchBend(channel, (data1 & 0x70) | ((data2 & 0x7f) << 7));
+//	    p.set_pitchBend((data1 & 0x70) | ((data2 & 0x7f) << 7));
 //	  else
-	    p.set_pitchBend(channel, (data1 & 0x7f) | ((data2 & 0x7f) << 7));
+	    p.set_pitchBend((data1 & 0x7f) | ((data2 & 0x7f) << 7));
 	}
       }
       break;
@@ -439,9 +437,9 @@ bool Synth::get_part_mute(uint8_t partId)
   return _parts[partId].mute();
 }
 
-uint16_t Synth::get_part_instrument(uint8_t partId)
+uint8_t Synth::get_part_instrument(uint8_t partId, uint8_t &bank)
 {
-  return _parts[partId].instrument();
+  return _parts[partId].program(bank);
 }
 
 uint8_t Synth::get_part_level(uint8_t partId)
@@ -474,17 +472,26 @@ uint8_t Synth::get_part_midi_channel(uint8_t partId)
   return _parts[partId].midi_channel();
 }
 
+uint8_t Synth::get_part_mode(uint8_t partId)
+{
+  return _parts[partId].mode();
+}
+
 // Update part state; needed for adapting to button inputs
 void Synth::set_part_mute(uint8_t partId, bool mute)
 {
   _parts[partId].set_mute(mute);
 }
-
+/*
 void Synth::set_part_instrument(uint8_t partId, uint16_t instrument)
 {
   _parts[partId].set_instrument(instrument);
 }
-
+*/
+void Synth::set_part_instrument(uint8_t partId, uint8_t index, uint8_t bank)
+{
+  _parts[partId].set_program(index, bank);
+}
 
 void Synth::set_part_level(uint8_t partId, uint8_t level)
 {
@@ -519,6 +526,11 @@ void Synth::set_part_key_shift(uint8_t partId, int8_t keyShift)
 void Synth::set_part_midi_channel(uint8_t partId, uint8_t midiChannel)
 {
   _parts[partId].set_midi_channel(midiChannel);
+}
+
+void Synth::set_part_mode(uint8_t partId, uint8_t mode)
+{
+  _parts[partId].set_mode(mode);
 }
 
 

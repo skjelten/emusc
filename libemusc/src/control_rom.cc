@@ -39,21 +39,21 @@ ControlRom::ControlRom(std::string romPath)
   std::ifstream romFile(romPath, std::ios::binary | std::ios::in);
   if (!romFile.is_open())
     throw(std::string("Unable to open control ROM: ") + romPath);
-  
+
   if (_identify_model(romFile))
     throw(std::string("Unknown control ROM file!"));
 
   // Temporarily block SC-88 ROMs since we don't know how to read them yet
   if (_model == "SC-88")
     throw(std::string("SC-88 ROM files are not supported yet!"));
-  
+
   // Read internal data structures from ROM file
   _read_instruments(romFile);
   _read_partials(romFile);
   _read_samples(romFile);
   _read_variations(romFile);
   _read_drum_sets(romFile);
-  
+
   romFile.close();
 
   if (0)
@@ -62,7 +62,7 @@ ControlRom::ControlRom(std::string romPath)
 	      << _samples.size() << " samples and "
 	      << _drumSets.size() << " drum sets" << std::endl;
 }
-  
+
 
 ControlRom::~ControlRom()
 {}
@@ -126,7 +126,7 @@ int ControlRom::_identify_model(std::ifstream &romFile)
     _version.assign(&data[3], 4);
     _date.assign(&data[24], 5);
     _model.assign("SC-55");
-    synthModel = sm_SC55;
+    _synthModel = sm_SC55;
 
     return 0;
   }
@@ -145,7 +145,7 @@ int ControlRom::_identify_model(std::ifstream &romFile)
     ss << "19" << std::hex << year << "-" << month << "-" << day;
     _date.assign(ss.str());
     _model.assign("SC-55mkII");
-    synthModel = sm_SC55mkII;
+    _synthModel = sm_SC55mkII;
 
     return 0;
     
@@ -153,7 +153,7 @@ int ControlRom::_identify_model(std::ifstream &romFile)
     _version.assign("?");
     _date.assign("?");
     _model.assign("SCB-55 (SC-55mkII)");
-    synthModel = sm_SC55mkII;
+    _synthModel = sm_SC55mkII;
 
     return 0;
   }
@@ -165,7 +165,7 @@ int ControlRom::_identify_model(std::ifstream &romFile)
     _version.assign(&data[3], 4);
     _date.assign(&data[24], 5);
     _model.assign("SCC-1");
-    synthModel = sm_SCC1;
+    _synthModel = sm_SCC1;
   }
 
   // Search for SC-88 control ROM files
@@ -175,7 +175,7 @@ int ControlRom::_identify_model(std::ifstream &romFile)
     _version.assign("?");
     _date.assign("?");
     _model.assign("SC-88");
-    synthModel = sm_SC88;
+    _synthModel = sm_SC88;
   }
 
   if (_model.empty())        // No valid ROM file found    TODO: SC88 ??
@@ -185,19 +185,20 @@ int ControlRom::_identify_model(std::ifstream &romFile)
 }
 
 
-uint32_t *ControlRom::_get_banks(void)
+const std::vector<uint32_t> &ControlRom::_banks(void)
 {
-  switch(synthModel)
+  switch(_synthModel)
     {
     case sm_SC55:
     case sm_SCC1:
     case sm_SC55mkII:
       return _banksSC55;
+
     case sm_SC88:                       // No work has been done here yet
       return _banksSC88;
     }
 
-  return 0;
+  throw(std::string("No ROM banks defined for this model"));
 }
 
 
@@ -205,7 +206,7 @@ uint32_t *ControlRom::_get_banks(void)
 int ControlRom::_read_instruments(std::ifstream &romFile)
 {
   // ROM is split in 8 banks
-  uint32_t *banks = _get_banks();
+  const std::vector<uint32_t> &banks = _banks();
 
   // Instruments are in bank 0 & 3, each instrument block using 216 bytes
   for (int32_t x = banks[0]; x < banks[4]; x += 216) {
@@ -221,9 +222,7 @@ int ControlRom::_read_instruments(std::ifstream &romFile)
     // First 12 bytes are the instrument name
     romFile.read(data, 12);
     i.name.assign(data , 12);
-    i.name.erase(std::find_if(i.name.rbegin(), i.name.rend(),
-			      std::bind1st(std::not_equal_to<char>(),
-					   ' ')).base(), i.name.end());
+    i.name.erase(i.name.find_last_not_of(' ') + 1);
 
     // We have 2 partial parameters sets; starting in bank position 34 & 126
     for (int p = 0; p < 2; p++) {
@@ -294,7 +293,7 @@ int ControlRom::_read_instruments(std::ifstream &romFile)
 int ControlRom::_read_partials(std::ifstream &romFile)
 {
   // ROM is split in 8 banks
-  uint32_t *banks = _get_banks();
+  const std::vector<uint32_t> &banks = _banks();
 
   // Partials are in bank 1 & 4, each partial block using 60 bytes
   for (int32_t x = banks[1]; x < banks[5]; x += 60) {
@@ -310,9 +309,7 @@ int ControlRom::_read_partials(std::ifstream &romFile)
     // First 12 bytes are the partial name
     romFile.read(data, 12);
     p.name.assign(data, 12);
-    p.name.erase(std::find_if(p.name.rbegin(), p.name.rend(),
-			      std::bind1st(std::not_equal_to<char>(),
-					   ' ')).base(), p.name.end());
+    p.name.erase(p.name.find_last_not_of(' ') + 1);
 
     // 16 byte array of break values for tone pitch
     romFile.read(data, 16);
@@ -341,18 +338,18 @@ int ControlRom::_read_partials(std::ifstream &romFile)
 int ControlRom::_read_variations(std::ifstream &romFile)
 {
   // ROM is split in 8 banks
-  uint32_t *banks = _get_banks();
+  const std::vector<uint32_t> &banks = _banks();
 
   // Variations are in bank 6, a table of 128 x 128 2 byte values
   for (int32_t x = banks[6]; x < (banks[7] - 128); x += 256) {
 
     char data[2];
     romFile.seekg(x);
-    struct Variation v;
+    std::vector<uint16_t> v;
 
     for (int y = 0; y < 128; y++) {
       romFile.read(data, 2);
-      v.variation[y] = _native_endian_uint16((uint8_t *) &data[0]);
+      v.push_back(_native_endian_uint16((uint8_t *) &data[0]));
     }
 
     _variations.push_back(v);
@@ -360,13 +357,13 @@ int ControlRom::_read_variations(std::ifstream &romFile)
 
   if (0) {
     int i = 0;
-    for (struct Variation v : _variations) {
+    for (auto v : _variations) {
       std::cout << "  -> Variations " << i++ << ": ";
       for (int y = 0; y < 128; y++)
-	if (v.variation[y] == 0xffff)
+	if (v[y] == 0xffff)
 	  std::cout << "-,";
 	else
-	  std::cout << v.variation[y] << ",";
+	  std::cout << v[y] << ",";
       std::cout << '\b' << " " << std::endl;
     }
   }
@@ -378,7 +375,7 @@ int ControlRom::_read_variations(std::ifstream &romFile)
 int ControlRom::_read_samples(std::ifstream &romFile)
 {
   // ROM is split in 8 banks
-  uint32_t *banks = _get_banks();
+  const std::vector<uint32_t> &banks = _banks();
 
   // Samples are in bank 2 & X, each sample block using 16 bytes
   for (int32_t x = banks[2]; x < banks[6]; x += 16) {
@@ -426,7 +423,7 @@ int ControlRom::_read_samples(std::ifstream &romFile)
 int ControlRom::_read_drum_sets(std::ifstream &romFile)
 {
   // ROM is split in 8 banks
-  uint32_t *banks = _get_banks();
+  const std::vector<uint32_t> &banks = _banks();
 
   // The drum set is in bank 7, a total of 14 drums in 1164 byte blocks 
   for (int32_t x = banks[7]; x < 0x03c028; x += 1164) {
@@ -453,9 +450,7 @@ int ControlRom::_read_drum_sets(std::ifstream &romFile)
     // Last 12 bytes are the drum name
     romFile.read(data, 12);
     d.name.assign(data, 12);
-    d.name.erase(std::find_if(d.name.rbegin(), d.name.rend(),
-			      std::bind1st(std::not_equal_to<char>(),
-					   ' ')).base(), d.name.end());
+    d.name.erase(d.name.find_last_not_of(' ') + 1);
 
     // Ignore undocumented drum sets and unused memory slots
     if ((d.name.rfind("AC.", 0) == 0) || data[0] < 0)
@@ -472,15 +467,43 @@ int ControlRom::_read_drum_sets(std::ifstream &romFile)
 }
 
 
-std::list<int> ControlRom::get_drum_set_banks(enum SynthModel model)
+const std::vector<int>& ControlRom::drum_set_bank(void)
 {
-  if (model == sm_SC55 || model == sm_SC55mkII)
-    return std::list<int> ({0, 8, 16, 24, 25, 32, 40, 48, 56, 127});
-  else if (model == sm_SC88)
-    return std::list<int> ({0, 1, 8, 16, 24, 25, 26, 32, 40, 48, 49, 50,56,57});
-  else  // model == sm_SC88Pro
-    return std::list<int> ({0, 1, 2, 8, 9, 10, 11, 16, 24, 25, 26, 27, 28, 29,
-	30, 31, 32, 40, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57,58,59,60,61,62});
+  switch (_synthModel)
+    {
+    case sm_SC55:
+    case sm_SC55mkII:
+    case sm_SCC1:
+      return _drumSetBankSC55;
+
+    case sm_SC88:
+      return _drumSetBankSC88;
+
+    case sm_SC88Pro:
+      return _drumSetBankSC88Pro;
+    }
+
+  throw(std::string("No drum set bank defined for this model"));
+}
+
+
+const uint8_t ControlRom::max_polyphony(void)
+{
+  switch (_synthModel)
+    {
+    case sm_SC55:
+    case sm_SCC1:
+      return _maxPolyphonySC55;
+
+    case sm_SC55mkII:
+      return _maxPolyphonySC55mkII;
+
+    case sm_SC88:
+    case sm_SC88Pro:
+      return _maxPolyphonySC88;
+    }
+
+  throw(std::string("No maximum polyphony defined for this model"));
 }
 
 
@@ -498,10 +521,10 @@ int ControlRom::dump_demo_songs(std::string path)
   // MIDI files are placed at different places in the ROM depending on model
   int romIndex;
   int romSize;
-  if (synthModel == sm_SC55) {
+  if (_synthModel == sm_SC55) {
     romIndex = 0;
-    romSize = _get_banks()[0];
-  } else if (synthModel == sm_SC55mkII) {
+    romSize = _banks()[0];
+  } else if (_synthModel == sm_SC55mkII) {
     romIndex = 0x03fff0;
     romFile.seekg(0, std::ios::end);
     romSize = romFile.tellg();
@@ -661,10 +684,10 @@ std::vector<std::vector<std::string>> ControlRom::get_variations_list(void)
     headerVector.push_back(std::to_string(i));
   varListVector.push_back(headerVector);
 
-  for (struct Variation var: _variations) {
+  for (auto v : _variations) {
     std::vector<std::string> varVector;
     for (int i = 0; i < 128; i++)
-      varVector.push_back(std::to_string(var.variation[i]));
+      varVector.push_back(std::to_string(v[i]));
     varListVector.push_back(varVector);
   }
 
@@ -689,7 +712,7 @@ std::vector<std::string> ControlRom::get_drum_sets_list(void)
 
 std::vector<uint8_t> ControlRom::get_intro_anim(void)
 {
-  if (synthModel != sm_SC55mkII)
+  if (_synthModel != sm_SC55mkII)
     return std::vector<uint8_t> {};
 
   // Index & length for SC55mkII ROM

@@ -24,12 +24,11 @@
 #define __CONTROL_ROM_H__
 
 
+#include <stdint.h>
+
 #include <fstream>
-#include <list>
 #include <string>
 #include <vector>
-
-#include <stdint.h>
 
 
 namespace EmuSC {
@@ -39,15 +38,6 @@ class ControlRom
 public:
   ControlRom(std::string romPath);
   ~ControlRom();
-
-  enum SynthModel {
-    sm_SC55,
-    sm_SC55mkII,
-    sm_SC88,
-    sm_SC88Pro,
-    sm_SCC1
-  };
-  enum SynthModel synthModel;
 
   // Internal data structures extracted from the control ROM file
 
@@ -118,8 +108,7 @@ public:
     uint8_t TVALenP2;      // TVA duration phase 2 (Hold)    Default 0x80
     uint8_t TVALenP3;      // TVA duration phase 3 (Decay)   Default 0
     uint8_t TVALenP4;      // TVA duration phase 4 (Sustain) Default 0
-    uint8_t TVALenP5;      // TVA duration phase 5 (Release) Default 0x09
-    
+    uint8_t TVALenP5;      // TVA duration phase 5 (Release) Default 0x09  
   };
 
   struct Instrument {     // 204 bytes in total
@@ -139,29 +128,27 @@ public:
     std::string name;     // 12 chars
   };
 
-  struct Variation {
-    uint16_t variation[128];  // All models have 128 x 128 variation table
-  };
-
-  std::list<int> get_drum_set_banks(enum SynthModel mode);
   int dump_demo_songs(std::string path);
   std::vector<uint8_t> get_intro_anim(void);
 
-  std::string get_info_model(void) { return _model; }
-  std::string get_info_version(void) { return _version; }
-  std::string get_info_date(void) { return _date; }
+  std::string model(void) { return _model; }
+  std::string version(void) { return _version; }
+  std::string date(void) { return _date; }
+
+  const std::vector<int>& drum_set_bank(void);
+  const uint8_t max_polyphony(void);
 
   std::vector<std::vector<std::string>> get_instruments_list(void);
   std::vector<std::vector<std::string>> get_partials_list(void);
   std::vector<std::vector<std::string>> get_samples_list(void);
   std::vector<std::vector<std::string>> get_variations_list(void);
   std::vector<std::string> get_drum_sets_list(void);
-  
+
   inline struct Instrument& instrument(int i) { return _instruments[i]; }
   inline struct Partial& partial(int p) { return _partials[p]; }
   inline struct Sample& sample(int s) { return _samples[s]; }
-  inline struct Variation& variation(int v) { return _variations[v]; }
   inline struct DrumSet& drumSet(int ds) { return _drumSets[ds]; }
+  const std::vector<uint16_t>& variation(int v) { return _variations[v]; }
 
   inline int numSampleSets(void) { return _samples.size(); }
   inline int numInstruments(void) { return _instruments.size(); }
@@ -173,15 +160,36 @@ private:
   std::string _version;
   std::string _date;
 
-  uint32_t _banksSC55[8] = { 0x10000, 0x1BD00, 0x1DEC0, 0x20000,
-                             0x2BD00, 0x2DEC0, 0x30000, 0x38080 };
+  enum SynthModel {
+    sm_SC55,              // Original Sound Canvas
+    sm_SC55mkII,          // Upgraded model
+    sm_SCC1,              // ISA card version
+    sm_SC88,
+    sm_SC88Pro,
+  };
+  enum SynthModel _synthModel;
+
+  const uint8_t _maxPolyphonySC55     = 24;
+  const uint8_t _maxPolyphonySC55mkII = 28;
+  const uint8_t _maxPolyphonySC88     = 64;
+
+  const std::vector<int> _drumSetBankSC55 =
+    { 0, 8, 16, 24, 25, 32, 40, 48, 56, 127 };
+  const std::vector<int> _drumSetBankSC88 =
+    { 0, 1, 8, 16, 24, 25, 26, 32, 40, 48, 49, 50, 56, 57};
+  const std::vector<int> _drumSetBankSC88Pro =
+    { 0, 1, 2, 8, 9, 10, 11, 16, 24, 25, 26, 27, 28, 29, 30, 31, 32, 40, 48,
+      49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62 };
+
+  const std::vector<uint32_t> _banksSC55 =
+    { 0x10000, 0x1BD00, 0x1DEC0, 0x20000, 0x2BD00, 0x2DEC0, 0x30000, 0x38080 };
 
   // Only a placeholder, SC-88 layout is currently unkown
-  uint32_t _banksSC88[8] = { 0x10000, 0x1BD00, 0x1DEC0, 0x20000,
-                             0x2BD00, 0x2DEC0, 0x30000, 0x38080 };
+  const std::vector<uint32_t> _banksSC88 =
+    { 0x10000, 0x1BD00, 0x1DEC0, 0x20000, 0x2BD00, 0x2DEC0, 0x30000, 0x38080 };
 
   int _identify_model(std::ifstream &romFile);
-  uint32_t *_get_banks(void);
+  const std::vector<uint32_t> &_banks(void);
 
   // To be replaced with std::endian::native from C++20
   inline bool _le_native(void) { uint16_t n = 1; return (*(uint8_t *) & n); } 
@@ -199,8 +207,8 @@ private:
   std::vector<Instrument> _instruments;
   std::vector<Partial> _partials;
   std::vector<Sample> _samples;
-  std::vector<Variation> _variations;
   std::vector<DrumSet> _drumSets;
+  std::vector<std::vector<uint16_t>> _variations;
 
   ControlRom();
 

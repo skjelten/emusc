@@ -19,9 +19,11 @@
 
 #include "emulator.h"
 
+#include <algorithm>
 #include <iostream>
 #include <string>
 #include <vector>
+
 #include <QSettings>
 
 #include "audio_output_alsa.h"
@@ -73,9 +75,9 @@ void Emulator::load_control_rom(QString romPath)
     throw(QString(errorMsg.c_str()));
   }
 
-  _ctrlRomModel = _emuscControlRom->get_info_model().c_str();
-  _ctrlRomVersion = _emuscControlRom->get_info_version().c_str();
-  _ctrlRomDate = _emuscControlRom->get_info_date().c_str();
+  _ctrlRomModel = _emuscControlRom->model().c_str();
+  _ctrlRomVersion = _emuscControlRom->version().c_str();
+  _ctrlRomDate = _emuscControlRom->date().c_str();
   _ctrlRomUpdated = true;
 }
 
@@ -712,7 +714,8 @@ void Emulator::set_part(uint8_t value)
   str.prepend(' ');
   emit display_part_updated(str);
 
-  set_instrument(_emuscSynth->get_part_instrument(value), false);
+  uint8_t bank; uint8_t index = _emuscSynth->get_part_instrument(value, bank);
+  set_instrument(index, bank, false);
   set_level(_emuscSynth->get_part_level(value), false);
   set_pan(_emuscSynth->get_part_pan(value), false);
   set_reverb(_emuscSynth->get_part_reverb(value), false);
@@ -729,9 +732,27 @@ void Emulator::select_prev_instrument()
   if (_emuscSynth == NULL)
     return;
 
-  uint16_t currentInstrument = _emuscSynth->get_part_instrument(_selectedPart);
-  if (currentInstrument > 0)
-    set_instrument(currentInstrument - 1, true);
+  uint8_t bank;
+  uint8_t index = _emuscSynth->get_part_instrument(_selectedPart, bank);
+
+  if (_emuscSynth->get_part_mode(_selectedPart) == 0) {     // Instrument
+    const std::vector<uint16_t> &var = _emuscControlRom->variation(bank);
+    for (int i = index - 1; i >= 0; i--) {
+      if (var[i] != 0xffff) {
+	set_instrument(i, bank, true);
+	break;
+      }
+    }
+
+  } else {                                                  // Drum set
+    const std::vector<int> &drumSetBank = _emuscControlRom->drum_set_bank();
+    std::vector<int>::const_iterator it = std::find(drumSetBank.begin(),
+						    drumSetBank.end(),
+						    (int) index);
+    if (it != drumSetBank.begin())
+      set_instrument(drumSetBank[std::distance(drumSetBank.begin(), it) - 1],
+		     0, true);
+  }
 }
 
 
@@ -740,22 +761,60 @@ void Emulator::select_next_instrument()
   if (!_emuscSynth)
     return;
 
-  uint16_t currentInstrument = _emuscSynth->get_part_instrument(_selectedPart);
-  if (currentInstrument < _emuscControlRom->numInstruments())
-    set_instrument(currentInstrument + 1, true);
+  uint8_t bank;
+  uint8_t index = _emuscSynth->get_part_instrument(_selectedPart, bank);
+
+  if (_emuscSynth->get_part_mode(_selectedPart) == 0) {     // Instrument
+    const std::vector<uint16_t> &var = _emuscControlRom->variation(bank);
+    for (int i = index + 1; i < var.size(); i++) {
+      if (var[i] != 0xffff) {
+	set_instrument(i, bank, true);
+	break;
+      }
+    }
+
+  } else {                                                  // Drum set
+    const std::vector<int> &drumSetBank = _emuscControlRom->drum_set_bank();
+    std::vector<int>::const_iterator it = std::find(drumSetBank.begin(),
+						    drumSetBank.end(),
+						    (int) index);
+    if (it != drumSetBank.end() - 1)
+      set_instrument(drumSetBank[std::distance(drumSetBank.begin(), it) + 1],
+		     0, true);
+  }
 }
 
-
-void Emulator::set_instrument(uint16_t value, bool update)
+void Emulator::set_instrument(uint8_t index, uint8_t bank, bool update)
 {
   if ((!_emuscSynth && update ) || !_emuscControlRom)
     return;
 
-  if (update)
-    _emuscSynth->set_part_instrument(_selectedPart, value);
+  QString str;
+  if (_emuscSynth->get_part_mode(_selectedPart) == 0) {
 
-  QString str = QStringLiteral("%1").arg(value + 1, 3, 10, QLatin1Char('0'));
-  str.append(" ").append(QString(_emuscControlRom->instrument(value).name.c_str()));
+    if (update)
+      _emuscSynth->set_part_instrument(_selectedPart, index, bank);
+
+    uint16_t instrument = _emuscControlRom->variation(bank)[index];
+    str = QStringLiteral("%1 ").arg(index + 1, 3, 10, QLatin1Char('0'));
+    str.append(QString(_emuscControlRom->instrument(instrument).name.c_str()));
+
+  } else {
+    const std::vector<int> &drumSetBank = _emuscControlRom->drum_set_bank();
+    std::vector<int>::const_iterator it = std::find(drumSetBank.begin(),
+						    drumSetBank.end(),
+						    (int) index);
+    if (it == drumSetBank.end())
+      return;
+
+    uint8_t vi = std::distance(drumSetBank.begin(), it);
+
+    if (update)
+      _emuscSynth->set_part_instrument(_selectedPart, index, bank);
+
+    str = QStringLiteral("%1*").arg(index + 1, 3, 10, QLatin1Char('0'));
+    str.append(QString(_emuscControlRom->drumSet(vi).name.c_str()));
+  }
 
   emit display_instrument_updated(str);
 }

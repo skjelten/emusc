@@ -152,7 +152,7 @@ private:
   void _start_audio_subsystem();
 
   void set_part(uint8_t value);
-  void set_instrument(uint16_t value, bool update);
+  void set_instrument(uint8_t index, uint8_t bank, bool update);
   void set_level(uint8_t value, bool update);
   void set_pan(uint8_t value, bool update);
   void set_reverb(uint8_t value, bool update);

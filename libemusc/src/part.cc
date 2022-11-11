@@ -60,6 +60,8 @@ Part::Part(uint8_t id, uint8_t mode, uint8_t type,
     _expression(127),
     _portamento(false),
     _holdPedal(false),
+    _programIndex(0),
+    _programBank(0),
     _7bScale(1/127.0),
     _lastPeakSample(0),
     _ctrlRom(ctrlRom),
@@ -68,16 +70,6 @@ Part::Part(uint8_t id, uint8_t mode, uint8_t type,
   // Part 10 is factory preset for MIDI channel 10 and standard drum set
   if (id == 9)
     _mode = 1;
-
-  // Drum sets as defined inn owner's manual
-  // TODO: Take into account which mode is set in addition to actual ROM files
-  if (ctrlRom.synthModel == ControlRom::sm_SC55 ||
-      ctrlRom.synthModel == ControlRom::sm_SC55mkII)
-    _drumSetBanks = ctrlRom.get_drum_set_banks(ControlRom::sm_SC55);
-  else if (ctrlRom.synthModel == ControlRom::sm_SC88)
-    _drumSetBanks = ctrlRom.get_drum_set_banks(ControlRom::sm_SC88);
-  else if (ctrlRom.synthModel == ControlRom::sm_SC88Pro)
-    _drumSetBanks = ctrlRom.get_drum_set_banks(ControlRom::sm_SC88Pro);
 }
 
 
@@ -159,11 +151,10 @@ int Part::get_num_partials(void)
 
 
 // Should mute => not accept key - or play silently in the background?
-int Part::add_note(uint8_t midiChannel, uint8_t key, uint8_t velocity,
-		   uint32_t sampleRate)
+int Part::add_note(uint8_t key, uint8_t velocity, uint32_t sampleRate)
 {
-  // 1. Check if this message is relevant for this part
-  if (midiChannel != _midiChannel || _mute)
+  // 1. Check if part is muted FIXME: Verify that this is correct behavior
+  if (_mute)
     return 0;
 
   // 2. Find partial(s) used by instrument or drum set
@@ -194,19 +185,15 @@ int Part::add_note(uint8_t midiChannel, uint8_t key, uint8_t velocity,
 }
 
 
-int Part::stop_note(uint8_t midiChannel, uint8_t key)
+int Part::stop_note(uint8_t key)
 {
-  // 1. Check if this message is relevant for this part. Check:Hanging note bug?
-  if (midiChannel != _midiChannel)
-    return 0;
-
-  // 2. Check if CM64 is active (Hold Pedal) and store notes if true
+  // 1. Check if CM64 is active (Hold Pedal) and store notes if true
   if (_holdPedal) {
     _holdPedalKeys.push_back(key);
     return 0;
   }
 
-  // 3. Else iterate through notes list and send stop signal (-> release)
+  // 2. Else iterate through notes list and send stop signal (-> release)
   int i;
   for (auto &n : _notes) {
     bool ret = n->stop(key);
@@ -229,39 +216,42 @@ int Part::clear_all_notes(void)
 }
 
 
-int Part::set_program(uint8_t midiChannel, uint8_t index, uint8_t bank)
+// [index, bank] is the [x,y] coordinate in the variation table
+// For drum sets, index is the program number in the drum set bank
+int Part::set_program(uint8_t index, uint8_t bank)
 {
-  if (midiChannel != _midiChannel)
-    return 0;
-
   // Finds correct instrument variation from variations table
   // Implemented according to SC-55 Owner's Manual page 42-45
-  _instrument = _ctrlRom.variation(bank).variation[index];
-  if (bank < 63 && index < 120)
-    while (_instrument == 0xffff)
-      _instrument = _ctrlRom.variation(--bank).variation[index];
+  if (_mode == mode_Norm) {
+    _instrument = _ctrlRom.variation(bank)[index];
+    if (bank < 63 && index < 120)
+      while (_instrument == 0xffff)
+	_instrument = _ctrlRom.variation(--bank)[index];
 
   // If part is used for drums, select correct drum set
-  if (_mode != mode_Norm) {
-    std::list<int>::iterator it = std::find(_drumSetBanks.begin(),
-					    _drumSetBanks.end(),
-					    (int) index);
-    if (it != _drumSetBanks.end())
-      _drumSet = (int8_t) std::distance(_drumSetBanks.begin(), it);
-    else
+  } else {
+    const std::vector<int> &drumSetBank = _ctrlRom.drum_set_bank();
+    std::vector<int>::const_iterator it = std::find(drumSetBank.begin(),
+						    drumSetBank.end(),
+						    (int) index);
+    if (it != drumSetBank.end()) {
+      _drumSet = (int8_t) std::distance(drumSetBank.begin(), it);
+    } else {
       std::cerr << "EmuSC: Illegal program for drum set (" << (int) index << ")"
 		<< std::endl;
+      return 0;
+    }
   }
+
+  _programIndex = index;
+  _programBank = bank;
 
   return 1;
 }
 
 
-int Part::set_control(enum ControlMsg m, uint8_t midiChannel, uint8_t value)
+int Part::set_control(enum ControlMsg m, uint8_t value)
 {
-  if (midiChannel != _midiChannel)
-    return 0;
-
   if (m == cmsg_Volume) {
     _volume = value;
   }  else if (m == cmsg_ModWheel) {
@@ -274,7 +264,7 @@ int Part::set_control(enum ControlMsg m, uint8_t midiChannel, uint8_t value)
     _holdPedal =  (value >= 64) ? true : false;
     if (_holdPedal == false) {
       for (auto &k : _holdPedalKeys)
-	stop_note(midiChannel, k);
+	stop_note(k);
       _holdPedalKeys.clear();
     }
   }  else if (m == cmsg_Portamento) {
@@ -292,11 +282,8 @@ int Part::set_control(enum ControlMsg m, uint8_t midiChannel, uint8_t value)
 
 
 // Note: One semitone = log(2)/12
-int Part::set_pitchBend(uint8_t midiChannel, int16_t pitchBend)
+int Part::set_pitchBend(int16_t pitchBend)
 {
-  if (midiChannel != _midiChannel)
-    return 0;
-
   _pitchBend = exp(((pitchBend-8192)/8192.0) * _bendRange * 0.5  * (log(2)/12)) - 1;
 
   return 1;

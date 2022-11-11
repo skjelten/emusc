@@ -25,10 +25,10 @@
 #include "pcm_rom.h"
 #include "note.h"
 
+#include <stdint.h>
+
 #include <list>
 #include <vector>
-
-#include <stdint.h>
 
 
 namespace EmuSC {
@@ -73,6 +73,9 @@ private:
   bool _holdPedal;            // Hold all notes [on / off] Default off
   uint8_t _portamentoTime;    // [0-127] Pitch slide, 0 is slowest
 
+  uint8_t _programIndex;      // Current program index inside variation bank
+  uint8_t _programBank;       // Current variation bank
+
   std::vector<uint8_t> _holdPedalKeys;
   //    uint8_t lever;          // [0-127]
 
@@ -96,8 +99,6 @@ private:
     adsr_Release,
     adsr_Done
   };
-
-  std::list<int>_drumSetBanks;
 
   struct std::list<Note*> _notes;
 
@@ -125,22 +126,21 @@ public:
   float get_last_peak_sample(void);
   int get_num_partials(void);
 
-  int add_note(uint8_t midiChannel, uint8_t key, uint8_t velocity, uint32_t sr);
-  int stop_note(uint8_t midiChannel, uint8_t key);
+  int add_note(uint8_t key, uint8_t velocity, uint32_t sr);
+  int stop_note(uint8_t key);
   int clear_all_notes(void);
 
-  int set_program(uint8_t midiChannel, uint8_t index, uint8_t bank);
-  int set_control(enum ControlMsg m, uint8_t midiChannel, uint8_t value);
-  int set_pitchBend(uint8_t midiChannel, int16_t pitchbend);
+  int set_control(enum ControlMsg m, uint8_t value);
+  int set_pitchBend(int16_t pitchbend);
 
   uint8_t id(void) { return _id; }
 
   bool mute() { return(_mute); }
   void set_mute(bool mute) { _mute = mute; }
 
-  uint16_t instrument(void) { return _instrument; }
-  void set_instrument(uint16_t instrument) { _instrument = instrument; }
-
+  uint8_t program(uint8_t &b) { b = _programBank; return _programIndex; }
+  int set_program(uint8_t index, uint8_t bank);
+  
   uint8_t level(void) { return _volume; }
   void set_level(uint8_t level) { _volume = level; }
 
@@ -159,7 +159,8 @@ public:
   uint8_t midi_channel(void) { return _midiChannel; }
   void set_midi_channel(uint8_t midiChannel) { _midiChannel = midiChannel; }
 
-
+  uint8_t mode(void) { return _mode; }
+  void set_mode(uint8_t mode) { _mode = mode; }
 };
 
 }
