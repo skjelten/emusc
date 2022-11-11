@@ -609,7 +609,7 @@ void Emulator::play_intro_anim_bar_display(void)
       emit display_instrument_updated(" SOUND CANVAS **");
       emit display_level_updated("SC-");
       emit display_pan_updated("55 ");
-      emit display_chorus_updated("mk2");
+      emit display_chorus_updated("mk$");
     }
   }
 
@@ -641,7 +641,11 @@ void Emulator::play_intro_anim_bar_display(void)
 	_barDisplay[16 * 14 - x * 16 + 15 - y] = false;
     }
 
-    // FIXME: Part 16 is missing
+    // Part 16
+    if (_introAnimData[_introFrameIndex + y + 48])
+      _barDisplay[16 * 15 + 15 - y] = true;
+    else
+      _barDisplay[16 * 15 + 15 - y] = false;
   }
 
   emit new_bar_display(&_barDisplay);
