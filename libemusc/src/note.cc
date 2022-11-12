@@ -24,8 +24,8 @@
 namespace EmuSC {
 
 
-Note::Note(uint8_t key, uint8_t velocity, uint16_t instrument, int drumSet,
-	   ControlRom &ctrlRom, PcmRom &pcmRom, uint32_t sampleRate)
+Note::Note(uint8_t key, int8_t keyShift, uint8_t velocity, uint16_t instrument,
+	   int drumSet, ControlRom &ctrlRom, PcmRom &pcmRom,uint32_t sampleRate)
   : _key(key),
     _velocity(velocity),
     _7bScale(1/127.0)
@@ -39,8 +39,15 @@ Note::Note(uint8_t key, uint8_t velocity, uint16_t instrument, int drumSet,
     if (pIndex == 0xffff)        // Partial 1 always used, but not 2. partial
       break;
 
+    // Key shift settings shall not affect drum parts (SC-55 OM, page 17 & 24)
+    uint8_t noteKey;
+    if (drumSet >= 0)
+      noteKey = key;
+    else
+      noteKey = key + keyShift;
+
     for (int j = 0; j < 16; j ++) {
-      if (ctrlRom.partial(pIndex).breaks[j] >= key ||
+      if (ctrlRom.partial(pIndex).breaks[j] >= noteKey ||
 	  ctrlRom.partial(pIndex).breaks[j] == 0x7f) {
 	uint16_t sampleIndex = ctrlRom.partial(pIndex).samples[j];
 	if (sampleIndex == 0xffff) {              // This should never happen
@@ -50,11 +57,11 @@ Note::Note(uint8_t key, uint8_t velocity, uint16_t instrument, int drumSet,
 
 	int8_t keyDiff;
 	if (drumSet >= 0)
-	  keyDiff = ctrlRom.drumSet(drumSet).key[key] - 0x3c;
+	  keyDiff = ctrlRom.drumSet(drumSet).key[noteKey] - 0x3c;
 	else
-	  keyDiff = key - ctrlRom.sample(sampleIndex).rootKey;
+	  keyDiff = noteKey - ctrlRom.sample(sampleIndex).rootKey;
 
-	_notePartial[i] = new NotePartial(key, keyDiff, sampleIndex, drumSet,
+	_notePartial[i] = new NotePartial(noteKey, keyDiff, sampleIndex,drumSet,
 					  ctrlRom, pcmRom, instrument, i,
 					  sampleRate);
 	break;

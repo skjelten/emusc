@@ -57,7 +57,7 @@ Synth::Synth(ControlRom &controlRom, PcmRom &pcmRom, Mode mode)
 
   // Initialize all parts
   for (int i = 0; i < 16; i++) {
-    Part part(i, _mode, 0, controlRom, pcmRom);
+    Part part(i, _mode, 0, _keyShift, controlRom, pcmRom);
     _parts.push_back(part);
   }
   if (_mode == scm_GS)

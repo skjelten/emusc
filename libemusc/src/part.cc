@@ -26,7 +26,7 @@
 
 namespace EmuSC {
 
-Part::Part(uint8_t id, uint8_t mode, uint8_t type,
+Part::Part(uint8_t id, uint8_t mode, uint8_t type, int8_t &keyShift,
 	   ControlRom &ctrlRom, PcmRom &pcmRom)
   : _id(id),
     _midiChannel(id),
@@ -56,6 +56,7 @@ Part::Part(uint8_t id, uint8_t mode, uint8_t type,
     _releaseTime(0),
     _pitchBend(0),
     _mute(false),
+    _synthKeyShift(keyShift),
     _modulation(0),
     _expression(127),
     _portamento(false),
@@ -170,8 +171,8 @@ int Part::add_note(uint8_t key, uint8_t velocity, uint32_t sampleRate)
     return 0;
 
   // 4. Create new note and set default values (note: using pointers)
-  Note *n = new Note(key, velocity, instrumentIndex, drumSet,
-		     _ctrlRom, _pcmRom, sampleRate);
+  Note *n = new Note(key, _synthKeyShift + _keyShift, velocity, instrumentIndex,
+		     drumSet, _ctrlRom, _pcmRom, sampleRate);
   _notes.push_back(n);
 
   if (0)

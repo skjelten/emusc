@@ -41,8 +41,8 @@ private:
   struct NotePartial *_notePartial[2];
   
 public:
-  Note(uint8_t key, uint8_t velocity, uint16_t instrument, int drum,
-       ControlRom &ctrlRom, PcmRom &pcmRom, uint32_t sampleRate);
+  Note(uint8_t key, int8_t keyShift, uint8_t velocity, uint16_t instrument,
+       int drum, ControlRom &ctrlRom, PcmRom &pcmRom, uint32_t sampleRate);
   ~Note();
 
   bool stop(uint8_t key);

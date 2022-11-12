@@ -67,6 +67,7 @@ private:
   int8_t _releaseTime;        // [-50-50] Default 0
 
   bool _mute;                 // Part muted
+  int8_t &_synthKeyShift;    // Global key shift on top of part setting
   uint8_t _modulation;        // [0-127] MOD Wheel (CM 1) Default 0
   uint8_t _expression;        // [0-127] temporary volume modifier (CM 11)
   bool _portamento;           // Portamento pitch slide [on / off] Default off
@@ -106,7 +107,8 @@ private:
   PcmRom &_pcmRom;
 
 public:
-  Part(uint8_t id, uint8_t mode, uint8_t type, ControlRom &cRom, PcmRom &pRom);
+  Part(uint8_t id, uint8_t mode, uint8_t type, int8_t &keyShift,
+       ControlRom &cRom, PcmRom &pRom);
   ~Part();
 
   enum ControlMsg {
