@@ -50,7 +50,8 @@ Emulator::Emulator(void)
     _ctrlRomUpdated(false),
     _selectedPart(0),
     _lcdBarDisplayHistVect(16, {0,-1,0}),
-    _introFrameIndex(0)
+    _introFrameIndex(0),
+    _allMode(false)
 {
   // Start fixed timer for LCD updates & set bar display
   _lcdDisplayTimer = new QTimer(this);
@@ -671,9 +672,14 @@ void Emulator::select_all()
   if (_emuscSynth == NULL)
     return;
 
-  emit (mute_button_changed(false));
+  _allMode = !_allMode;
 
-  std::cout << "select_all()" << std::endl;
+  emit(all_button_changed(_allMode));
+
+  if (_allMode)
+    set_all();
+  else
+    set_part(_selectedPart);
 }
 
 
@@ -685,13 +691,13 @@ void Emulator::select_mute()
   bool currentMute = _emuscSynth->get_part_mute(_selectedPart);
   _emuscSynth->set_part_mute(_selectedPart, !currentMute);
 
-  emit (mute_button_changed(!currentMute));
+  emit(mute_button_changed(!currentMute));
 }
 
 
 void Emulator::select_prev_part()
 {
-  if (_emuscSynth == NULL || _selectedPart == 0)
+  if (_emuscSynth == NULL || _selectedPart == 0 || _allMode)
     return;
 
   set_part(--_selectedPart);
@@ -700,10 +706,32 @@ void Emulator::select_prev_part()
 
 void Emulator::select_next_part()
 {
-  if (_emuscSynth == NULL || _selectedPart >= 15)
+  if (_emuscSynth == NULL || _selectedPart >= 15 || _allMode)
     return;
 
   set_part(++_selectedPart);
+}
+
+
+// Update all LCD part information with global (ALL) settings
+// Used when ALL button is used to change settings affecting all parts
+void Emulator::set_all(void)
+{
+  if (!_emuscSynth)
+    return;
+
+  emit display_part_updated("ALL");
+  emit display_instrument_updated("- SOUND Canvas -");
+
+  set_level(_emuscSynth->volume(), false);
+  set_pan(_emuscSynth->pan(), false);
+  set_reverb(_emuscSynth->reverb(), false);
+  set_chorus(_emuscSynth->chorus(), false);
+  set_key_shift(_emuscSynth->key_shift(), false);
+
+  emit display_midi_channel_updated(" 17");
+
+  emit (all_button_changed(_allMode));
 }
 
 
@@ -733,7 +761,7 @@ void Emulator::set_part(uint8_t value)
 
 void Emulator::select_prev_instrument()
 {
-  if (_emuscSynth == NULL)
+  if (_emuscSynth == NULL || _allMode)
     return;
 
   uint8_t bank;
@@ -762,7 +790,7 @@ void Emulator::select_prev_instrument()
 
 void Emulator::select_next_instrument()
 {
-  if (!_emuscSynth)
+  if (!_emuscSynth || _allMode)
     return;
 
   uint8_t bank;
@@ -829,7 +857,13 @@ void Emulator::select_prev_level(void)
   if (_emuscSynth == NULL)
     return;
 
-  uint8_t currentLevel = _emuscSynth->get_part_level(_selectedPart);
+  uint8_t currentLevel;
+
+  if (_allMode)
+    currentLevel = _emuscSynth->volume();
+  else
+    currentLevel = _emuscSynth->get_part_level(_selectedPart);
+
   if (currentLevel > 0)
     set_level(currentLevel - 1, true);
 }
@@ -840,7 +874,13 @@ void Emulator::select_next_level(void)
   if (_emuscSynth == NULL)
     return;
 
-  uint8_t currentLevel = _emuscSynth->get_part_level(_selectedPart);
+  uint8_t currentLevel;
+
+  if (_allMode)
+    currentLevel = _emuscSynth->volume();
+  else
+    currentLevel = _emuscSynth->get_part_level(_selectedPart);
+
   if (currentLevel < 127)
     set_level(currentLevel + 1, true);
 }
@@ -851,8 +891,12 @@ void Emulator::set_level(uint8_t value, bool update)
   if (!_emuscSynth && update)
     return;
 
-  if (update)
-    _emuscSynth->set_part_level(_selectedPart, value);
+  if (update) {
+    if (_allMode)
+      _emuscSynth->set_volume(value);
+    else
+      _emuscSynth->set_part_level(_selectedPart, value);
+  }
 
   QString str = QStringLiteral("%1").arg(value, 3, 10,QLatin1Char(' '));
   emit display_level_updated(str);
@@ -864,8 +908,14 @@ void Emulator::select_prev_pan()
   if (_emuscSynth == NULL)
     return;
 
-  uint8_t currentPan = _emuscSynth->get_part_pan(_selectedPart);
-  if (currentPan > 0)
+  uint8_t currentPan;
+
+  if (_allMode)
+    currentPan = _emuscSynth->pan();
+  else
+    currentPan = _emuscSynth->get_part_pan(_selectedPart);
+
+  if ((_allMode && currentPan > 1) || (!_allMode && currentPan > 0))
     set_pan(currentPan - 1, true);
 }
 
@@ -875,7 +925,13 @@ void Emulator::select_next_pan()
   if (_emuscSynth == NULL)
     return;
 
-  uint8_t currentPan = _emuscSynth->get_part_pan(_selectedPart);
+  uint8_t currentPan;;
+
+  if (_allMode)
+    currentPan = _emuscSynth->pan();
+  else
+    currentPan = _emuscSynth->get_part_pan(_selectedPart);
+
   if (currentPan < 127)
     set_pan(currentPan + 1, true);
 }
@@ -887,7 +943,10 @@ void Emulator::set_pan(uint8_t value, bool update)
     return;
 
   if (update)
-    _emuscSynth->set_part_pan(_selectedPart, value);
+    if (_allMode)
+      _emuscSynth->set_pan(value);
+    else
+      _emuscSynth->set_part_pan(_selectedPart, value);
 
   QString str = QStringLiteral("%1").arg(abs(value - 64),3,10,QLatin1Char(' '));
 
@@ -908,7 +967,13 @@ void Emulator::select_prev_reverb()
   if (_emuscSynth == NULL)
     return;
 
-  uint8_t currentReverb = _emuscSynth->get_part_reverb(_selectedPart);
+  uint8_t currentReverb;
+
+  if (_allMode)
+    currentReverb = _emuscSynth->reverb();
+  else
+    currentReverb = _emuscSynth->get_part_reverb(_selectedPart);
+
   if (currentReverb > 0)
     set_reverb(currentReverb - 1, true);
 }
@@ -919,7 +984,13 @@ void Emulator::select_next_reverb()
   if (_emuscSynth == NULL)
     return;
 
-  uint8_t currentReverb = _emuscSynth->get_part_reverb(_selectedPart);
+  uint8_t currentReverb;
+
+  if (_allMode)
+    currentReverb = _emuscSynth->reverb();
+  else
+    currentReverb = _emuscSynth->get_part_reverb(_selectedPart);
+
   if (currentReverb < 127)
     set_reverb(currentReverb + 1, true);
 }
@@ -930,8 +1001,12 @@ void Emulator::set_reverb(uint8_t value, bool update)
   if (!_emuscSynth && update)
     return;
 
-  if (update)
-    _emuscSynth->set_part_reverb(_selectedPart, value);
+  if (update) {
+    if (_allMode)
+      _emuscSynth->set_reverb(value);
+    else
+      _emuscSynth->set_part_reverb(_selectedPart, value);
+  }
 
   QString str = QStringLiteral("%1").arg(value, 3, 10, QLatin1Char(' '));
   emit display_reverb_updated(str);
@@ -943,7 +1018,13 @@ void Emulator::select_prev_chorus()
   if (_emuscSynth == NULL)
     return;
 
-  uint8_t currentChorus = _emuscSynth->get_part_chorus(_selectedPart);
+  uint8_t currentChorus;
+
+  if (_allMode)
+    currentChorus = _emuscSynth->chorus();
+  else
+    currentChorus = _emuscSynth->get_part_chorus(_selectedPart);
+
   if (currentChorus > 0)
     set_chorus(currentChorus - 1, true);
 }
@@ -954,7 +1035,13 @@ void Emulator::select_next_chorus()
   if (_emuscSynth == NULL)
     return;
 
-  uint8_t currentChorus = _emuscSynth->get_part_chorus(_selectedPart);
+  uint8_t currentChorus;
+
+  if (_allMode)
+    currentChorus = _emuscSynth->chorus();
+  else
+    currentChorus = _emuscSynth->get_part_chorus(_selectedPart);
+
   if (currentChorus < 127)
     set_chorus(currentChorus + 1, true);
 }
@@ -965,8 +1052,12 @@ void Emulator::set_chorus(uint8_t value, bool update)
   if (!_emuscSynth && update)
     return;
 
-  if (update)
-    _emuscSynth->set_part_chorus(_selectedPart, value);
+  if (update) {
+    if (_allMode)
+      _emuscSynth->set_chorus(value);
+    else
+      _emuscSynth->set_part_chorus(_selectedPart, value);
+  }
 
   QString str = QStringLiteral("%1").arg(value, 3, 10, QLatin1Char(' '));
   emit display_chorus_updated(str);
@@ -978,7 +1069,13 @@ void Emulator::select_prev_key_shift()
   if (_emuscSynth == NULL)
     return;
 
-  int8_t currentKeyShift = _emuscSynth->get_part_key_shift(_selectedPart);
+  int8_t currentKeyShift;
+
+  if (_allMode)
+    currentKeyShift = _emuscSynth->key_shift();
+  else
+    currentKeyShift = _emuscSynth->get_part_key_shift(_selectedPart);
+
   if (currentKeyShift > -24)
     set_key_shift(currentKeyShift - 1, true);
 }
@@ -989,7 +1086,13 @@ void Emulator::select_next_key_shift()
   if (_emuscSynth == NULL)
     return;
 
-  int8_t currentKeyShift = _emuscSynth->get_part_key_shift(_selectedPart);
+  int8_t currentKeyShift;
+
+  if (_allMode)
+    currentKeyShift = _emuscSynth->key_shift();
+  else
+    currentKeyShift = _emuscSynth->get_part_key_shift(_selectedPart);
+
   if (currentKeyShift < 24)
     set_key_shift(currentKeyShift + 1, true);
 }
@@ -1000,8 +1103,12 @@ void Emulator::set_key_shift(int8_t value, bool update)
   if (!_emuscSynth && update)
     return;
 
-  if (update)
-    _emuscSynth->set_part_key_shift(_selectedPart, value);
+  if (update) {
+    if (_allMode)
+      _emuscSynth->set_key_shift(value);
+    else
+      _emuscSynth->set_part_key_shift(_selectedPart, value);
+  }
 
   QString str = QStringLiteral("%1").arg(abs(value), 3, 10, QLatin1Char(' '));
   if (value > 0)
@@ -1014,7 +1121,7 @@ void Emulator::set_key_shift(int8_t value, bool update)
 
 void Emulator::select_prev_midi_channel()
 {
-  if (_emuscSynth == NULL)
+  if (_emuscSynth == NULL || _allMode)
     return;
 
   uint8_t currentMidiChannel =_emuscSynth->get_part_midi_channel(_selectedPart);
@@ -1025,7 +1132,7 @@ void Emulator::select_prev_midi_channel()
 
 void Emulator::select_next_midi_channel()
 {
-  if (_emuscSynth == NULL)
+  if (_emuscSynth == NULL || _allMode)
     return;
 
   uint8_t currentMidiChannel =_emuscSynth->get_part_midi_channel(_selectedPart);
@@ -1054,5 +1161,5 @@ void Emulator::change_volume(int volume)
     return;
 
   uint8_t calculatedVolume = (float) volume / 100 * 127;
-  _emuscSynth->volume(calculatedVolume);
+  _emuscSynth->set_volume(calculatedVolume);
 }

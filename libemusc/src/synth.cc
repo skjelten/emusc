@@ -20,18 +20,18 @@
 #include "synth.h"
 #include "part.h"
 
+#include <cstring>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <fcntl.h>
+
 #include <algorithm>
 #include <cmath>
 #include <fstream>
 #include <iostream>
 #include <iomanip>
 #include <mutex>
-
-#include <cstring>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <unistd.h>
-#include <fcntl.h>
 
 #include "../config.h"
 
@@ -41,10 +41,10 @@ namespace EmuSC {
 Synth::Synth(ControlRom &controlRom, PcmRom &pcmRom, Mode mode)
   : _mode(mode),
     _bank(0),
-    _volume(100),
-    _pan(0),
+    _volume(127),
+    _pan(64),
     _reverb(64),
-    _chours(64),
+    _chorus(64),
     _keyShift(0),
     _masterTune(440.0),
     _reverbType(5),
@@ -94,22 +94,6 @@ void Synth::mute_parts(std::vector<uint8_t> mutePartsList)
 void Synth::unmute_parts(std::vector<uint8_t> mutePartsList)
 {
   for (auto i : mutePartsList) _parts[i].set_mute(false);
-}
-
-
-void Synth::volume(uint8_t volume)
-{
-  _volume = (volume > 127) ? 127 : volume;
-}
-
-
-void Synth::pan(uint8_t pan)
-{
-  std::cout << "libEmuSC: set pan=" << (int) pan << std::endl;
-  if (pan > 127)
-    _pan = 127;
-  else
-    _pan = pan;
 }
 
 
@@ -378,13 +362,11 @@ int Synth::get_next_sample(int16_t *sampleOut)
 
   // Apply sample effects that applies to "system" level (all parts & notes)
 
-  /* Fix global pan (how does it add up to exising pan?). Use a MIDI channel 17?
   // Apply pan
-  if (_pan > 0)
-    accumulatedSample[0] *= 1.0 - (_pan / 63.0);
-  else if (_pan < 0)
-    accumulatedSample[1] *= 1.0 - (abs(_pan) / 63.0);
-  */
+  if (_pan > 64)
+    accumulatedSample[0] *= 1.0 - (_pan - 64) / 63.0;
+  else if (_pan < 64)
+    accumulatedSample[1] *= ((_pan - 1) / 64.0);
 
   // Apply master volume conversion
   accumulatedSample[0] *= (_volume / 127.0);

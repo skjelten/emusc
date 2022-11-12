@@ -758,8 +758,6 @@ void Scene::update_lcd_bar_display(QVector<bool> *barDisplay)
 
 void Scene::update_all_button(bool status)
 {
-  // Change button red or white
-  std::cout << "ALL button not implemented" << std::endl;
   _allButton->setDown(status);
 }
 

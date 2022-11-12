@@ -83,11 +83,21 @@ public:
   // Unute all parts
   void unmute_parts(std::vector<uint8_t> parts);
 
-  // Set volume in percents [0-100]
-  void volume(uint8_t volume);
+  // System wide settings that affects all parts
+  uint8_t volume(void) { return _volume; }
+  void set_volume(uint8_t value) { _volume = (value > 127) ? 127 : value; }
 
-  // Set pan
-  void pan(uint8_t pan);
+  uint8_t pan(void) { return _pan; }
+  void set_pan(uint8_t value) { _pan = (value > 127) ? 127 : value; }
+
+  uint8_t reverb(void) { return _reverb; };
+  void set_reverb(uint8_t value) { _reverb = (value > 127) ? 127 : value; }
+
+  uint8_t chorus(void) { return _chorus; }
+  void set_chorus(uint8_t value) { _chorus = (value > 127) ? 127 : value; }
+
+  uint8_t key_shift(void) { return _keyShift; }
+  void set_key_shift(uint8_t value) { _keyShift = value; }
 
   // Returns libEmuSC version as a string
   static std::string version(void);
@@ -119,14 +129,13 @@ public:
 
   /* End of public API. Below are internal data structures only */
 
-  
 private:
   enum Mode _mode;
 
   uint8_t _volume;            // [0-127] Default 127
   uint8_t _pan;               // [0-127] Default 64 (64 = center)
   uint8_t _reverb;            // [0-127] Default 64
-  uint8_t _chours;            // [0-127] Default 64
+  uint8_t _chorus;            // [0-127] Default 64
   int8_t _keyShift;           // [-24-24] Default 0
   float _masterTune;          // [415,3-466,2] Default 440,0
   uint8_t _reverbType;        // [1-8] Default 5
