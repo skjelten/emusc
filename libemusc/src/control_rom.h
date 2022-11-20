@@ -70,36 +70,38 @@ public:
     int8_t randPitch;
     int8_t volume;        // Volume attenuation (7f - 0)
     int8_t PitchKeyFlw;
-    int8_t TvpLfoDepth;
-    int8_t pitchMult;
-    int8_t pitchLvlP0;
-    int8_t pitchLvlP1;
-    int8_t pitchLvlP2;
-    int8_t pitchLvlP3;
-    int8_t pitchLvlP4;
-    int8_t pitchDurP1;
-    int8_t pitchDurP2;
-    int8_t pitchDurP3;
-    int8_t pitchDurP4;
-    int8_t pitchDurRel;
+
+    uint8_t TVPLFODepth;
+    uint8_t pitchMult;
+    uint8_t pitchLvlP0;
+    uint8_t pitchLvlP1;
+    uint8_t pitchLvlP2;
+    uint8_t pitchLvlP3;
+    uint8_t pitchLvlP4;
+    uint8_t pitchDurP1;
+    uint8_t pitchDurP2;
+    uint8_t pitchDurP3;
+    uint8_t pitchDurP4;
+    uint8_t pitchDurRel;
+
     int8_t TVFBaseFlt;
     int8_t TVFResonance;
     int8_t LowVelClear;
 
-    int8_t TVFLvlInit;
-    int8_t TVFLvlP1;
-    int8_t TVFLvlP2;
-    int8_t TVFLvlP3;
-    int8_t TVFLvlP4;
-    int8_t TVFDurP1;
-    int8_t TVFDurP2;
-    int8_t TVFDurP3;
-    int8_t TVFDurP4;
-    int8_t TVFDurRel;
+    uint8_t TVFLFODepth;    // TVF LFO Depth
+    uint8_t TVFLvlInit;
+    uint8_t TVFLvlP1;
+    uint8_t TVFLvlP2;
+    uint8_t TVFLvlP3;
+    uint8_t TVFLvlP4;
+    uint8_t TVFDurP1;
+    uint8_t TVFDurP2;
+    uint8_t TVFDurP3;
+    uint8_t TVFDurP4;
+    uint8_t TVFDurRel;
 
-    int8_t TVFLFODepth;    // TVF LFO Depth
-    int8_t TVALFODepth;    // TVA LFO Depth
 
+    uint8_t TVALFODepth;   // TVA LFO Depth
     uint8_t TVAVolP1;      // TVA level phase 1 (Attack)     Default 0x7f
     uint8_t TVAVolP2;      // TVA level phase 2 (Hold)       Default 0x7f
     uint8_t TVAVolP3;      // TVA level phase 3 (Decay)      Default 0x7f

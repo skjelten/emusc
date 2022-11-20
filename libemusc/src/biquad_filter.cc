@@ -19,6 +19,8 @@
 
 #include "biquad_filter.h"
 
+namespace EmuSC {
+
 
 BiquadFilter::BiquadFilter()
 {
@@ -32,3 +34,22 @@ BiquadFilter::BiquadFilter()
 
 BiquadFilter::~BiquadFilter()
 {}
+
+
+float BiquadFilter::apply(float input)
+{
+  double out = 0;
+  out += _n[0] * input + _n[1] *  _in[0] + _n[2] *  _in[1];
+  out -=                 _d[1] * _out[0] + _d[2] * _out[1];
+
+  // Shift the delay line
+  _in[1]  = _in[0];
+  _in[0]  = input;
+
+  _out[1] = _out[0];
+  _out[0] = out;
+
+  return (float) out;
+}
+
+}

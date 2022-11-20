@@ -7,10 +7,14 @@ lib_LTLIBRARIES = libemusc.la
 libemusc_la_LDFLAGS = -version-info $(LIBEMUSC_SO_VERSION) -no-undefined
 
 libemusc_la_SOURCES =		\
+	ahdsr.cc		\
+	ahdsr.h			\
 	biquad_filter.cc	\
 	biquad_filter.h		\
 	control_rom.cc		\
 	control_rom.h		\
+	lowpass_filter.cc	\
+	lowpass_filter.h	\
 	note.cc			\
 	note.h			\
 	note_partial.cc		\
@@ -23,6 +27,12 @@ libemusc_la_SOURCES =		\
 	riaa_filter.h		\
 	synth.cc		\
 	synth.h			\
+	tva.cc			\
+	tva.h			\
+	tvf.cc			\
+	tvf.h			\
+	tvp.cc			\
+	tvp.h			\
 	volume_envelope.cc	\
 	volume_envelope.h
 

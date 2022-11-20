@@ -236,7 +236,7 @@ int ControlRom::_read_instruments(std::ifstream &romFile)
       i.partials[p].finePitch   = data[7];
       i.partials[p].randPitch   = data[8];
       i.partials[p].PitchKeyFlw = data[9];
-      i.partials[p].TvpLfoDepth = data[10];
+      i.partials[p].TVPLFODepth = data[10];
       i.partials[p].pitchMult   = data[12];
       i.partials[p].pitchLvlP0  = data[14];
       i.partials[p].pitchLvlP1  = data[15];
@@ -251,6 +251,7 @@ int ControlRom::_read_instruments(std::ifstream &romFile)
       i.partials[p].TVFBaseFlt  = data[33];
       i.partials[p].TVFResonance= data[34];
       i.partials[p].LowVelClear = data[35];
+      i.partials[p].TVFLFODepth = data[38];
       i.partials[p].TVFLvlInit  = data[40];
       i.partials[p].TVFLvlP1    = data[41];
       i.partials[p].TVFLvlP2    = data[42];
@@ -262,7 +263,7 @@ int ControlRom::_read_instruments(std::ifstream &romFile)
       i.partials[p].TVFDurP4    = data[49];
       i.partials[p].TVFDurRel   = data[50];
       i.partials[p].volume      = data[65];
-      i.partials[p].TVFLFODepth = data[68];
+      i.partials[p].TVALFODepth = data[68];
       i.partials[p].TVAVolP1    = data[70];
       i.partials[p].TVAVolP2    = data[71];
       i.partials[p].TVAVolP3    = data[72];

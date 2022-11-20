@@ -17,29 +17,45 @@
  */
 
 
-#ifndef __BIQUAD_FILTER_H__
-#define __BIQUAD_FILTER_H__
+#ifndef __TVF_H__
+#define __TVF_H__
+
+
+#include "control_rom.h"
+#include "lowpass_filter.h"
+#include "ahdsr.h"
+
+#include <stdint.h>
 
 
 namespace EmuSC {
 
 
-class BiquadFilter
+class TVF
 {
+private:
+  AHDSR *_ahdsr;
+  LowPassFilter *_lpFilter;
+
+  ControlRom::InstPartial *_instPartial;
+
+  uint32_t _sampleRate;
+  
+  double _convert_time_to_sec(uint8_t time);
+
+  TVF();
+
 public:
-  BiquadFilter();
-  virtual ~BiquadFilter() = 0;
+  TVF(ControlRom::InstPartial instPartial, uint32_t sampleRate);
+  ~TVF();
 
-  float apply(float input);
+  double apply(double input);
+  void note_off();
 
-protected:
-  long double _n[3];          // Numerator
-  long double _d[3];          // Denominator
+  inline bool finished(void) { if (_ahdsr) return _ahdsr->finished(); }
 
-  float _in[2];               // Next input values 
-  long double _out[2];        // Previous output values
 };
 
 }
 
-#endif  // __BIQUAD_FILTER_H__
+#endif  // __TVF_H__

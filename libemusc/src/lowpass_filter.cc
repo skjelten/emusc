@@ -17,7 +17,7 @@
  */
 
 
-#include "riaa_filter.h"
+#include "lowpass_filter.h"
 
 #include <cmath>
 
@@ -27,33 +27,30 @@
 namespace EmuSC {
 
 
-RiaaFilter::RiaaFilter(int sampleRate, long double dcgain)
-{
-  // Calculate biquad for RIAA filter
-  // https://en.wikipedia.org/wiki/RIAA_equalization
-  long double z1 = exp(-1.0 / ((long double) (318e-6) * sampleRate));   // t1
-  long double z2 = exp(-1.0 / ((long double) (3.18e-6) * sampleRate));  // t2
-  long double p1 = exp(-1.0 / ((long double) (3180e-6) * sampleRate));  // t3
-  long double p2 = exp(-1.0 / ((long double) (75e-6) * sampleRate));    // t4
-
-  _n[0] = 1;
-  _n[1] = -z1 - z2;
-  _n[2] = z1 * z2;
-
-  _d[0] = 1;
-  _d[1] = -p1 - p2;
-  _d[2] = p1 * p2;
-
-  long double gain = (_n[0] + _n[1] + _n[2]) / (_d[0] + _d[1] + _d[2]);
-  long double gainAttenuation = (dcgain / gain);
-
-  for(int i = 0; i < 3; i++) {
-    _n[i] *= gainAttenuation;
-  }
-}
-
-
-RiaaFilter::~RiaaFilter()
+LowPassFilter::LowPassFilter(int sampleRate)
+  : _sampleRate(sampleRate)
 {}
+
+
+LowPassFilter::~LowPassFilter()
+{}
+
+
+//  q = 0.707 -> no resonance
+//  frequency = 1000.0;
+void LowPassFilter::calculate_coefficients(float frequency, float q)
+{
+  float w = frequency * 2.0 * M_PI;
+  float t = 1.0 / _sampleRate;
+
+  // Calculate coefficients (redo if sampleRate, frequency or q changes)
+  _d[0] = 4.0 + ((w / q)* 2.0 * t) + pow(w, 2.0) * pow(t, 2.0);
+  _d[1] = ((2.0 * pow(t, 2.0) * pow(w, 2.0)) -8.0) / _d[0];
+  _d[2] = (4.0 - (w / q * 2.0 * t) + (pow(w, 2.0) * pow(t, 2.0))) / _d[0];
+
+  _n[0] = pow(w, 2.0) * pow(t, 2.0) / _d[0];
+  _n[1] = pow(w, 2.0) * 2.0 * pow(t, 2.0) / _d[0];
+  _n[2] = pow(w, 2.0) * pow(t, 2.0) / _d[0];
+}
 
 }

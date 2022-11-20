@@ -25,20 +25,17 @@
 
 #include <stdint.h>
 
-
 namespace EmuSC {
+
 
 class RiaaFilter: public BiquadFilter
 {
-private:
-  RiaaFilter();
-  
 public:
   RiaaFilter(int sampleRate, long double dcgain);
   ~RiaaFilter();
 
-  float apply(float sample);
-
+private:
+  RiaaFilter();
 };
 
 }

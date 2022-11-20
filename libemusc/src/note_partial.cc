@@ -54,16 +54,26 @@ NotePartial::NotePartial(uint8_t key, int8_t keyDiff, uint16_t sampleIndex,
 
   _instPitchTune = instPartPitchTune * samplePitchTune;
 
-  // Volume (TVA) envelope
-  _volumeEnvelope =
-    new VolumeEnvelope(ctrlRom.instrument(instrument).partials[partialIndex],
-		       sampleRate);
+  // 1. Pitch: Vibrato & TVP envelope
+  _tvp = new TVP(ctrlRom.instrument(instrument).partials[partialIndex],
+		 sampleRate);
+
+  // 2. Filter: ?wah? & TVF envelope
+  _tvf = new TVF(ctrlRom.instrument(instrument).partials[partialIndex],
+		 sampleRate);
+
+  // 3. Volume: Tremolo & TVA envelope
+  _tva = new TVA(ctrlRom.instrument(instrument).partials[partialIndex],
+		 sampleRate);
+
 }
 
 
 NotePartial::~NotePartial()
 {
-  delete _volumeEnvelope;
+  delete _tvp;
+  delete _tvf;
+  delete _tva;
 }
 
 
@@ -77,7 +87,7 @@ void NotePartial::stop(void)
 {
   // Ignore note off for uninterruptible drums (set by drum set flag)
   if (!(_drumSet >= 0 && !(_ctrlRom.drumSet(_drumSet).flags[_key] & 0x01)))
-    _volumeEnvelope->note_off();
+    _tva->note_off();
 }
 
 
@@ -85,8 +95,8 @@ void NotePartial::stop(void)
 // Pitch < 0 => fixed pitch (e.g. for drums)
 bool NotePartial::get_next_sample(float *noteSample, float pitchBend)
 {
-  // Terminate this partial if its volume envelope is finished
-  if  (_volumeEnvelope->finished())
+  // Terminate this partial if its TVA envelope is finished
+  if  (_tva->finished())
     return 1;
 
   // Update sample position going in forward direction
@@ -102,7 +112,7 @@ bool NotePartial::get_next_sample(float *noteSample, float pitchBend)
     // Update partial sample position based on pitch input
     // FIXME: Should drumsets be modified by pitch bend messages?
     _samplePos += exp(_keyDiff * (log(2)/12)) * (pitchBend + 1) *
-      _instPitchTune * _sampleFactor;
+      _instPitchTune * _sampleFactor * _tvp->get_pitch();
 
     // Check for sample position passing sample boundary
     if (_samplePos >= _ctrlRom.sample(_sampleIndex).sampleLen) {
@@ -138,7 +148,7 @@ bool NotePartial::get_next_sample(float *noteSample, float pitchBend)
     // Update partial sample position based on pitch input
     // FIXME: Should drumsets be modified by pitch bend messages?
     _samplePos -= exp(_keyDiff * (log(2)/12)) * (pitchBend + 1) *
-      _instPitchTune * _sampleFactor;
+      _instPitchTune * _sampleFactor * _tvp->get_pitch();
 
     // Check for sample position passing sample boundary
     if (_samplePos <= _ctrlRom.sample(_sampleIndex).sampleLen -
@@ -175,8 +185,11 @@ bool NotePartial::get_next_sample(float *noteSample, float pitchBend)
   // Apply volume changes
   sample[0] *= sampleVol * partialVol * drumVol;
 
-  // Apply volume envelope
-  sample[0] *= _volumeEnvelope->get_next_value();
+  // Apply TVF
+  sample[0] = _tvf->apply(sample[0]);
+
+  // Apply TVA
+  sample[0] *= _tva->get_amplification();
 
   // Make both channels equal before adding pan (stereo position)
   sample[1] = sample[0];

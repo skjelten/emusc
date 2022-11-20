@@ -23,7 +23,9 @@
 
 #include "control_rom.h"
 #include "pcm_rom.h"
-#include "volume_envelope.h"
+#include "tva.h"
+#include "tvf.h"
+#include "tvp.h"
 
 #include <stdint.h>
 
@@ -50,8 +52,10 @@ private:
   float _sampleFactor;
 
   double _instPitchTune;  // Instrument pitch offset factor
-  
-  VolumeEnvelope *_volumeEnvelope;
+
+  TVP *_tvp;
+  TVF *_tvf;
+  TVA *_tva;
 
   double _convert_volume(uint8_t volume);
 
