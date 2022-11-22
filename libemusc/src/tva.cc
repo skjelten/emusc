@@ -95,7 +95,7 @@ double TVA::_convert_time_to_sec(uint8_t time)
 
 double TVA::get_amplification(void)
 {
-  // LFO hack -Tremolo
+  /* LFO hack -Tremolo
   float x = 1.0 / (float) _sampleRate;
   _readPointer += _sinus.size() * _LFOFrequency * x;
   while(_readPointer >= _sinus.size())
@@ -105,13 +105,14 @@ double TVA::get_amplification(void)
 
 // if (tremolo)
 //  std::cout << "TREMOLO:" << tremolo << " og depth:" << (int) _LFODepth << std::endl;
-      
+*/
+
   // Volume envelope
   double volEnvelope = 0;
   if (_ahdsr)
     volEnvelope = _ahdsr->get_next_value();
 
-  tremolo=0; // Disable tremolo for now
+  double tremolo=0; // Disable tremolo for now
   return tremolo + volEnvelope;
 }
 
