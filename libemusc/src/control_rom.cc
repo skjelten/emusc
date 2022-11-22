@@ -23,6 +23,7 @@
 #include "control_rom.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstring>
 #include <fstream>
 #include <sstream>
@@ -53,6 +54,7 @@ ControlRom::ControlRom(std::string romPath)
   _read_samples(romFile);
   _read_variations(romFile);
   _read_drum_sets(romFile);
+  _read_lookup_tables(romFile);
 
   romFile.close();
 
@@ -468,6 +470,41 @@ int ControlRom::_read_drum_sets(std::ifstream &romFile)
 }
 
 
+int ControlRom::_read_lookup_tables(std::ifstream &romFile)
+{
+  // Lookup tables (LUTs) are located after the 8 memory banks, at the exact
+  // same location for all SC-55 control ROMs
+  romFile.seekg(0x03d1e8);
+  for (int i = 0; i < 12; i ++) {
+    std::vector<uint8_t> lut(128);
+    romFile.read(reinterpret_cast<char*> (&lut[0]), 128);
+    _lookupTables.push_back(lut);
+  }
+
+  //  romFile.seekg(0x03de78);
+  romFile.seekg(0x03dd82);
+  for (int i = 0; i < 7; i ++) {
+    std::vector<uint8_t> lut(128);
+    romFile.read(reinterpret_cast<char*> (&lut[0]), 128);
+
+    _lookupTables.push_back(lut);
+  }
+
+  if (0) {
+    std::cout << "  -> LUTs: (" << _lookupTables.size() << ")" << std::endl;
+    for (int i = 0; i < _lookupTables.size(); i++) {
+      std::cout << "    " << i << ": " << std::flush;
+      for (int j = 0; j < _lookupTables[i].size(); j++) {
+	std::cout << (int) _lookupTables[i][j] << ", ";
+      }
+      std::cout << std::endl;
+    }
+  }
+
+  return _lookupTables.size();
+}
+
+
 const std::vector<int>& ControlRom::drum_set_bank(void)
 {
   switch (_synthModel)
@@ -708,6 +745,40 @@ std::vector<std::string> ControlRom::get_drum_sets_list(void)
   }
 
   return drumSetsVector;
+}
+
+
+uint8_t ControlRom::lookup_table(uint8_t table, uint8_t index)
+{
+  if (table >= _lookupTables.size() || index > 127)
+    return 0;
+
+  return _lookupTables[table][index];
+}
+
+
+float ControlRom::lookup_table(uint8_t table, float index, int interpolate)
+{
+  if (table >= _lookupTables.size() || index > 127)
+    return -1;
+
+  // interpolate == 0 => no interpolation
+  if (interpolate == 0) {
+    return _lookupTables[table][(uint8_t) index];
+
+  // interpolate == 1 => linear interpolation
+  } // else if (interpolate == 1) {
+
+  int indexBelow = floor(index);
+  int indexAbove = indexBelow + 1;
+  if (indexAbove >= _lookupTables[table].size())
+    indexAbove = 0;
+
+  float fractionAbove = index - indexBelow;
+  float fractionBelow = 1.0 - fractionAbove;
+
+  return fractionBelow * _lookupTables[table][indexBelow] +
+         fractionAbove * _lookupTables[table][indexAbove];
 }
 
 

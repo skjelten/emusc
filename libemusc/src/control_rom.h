@@ -130,6 +130,11 @@ public:
     std::string name;     // 12 chars
   };
 
+  std::vector<std::vector<uint8_t>> _lookupTables;
+  int _read_lookup_tables(std::ifstream &romFile);
+  uint8_t lookup_table(uint8_t table, uint8_t index);
+  float lookup_table(uint8_t table, float index, int interpolate = 1);
+
   int dump_demo_songs(std::string path);
   std::vector<uint8_t> get_intro_anim(void);
 
