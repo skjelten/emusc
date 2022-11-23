@@ -115,7 +115,10 @@ void AudioOutputWin32::run(void)
   for (int i = 0; i < 2; i++) {
     wHeader[i].lpData = (LPSTR) audioBuffer[i];
     wHeader[i].dwBufferLength = _bufferSize;
+    wHeader[i].dwLoops = 0;
     wHeader[i].dwFlags = 0;
+
+    ResetEvent(_eHandle);
 
     res = waveOutPrepareHeader(_hWave, &wHeader[i], sizeof(WAVEHDR));
     if (res != MMSYSERR_NOERROR)
@@ -130,38 +133,19 @@ void AudioOutputWin32::run(void)
 
   bool index = 0;
   while (!_quit) {
-    DWORD object = WaitForSingleObject(_eHandle, INFINITE);
+    DWORD event = WaitForSingleObject(_eHandle, INFINITE);
     ResetEvent(_eHandle);
 
-    switch(object)
-      {
-      case WAIT_OBJECT_0:
-	{
-	  waveOutUnprepareHeader(_hWave, &wHeader[index], sizeof(WAVEHDR));
-	  wHeader[index].lpData = audioBuffer[index];
-	  wHeader[index].dwBufferLength = _bufferSize;
-	  wHeader[index].dwFlags = 0;
+    if (event == WAIT_OBJECT_0) {
+      _fill_buffer(audioBuffer[index]);
 
-	  res = waveOutPrepareHeader(_hWave, &wHeader[index], sizeof(WAVEHDR));
-	  if (res != MMSYSERR_NOERROR)
-	    std::cerr << "EmuSC: Error when preparing waveOut header"
-		      << std::endl;
+      res = waveOutWrite(_hWave, &wHeader[index], sizeof(WAVEHDR));
+      if (res != MMSYSERR_NOERROR)
+	std::cerr << "EmuSC: Error while writing audio wave data (WIN32)"
+		  << std::endl;
 
-	  _fill_buffer(audioBuffer[index]);
-
-	  res = waveOutWrite(_hWave, &wHeader[index], sizeof(WAVEHDR));
-	  if (res != MMSYSERR_NOERROR)
-	    std::cerr << "EmuSC: Error when writing audio wave data"
-		      << std::endl;
-
-	  index = !index;
-	  break;
-	}
-      default:                   // Fixme: Add proper error messages and actions
-	{
-	  std::cerr << "Error during Win32 audio thread!" << std::endl;
-	}
-      }
+      index = !index;
+    }
   }
 
   waveOutUnprepareHeader(_hWave, &wHeader[0], sizeof(WAVEHDR));
