@@ -19,7 +19,62 @@
 
 #include "main_window.h"
 
+#include <iostream>
+#include <string>
+
 #include <QApplication>
+#include <QSettings>
+#include <QString>
+
+
+void show_arguments(std::string program)
+{
+  std::cerr << "Usage: " << program << " [OPTION...]\n\n"
+	    << "Options:\n"
+	    << "  -c, --print-config      \tPrint configuration to stdout\n"
+	    << "  -p, --power-on          \tStart with synth powered on\n"
+	    << "  -h, --help              \tShow this help message\n"
+	    << std::endl;
+}
+
+
+void print_config()
+{
+  QSettings settings;
+
+  std::cout << "-- EmuSC configuration --" << std::endl << std::endl;
+
+  foreach (const QString &group, settings.childGroups()) {
+    std::cout << "[" << group.toStdString() << "]" << std::endl;
+    settings.beginGroup(group);
+
+    foreach (const QString &key, settings.childKeys())
+      std::cout << key.toStdString() << " = "
+		<< settings.value(key).toString().toStdString() << std::endl;
+
+    settings.endGroup();
+    std::cout << std::endl;
+  }
+
+  std::cout << "-------------------------" << std::endl;
+}
+
+
+int parse_arguments(int argc, char *argv[])
+{
+  if (QCoreApplication::arguments().contains("-h") ||
+      QCoreApplication::arguments().contains("--help")) {
+    show_arguments(argv[0]);
+    return 1;
+
+  } else if (QCoreApplication::arguments().contains("-c") ||
+	     QCoreApplication::arguments().contains("--print-config")) {
+    print_config();
+    return 1;
+  }
+
+  return 0;
+}
 
 
 int main(int argc, char *argv[])
@@ -28,6 +83,12 @@ int main(int argc, char *argv[])
 
     QCoreApplication::setOrganizationName("emusc");
     QCoreApplication::setApplicationName("EmuSC");
+
+    if (argc > 1) {
+      int ret = parse_arguments(argc, argv);
+      if (ret)
+	return ret;
+    }
 
     MainWindow window;
     window.show();

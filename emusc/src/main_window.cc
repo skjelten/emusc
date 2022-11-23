@@ -138,7 +138,7 @@ MainWindow::MainWindow(QWidget *parent)
   setCentralWidget(gView);
 
   if (QCoreApplication::arguments().contains("-p") ||
-      QCoreApplication::arguments().contains("--poweron"))
+      QCoreApplication::arguments().contains("--power-on"))
     power_switch(true);
 }
 
