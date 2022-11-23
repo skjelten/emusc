@@ -32,13 +32,20 @@ MidiInputWin32::MidiInputWin32()
 
 MidiInputWin32::~MidiInputWin32()
 {
-  //stop();
+  stop();
 
   midiInUnprepareHeader(_handle, &_header, sizeof(MIDIHDR));
 
   MMRESULT res = midiInClose(_handle);
-  if (res != MMSYSERR_NOERROR)
+  if (res != MMSYSERR_NOERROR) {
     std::cerr << "EmuSC: Failed to close win32 MIDI input!" << std::endl;
+    if (res == MIDIERR_STILLPLAYING)
+      std::cerr << "EmuSC:   -> Buffers are still in the queue" << std::endl;
+    else if (res == MMSYSERR_INVALHANDLE)
+      std::cerr << "EmuSC:   -> Invalid device handle" << std::endl;
+    else if (res == MMSYSERR_NOMEM)
+      std::cerr << "EmuSC:   -> Unable to allocate or lock memory" << std::endl;
+  }
 }
 
 
