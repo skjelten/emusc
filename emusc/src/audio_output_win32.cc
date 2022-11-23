@@ -19,6 +19,8 @@
 
 #ifdef __WIN32_AUDIO__
 
+#define _UNICODE
+#define UNICODE
 
 #include "audio_output_win32.h"
 
@@ -51,7 +53,8 @@ AudioOutputWin32::AudioOutputWin32(EmuSC::Synth *synth)
   for (int i = 0; i < n; ++i) {
     WAVEOUTCAPS caps;
     MMRESULT res = waveOutGetDevCaps(i, &caps, sizeof(WAVEOUTCAPS));
-    if (res == MMSYSERR_NOERROR && !device.compare(caps.szPname)) {
+    if (res == MMSYSERR_NOERROR &&
+	!device.compare(QString::fromWCharArray(caps.szPname))) {
       deviceID = i;
       break;
     }
@@ -64,7 +67,7 @@ AudioOutputWin32::AudioOutputWin32(EmuSC::Synth *synth)
   if (_eHandle == NULL)
     throw (QString("Win32 audio driver failed to create callback event"));
 
-  MMRESULT res = waveOutOpen(&_hWave, WAVE_MAPPER, &pwfx, (DWORD_PTR) _eHandle,
+  MMRESULT res = waveOutOpen(&_hWave, deviceID, &pwfx, (DWORD_PTR) _eHandle,
 			     (DWORD_PTR) NULL, CALLBACK_EVENT | WAVE_ALLOWSYNC);
   QString error;
   switch (res)
@@ -95,6 +98,21 @@ AudioOutputWin32::AudioOutputWin32(EmuSC::Synth *synth)
 
 AudioOutputWin32::~AudioOutputWin32()
 {
+  stop();
+
+  MMRESULT res = waveOutClose(_hWave);
+  if (res != MMSYSERR_NOERROR) {
+    std::cerr << "EmuSC: Failed to close audio device (WIN32)" << std::endl;
+    if (res == MMSYSERR_INVALHANDLE)
+      std::cerr << "EmuSC:  -> Device handle invalid" << std::endl;
+    else if (res == MMSYSERR_NODRIVER)
+      std::cerr << "EmuSC:  -> Device driver not found" << std::endl;
+    else if (res == MMSYSERR_NOMEM)
+      std::cerr << "EmuSC:  -> Unable to allocate or lock memory" << std::endl;
+    else if (res == WAVERR_STILLPLAYING)
+      std::cerr << "EmuSC:  -> Buffers are still in the audio queue" << std::endl;
+  }
+
   CloseHandle(_eHandle);
 }
 
@@ -148,6 +166,8 @@ void AudioOutputWin32::run(void)
     }
   }
 
+  waveOutReset(_hWave);      // Discards buffers in queue
+
   waveOutUnprepareHeader(_hWave, &wHeader[0], sizeof(WAVEHDR));
   waveOutUnprepareHeader(_hWave, &wHeader[1], sizeof(WAVEHDR));
 }
@@ -158,8 +178,10 @@ void AudioOutputWin32::stop(void)
   _quit = true;
 
   // Wait for poll in thread to return
-  if (_audioOutputThread)
+  if (_audioOutputThread) {
     _audioOutputThread->join();
+    delete _audioOutputThread;
+  }
 }
 
 
@@ -194,7 +216,7 @@ QStringList AudioOutputWin32::get_available_devices(void)
     WAVEOUTCAPS caps;
     MMRESULT res = waveOutGetDevCaps(i, &caps, sizeof(WAVEOUTCAPS));
     if (res == MMSYSERR_NOERROR)
-      deviceList << caps.szPname;
+      deviceList << QString::fromWCharArray(caps.szPname);
   }
 
   return deviceList;
