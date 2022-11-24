@@ -26,6 +26,7 @@
 
 #include <stdint.h>
 
+#include <array>
 #include <fstream>
 #include <string>
 #include <vector>
@@ -155,7 +156,7 @@ public:
   inline struct Partial& partial(int p) { return _partials[p]; }
   inline struct Sample& sample(int s) { return _samples[s]; }
   inline struct DrumSet& drumSet(int ds) { return _drumSets[ds]; }
-  const std::vector<uint16_t>& variation(int v) { return _variations[v]; }
+  inline const std::array<uint16_t, 128>& variation(int v) const { return _variations[v]; }
 
   inline int numSampleSets(void) { return _samples.size(); }
   inline int numInstruments(void) { return _instruments.size(); }
@@ -215,7 +216,8 @@ private:
   std::vector<Partial> _partials;
   std::vector<Sample> _samples;
   std::vector<DrumSet> _drumSets;
-  std::vector<std::vector<uint16_t>> _variations;
+  // TODO: define constants for variation table dimensions
+  std::array<std::array<uint16_t, 128>, 128> _variations;
 
   ControlRom();
 

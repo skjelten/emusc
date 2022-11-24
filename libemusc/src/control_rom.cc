@@ -344,18 +344,15 @@ int ControlRom::_read_variations(std::ifstream &romFile)
   const std::vector<uint32_t> &banks = _banks();
 
   // Variations are in bank 6, a table of 128 x 128 2 byte values
-  for (int32_t x = banks[6]; x < (banks[7] - 128); x += 256) {
-
-    char data[2];
-    romFile.seekg(x);
-    std::vector<uint16_t> v;
+  for (int x = 0; x < 128; x++) {
+    const size_t offset = banks[6] + x * 128 * sizeof(uint16_t);
+    romFile.seekg(offset);
 
     for (int y = 0; y < 128; y++) {
+      char data[2];
       romFile.read(data, 2);
-      v.push_back(_native_endian_uint16((uint8_t *) &data[0]));
+      _variations[x][y] = _native_endian_uint16(reinterpret_cast<uint8_t*>(data));
     }
-
-    _variations.push_back(v);
   }
 
   if (0) {
