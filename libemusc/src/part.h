@@ -103,12 +103,14 @@ private:
 
   struct std::list<Note*> _notes;
 
+  uint32_t &_sampleRate;
+
   ControlRom &_ctrlRom;
   PcmRom &_pcmRom;
 
 public:
   Part(uint8_t id, uint8_t mode, uint8_t type, int8_t &keyShift,
-       ControlRom &cRom, PcmRom &pRom);
+       ControlRom &cRom, PcmRom &pRom, uint32_t &sampleRate);
   ~Part();
 
   enum ControlMsg {
@@ -128,7 +130,7 @@ public:
   float get_last_peak_sample(void);
   int get_num_partials(void);
 
-  int add_note(uint8_t key, uint8_t velocity, uint32_t sr);
+  int add_note(uint8_t key, uint8_t velocity);
   int stop_note(uint8_t key);
   int clear_all_notes(void);
 

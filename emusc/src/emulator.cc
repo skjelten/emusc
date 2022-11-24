@@ -125,8 +125,8 @@ void Emulator::start(void)
   try {
     _emuscSynth = new EmuSC::Synth(*_emuscControlRom, *_emuscPcmRom);
 
-    _start_midi_subsystem();
     _start_audio_subsystem();
+    _start_midi_subsystem();
 
   } catch (QString errorMsg) {
     stop();

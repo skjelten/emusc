@@ -27,7 +27,7 @@
 namespace EmuSC {
 
 Part::Part(uint8_t id, uint8_t mode, uint8_t type, int8_t &keyShift,
-	   ControlRom &ctrlRom, PcmRom &pcmRom)
+	   ControlRom &ctrlRom, PcmRom &pcmRom, uint32_t &sampleRate)
   : _id(id),
     _midiChannel(id),
     _instrument(0),
@@ -65,6 +65,7 @@ Part::Part(uint8_t id, uint8_t mode, uint8_t type, int8_t &keyShift,
     _programBank(0),
     _7bScale(1/127.0),
     _lastPeakSample(0),
+    _sampleRate(sampleRate),
     _ctrlRom(ctrlRom),
     _pcmRom(pcmRom)
 {
@@ -152,7 +153,7 @@ int Part::get_num_partials(void)
 
 
 // Should mute => not accept key - or play silently in the background?
-int Part::add_note(uint8_t key, uint8_t velocity, uint32_t sampleRate)
+int Part::add_note(uint8_t key, uint8_t velocity)
 {
   // 1. Check if part is muted FIXME: Verify that this is correct behavior
   if (_mute)
@@ -172,7 +173,7 @@ int Part::add_note(uint8_t key, uint8_t velocity, uint32_t sampleRate)
 
   // 4. Create new note and set default values (note: using pointers)
   Note *n = new Note(key, _synthKeyShift + _keyShift, velocity, instrumentIndex,
-		     drumSet, _ctrlRom, _pcmRom, sampleRate);
+		     drumSet, _ctrlRom, _pcmRom, _sampleRate);
   _notes.push_back(n);
 
   if (0)

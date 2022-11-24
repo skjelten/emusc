@@ -57,7 +57,7 @@ Synth::Synth(ControlRom &controlRom, PcmRom &pcmRom, Mode mode)
 
   // Initialize all parts
   for (int i = 0; i < 16; i++) {
-    Part part(i, _mode, 0, _keyShift, controlRom, pcmRom);
+    Part part(i, _mode, 0, _keyShift, controlRom, pcmRom, _sampleRate);
     _parts.push_back(part);
   }
   if (_mode == scm_GS)
@@ -111,7 +111,7 @@ void Synth::_add_note(uint8_t midiChannel, uint8_t key, uint8_t velocity)
   else
     for (auto &p: _parts)
       if (p.midi_channel() == midiChannel)
-	p.add_note(key, velocity, _sampleRate);
+	p.add_note(key, velocity);
 }
 
 /* Not used -> PcmRom as part of sample dump to disk
@@ -162,7 +162,7 @@ int Synth::_export_sample_24(std::vector<int32_t> &sampleSet,
 
 
 void Synth::midi_input(uint8_t status, uint8_t data1, uint8_t data2)
-{    
+{
   uint8_t channel = status & 0x0f;
 
   midiMutex.lock();
@@ -180,6 +180,13 @@ void Synth::midi_input(uint8_t status, uint8_t data1, uint8_t data2)
       break;
 
     case midi_NoteOn:
+      if (!_sampleRate) {
+	std::cerr << "LibEmuSC error: MIDI note on received, but audio format "
+		  << "has not been set. Note on ignored."
+		  << std::endl;
+	break;
+      }
+
       if (0)
 	std::cout << "EmuSC MIDI: Note On, ch=" << (int) channel
 		  << " key=" << (int) data1 << std::endl;
