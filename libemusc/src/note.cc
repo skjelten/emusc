@@ -61,9 +61,11 @@ Note::Note(uint8_t key, int8_t keyShift, uint8_t velocity, uint16_t instrument,
 	else
 	  keyDiff = noteKey - ctrlRom.sample(sampleIndex).rootKey;
 
-	_notePartial[i] = new NotePartial(noteKey, keyDiff, sampleIndex,drumSet,
-					  ctrlRom, pcmRom, instrument, i,
-					  sampleRate);
+	_notePartial[i] = new NotePartial(noteKey, keyDiff, drumSet,
+					  ctrlRom.instrument(instrument).partials[i],
+					  ctrlRom.sample(sampleIndex),
+					  pcmRom.samples(sampleIndex).samplesF,
+					  ctrlRom, sampleRate);
 	break;
       }
     }

@@ -69,7 +69,7 @@ public:
     int8_t finePitch;     // Default 0x40
     int8_t randPitch;
     int8_t volume;        // Volume attenuation (7f - 0)
-    int8_t PitchKeyFlw;
+    int8_t pitchKeyFlw;
 
     uint8_t TVPLFODepth;
     uint8_t pitchMult;

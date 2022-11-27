@@ -22,7 +22,6 @@
 
 
 #include "control_rom.h"
-#include "pcm_rom.h"
 #include "tva.h"
 #include "tvf.h"
 #include "tvp.h"
@@ -35,21 +34,22 @@ namespace EmuSC {
 class NotePartial
 {
 private:
-  uint8_t _key;
-  int8_t _keyDiff;        // Difference in number of keys from original tone
+  uint8_t _key;           // MIDI key number for note on
+  float _keyDiff;         // Difference in number of keys from original tone
+                          // If pitchKeyFollow is used, keyDiff is adjusted
   int _drumSet;           // < 0 => not drums (normal instrument)
 
-  uint16_t _instrument;
-  uint16_t _sampleIndex;
-  bool _partialIndex;
+  struct ControlRom::InstPartial &_instPartial;
+  struct ControlRom::Sample &_ctrlSample;
+
+  std::vector<float> &_pcmSamples;
 
   float _samplePos;       // Sample position in number of samples from start
   bool _sampleDir;        // 0 = backward & 1 = foreward
 
   ControlRom &_ctrlRom;
-  PcmRom &_pcmRom;
 
-  float _sampleFactor;
+  float _sampleFactor;    // => 32000 / sample rate
 
   double _instPitchTune;  // Instrument pitch offset factor
 
@@ -60,9 +60,10 @@ private:
   double _convert_volume(uint8_t volume);
 
 public:
-  NotePartial(uint8_t key, int8_t keyDiff, uint16_t sampleIndex, int drumSet,
-	      ControlRom &ctrlRom, PcmRom &pcmRom, uint16_t instrument,
-	      bool partialIndex, uint32_t sampleRate);
+  NotePartial(uint8_t key, int8_t keyDiff, int drumSet,
+	      struct ControlRom::InstPartial &instPartial,
+	      struct ControlRom::Sample &sample, std::vector<float> &pcmSamples,
+	      ControlRom &ctrlRom, uint32_t sampleRate);
   ~NotePartial();
 
   void stop(void);

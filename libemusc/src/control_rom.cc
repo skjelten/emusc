@@ -237,7 +237,7 @@ int ControlRom::_read_instruments(std::ifstream &romFile)
       i.partials[p].coarsePitch = data[6];
       i.partials[p].finePitch   = data[7];
       i.partials[p].randPitch   = data[8];
-      i.partials[p].PitchKeyFlw = data[9];
+      i.partials[p].pitchKeyFlw = data[9];
       i.partials[p].TVPLFODepth = data[10];
       i.partials[p].pitchMult   = data[12];
       i.partials[p].pitchLvlP0  = data[14];
