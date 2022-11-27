@@ -658,7 +658,7 @@ Scene::Scene(Emulator *emulator, QWidget *parent)
 
   // Update elements according to stored settings
   QSettings settings;
-  _volumeDial->setValue(settings.value("audio/volume").toInt());
+  _volumeDial->setValue(settings.value("audio/volume", 80).toInt());
 }
 
 
