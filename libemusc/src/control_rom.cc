@@ -237,6 +237,11 @@ int ControlRom::_read_instruments(std::ifstream &romFile)
 
     // First 12 bytes are the instrument name
     romFile.read(data, 12);
+
+    // Skip empty slots in the ROM file that have no instrument name
+    if (data[0] == '\0')
+      continue;
+
     i.name.assign(data , 12);
     i.name.erase(i.name.find_last_not_of(' ') + 1);
 
@@ -291,17 +296,14 @@ int ControlRom::_read_instruments(std::ifstream &romFile)
       i.partials[p].TVALenP5    = data[78];
     }
 
-    // Skip empty slots in the ROM file that has no instrument name
-    if (i.name[0]) {
-      _instruments.push_back(i);
+    _instruments.push_back(i);
 
-      if (0)
-	std::cout << "  -> Instrument " << _instruments.size() << ": " << i.name
-		  << " partial0=" << (int) i.partials[0].partialIndex
-		  << " partial1=" << (int) i.partials[1].partialIndex
-		  << std::endl;
+    if (0)
+      std::cout << "  -> Instrument " << _instruments.size() << ": " << i.name
+          << " partial0=" << (int) i.partials[0].partialIndex
+          << " partial1=" << (int) i.partials[1].partialIndex
+          << std::endl;
     }
-  }
 
   return 0;
 }
