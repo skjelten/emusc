@@ -135,7 +135,7 @@ public:
   int clear_all_notes(void);
 
   int set_control(enum ControlMsg m, uint8_t value);
-  int set_pitchBend(int16_t pitchbend);
+  void set_pitchBend(int16_t pitchbend);
 
   uint8_t id(void) { return _id; }
 

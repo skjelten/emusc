@@ -54,7 +54,7 @@ Part::Part(uint8_t id, uint8_t mode, uint8_t type, int8_t &keyShift,
     _attackTime(0),
     _decayTime(0),
     _releaseTime(0),
-    _pitchBend(0),
+    _pitchBend(1),
     _mute(false),
     _synthKeyShift(keyShift),
     _modulation(0),
@@ -284,11 +284,13 @@ int Part::set_control(enum ControlMsg m, uint8_t value)
 
 
 // Note: One semitone = log(2)/12
-int Part::set_pitchBend(int16_t pitchBend)
+void Part::set_pitchBend(int16_t pitchBend)
 {
-  _pitchBend = exp(((pitchBend-8192)/8192.0) * _bendRange * 0.5  * (log(2)/12)) - 1;
+  _pitchBend = exp(((pitchBend - 8192) / 8192.0) * _bendRange * (log(2) / 12));
 
-  return 1;
+  if (0)
+    std::cout << "libEmuSC: Set pitch bend on part " << (int) _id << " to "
+	      << pitchBend << " => " << _pitchBend << std::endl;
 }
 
 }

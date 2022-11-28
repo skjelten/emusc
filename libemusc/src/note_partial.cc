@@ -114,8 +114,8 @@ bool NotePartial::get_next_sample(float *noteSample, float pitchBend)
 
     // Update partial sample position based on pitch input
     // FIXME: Should drumsets be modified by pitch bend messages?
-    _samplePos += exp(_keyDiff * (log(2)/12)) * (pitchBend + 1) *
-      _instPitchTune * _sampleFactor * _tvp->get_pitch();
+    _samplePos += exp(_keyDiff * (log(2)/12)) * pitchBend * _instPitchTune *
+      _sampleFactor * _tvp->get_pitch();
 
     // Check for sample position passing sample boundary
     if (_samplePos >= _ctrlSample.sampleLen) {
@@ -148,8 +148,8 @@ bool NotePartial::get_next_sample(float *noteSample, float pitchBend)
 
     // Update partial sample position based on pitch input
     // FIXME: Should drumsets be modified by pitch bend messages?
-    _samplePos -= exp(_keyDiff * (log(2)/12)) * (pitchBend + 1) *
-      _instPitchTune * _sampleFactor * _tvp->get_pitch();
+    _samplePos -= exp(_keyDiff * (log(2)/12)) * pitchBend * _instPitchTune *
+      _sampleFactor * _tvp->get_pitch();
 
     // Check for sample position passing sample boundary
     if (_samplePos <= _ctrlSample.sampleLen - _ctrlSample.loopLen - 1) {
