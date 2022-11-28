@@ -181,20 +181,14 @@ private:
   const uint8_t _maxPolyphonySC55mkII = 28;
   const uint8_t _maxPolyphonySC88     = 64;
 
-  const std::vector<int> _drumSetBankSC55 =
-    { 0, 8, 16, 24, 25, 32, 40, 48, 56, 127 };
-  const std::vector<int> _drumSetBankSC88 =
-    { 0, 1, 8, 16, 24, 25, 26, 32, 40, 48, 49, 50, 56, 57};
-  const std::vector<int> _drumSetBankSC88Pro =
-    { 0, 1, 2, 8, 9, 10, 11, 16, 24, 25, 26, 27, 28, 29, 30, 31, 32, 40, 48,
-      49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62 };
+  static const std::vector<int> _drumSetBankSC55;
+  static const std::vector<int> _drumSetBankSC88;
+  static const std::vector<int> _drumSetBankSC88Pro;
 
-  const std::vector<uint32_t> _banksSC55 =
-    { 0x10000, 0x1BD00, 0x1DEC0, 0x20000, 0x2BD00, 0x2DEC0, 0x30000, 0x38080 };
+  static const std::vector<uint32_t> _banksSC55;
 
   // Only a placeholder, SC-88 layout is currently unkown
-  const std::vector<uint32_t> _banksSC88 =
-    { 0x10000, 0x1BD00, 0x1DEC0, 0x20000, 0x2BD00, 0x2DEC0, 0x30000, 0x38080 };
+  static const std::vector<uint32_t> _banksSC88;
 
   int _identify_model(std::ifstream &romFile);
   const std::vector<uint32_t> &_banks(void);
