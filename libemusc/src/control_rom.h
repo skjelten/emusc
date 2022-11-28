@@ -131,7 +131,8 @@ public:
     std::string name;     // 12 chars
   };
 
-  std::vector<std::vector<uint8_t>> _lookupTables;
+  // TODO: define constants for lookup table dimensions
+  std::array<std::array<uint8_t, 128>, 19> _lookupTables;
   int _read_lookup_tables(std::ifstream &romFile);
   uint8_t lookup_table(uint8_t table, uint8_t index);
   float lookup_table(uint8_t table, float index, int interpolate = 1);

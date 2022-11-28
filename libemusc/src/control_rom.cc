@@ -486,20 +486,11 @@ int ControlRom::_read_lookup_tables(std::ifstream &romFile)
   // Lookup tables (LUTs) are located after the 8 memory banks, at the exact
   // same location for all SC-55 control ROMs
   romFile.seekg(0x03d1e8);
-  for (int i = 0; i < 12; i ++) {
-    std::vector<uint8_t> lut(128);
-    romFile.read(reinterpret_cast<char*> (&lut[0]), 128);
-    _lookupTables.push_back(lut);
-  }
+  romFile.read(reinterpret_cast<char*> (&_lookupTables[0]), 128 * 12);
 
   //  romFile.seekg(0x03de78);
   romFile.seekg(0x03dd82);
-  for (int i = 0; i < 7; i ++) {
-    std::vector<uint8_t> lut(128);
-    romFile.read(reinterpret_cast<char*> (&lut[0]), 128);
-
-    _lookupTables.push_back(lut);
-  }
+  romFile.read(reinterpret_cast<char*> (&_lookupTables[12]), 128 * 7);
 
   if (0) {
     std::cout << "  -> LUTs: (" << _lookupTables.size() << ")" << std::endl;
