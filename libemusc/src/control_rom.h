@@ -177,9 +177,9 @@ private:
   };
   enum SynthModel _synthModel;
 
-  const uint8_t _maxPolyphonySC55     = 24;
-  const uint8_t _maxPolyphonySC55mkII = 28;
-  const uint8_t _maxPolyphonySC88     = 64;
+  static constexpr uint8_t _maxPolyphonySC55     = 24;
+  static constexpr uint8_t _maxPolyphonySC55mkII = 28;
+  static constexpr uint8_t _maxPolyphonySC88     = 64;
 
   static const std::vector<int> _drumSetBankSC55;
   static const std::vector<int> _drumSetBankSC88;
