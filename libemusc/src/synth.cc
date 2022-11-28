@@ -217,7 +217,7 @@ void Synth::midi_input(uint8_t status, uint8_t data1, uint8_t data2)
 	// MIDI CC messages
 	enum Part::ControlMsg cMsg = Part::cmsg_Unknown;
 	if (data1 == 0) {                                     // Bank select
-	  _bank = data1;
+	  _bank = data2;
 	  break;
 	} else if (data1 == 1) {
 	  cMsg = Part::cmsg_ModWheel;
@@ -286,7 +286,7 @@ void Synth::midi_input(uint8_t status, uint8_t data1, uint8_t data2)
     case midi_PrgChange:
       if (0)
 	std::cout << "EmuSC MIDI: Program change, ch=" << (int) channel
-		  << std::endl;
+		  << " preset=" << (int) data1 << std::endl;
       {
 	for (auto &p : _parts)
 	  if (p.midi_channel() == channel) {
