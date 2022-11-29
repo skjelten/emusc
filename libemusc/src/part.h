@@ -37,7 +37,7 @@ class Part
 {
 private:
   const uint8_t _id;          // Part id: [0-15] on SC-55, [0-31] on SC-88
-  
+
   uint16_t _instrument;       // [0-127] -> variation table
   int8_t _drumSet;            // [0-13] drumSet (SC-55)
   uint8_t _volume;            // [0-127] 100 is factory preset
@@ -133,6 +133,8 @@ public:
   int add_note(uint8_t key, uint8_t velocity);
   int stop_note(uint8_t key);
   int clear_all_notes(void);
+
+  void reset(void);
 
   int set_control(enum ControlMsg m, uint8_t value);
   void set_pitchBend(int16_t pitchbend);

@@ -49,3 +49,13 @@ void MidiInput::send_midi_event(uint8_t status, uint8_t data1, uint8_t data2)
 
   _synth->midi_input(status, data1, data2);
 }
+
+
+void MidiInput::send_midi_event_sysex(uint8_t *data, uint16_t length)
+{
+  if (0)
+    std::cout << "EmuSC: SysEx MIDI event [" << std::dec << length << " bytes]"
+	      << std::endl;
+
+  _synth->midi_input_sysex(data, length);
+}

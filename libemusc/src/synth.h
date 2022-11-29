@@ -65,11 +65,14 @@ public:
   ~Synth();
 
   void midi_input(uint8_t status, uint8_t data1, uint8_t data2);
+  void midi_input_sysex(uint8_t *data, uint16_t length);
 
   int get_next_sample(int16_t *sample);
   std::vector<float> get_parts_last_peak_sample(void);
 
   void set_audio_format(uint32_t sampleRate, uint8_t channels);
+
+  void reset(bool resetParts = false);
 
   // Mute all parts. Similar to push MUTE-button on real hardware
   void mute(void);
@@ -184,6 +187,8 @@ private:
 
 // int _export_sample_24(std::vector<int32_t> &sampleSet, std::string filename);
   void _add_note(uint8_t midiChannel, uint8_t key, uint8_t velocity);
+
+  void _midi_input_sysex_DT1(uint8_t model, uint8_t *data, uint16_t length);
 
   Synth();
 };

@@ -149,8 +149,8 @@ void MidiInputAlsa::run()
 	break;
 
       case SND_SEQ_EVENT_SYSEX:
-	std::cout << "EmuSC Warning: SysEx messages not supported yet"
-		  << std::endl;
+	send_midi_event_sysex((uint8_t *) seqEv->data.ext.ptr,
+			      seqEv->data.ext.len);
 	break;
 
       case SND_SEQ_EVENT_PORT_UNSUBSCRIBED:

@@ -29,49 +29,15 @@ namespace EmuSC {
 Part::Part(uint8_t id, uint8_t mode, uint8_t type, int8_t &keyShift,
 	   ControlRom &ctrlRom, PcmRom &pcmRom, uint32_t &sampleRate)
   : _id(id),
-    _midiChannel(id),
-    _instrument(0),
-    _drumSet(0),
-    _volume(100),
-    _pan(64),
-    _reverb(40),
-    _chorus(0),
-    _keyShift(0),
-    _mode(mode_Norm),
-    _bendRange(2),
-    _modDepth(10),
-    _keyRangeL(24),                     // => C1
-    _keyRangeH(127),                    // => G9
-    _velSensDepth(64),
-    _velSensOffset(64),
-    _partialReserve(2),
-    _polyMode(true),
-    _vibRate(0),
-    _vibDepth(0),
-    _vibDelay(0),
-    _cutoffFreq(0),
-    _resonance(0),
-    _attackTime(0),
-    _decayTime(0),
-    _releaseTime(0),
-    _pitchBend(1),
-    _mute(false),
     _synthKeyShift(keyShift),
-    _modulation(0),
-    _expression(127),
-    _portamento(false),
-    _holdPedal(false),
-    _programIndex(0),
-    _programBank(0),
-    _7bScale(1/127.0),
-    _lastPeakSample(0),
     _sampleRate(sampleRate),
     _ctrlRom(ctrlRom),
-    _pcmRom(pcmRom)
+    _pcmRom(pcmRom),
+    _7bScale(1/127.0)
 {
-  // Part 10 is factory preset for MIDI channel 10 and standard drum set
-  if (id == 9)
-    _mode = 1;
+  // TODO: Rename mode => synthMode and set proper defaults for MT32 mode
+
+  reset();
 }
 
 
@@ -215,6 +181,56 @@ int Part::clear_all_notes(void)
   _notes.clear();
 
   return i;
+}
+
+
+void Part::reset(void)
+{
+  clear_all_notes();
+
+  // Default settings for each part according to SC-55 owner's manual page 64
+  _instrument = 0;
+  _drumSet = 0;
+  _volume = 100;
+  _pan = 64;                       // 64 => 0
+  _reverb = 40;
+  _chorus = 0;
+  _keyShift = 0;
+  _midiChannel = _id;
+
+  if (_midiChannel == 9)           // MIDI channel 10 => standard drum set
+    _mode = mode_Drum1;
+  else
+    _mode = mode_Norm;
+
+  _bendRange = 2;
+  _modDepth = 10;
+  _keyRangeL = 24;                 // => C1
+  _keyRangeH = 127;                // => G9
+  _velSensDepth = 64;
+  _velSensOffset = 64;
+  _partialReserve = 2;
+  _polyMode = true;
+  _vibRate = 0;
+  _vibDepth = 0;
+  _vibDelay = 0;
+  _cutoffFreq = 0;
+  _resonance = 0;
+  _attackTime = 0;
+  _decayTime = 0;
+  _releaseTime = 0;
+
+  // Other default settings for all parts
+  _pitchBend = 1;
+  _mute = false;
+  _modulation = 0;
+  _expression = 127;
+  _portamento = false;
+  _holdPedal = false;
+  _lastPeakSample = 0;
+
+  _programIndex = 0;
+  _programBank = 0;
 }
 
 

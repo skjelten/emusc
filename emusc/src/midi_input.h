@@ -22,9 +22,9 @@
 
 #include "emusc/synth.h"
 
-#include <QString>
-
 #include <stdint.h>
+
+#include <QString>
 
 
 // MIDI input base class. All MIDI systems must implement a callback (or
@@ -43,6 +43,7 @@ public:
   virtual void stop(void);
   
   void send_midi_event(uint8_t status, uint8_t data1, uint8_t data2);
+  void send_midi_event_sysex(uint8_t *data, uint16_t length);
 //  virtual static QStringList get_available_devices(void);
 };
 

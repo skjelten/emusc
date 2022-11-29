@@ -40,20 +40,12 @@ namespace EmuSC {
 
 Synth::Synth(ControlRom &controlRom, PcmRom &pcmRom, Mode mode)
   : _mode(mode),
-    _bank(0),
-    _volume(127),
-    _pan(64),
-    _reverb(64),
-    _chorus(64),
-    _keyShift(0),
-    _masterTune(440.0),
-    _reverbType(5),
-    _choursType(3),
     _sampleRate(0),
     _channels(0),
     _ctrlRom(controlRom)
 {
   // FIXME: Mode is currently ignored
+  reset();
 
   // Initialize all parts
   for (int i = 0; i < 16; i++) {
@@ -70,6 +62,23 @@ Synth::Synth(ControlRom &controlRom, PcmRom &pcmRom, Mode mode)
 Synth::~Synth()
 {
   _parts.clear();
+}
+
+
+void Synth::reset(bool resetParts)
+{
+  _bank = 0;
+  _volume = 127;
+  _pan = 64;
+  _reverb = 64;
+  _chorus = 64;
+  _keyShift = 0;
+  _masterTune = 440.0;
+  _reverbType = 5;
+  _choursType = 3;
+
+  if (resetParts)
+    for (auto &p : _parts) p.reset();
 }
 
 
@@ -224,6 +233,8 @@ void Synth::midi_input(uint8_t status, uint8_t data1, uint8_t data2)
 	} else if (data1 == 5) {
 	  cMsg = Part::cmsg_PortamentoTime;
 	} else if (data1 == 6 || data1 == 38) {               // Data entry
+	  std::cout << "libEmuSC: Data entry (" << (int) data1 << ", "
+		    << (int) data2 << ")" << std::endl;
 	} else if (data1 == 7) {
 	  cMsg = Part::cmsg_Volume;
 	} else if (data1 == 10) {
@@ -241,7 +252,12 @@ void Synth::midi_input(uint8_t status, uint8_t data1, uint8_t data2)
 	} else if (data1 == 93) {
 	  cMsg = Part::cmsg_Chorus;
 	} else if (data1 == 98 || data1 == 99) {              // NRPN
+	  std::cout << "libEmuSC: NRPN message ignored ("
+		    << (int) data1 << ", " << (int) data2 << ")" << std::endl;
 	} else if (data1 == 100 || data1 == 101) {            // RPN
+
+	  std::cout << "libEmuSC: RPN message ignored ("
+		    << (int) data1 << ", " << (int) data2 << ")" << std::endl;
 	} else if (data1 == 120 ||
 		   data1 == 123 ||
 		   data1 == 124 ||
@@ -339,6 +355,85 @@ void Synth::midi_input(uint8_t status, uint8_t data1, uint8_t data2)
       */
 
   midiMutex.unlock();
+}
+
+
+void Synth::midi_input_sysex(uint8_t *data, uint16_t length)
+{
+  // Verify correct SysEx status codes and Manufacturer ID: Roland = 0x41
+  if (data[0] != 0xf0 || data[1] != 0x41 || data[length - 1] != 0xf7)
+    return;
+
+  // Verify checksum (assuming 1 byte Device ID)
+  int checksum = 0;
+  for (int i = 5; i < length - 2; i++)
+    checksum += (int) data[i];
+  while (checksum >= 128)
+    checksum -= 128;
+  if (data[length - 2] != 128 - checksum) {
+    std::cerr << "libEmuSC: Roland SysEx message received with corrupt "
+	      << "checksum. Message discarded." << std::endl;
+    return;
+  }
+
+  // FIXME: We currently only support Deivce ID = 0x10 and Model ID = 0x42
+  // Model IDs: GSstandard = 0x42, SC-55/88 = 0x45
+  if (data[2] != 0x10 || !(data[3] == 0x42 || data[3] == 0x45))
+    return;
+
+  if (data[4] == 0x11) {
+    std::cerr << "SysEx responses are not implemented yet" << std::endl;
+    return;
+  }
+
+  midiMutex.lock();
+
+//  if (data[4] == 0x11)
+//  _midi_input_sysex_RQ1(&data[5], length - 5 - 2); // Add reply data buffer
+
+  if (data[4] == 0x12)
+    _midi_input_sysex_DT1(data[3], &data[5], length - 5 - 2);
+
+  midiMutex.unlock();
+}
+
+
+void Synth::_midi_input_sysex_DT1(uint8_t model, uint8_t *data, uint16_t length)
+{
+  if (length < 4)
+    return;
+
+  std::cout << "Valid SysEx DT1 message received. Data bytes are: ";
+  for (int i = 0; i < length; i ++)
+    std::cout << std::hex << (int) data[i] << ", " << std::flush;
+  std::cout << std::endl;
+
+  int p = 0;
+  if (model == 0x42) {
+    // Master tune [-100.0 - 100.0] cent (nibblized data)      DATA = 4 bytes
+    if (data[p] == 0x40 && data[p+1] == 0x00 && data[p+2] == 0x00) {
+      p += 7;
+    }
+
+    // Master volume [0 - 127]                                 DATA = 1 bytes
+    if (data[p] == 0x40 && data[p+1] == 0x00 && data[p+2] == 0x04) {
+      set_volume(data[p+3]);
+      p += 4;
+    }
+
+    // Master key-shift [-24 - 24]                             DATA = 1 bytes
+    if (data[p] == 0x40 && data[p+1] == 0x00 && data[p+2] == 0x05) {
+      set_key_shift(data[p+3]);
+      p += 4;
+    }
+
+    // Reset to GSstandard mode                                DATA = 1 bytes
+    if (data[p] == 0x40 && data[p+1] == 0x00 && data[p+2] == 0x7f) {
+      if (data[p+3] == 0x00)
+        reset(true);
+      p += 4;
+    }
+  }
 }
 
 
