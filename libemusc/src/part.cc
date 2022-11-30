@@ -231,6 +231,11 @@ void Part::reset(void)
 
   _programIndex = 0;
   _programBank = 0;
+
+  _rpnMSB = rpn_None;
+  _rpnLSB = rpn_None;
+  _masterFineTuning = 0x2000;
+  _masterCoarseTuning = 0x40;
 }
 
 
@@ -272,29 +277,45 @@ int Part::set_control(enum ControlMsg m, uint8_t value)
 {
   if (m == cmsg_Volume) {
     _volume = value;
-  }  else if (m == cmsg_ModWheel) {
+  } else if (m == cmsg_ModWheel) {
     _modulation = value;
-  }  else if (m == cmsg_Pan) {
+  } else if (m == cmsg_Pan) {
     _pan = (value == 0) ? 1 : value;
-  }  else if (m == cmsg_Expression) {
+  } else if (m == cmsg_Expression) {
     _expression =  value;
-  }  else if (m == cmsg_HoldPedal) {
+  } else if (m == cmsg_HoldPedal) {
     _holdPedal =  (value >= 64) ? true : false;
     if (_holdPedal == false) {
       for (auto &k : _holdPedalKeys)
 	stop_note(k);
       _holdPedalKeys.clear();
     }
-  }  else if (m == cmsg_Portamento) {
+  } else if (m == cmsg_Portamento) {
     _portamento =  (value >= 64) ? true : false;
-  }  else if (m == cmsg_PortamentoTime) {
+  } else if (m == cmsg_PortamentoTime) {
     _portamentoTime =  value;
-  }  else if (m == cmsg_Reverb) {
+  } else if (m == cmsg_Reverb) {
     _reverb =  value;
-  }  else if (m == cmsg_Chorus) {
+  } else if (m == cmsg_Chorus) {
     _chorus =  value;
+  } else if (m == cmsg_RPN_LSB) {
+    if (value == 0x00 || value == 0x01 || value == 0x02 || value == 0x7f)
+      _rpnLSB = (RPN) value;
+  } else if (m == cmsg_RPN_MSB) {
+    if (value == 0x00 || value == 0x01 || value == 0x02 || value == 0x7f)
+      _rpnMSB = (RPN) value;
+  } else if (m == cmsg_DataEntry_LSB) {
+    if (_rpnLSB == rpn_MasterFineTuning)
+      _masterFineTuning |= value;
+  } else if (m == cmsg_DataEntry_MSB) {
+    if (_rpnMSB == rpn_PitchBendSensitivity)
+      _bendRange = value;
+    else if (_rpnMSB == rpn_MasterFineTuning)
+      _masterFineTuning |= value << 8;
+    else if (_rpnMSB == rpn_MasterCoarseTuning)
+      _masterCoarseTuning  = value;
   }
-  
+
   return 1;
 }
 
@@ -305,8 +326,9 @@ void Part::set_pitchBend(int16_t pitchBend)
   _pitchBend = exp(((pitchBend - 8192) / 8192.0) * _bendRange * (log(2) / 12));
 
   if (0)
-    std::cout << "libEmuSC: Set pitch bend on part " << (int) _id << " to "
-	      << pitchBend << " => " << _pitchBend << std::endl;
+    std::cout << "libEmuSC: Set pitch bend on part " << std::dec << (int) _id
+	      << " -> " << pitchBend << " => " << _pitchBend << " [ range:"
+	      << (int) _bendRange << " ]" << std::endl;
 }
 
 }

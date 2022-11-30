@@ -35,79 +35,6 @@ namespace EmuSC {
 
 class Part
 {
-private:
-  const uint8_t _id;          // Part id: [0-15] on SC-55, [0-31] on SC-88
-
-  uint16_t _instrument;       // [0-127] -> variation table
-  int8_t _drumSet;            // [0-13] drumSet (SC-55)
-  uint8_t _volume;            // [0-127] 100 is factory preset
-  int8_t _pan;                // [-63-63] 
-  uint8_t _reverb;            // [0-127]
-  uint8_t _chorus;            // [0-127]
-  int8_t _keyShift;           // [-24-24]
-  uint8_t _midiChannel;       // [0-15] MIDI channel
-
-  uint8_t _mode;              // [0-2] 0=Norm, 1=Drum1, 2=Drum2
-  uint8_t _bendRange;         // [0-24] Default 2
-  uint8_t _modDepth;          // [0-127] Default 10
-  uint8_t _keyRangeL;         // [c1-g9] Default  24 => C1
-  uint8_t _keyRangeH;         // [c1-g9] Default 127 => G9
-  uint8_t _velSensDepth;      // [0-127] Default 64
-  uint8_t _velSensOffset;     // [0-127] Default 64
-  uint8_t _partialReserve;    // [0-24] Default 2
-  bool _polyMode;             // true = poly, false = mono
-
-  int8_t _vibRate;            // [-50-50] Default 0
-  int8_t _vibDepth;           // [-50-50] Default 0
-  int8_t _vibDelay;           // [-50-50] Default 0
-  int8_t _cutoffFreq;         // [-50-16] Default 0
-  int8_t _resonance;          // [-50-50] Default 0
-  int8_t _attackTime;         // [-50-50] Default 0
-  int8_t _decayTime;          // [-50-50] Default 0
-  int8_t _releaseTime;        // [-50-50] Default 0
-
-  bool _mute;                 // Part muted
-  int8_t &_synthKeyShift;    // Global key shift on top of part setting
-  uint8_t _modulation;        // [0-127] MOD Wheel (CM 1) Default 0
-  uint8_t _expression;        // [0-127] temporary volume modifier (CM 11)
-  bool _portamento;           // Portamento pitch slide [on / off] Default off
-  bool _holdPedal;            // Hold all notes [on / off] Default off
-  uint8_t _portamentoTime;    // [0-127] Pitch slide, 0 is slowest
-
-  uint8_t _programIndex;      // Current program index inside variation bank
-  uint8_t _programBank;       // Current variation bank
-
-  std::vector<uint8_t> _holdPedalKeys;
-  //    uint8_t lever;          // [0-127]
-
-  float _pitchBend;
-
-  const double _7bScale;      // Constant: 1 / 127
-
-  float _lastPeakSample;
-  
-  enum Mode {
-    mode_Norm  = 0,
-    mode_Drum1,
-    mode_Drum2
-  };
-  
-  enum AdsrState {
-    adsr_Attack,
-    adsr_Hold,
-    adsr_Decay,
-    adsr_Sustain,
-    adsr_Release,
-    adsr_Done
-  };
-
-  struct std::list<Note*> _notes;
-
-  uint32_t &_sampleRate;
-
-  ControlRom &_ctrlRom;
-  PcmRom &_pcmRom;
-
 public:
   Part(uint8_t id, uint8_t mode, uint8_t type, int8_t &keyShift,
        ControlRom &cRom, PcmRom &pRom, uint32_t &sampleRate);
@@ -123,7 +50,11 @@ public:
     cmsg_HoldPedal,
     cmsg_Portamento,
     cmsg_Reverb,
-    cmsg_Chorus
+    cmsg_Chorus,
+    cmsg_RPN_LSB,
+    cmsg_RPN_MSB,
+    cmsg_DataEntry_LSB,
+    cmsg_DataEntry_MSB
   };
 
   int get_next_sample(float *sampleOut);
@@ -146,7 +77,7 @@ public:
 
   uint8_t program(uint8_t &b) { b = _programBank; return _programIndex; }
   int set_program(uint8_t index, uint8_t bank);
-  
+
   uint8_t level(void) { return _volume; }
   void set_level(uint8_t level) { _volume = level; }
 
@@ -167,6 +98,84 @@ public:
 
   uint8_t mode(void) { return _mode; }
   void set_mode(uint8_t mode) { _mode = mode; }
+
+private:
+  const uint8_t _id;          // Part id: [0-15] on SC-55, [0-31] on SC-88
+
+  uint16_t _instrument;       // [0-127] -> variation table
+  int8_t _drumSet;            // [0-13] drumSet (SC-55)
+  uint8_t _volume;            // [0-127] 100 is factory preset
+  int8_t _pan;                // [-63-63] 
+  uint8_t _reverb;            // [0-127]
+  uint8_t _chorus;            // [0-127]
+  int8_t _keyShift;           // [-24-24]
+  uint8_t _midiChannel;       // [0-15] MIDI channel
+
+  uint8_t _mode;              // [0-2] 0=Norm, 1=Drum1, 2=Drum2
+  uint8_t _bendRange;         // [0-24] Number of semitones Default 2
+  uint8_t _modDepth;          // [0-127] Default 10
+  uint8_t _keyRangeL;         // [c1-g9] Default  24 => C1
+  uint8_t _keyRangeH;         // [c1-g9] Default 127 => G9
+  uint8_t _velSensDepth;      // [0-127] Default 64
+  uint8_t _velSensOffset;     // [0-127] Default 64
+  uint8_t _partialReserve;    // [0-24] Default 2
+  bool _polyMode;             // true = poly, false = mono
+
+  int8_t _vibRate;            // [-50-50] Default 0
+  int8_t _vibDepth;           // [-50-50] Default 0
+  int8_t _vibDelay;           // [-50-50] Default 0
+  int8_t _cutoffFreq;         // [-50-16] Default 0
+  int8_t _resonance;          // [-50-50] Default 0
+  int8_t _attackTime;         // [-50-50] Default 0
+  int8_t _decayTime;          // [-50-50] Default 0
+  int8_t _releaseTime;        // [-50-50] Default 0
+
+  bool _mute;                 // Part muted
+  int8_t &_synthKeyShift;     // Global key shift on top of part setting
+  uint8_t _modulation;        // [0-127] MOD Wheel (CM 1) Default 0
+  uint8_t _expression;        // [0-127] temporary volume modifier (CM 11)
+  bool _portamento;           // Portamento pitch slide [on / off] Default off
+  bool _holdPedal;            // Hold all notes [on / off] Default off
+  uint8_t _portamentoTime;    // [0-127] Pitch slide, 0 is slowest
+
+  uint8_t _programIndex;      // Current program index inside variation bank
+  uint8_t _programBank;       // Current variation bank
+
+  std::vector<uint8_t> _holdPedalKeys;
+  //    uint8_t lever;          // [0-127]
+
+  uint16_t _masterFineTuning; // [0 - 0x4000] Default 0x2000
+  uint8_t _masterCoarseTuning;// [0 - 0x7f] Default 0x40
+  float _pitchBend;
+
+  const double _7bScale;      // Constant: 1 / 127
+
+  float _lastPeakSample;
+
+  // All SC-55/88 supports four official RPN messages, but LSB is ignored on
+  // pitch bend sensitivity and master coarse tuning. See SC-55 OM page 75.
+  enum RPN {
+    rpn_PitchBendSensitivity = 0x00,
+    rpn_MasterFineTuning     = 0x01,
+    rpn_MasterCoarseTuning   = 0x02,
+    rpn_None                 = 0x7f
+  };
+  enum RPN _rpnMSB;
+  enum RPN _rpnLSB;
+
+  enum Mode {
+    mode_Norm  = 0,
+    mode_Drum1,
+    mode_Drum2
+  };
+
+  struct std::list<Note*> _notes;
+
+  uint32_t &_sampleRate;
+
+  ControlRom &_ctrlRom;
+  PcmRom &_pcmRom;
+
 };
 
 }

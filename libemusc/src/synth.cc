@@ -232,15 +232,16 @@ void Synth::midi_input(uint8_t status, uint8_t data1, uint8_t data2)
 	  cMsg = Part::cmsg_ModWheel;
 	} else if (data1 == 5) {
 	  cMsg = Part::cmsg_PortamentoTime;
-	} else if (data1 == 6 || data1 == 38) {               // Data entry
-	  std::cout << "libEmuSC: Data entry (" << (int) data1 << ", "
-		    << (int) data2 << ")" << std::endl;
+	} else if (data1 == 6) {                              // Data entry MSB
+	  cMsg = Part::cmsg_DataEntry_MSB;
 	} else if (data1 == 7) {
 	  cMsg = Part::cmsg_Volume;
 	} else if (data1 == 10) {
 	  cMsg = Part::cmsg_Pan;
 	} else if (data1 == 11) {
 	  cMsg = Part::cmsg_Expression;
+	} else if (data1 == 38) {                             // Data entry LSB
+	  cMsg = Part::cmsg_DataEntry_LSB;
 	} else if (data1 == 64) {
 	  cMsg = Part::cmsg_HoldPedal;
 	} else if (data1 == 65) {
@@ -252,12 +253,13 @@ void Synth::midi_input(uint8_t status, uint8_t data1, uint8_t data2)
 	} else if (data1 == 93) {
 	  cMsg = Part::cmsg_Chorus;
 	} else if (data1 == 98 || data1 == 99) {              // NRPN
-	  std::cout << "libEmuSC: NRPN message ignored ("
-		    << (int) data1 << ", " << (int) data2 << ")" << std::endl;
-	} else if (data1 == 100 || data1 == 101) {            // RPN
-
-	  std::cout << "libEmuSC: RPN message ignored ("
-		    << (int) data1 << ", " << (int) data2 << ")" << std::endl;
+	  if (0)
+	    std::cout << "libEmuSC: NRPN message ignored ("
+		      << (int) data1 << ", " << (int) data2 << ")" << std::endl;
+	} else if (data1 == 100) {                            // RPN LSB
+	  cMsg = Part::cmsg_RPN_LSB;
+	} else if (data1 == 101) {                            // RPN MSB
+	  cMsg = Part::cmsg_RPN_MSB;
 	} else if (data1 == 120 ||
 		   data1 == 123 ||
 		   data1 == 124 ||
