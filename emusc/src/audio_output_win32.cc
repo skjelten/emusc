@@ -198,7 +198,7 @@ int AudioOutputWin32::_fill_buffer(char *audioBuffer)
     
     for (int channel=0; channel < _channels; channel++) {
       int16_t* dest = (int16_t*) &audioBuffer[(frame * 4) + (2 * channel)];
-      *dest = sample[channel];
+      *dest = sample[channel] * _volume;
       i += 2;
     }
   }

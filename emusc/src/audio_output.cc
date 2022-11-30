@@ -21,7 +21,8 @@
 
 
 AudioOutput::AudioOutput()
-  : _quit(false)
+  : _quit(false),
+    _volume(1)
 {}
 
 

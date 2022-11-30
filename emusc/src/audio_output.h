@@ -23,17 +23,21 @@
 
 class AudioOutput
 {
-private:
-
-protected:
-  bool _quit;
-  
 public:
   AudioOutput();
   virtual ~AudioOutput() = 0;
 
   virtual void start(void) = 0;
   virtual void stop(void) = 0;
+
+  float volume(void) { return _volume; }
+  void set_volume(float value) { _volume = value; }
+
+protected:
+  bool _quit;
+  float _volume;              // [0 - 1] Default 1
+
+private:
 
 };
 

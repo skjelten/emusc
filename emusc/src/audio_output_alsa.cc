@@ -202,7 +202,7 @@ int AudioOutputAlsa::_fill_buffer(const snd_pcm_channel_area_t *areas,
 		     + (areas[channel].first >> 3)
 		     + ( (areas[channel].step >> 3) * (offset + frame) ) );
 
-      *dest = sample[channel];
+      *dest = sample[channel] * _volume;
     }
   }
 

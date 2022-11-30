@@ -1155,11 +1155,16 @@ void Emulator::set_midi_channel(uint8_t value, bool update)
 }
 
 
+// Volume in percent
 void Emulator::change_volume(int volume)
 {
-  if (_emuscSynth == NULL)
+  if (_audioOutput == NULL)
     return;
 
-  uint8_t calculatedVolume = (float) volume / 100 * 127;
-  _emuscSynth->set_volume(calculatedVolume);
+  if (volume < 0)
+    volume = 0;
+  else if (volume > 100)
+    volume = 100;
+
+  _audioOutput->set_volume(volume / 100.0);
 }
