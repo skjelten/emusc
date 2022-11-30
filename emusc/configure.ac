@@ -31,13 +31,13 @@ PKG_CHECK_MODULES([QT],[Qt5Core >= $QT_REQUIRED Qt5Gui >= $QT_REQUIRED Qt5Widget
 		  ,
 		  [AC_MSG_ERROR(Valid Qt library is required but not found!)])
 
-AC_PATH_PROG([QT_MOC], [moc], [no], ["${QT_BIN_DIRECTORY}:${PATH}"])
+AC_PATH_PROGS([QT_MOC], [moc, moc-qt5], [no], ["${QT_BIN_DIRECTORY}:${PATH}"])
 if test x${QT_MOC} = xno ; then
    AC_MSG_ERROR([Qt 'moc' tool is required but not found. Please add correct path to program in QT_BIN_DIRECTORY variable])
 fi
 AC_SUBST([QT_MOC])
 
-AC_PATH_PROG([QT_RCC], [rcc], [no], ["${QT_BIN_DIRECTORY}:${PATH}"])
+AC_PATH_PROGS([QT_RCC], [rcc, rcc-qt5], [no], ["${QT_BIN_DIRECTORY}:${PATH}"])
 if test x${QT_RCC} = xno ; then
    AC_MSG_ERROR([Qt 'rcc' tool is required but not found. Please add correct path to program in QT_BIN_DIRECTORY variable])
 fi
