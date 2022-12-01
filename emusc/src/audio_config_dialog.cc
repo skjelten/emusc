@@ -34,8 +34,6 @@
 #include <QString>
 #include <QIntValidator>
 
-#include <QAudioDeviceInfo>
-
 #include "audio_config_dialog.moc"
 
 
