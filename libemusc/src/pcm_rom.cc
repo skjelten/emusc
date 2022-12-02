@@ -72,6 +72,8 @@ PcmRom::PcmRom(std::vector<std::string> romPath, ControlRom &ctrlRom)
   }
 
   // Read through the entire memory and extract sample sets
+  _sampleSets.reserve(ctrlRom.numSampleSets());
+
   for (int i = 0; i < ctrlRom.numSampleSets(); i ++)
     _read_samples(romData, ctrlRom.sample(i));
 
@@ -142,6 +144,7 @@ int PcmRom::_read_samples(std::vector<char> romData, struct ControlRom::Sample &
   uint32_t romAddress = _find_samples_rom_address(ctrlSample.address);
 
   struct Samples s;
+  s.samplesF.reserve(ctrlSample.sampleLen);
 
   // Read PCM samples from ROM
   for (int i = 0; i < ctrlSample.sampleLen; i++) {
