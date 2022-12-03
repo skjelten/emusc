@@ -26,6 +26,7 @@
 
 #include <stdint.h>
 
+#include <array>
 #include <fstream>
 #include <string>
 #include <vector>
@@ -130,7 +131,8 @@ public:
     std::string name;     // 12 chars
   };
 
-  std::vector<std::vector<uint8_t>> _lookupTables;
+  // TODO: define constants for lookup table dimensions
+  std::array<std::array<uint8_t, 128>, 19> _lookupTables;
   int _read_lookup_tables(std::ifstream &romFile);
   uint8_t lookup_table(uint8_t table, uint8_t index);
   float lookup_table(uint8_t table, float index, int interpolate = 1);
@@ -155,7 +157,7 @@ public:
   inline struct Partial& partial(int p) { return _partials[p]; }
   inline struct Sample& sample(int s) { return _samples[s]; }
   inline struct DrumSet& drumSet(int ds) { return _drumSets[ds]; }
-  const std::vector<uint16_t>& variation(int v) { return _variations[v]; }
+  inline const std::array<uint16_t, 128>& variation(int v) const { return _variations[v]; }
 
   inline int numSampleSets(void) { return _samples.size(); }
   inline int numInstruments(void) { return _instruments.size(); }
@@ -176,24 +178,18 @@ private:
   };
   enum SynthModel _synthModel;
 
-  const uint8_t _maxPolyphonySC55     = 24;
-  const uint8_t _maxPolyphonySC55mkII = 28;
-  const uint8_t _maxPolyphonySC88     = 64;
+  static constexpr uint8_t _maxPolyphonySC55     = 24;
+  static constexpr uint8_t _maxPolyphonySC55mkII = 28;
+  static constexpr uint8_t _maxPolyphonySC88     = 64;
 
-  const std::vector<int> _drumSetBankSC55 =
-    { 0, 8, 16, 24, 25, 32, 40, 48, 56, 127 };
-  const std::vector<int> _drumSetBankSC88 =
-    { 0, 1, 8, 16, 24, 25, 26, 32, 40, 48, 49, 50, 56, 57};
-  const std::vector<int> _drumSetBankSC88Pro =
-    { 0, 1, 2, 8, 9, 10, 11, 16, 24, 25, 26, 27, 28, 29, 30, 31, 32, 40, 48,
-      49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62 };
+  static const std::vector<int> _drumSetBankSC55;
+  static const std::vector<int> _drumSetBankSC88;
+  static const std::vector<int> _drumSetBankSC88Pro;
 
-  const std::vector<uint32_t> _banksSC55 =
-    { 0x10000, 0x1BD00, 0x1DEC0, 0x20000, 0x2BD00, 0x2DEC0, 0x30000, 0x38080 };
+  static const std::vector<uint32_t> _banksSC55;
 
   // Only a placeholder, SC-88 layout is currently unkown
-  const std::vector<uint32_t> _banksSC88 =
-    { 0x10000, 0x1BD00, 0x1DEC0, 0x20000, 0x2BD00, 0x2DEC0, 0x30000, 0x38080 };
+  static const std::vector<uint32_t> _banksSC88;
 
   int _identify_model(std::ifstream &romFile);
   const std::vector<uint32_t> &_banks(void);
@@ -215,7 +211,8 @@ private:
   std::vector<Partial> _partials;
   std::vector<Sample> _samples;
   std::vector<DrumSet> _drumSets;
-  std::vector<std::vector<uint16_t>> _variations;
+  // TODO: define constants for variation table dimensions
+  std::array<std::array<uint16_t, 128>, 128> _variations;
 
   ControlRom();
 

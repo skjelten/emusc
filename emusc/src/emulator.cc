@@ -768,7 +768,7 @@ void Emulator::select_prev_instrument()
   uint8_t index = _emuscSynth->get_part_instrument(_selectedPart, bank);
 
   if (_emuscSynth->get_part_mode(_selectedPart) == 0) {     // Instrument
-    const std::vector<uint16_t> &var = _emuscControlRom->variation(bank);
+    const std::array<uint16_t, 128> &var = _emuscControlRom->variation(bank);
     for (int i = index - 1; i >= 0; i--) {
       if (var[i] != 0xffff) {
 	set_instrument(i, bank, true);
@@ -797,7 +797,7 @@ void Emulator::select_next_instrument()
   uint8_t index = _emuscSynth->get_part_instrument(_selectedPart, bank);
 
   if (_emuscSynth->get_part_mode(_selectedPart) == 0) {     // Instrument
-    const std::vector<uint16_t> &var = _emuscControlRom->variation(bank);
+    const std::array<uint16_t, 128> &var = _emuscControlRom->variation(bank);
     for (int i = index + 1; i < var.size(); i++) {
       if (var[i] != 0xffff) {
 	set_instrument(i, bank, true);

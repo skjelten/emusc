@@ -33,6 +33,20 @@
 
 namespace EmuSC {
 
+const std::vector<int> ControlRom::_drumSetBankSC55 =
+  { 0, 8, 16, 24, 25, 32, 40, 48, 56, 127 };
+const std::vector<int> ControlRom::_drumSetBankSC88 =
+  { 0, 1, 8, 16, 24, 25, 26, 32, 40, 48, 49, 50, 56, 57};
+const std::vector<int> ControlRom::_drumSetBankSC88Pro =
+  { 0, 1, 2, 8, 9, 10, 11, 16, 24, 25, 26, 27, 28, 29, 30, 31, 32, 40, 48,
+    49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62 };
+
+const std::vector<uint32_t> ControlRom::_banksSC55 =
+  { 0x10000, 0x1BD00, 0x1DEC0, 0x20000, 0x2BD00, 0x2DEC0, 0x30000, 0x38080 };
+
+// Only a placeholder, SC-88 layout is currently unkown
+const std::vector<uint32_t> ControlRom::_banksSC88 =
+  { 0x10000, 0x1BD00, 0x1DEC0, 0x20000, 0x2BD00, 0x2DEC0, 0x30000, 0x38080 };
 
 ControlRom::ControlRom(std::string romPath)
   : _romPath(romPath)
@@ -223,6 +237,11 @@ int ControlRom::_read_instruments(std::ifstream &romFile)
 
     // First 12 bytes are the instrument name
     romFile.read(data, 12);
+
+    // Skip empty slots in the ROM file that have no instrument name
+    if (data[0] == '\0')
+      continue;
+
     i.name.assign(data , 12);
     i.name.erase(i.name.find_last_not_of(' ') + 1);
 
@@ -277,17 +296,14 @@ int ControlRom::_read_instruments(std::ifstream &romFile)
       i.partials[p].TVALenP5    = data[78];
     }
 
-    // Skip empty slots in the ROM file that has no instrument name
-    if (i.name[0]) {
-      _instruments.push_back(i);
+    _instruments.push_back(i);
 
-      if (0)
-	std::cout << "  -> Instrument " << _instruments.size() << ": " << i.name
-		  << " partial0=" << (int) i.partials[0].partialIndex
-		  << " partial1=" << (int) i.partials[1].partialIndex
-		  << std::endl;
+    if (0)
+      std::cout << "  -> Instrument " << _instruments.size() << ": " << i.name
+          << " partial0=" << (int) i.partials[0].partialIndex
+          << " partial1=" << (int) i.partials[1].partialIndex
+          << std::endl;
     }
-  }
 
   return 0;
 }
@@ -344,18 +360,15 @@ int ControlRom::_read_variations(std::ifstream &romFile)
   const std::vector<uint32_t> &banks = _banks();
 
   // Variations are in bank 6, a table of 128 x 128 2 byte values
-  for (int32_t x = banks[6]; x < (banks[7] - 128); x += 256) {
-
-    char data[2];
-    romFile.seekg(x);
-    std::vector<uint16_t> v;
+  for (int x = 0; x < 128; x++) {
+    const size_t offset = banks[6] + x * 128 * sizeof(uint16_t);
+    romFile.seekg(offset);
 
     for (int y = 0; y < 128; y++) {
+      char data[2];
       romFile.read(data, 2);
-      v.push_back(_native_endian_uint16((uint8_t *) &data[0]));
+      _variations[x][y] = _native_endian_uint16(reinterpret_cast<uint8_t*>(data));
     }
-
-    _variations.push_back(v);
   }
 
   if (0) {
@@ -475,20 +488,11 @@ int ControlRom::_read_lookup_tables(std::ifstream &romFile)
   // Lookup tables (LUTs) are located after the 8 memory banks, at the exact
   // same location for all SC-55 control ROMs
   romFile.seekg(0x03d1e8);
-  for (int i = 0; i < 12; i ++) {
-    std::vector<uint8_t> lut(128);
-    romFile.read(reinterpret_cast<char*> (&lut[0]), 128);
-    _lookupTables.push_back(lut);
-  }
+  romFile.read(reinterpret_cast<char*> (&_lookupTables[0]), 128 * 12);
 
   //  romFile.seekg(0x03de78);
   romFile.seekg(0x03dd82);
-  for (int i = 0; i < 7; i ++) {
-    std::vector<uint8_t> lut(128);
-    romFile.read(reinterpret_cast<char*> (&lut[0]), 128);
-
-    _lookupTables.push_back(lut);
-  }
+  romFile.read(reinterpret_cast<char*> (&_lookupTables[12]), 128 * 7);
 
   if (0) {
     std::cout << "  -> LUTs: (" << _lookupTables.size() << ")" << std::endl;
