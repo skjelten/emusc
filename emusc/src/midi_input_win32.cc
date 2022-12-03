@@ -22,10 +22,12 @@
 
 #include "midi_input_win32.h"
 
+#include <algorithm>
 #include <iostream>
 
 
 MidiInputWin32::MidiInputWin32()
+  : _sysExDataLength(0)
 {
 }
 
@@ -54,7 +56,7 @@ void MidiInputWin32::_midi_callback(HMIDIIN handle, UINT msg,
 {
   switch(msg)
     {
-    // Regular MIDI message (-> 3 byte)
+    // Regular MIDI message (3 bytes)
     case MIM_DATA:
       {
 	// dwParam2 = timestamp
@@ -64,10 +66,42 @@ void MidiInputWin32::_midi_callback(HMIDIIN handle, UINT msg,
 	break;
       }
 
-    // SysEx MIDI message : TODO
+    // SysEx MIDI message (-> 1024 bytes)
     case MIM_LONGDATA:
-      break;
+      {
+	LPMIDIHDR mh = (LPMIDIHDR) dwParam1;
 
+	// Ignore empty messages
+	if (mh->dwBytesRecorded == 0)
+	  break;
+
+	// New and complete SysEx message
+	if (_sysExDataLength == 0 && (mh->lpData[0] & 0xff) == 0xf0 &&
+	    (mh->lpData[mh->dwBytesRecorded - 1] & 0xff) == 0xf7) {
+	  send_midi_event_sysex((uint8_t *)mh->lpData, mh->dwBytesRecorded);
+
+        // Starting or ongoing SysEx message
+	} else {
+	  // SysEx too large
+	  if (_sysExDataLength + mh->dwBytesRecorded > _sysExData.size()) {
+	    _sysExDataLength = 0;
+	    break;
+	  }
+
+	  std::copy(mh->lpData, mh->lpData + mh->dwBytesRecorded,
+		    &_sysExData[_sysExDataLength]);
+	  _sysExDataLength += mh->dwBytesRecorded;
+
+	  // SysEx message is complete
+	  if (_sysExData[_sysExDataLength - 1] == 0xf7) {
+	    send_midi_event_sysex(_sysExData.data(), _sysExDataLength);
+	    _sysExDataLength = 0;
+	  }
+	}
+
+	midiInAddBuffer(handle, mh, sizeof(MIDIHDR));
+	break;
+      }
 
     // Ignore open & close
     case MIM_OPEN:
@@ -135,6 +169,8 @@ void MidiInputWin32::stop(void)
   res = midiInReset(_handle);
   if (res != MMSYSERR_NOERROR)
     std::cerr << "EmuSC: Failed to reset win32 MIDI input!" << std::endl;
+
+  _sysExDataLength = 0;
 }
 
 

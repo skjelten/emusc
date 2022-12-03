@@ -25,6 +25,8 @@
 
 #include "midi_input.h"
 
+#include <array>
+
 #include <QString>
 #include <QStringList>
 
@@ -37,8 +39,15 @@ class MidiInputWin32: public MidiInput
 private:
   HMIDIIN _handle;
 
+  // SC-55 Owner's Manual page 73 states that SC-55 limits SysEx DT1 messages
+  // to 256 bytes, while the SC-88 Owner's Manual on page 7-25 states that DT1
+  // data > 128 bytes must be split i separate messages.
+  // => 256 byte static buffer for part messages, and 1024 bytes total buffer
   MIDIHDR _header;
   char _data[256];            // Data buffer for MIDI messages
+
+  std::array<uint8_t, 1024> _sysExData;
+  uint16_t _sysExDataLength;
 
   void _midi_callback(HMIDIIN handle, UINT uMsg,
 		      DWORD_PTR dwParam1, DWORD_PTR dwParam2);
