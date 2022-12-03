@@ -25,6 +25,8 @@
 
 #include "midi_input.h"
 
+#include <array>
+
 #include <QStringList>
 
 #include <CoreMIDI/MIDIServices.h>
@@ -36,7 +38,14 @@ private:
   MIDIClientRef _client;
   MIDIPortRef _inPort;
   MIDIEndpointRef _sourceInUse;
-  
+
+  // SC-55 Owner's Manual page 73 states that SC-55 limits SysEx DT1 messages
+  // to 256 bytes, while the SC-88 Owner's Manual on page 7-25 states that DT1
+  // data > 128 bytes must be split i separate messages.
+  // => 1024 bytes total buffer
+  std::array<uint8_t, 1024> _sysExData;
+  uint16_t _sysExDataLength;
+
   void _midi_callback(const MIDIPacketList* packetList, void *srcConnRefCon);
 
 public:

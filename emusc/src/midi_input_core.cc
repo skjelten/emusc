@@ -22,13 +22,13 @@
 
 #include "midi_input_core.h"
 
+#include <algorithm>
 #include <iostream>
-
-#include <QDebug>
 
 
 MidiInputCore::MidiInputCore()
-  : _sourceInUse(0)
+  : _sourceInUse(0),
+    _sysExDataLength(0)
 {
   // Create client
   OSStatus ret;
@@ -38,7 +38,7 @@ MidiInputCore::MidiInputCore()
 
   // Create port
   ret = MIDIInputPortCreate(_client, CFSTR("Input port"),
-			    MidiInputCore::midi_callback, this, &_inPort);
+                            MidiInputCore::midi_callback, this, &_inPort);
   if (ret != noErr)
     throw (QString("Error creating CORE MIDI input port"));
 }
@@ -51,9 +51,8 @@ MidiInputCore::~MidiInputCore()
 }
 
 
-// If this generic interface is also used on windows => base class
 void MidiInputCore::_midi_callback(const MIDIPacketList* packetList,
-				   void* srcConnRefCon)
+                                   void* srcConnRefCon)
 {
   uint16_t length;
   const uint8_t *data;
@@ -63,7 +62,36 @@ void MidiInputCore::_midi_callback(const MIDIPacketList* packetList,
     length = packet->length;
     data = packet->data;
 
-    send_midi_event(data[0], data[1], data[2]);
+    // Regular MIDI message
+    if (data[0] != 0xf0 && _sysExDataLength == 0) {
+      send_midi_event(data[0], data[1], data[2]);
+
+    // SysEx MIDI message
+    } else if (data[0] == 0xf0) {
+
+      // New and complete SysEx message
+      if (_sysExDataLength == 0 && (data[0] & 0xff) == 0xf0 &&
+	  (data[length - 1] & 0xff) == 0xf7) {
+	send_midi_event_sysex(const_cast<uint8_t*>(data), length);
+
+      // Starting or ongoing SysEx message divided in multiple parts
+      } else {
+	// SysEx too large
+	if (_sysExDataLength + length > _sysExData.size()) {
+	  _sysExDataLength = 0;
+	  break;
+	}
+
+	std::copy(data, data + length, &_sysExData[_sysExDataLength]);
+	_sysExDataLength += length;
+
+	// SysEx message is complete
+	if (_sysExData[_sysExDataLength - 1] == 0xf7) {
+	  send_midi_event_sysex(_sysExData.data(), _sysExDataLength);
+	  _sysExDataLength = 0;
+	}
+      }
+    }
 
     packet = MIDIPacketNext(packet);
   }
