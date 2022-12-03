@@ -132,8 +132,8 @@ int AudioOutputCore::_fill_buffer(AudioBufferList *data, UInt32 frames)
 	  
   for (unsigned int frame = 0; frame < frames; frame++) {
     _synth->get_next_sample(sample);
-    *left = (Float32) (sample[0] / (1 << 15)) * _volume;
-    *right = (Float32) (sample[1] / (1 << 15)) * _volume;
+    *left = (Float32) sample[0] / (1 << 15) * _volume;
+    *right = (Float32) sample[1] / (1 << 15) * _volume;
 
     left++;
     right++;
