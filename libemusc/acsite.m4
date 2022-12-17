@@ -380,7 +380,7 @@ namespace cxx11
     void
     test1()
     {
-      auto lambda1 = [](){};
+      auto lambda1 = @<:@@:>@(){};
       auto lambda2 = lambda1;
       lambda1();
       lambda2();
@@ -389,12 +389,12 @@ namespace cxx11
     int
     test2()
     {
-      auto a = [](int i, int j){ return i + j; }(1, 2);
-      auto b = []() -> int { return '0'; }();
-      auto c = [=](){ return a + b; }();
-      auto d = [&](){ return c; }();
-      auto e = [a, &b](int x) mutable {
-        const auto identity = [](int y){ return y; };
+      auto a = @<:@@:>@(int i, int j){ return i + j; }(1, 2);
+      auto b = @<:@@:>@() -> int { return '0'; }();
+      auto c = @<:@=@:>@(){ return a + b; }();
+      auto d = @<:@&@:>@(){ return c; }();
+      auto e = @<:@a, &b@:>@(int x) mutable {
+        const auto identity = @<:@@:>@(int y){ return y; };
         for (auto i = 0; i < a; ++i)
           a += b--;
         return x + identity(a + b);
@@ -405,13 +405,13 @@ namespace cxx11
     int
     test3()
     {
-      const auto nullary = [](){ return 0; };
-      const auto unary = [](int x){ return x; };
+      const auto nullary = @<:@@:>@(){ return 0; };
+      const auto unary = @<:@@:>@(int x){ return x; };
       using nullary_t = decltype(nullary);
       using unary_t = decltype(unary);
-      const auto higher1st = [](nullary_t f){ return f(); };
-      const auto higher2nd = [unary](nullary_t f1){
-        return [unary, f1](unary_t f2){ return f2(unary(f1())); };
+      const auto higher1st = @<:@@:>@(nullary_t f){ return f(); };
+      const auto higher2nd = @<:@unary@:>@(nullary_t f1){
+        return @<:@unary, f1@:>@(unary_t f2){ return f2(unary(f1())); };
       };
       return higher1st(nullary) + higher2nd(nullary)(unary);
     }
