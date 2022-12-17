@@ -4,12 +4,12 @@ Emulating the Sound Canvas
 ## About
 EmuSC is a software synthesizer that aims to use the ROM files of the Roland Sound Canvas SC-55 lineup (and perhaps the SC-88 in the future) to recreate the original sounds of these '90s era synthesizers.
 
-EmuSC is currently in an early development stage and is not able to reproduce sounds anywhere near the quality og the original synths, but the goal is to be able to reproduce sounds that will make it difficult to notice the difference. If you are interested in emulating the SC-55 today your best bet is to try the [SC-55 sound font](https://github.com/Kitrinx/SC55_Soundfont) made by Kitrinx and NewRisingSun.
+EmuSC is currently in an early development stage and is not able to reproduce sounds anywhere near the quality of the original synths, but the goal is to be able to reproduce sounds that will make it difficult to notice the difference. If you are interested in emulating the SC-55 today your best bet is to try the [SC-55 sound font](https://github.com/Kitrinx/SC55_Soundfont) made by Kitrinx and NewRisingSun.
 
 This project is in no way endorsed by or affiliated with Roland Corp.
 
 ## Status
-We are in the early stages of development and the application is limited to reading MIDI messages, some basic control functions and audio playback. In adition there is an unfinshed LCD display that is relatively accurate to the orignal.
+We are in the early stages of development and the application is limited to reading MIDI messages, some basic control functions and audio playback. In addition there is an unfinished LCD display that is relatively accurate to the original.
 
 Currently EmuSC supports all modern versions of Linux, macOS and Windows.
 
@@ -29,10 +29,9 @@ There is rudimentary support for macOS 10.6 and newer for both MIDI input and au
 CMake is used to generate the necessary files for building EmuSC. Depending on which operating system, audio system and build environment you are using the build instructions may vary. Independent of platform, a A C++11 compiler with support for std::threads, libEmuSC and libQt5 (Core, Widgets and GUI) are absolute requirements.
 
 ### Linux
+Note the following dependencies for Linux:
 * ALSA (libasound2-dev on debian based distributions) is needed for MIDI input and ALSA audio.
-* PulseAudio (libpulse-dev for debian based distributions) is supported for PulseAudio support.
-
-
+* PulseAudio (libpulse-dev for debian based distributions) is needed for PulseAudio support.
 
 ### Windows
 On Windows common build environments are MSYS2/MinGW-w64 and Visual Studio.
@@ -48,13 +47,26 @@ pacman -S mingw-w64-ucrt-x86_64-qt5-base mingw-w64-ucrt-x86_64-qt5-multimedia
 ```
 cd emusc/emusc
 ```
-4. Run cmake (note that you have to specify the build generator)
+4. Run cmake (note that you have to specify the build generator) & make
 ```
 cmake . -G "MSYS Makefiles"
 ```
-The `emusc.exe` binary is located in `emusc/src/`. Note that you will need to include a list of DLL-files if you want to use the binary in another location / computer.
+5. And finally build the application by running
+```
+make
+```
+The `emusc.exe` binary is located in `emusc/src/` if no build directory was specified. Note that you will need to deploy Qt and include a number of DLL-files if you want to run EmuSC outside MSYS. A simple script for deploying Qt and coping all the needed DLL-files is found in the emusc/utils directory. To create a directory with all files needed for running EmuSC, make sure you have Qt tools package installed:
+```
+pacman -S mingw-w64-ucrt-x86_64-qt5-tools
+```
+And then run the create bundle script:
+```
+cd emusc/utils
+./msys_create_dll_bundle.sh ../src
+```
+The `emusc/BUILD_WIN32` directory shall now contain all files needed to run EmuSC on any Windows computer.
 
-Note thar if you have a running in a Linux environment you can also crosscompile a Windows binary by using the MinGW toolchain.
+Note that if you have a running in a Linux environment you can also cross-compile a Windows binary by using the MinGW toolchain.
 
 ### macOS
 For some weird reason Apple decided to not follow the C standard in their MIDI implementation. Due to this, Clang is needed for compiling MIDI support on macOS.
@@ -63,7 +75,7 @@ If you are using homebrew, install qt@5. Remember to also specify the correct pa
 ```
 cmake . -DCMAKE_PREFIX_PATH=/usr/local/Cellar/qt@5/5.15.6
 ```
-On macOS the default build is not a binary file, but a bundle. To install the application drag src/emusc.app to your application folder in finder. To run EmuSC directly from the terminal execute
+On macOS the default build is not a binary file, but a bundle. To install the application copy src/emusc.app to your application folder. To run EmuSC directly from the terminal execute
 ```
 open src/emusc.app
 ```

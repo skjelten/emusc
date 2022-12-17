@@ -14,20 +14,20 @@ We are currently able to decode most of the ROM's content and recreate the corre
 ## Requirements
 In order to emulate the Sound Canvas you need the original control ROM and the PCM ROM(s). These ROM files can either be extracted from a physical unit by desoldering the ROM chips and read their content, or you can download the ROM files from the Internet.
 
-libEmuSC should run on any modern operating systems. The only dependencies for compiling the source code is cmake and a modern C++ compiler.
+libEmuSC should run on any modern operating systems. The only dependencies for compiling the source code is CMake and a modern C++ compiler.
 
 
 ## Building
 CMake is used to generate the necessary files for building libEmuSC. Depending on which operating system and build environment you are using the build instructions may vary.
 
 ### Building on Linux
-Build instructions on Linux varys quite a bit depending on which distribution that is beeing used. The general instructions are:
+Build instructions on Linux varies quite a bit depending on which distribution that is beeing used. The general instructions are:
 1. Install a C++11 compiler (typically g++), make, cmake and git
 2. Download the source code from GitHub by running
 ```
 git clone https://github.com/skjelten/emusc.git
 ```
-3. Enter the correct build direcotory
+3. Enter the correct build directory
 ```
 cd emusc/libemusc
 ```
@@ -51,7 +51,7 @@ On Windows common build environments are MSYS2/MinGW-w64 and Visual Studio.
 For building on MSYS2/MinGW-w64 you need to do the following steps:
 
 1. Install MSYS2 build environment: https://www.msys2.org
-2. Start the **MSYS2 UCRT64** console and install the neccessary programs by running
+2. Start the **MSYS2 UCRT64** console and install the necessary programs by running
 ```
 pacman -S git make libtool mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-cmake
 ```
