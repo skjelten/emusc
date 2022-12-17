@@ -136,7 +136,7 @@ uint32_t PcmRom::_find_samples_rom_address(uint32_t address)
 }
 
 
-int PcmRom::_read_samples(std::vector<char> romData, struct ControlRom::Sample &ctrlSample)
+int PcmRom::_read_samples(std::vector<char> &romData, struct ControlRom::Sample &ctrlSample)
 {
   RiaaFilter rf1(32000, 15); // Gain 28 seems right, but becomes too much later
   RiaaFilter rf2(32000, 15);

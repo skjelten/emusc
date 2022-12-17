@@ -50,7 +50,7 @@ private:
   int8_t   _unscramble_data(int8_t byte);
 
   uint32_t _find_samples_rom_address(uint32_t address);
-  int _read_samples(std::vector<char> rom, struct ControlRom::Sample &ctrlSample);
+  int _read_samples(std::vector<char> &rom, struct ControlRom::Sample &ctrlSample);
 
   PcmRom();
 
