@@ -33,7 +33,7 @@
 #include <iomanip>
 #include <mutex>
 
-#include "../config.h"
+#include "config.h"
 
 
 namespace EmuSC {

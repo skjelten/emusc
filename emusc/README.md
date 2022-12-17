@@ -26,45 +26,47 @@ There is rudimentary support for all modern versions of Windows for both MIDI in
 There is rudimentary support for macOS 10.6 and newer for both MIDI input and audio output. Only default audio output device is currently supported.
 
 ## Building
-Download the source tree and build with GNU build tools:
-```
-./autogen.sh
-./configure
-make
-```
-
-A C++11 compiler with support for std::threads is required. Library dependencies depends on which MIDI input and audio output systems that are needed.
+CMake is used to generate the necessary files for building EmuSC. Depending on which operating system, audio system and build environment you are using the build instructions may vary. Independent of platform, a A C++11 compiler with support for std::threads, libEmuSC and libQt5 (Core, Widgets and GUI) are absolute requirements.
 
 ### Linux
-Note that libasound2-dev is needed for ALSA support and libpulse-dev for PulseAudio support.
+* ALSA (libasound2-dev on debian based distributions) is needed for MIDI input and ALSA audio.
+* PulseAudio (libpulse-dev for debian based distributions) is supported for PulseAudio support.
+
+
 
 ### Windows
-The GNU build tools can be somewhat challenging to use on windows, so here is a short tutorial for compiling EmuSC on Windows:
-1. Install MSYS2 and follow the [instructions for building and installing libEmuSC](../libemusc/README.md)
+On Windows common build environments are MSYS2/MinGW-w64 and Visual Studio.
+
+For building EmuSC on MSYS2/MinGW-w64 you need to do the following steps:
+
+1. Install MSYS2 build environment: https://www.msys2.org and follow the [instructions for building and installing libEmuSC](../libemusc/README.md)
 2. Start the **MSYS2 UCRT64** console and install extra libraries needed by EmuSC
 ```
-pacman -S mingw-w64-ucrt-x86_64-qt5-base mingw-w64-ucrt-x86_64-qt5-multimedia mingw-w64-ucrt-x86_64-pkg-config
+pacman -S mingw-w64-ucrt-x86_64-qt5-base mingw-w64-ucrt-x86_64-qt5-multimedia
 ```
 3. Enter the correct build direcotory
 ```
 cd emusc/emusc
 ```
-4. Run the generic build commands as specified above:
+4. Run cmake (note that you have to specify the build generator)
 ```
-./autogen.sh
-./configure
-make
+cmake . -G "MSYS Makefiles"
 ```
 The `emusc.exe` binary is located in `emusc/src/`. Note that you will need to include a list of DLL-files if you want to use the binary in another location / computer.
 
-If you have a running Linux environment you can also crosscompile a Windows binary by specifying the correct host to configure, e.g. `./configure --host=x86_64-w64-mingw32`. This obviously requires that you have the crosscompiler toolchain installed.
-
+Note thar if you have a running in a Linux environment you can also crosscompile a Windows binary by using the MinGW toolchain.
 
 ### macOS
 For some weird reason Apple decided to not follow the C standard in their MIDI implementation. Due to this, Clang is needed for compiling MIDI support on macOS.
 
-If you are using homebrew, install autoconf, automake, llvm and qt@5. Remember to also specify the correct paths to configure, e.g.
-`QT_BIN_DIRECTORY=/usr/local/Cellar/qt@5/5.15.6/bin  PKG_CONFIG_PATH=/usr/local/Cellar/qt@5/5.15.6/lib/pkgconfig ./configure`
+If you are using homebrew, install qt@5. Remember to also specify the correct paths to configure, e.g. 
+```
+cmake . -DCMAKE_PREFIX_PATH=/usr/local/Cellar/qt@5/5.15.6
+```
+On macOS the default build is not a binary file, but a bundle. To install the application drag src/emusc.app to your application folder in finder. To run EmuSC directly from the terminal execute
+```
+open src/emusc.app
+```
 
 ## Contribute
 Interested in contributing to this project? All contributions are welcome! Download / fork the source code and have a look. Create an issue if you have any questions (or input / suggestions) and we will do our best to help you out getting the hang of how it all works!

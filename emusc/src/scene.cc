@@ -38,8 +38,6 @@
 #include <iostream>
 #include <cmath>
 
-#include "scene.moc"
-
 
 Scene::Scene(Emulator *emulator, QWidget *parent)
   : _emulator(emulator),

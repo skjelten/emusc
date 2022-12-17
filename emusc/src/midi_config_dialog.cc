@@ -32,8 +32,6 @@
 #include <QSettings>
 #include <QString>
 
-#include "midi_config_dialog.moc"
-
 
 MidiConfigDialog::MidiConfigDialog(QWidget *parent)
   : QDialog{parent}

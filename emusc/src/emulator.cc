@@ -38,8 +38,6 @@
 #include "midi_input_keyboard.h"
 #include "midi_input_win32.h"
 
-#include "emulator.moc"
-
 
 Emulator::Emulator(void)
   : _emuscControlRom(NULL),

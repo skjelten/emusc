@@ -33,8 +33,6 @@
 #include <QTableView>
 #include <QStandardItemModel>
 
-#include "control_rom_info_dialog.moc"
-
 
 ControlRomInfoDialog::ControlRomInfoDialog(Emulator *emulator, QWidget *parent)
   : QDialog{parent}

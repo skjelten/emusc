@@ -31,8 +31,6 @@
 #include <QTabWidget>
 #include <QSettings>
 
-#include "rom_config_dialog.moc"
-
 
 RomConfigDialog::RomConfigDialog(Emulator *emulator, QWidget *parent)
   : QDialog{parent},

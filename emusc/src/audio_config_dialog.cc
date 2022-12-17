@@ -34,8 +34,6 @@
 #include <QString>
 #include <QIntValidator>
 
-#include "audio_config_dialog.moc"
-
 
 AudioConfigDialog::AudioConfigDialog(QWidget *parent)
   : QDialog{parent}

@@ -1,0 +1,35 @@
+cmake_minimum_required(VERSION 3.8...3.24)
+
+configure_file(config.h.in config.h)
+
+add_library(emusc
+  ahdsr.cc
+  ahdsr.h
+  biquad_filter.cc
+  biquad_filter.h
+  control_rom.cc
+  control_rom.h
+  lowpass_filter.cc
+  lowpass_filter.h
+  note.cc
+  note.h
+  note_partial.cc
+  note_partial.h
+  part.cc
+  part.h
+  pcm_rom.cc
+  pcm_rom.h
+  riaa_filter.cc
+  riaa_filter.h
+  synth.cc
+  synth.h
+  tva.cc
+  tva.h
+  tvf.cc
+  tvf.h
+  tvp.cc
+  tvp.h)
+
+
+target_compile_features(emusc PUBLIC cxx_std_11)
+set_target_properties(emusc PROPERTIES CXX_EXTENSIONS OFF)

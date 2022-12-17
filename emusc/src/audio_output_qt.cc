@@ -28,8 +28,6 @@
 #include <QtEndian>
 #include <QDebug>
 
-#include "audio_output_qt.moc"
-
 
 AudioOutputQt::AudioOutputQt(EmuSC::Synth *synth)
   : _synth(synth),

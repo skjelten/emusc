@@ -48,9 +48,7 @@
 #include <QDebug>
 #include <QSettings>
 
-#include "../config.h"
-
-#include "main_window.moc"
+#include "config.h"
 
 
 MainWindow::MainWindow(QWidget *parent)
