@@ -119,7 +119,7 @@ int Part::get_num_partials(void)
 
 
 // Should mute => not accept key - or play silently in the background?
-int Part::add_note(uint8_t key, uint8_t velocity)
+int Part::add_note(uint8_t key, uint8_t keyVelocity)
 {
   // 1. Check if part is muted FIXME: Verify that this is correct behavior
   if (_mute)
@@ -137,7 +137,16 @@ int Part::add_note(uint8_t key, uint8_t velocity)
   if (drumSet >= 0 && !(_ctrlRom.drumSet(drumSet).flags[key] & 0x10))
     return 0;
 
-  // 4. Create new note and set default values (note: using pointers)
+  // 4. Calculate corrected key velocity based on velocity sens depth & offset
+  //    according to description in SC-55 owner's manual page 38
+  float v = keyVelocity * (_velSensDepth / 64.0);
+  if (_velSensOffset >= 64)
+    v += _velSensOffset - 64;
+  else
+    v *= (_velSensOffset + 64) / 127.0;
+  uint8_t velocity = (v <= 127) ? std::roundf(v) : 127;
+
+  // 5. Create new note and set default values (note: using pointers)
   Note *n = new Note(key, _synthKeyShift + _keyShift, velocity, instrumentIndex,
 		     drumSet, _ctrlRom, _pcmRom, _sampleRate);
   _notes.push_back(n);
