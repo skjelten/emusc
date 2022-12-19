@@ -146,6 +146,11 @@ int Part::add_note(uint8_t key, uint8_t keyVelocity)
     v *= (_velSensOffset + 64) / 127.0;
   uint8_t velocity = (v <= 127) ? std::roundf(v) : 127;
 
+  // 5. Remove all existing notes if part is in mono mode according to the
+  //    SC-55 owner's manual page 39
+  if (_polyMode == false && _mode == mode_Norm)
+    clear_all_notes();
+
   // 5. Create new note and set default values (note: using pointers)
   Note *n = new Note(key, _synthKeyShift + _keyShift, velocity, instrumentIndex,
 		     drumSet, _ctrlRom, _pcmRom, _sampleRate);
