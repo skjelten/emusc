@@ -33,7 +33,7 @@ namespace EmuSC {
 class TVA
 {
 public:
-  TVA(ControlRom::InstPartial instPartial, uint32_t sampleRate);
+  TVA(ControlRom::InstPartial instPartial, uint8_t key, uint32_t sampleRate);
   ~TVA();
 
   double get_amplification();
@@ -62,7 +62,7 @@ private:
   TVA();
 
   double _convert_volume(uint8_t volume);
-  double _convert_time_to_sec(uint8_t time);
+  double _convert_time_to_sec(uint8_t time, uint8_t key = 0);
 };
 
 }

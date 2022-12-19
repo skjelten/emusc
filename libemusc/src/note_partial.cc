@@ -69,7 +69,7 @@ NotePartial::NotePartial(uint8_t key, int8_t keyDiff, int drumSet,
   _tvf = new TVF(instPartial, sampleRate);
 
   // 3. Volume: Tremolo & TVA envelope
-  _tva = new TVA(instPartial, sampleRate);
+  _tva = new TVA(instPartial, key, sampleRate);
 }
 
 

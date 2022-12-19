@@ -26,7 +26,7 @@
 namespace EmuSC {
 
 
-TVA::TVA(ControlRom::InstPartial instPartial, uint32_t sampleRate)
+TVA::TVA(ControlRom::InstPartial instPartial, uint8_t key, uint32_t sampleRate)
   : _sampleRate(sampleRate),
     _finished(false),
     _ahdsr(NULL)
@@ -48,10 +48,10 @@ TVA::TVA(ControlRom::InstPartial instPartial, uint32_t sampleRate)
   phaseVolume[4] = 0;
 
   phaseDuration[0] = _convert_time_to_sec(instPartial.TVALenP1 & 0x7F);
-  phaseDuration[1] = _convert_time_to_sec(instPartial.TVALenP2 & 0x7F);
-  phaseDuration[2] = _convert_time_to_sec(instPartial.TVALenP3 & 0x7F);
-  phaseDuration[3] = _convert_time_to_sec(instPartial.TVALenP4 & 0x7F);
-  phaseDuration[4] = _convert_time_to_sec(instPartial.TVALenP5 & 0x7F); //Fixme
+  phaseDuration[1] = _convert_time_to_sec(instPartial.TVALenP2 & 0x7F, key);
+  phaseDuration[2] = _convert_time_to_sec(instPartial.TVALenP3 & 0x7F, key);
+  phaseDuration[3] = _convert_time_to_sec(instPartial.TVALenP4 & 0x7F, key);
+  phaseDuration[4] = _convert_time_to_sec(instPartial.TVALenP5 & 0x7F, key);
   phaseDuration[4] *= (instPartial.TVALenP5 & 0x80) ? 2 : 1;
 
   phaseShape[0] = (instPartial.TVALenP1 & 0x80) ? 0 : 1;
@@ -84,12 +84,12 @@ double TVA::_convert_volume(uint8_t volume)
 }
 
 
-double TVA::_convert_time_to_sec(uint8_t time)
+double TVA::_convert_time_to_sec(uint8_t time, uint8_t key)
 {
   if (time == 0)
     return 0;
 
-  return (pow(2.0, (double)(time) / 18.0) / 5.45 - 0.183);
+  return (pow(2.0, (double)(time) / 18.0) / 5.45 - 0.183) * (1 - (key / 128.0));
 }
 
 
