@@ -33,20 +33,8 @@ namespace EmuSC {
 
 class TVF
 {
-private:
-  AHDSR *_ahdsr;
-  LowPassFilter *_lpFilter;
-
-  ControlRom::InstPartial *_instPartial;
-
-  uint32_t _sampleRate;
-  
-  double _convert_time_to_sec(uint8_t time);
-
-  TVF();
-
 public:
-  TVF(ControlRom::InstPartial instPartial, uint32_t sampleRate);
+  TVF(ControlRom::InstPartial instPartial, uint8_t key, uint32_t sampleRate);
   ~TVF();
 
   double apply(double input);
@@ -54,6 +42,20 @@ public:
 
   inline bool finished(void) { if (_ahdsr) return _ahdsr->finished(); }
 
+private:
+  AHDSR *_ahdsr;
+  LowPassFilter *_lpFilter;
+
+  uint32_t _lpBaseFrequency;
+  float _lpResonance;
+
+  ControlRom::InstPartial *_instPartial;
+
+  uint32_t _sampleRate;
+  
+  TVF();
+
+  double _convert_time_to_sec(uint8_t time);
 };
 
 }

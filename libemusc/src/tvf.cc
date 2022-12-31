@@ -16,6 +16,16 @@
  *  along with libEmuSC. If not, see <http://www.gnu.org/licenses/>.
  */
 
+// NOTES:
+// Based on Kitrinx's research it seems like the static base filter is replaced
+// by the TVF envelope when present, and not combined as is quite common.
+// Base filter is reportedly ranging from ~500Hz at 1, to 'fully open' at 127.
+// It is also noted that the SC-55 seemingly suffer from hardware malfunction
+// if both the base filer and TVF envelope is set to 0 for a partial.
+
+// Based on the owner's manuals and online reviews is seems like the SC-55 and
+// SC-88 are based on low-pass filter only in their TVF.
+
 
 #include "tvf.h"
 
@@ -26,8 +36,9 @@
 namespace EmuSC {
 
 
-TVF::TVF(ControlRom::InstPartial instPartial, uint32_t sampleRate)
+TVF::TVF(ControlRom::InstPartial instPartial, uint8_t key, uint32_t sampleRate)
   : _sampleRate(sampleRate),
+    _lpFilter(NULL),
     _ahdsr(NULL)
 {
   /*
@@ -58,8 +69,31 @@ TVF::TVF(ControlRom::InstPartial instPartial, uint32_t sampleRate)
 //  _ahdsr->start();
 */
 
-//  _lpFilter = new LowPassFilter(sampleRate);
-//  _lpFilter->calculate_coefficients(1000, 0.707);// FIXME: Freq. & q (resonance)
+  // TODO: Replace this grossly approximate linear base frequency with a proper
+  //       function or LUT
+  _lpBaseFrequency = instPartial.TVFBaseFlt * 110;
+
+  if (!_lpBaseFrequency)
+    return;
+
+  // TODO: Figure out if the Sound Canvas has cutoff key follow on base filter
+  //       Assuming cutoff key follow with C4 (note 60) as 0 point
+  if (_lpBaseFrequency && key < 60)
+    _lpBaseFrequency -= (60 - key) * 2^(1/12);
+  else if (_lpBaseFrequency)
+    _lpBaseFrequency += (key - 60) * 2^(1/12);
+
+  // TODO: Figure out correct min / max resonance
+  //       Assuming ROM data spans at linear rate between 0.7 and 8.7
+  //       0.707 + (ROM / 128 * 8)
+  _lpResonance = 0.707 + instPartial.TVFResonance / 16.0;
+
+  _lpFilter = new LowPassFilter(sampleRate);
+  _lpFilter->calculate_coefficients(_lpBaseFrequency, _lpResonance);
+
+  if (0)
+    std::cout << "TVF (" << (int) key << "): freq=" << _lpBaseFrequency
+	      << " res=" << _lpResonance << std::endl;
 }
 
 
@@ -67,6 +101,9 @@ TVF::~TVF()
 {
   if (_ahdsr)
     delete _ahdsr;
+
+  if (_lpFilter)
+    delete _lpFilter;
 }
 
 
@@ -81,15 +118,23 @@ double TVF::_convert_time_to_sec(uint8_t time)
 
 double TVF::apply(double input)
 {
-//  if (_ahdsr)
-//    return _ahdsr->get_next_value();
-  double output = input;
+  double output;
 
-  // Disable low-pass filter
-  //output = _lpFilter->apply(input);
-  
+
+  // TODO: Add TVF envelope
+  if (_ahdsr) {
+//    return _ahdsr->get_next_value();
+
+  } else if (_lpBaseFrequency) {
+    output = _lpFilter->apply(input);
+
+  } else {
+    output = input;
+  }
+
   if (0)
-    std::cout << "TVF: input=" << input << " ,output=" << output << std::endl;
+    std::cout << "TVF: freq=" << _lpBaseFrequency
+	      << " res(Q)=" << _lpResonance << " => " << output << std::endl;
 
   return output;
 }

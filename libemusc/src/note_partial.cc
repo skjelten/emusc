@@ -35,7 +35,7 @@ NotePartial::NotePartial(uint8_t key, int8_t keyDiff, int drumSet,
     _ctrlSample(ctrlSample),
     _pcmSamples(pcmSamples),
     _drumSet(drumSet),
-    _samplePos(0),
+    _index(0),
     _sampleDir(1),
     _instPartial(instPartial),
     _ctrlRom(ctrlRom)
@@ -66,7 +66,7 @@ NotePartial::NotePartial(uint8_t key, int8_t keyDiff, int drumSet,
   _tvp = new TVP(instPartial, sampleRate);
 
   // 2. Filter: ?wah? & TVF envelope
-  _tvf = new TVF(instPartial, sampleRate);
+  _tvf = new TVF(instPartial, key, sampleRate);
 
   // 3. Volume: Tremolo & TVA envelope
   _tva = new TVA(instPartial, key, sampleRate);
@@ -97,8 +97,10 @@ void NotePartial::stop(void)
 
 // Pitch is the only variable input for a note's get_next_sample
 // Pitch < 0 => fixed pitch (e.g. for drums)
-bool NotePartial::get_next_sample(float *noteSample, float pitchBend)
+bool NotePartial::get_next_sample(float *noteSample, float pitchBend, float modWheel)
 {
+  int nextIndex;
+
   // Terminate this partial if its TVA envelope is finished
   if  (_tva->finished())
     return 1;
@@ -106,7 +108,7 @@ bool NotePartial::get_next_sample(float *noteSample, float pitchBend)
   // Update sample position going in forward direction
   if (_sampleDir == 1) {
     if (0)
-      std::cout << "-> FW " << std::dec << "pos=" << (int)_samplePos
+      std::cout << "-> FW " << std::dec << "pos=" << (int)_index
 		<< " sLength=" << (int) _ctrlSample.sampleLen
 		<< " lpMode=" << (int) _ctrlSample.loopMode
 		<< " lpLength=" << _ctrlSample.loopLen
@@ -114,59 +116,86 @@ bool NotePartial::get_next_sample(float *noteSample, float pitchBend)
 
     // Update partial sample position based on pitch input
     // FIXME: Should drumsets be modified by pitch bend messages?
-    _samplePos += exp(_keyDiff * (log(2)/12)) * pitchBend * _instPitchTune *
-      _sampleFactor * _tvp->get_pitch();
+    _index += exp(_keyDiff * (log(2)/12)) * pitchBend * _instPitchTune *
+      _sampleFactor * _tvp->get_pitch(modWheel);
 
     // Check for sample position passing sample boundary
-    if (_samplePos >= _ctrlSample.sampleLen) {
+    if (_index >= _ctrlSample.sampleLen) {
 
-      // Keep track of correct samplePos switching samplePos
-      float remaining = _ctrlSample.sampleLen - _samplePos;
+      // Keep track of correct sample index when switching sample direction
+      float remaining = _ctrlSample.sampleLen - _index;
 
       // loopMode == 0 => Forward only w/loop jump back "loopLen + 1"
       if (_ctrlSample.loopMode == 0) {
-	_samplePos = _ctrlSample.sampleLen - _ctrlSample.loopLen - 1 +remaining;
+	_index = _ctrlSample.sampleLen - _ctrlSample.loopLen - 1 + remaining;
 
-	// loopMode == 1 => Forward-backward. Start moving backwards
+      // loopMode == 1 => Forward-backward. Start moving backwards
       } else if (_ctrlSample.loopMode == 1) {
-	_samplePos = _ctrlSample.sampleLen - remaining - 1;
+	_index = _ctrlSample.sampleLen - remaining - 1;
 	_sampleDir = 0;                                // Turn backward
 
-	// loopMode == 2 => Forward-stop. End playback
+      // loopMode == 2 => Forward-stop. End playback
       } else if (_ctrlSample.loopMode == 2) {
-	if (_samplePos >=_ctrlSample.sampleLen)
+	if (_index >=_ctrlSample.sampleLen)
 	  return 1;                 // Terminate this partial
       }
+    }
+
+    // Find next index for linear interpolation and adjust if at end of sample
+    nextIndex = (int) _index + 1;
+    if (nextIndex >= _ctrlSample.sampleLen) {
+      if (_ctrlSample.loopMode == 0)
+	nextIndex = _ctrlSample.sampleLen - _ctrlSample.loopLen - 1;
+      else if (_ctrlSample.loopMode == 1)
+	nextIndex = _ctrlSample.sampleLen - 1;
+      else if (_ctrlSample.loopMode == 2)
+	nextIndex = _ctrlSample.sampleLen;
     }
 
   // Update sample position going in backward direction
   } else {   // => _sampleDir == 0
     if (0)
-      std::cout << "<- BW " << std::dec << "pos=" << (int) _samplePos
+      std::cout << "<- BW " << std::dec << "pos=" << (int) _index
 		<< " length=" << (int) _ctrlSample.sampleLen 
 		<< std::endl;
 
     // Update partial sample position based on pitch input
     // FIXME: Should drumsets be modified by pitch bend messages?
-    _samplePos -= exp(_keyDiff * (log(2)/12)) * pitchBend * _instPitchTune *
-      _sampleFactor * _tvp->get_pitch();
+    _index -= exp(_keyDiff * (log(2)/12)) * pitchBend * _instPitchTune *
+      _sampleFactor * _tvp->get_pitch(modWheel);
 
     // Check for sample position passing sample boundary
-    if (_samplePos <= _ctrlSample.sampleLen - _ctrlSample.loopLen - 1) {
+    if (_index < _ctrlSample.sampleLen - _ctrlSample.loopLen - 1) {
 
       // Keep track of correct position switching position
-      int remaining =
-	_ctrlSample.sampleLen - _ctrlSample.loopLen - 1 - _samplePos;
+      float remaining = _ctrlSample.sampleLen - _ctrlSample.loopLen - 1 -_index;
 
       // Start moving forward
-      _samplePos = _ctrlSample.sampleLen - _ctrlSample.loopLen - 1 + remaining;
+      _index = _ctrlSample.sampleLen - _ctrlSample.loopLen - 1 + remaining;
       _sampleDir = 1;
     }
+
+    // Find next index for linear interpolation and adjust if at start of sample
+    nextIndex = (int) _index - 1;
+    if (nextIndex < _ctrlSample.sampleLen - _ctrlSample.loopLen - 1)
+      nextIndex = _ctrlSample.sampleLen - _ctrlSample.loopLen - 1;
   }
 
-  // Temporary samples for LEFT and RIGHT channel
-  float sample[2] = {0, 0};
-  sample[0] = _pcmSamples[(int) _samplePos];
+  // Temporary samples for LEFT, RIGHT channel
+  double sample[2] = {0, 0};
+
+  // Calculate linear interpolation of PCM sample
+  double fractionNext;
+  double fractionPrev;
+  if (_sampleDir) {                                 // Moving forward in sample
+    fractionNext = _index - ((int) _index);
+    fractionPrev = 1.0 - fractionNext;
+  } else {                                          // Moving backwards
+    fractionPrev = _index - ((int) _index);
+    fractionNext = 1.0 - fractionPrev;
+  }
+  sample[0] = fractionPrev * _pcmSamples[(int) _index] +
+              fractionNext * _pcmSamples[nextIndex];
 
   // Calculate volume correction from sample definition (7f - 0)
   double sampleVol = _convert_volume(_ctrlSample.volume +

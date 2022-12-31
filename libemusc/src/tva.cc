@@ -28,13 +28,18 @@ namespace EmuSC {
 
 TVA::TVA(ControlRom::InstPartial instPartial, uint8_t key, uint32_t sampleRate)
   : _sampleRate(sampleRate),
+    _LFO(sampleRate),
     _finished(false),
     _ahdsr(NULL)
 {
-  // Tremolo
-  _LFODepth = instPartial.TVALFODepth;
-  _LFOFrequency = 10;                        // FIXME!!
-  
+  // TODO: Figure out how the sine wave for amplitude modulation is found on the
+  //       Sound Canvas. In the meantime utilize a simple wavetable with 5Hz.
+  _LFO.set_frequency(5);
+
+  // TODO: Find LUT or formula for using amplitude LFO Depth. For now just
+  //       using a static approximation.
+  _LFODepth = (instPartial.TVALFODepth & 0x7f) / 128.0;
+
   // TVA (volume) envelope
   double phaseVolume[5];        // Phase volume for phase 1-5
   double phaseDuration[5];      // Phase duration for phase 1-5
@@ -95,24 +100,27 @@ double TVA::_convert_time_to_sec(uint8_t time, uint8_t key)
 
 double TVA::get_amplification(void)
 {
-  /* LFO hack -Tremolo
-  float x = 1.0 / (float) _sampleRate;
-  _readPointer += _sinus.size() * _LFOFrequency * x;
-  while(_readPointer >= _sinus.size())
-    _readPointer -= _sinus.size();
+  // LFO / tremolo hack
+  // TODO: Figure out how the LFOs are implemented and used on the Sound Canvas
+  //       3 LFOs, one for TVP/F/A? 6 LFOs due to individual partials?
+  //       Sound tests indicates that individual notes even on the same MIDI
+  //       channel are out of phase.. unlimited number of LFOs? And how does
+  //       this relate to LFO1 & LFO2 as referred to in the SysEx implementation
+  //       chart?
 
-  double tremolo = (double) _sinus[(int) _readPointer] / 128.0 * (_LFODepth / 32.0);
+  // For now just use a simple sine wavetable class for tremolo; one instance
+  // per tvp/f/a per partial.
+  double tremolo = (double) _LFO.next_sample() * _LFODepth;
 
-// if (tremolo)
-//  std::cout << "TREMOLO:" << tremolo << " og depth:" << (int) _LFODepth << std::endl;
-*/
+  if (0)
+    std::cout << "Tremolo = " << tremolo << "  depth = " << (int) _LFODepth
+	      << std::endl;
 
   // Volume envelope
   double volEnvelope = 0;
   if (_ahdsr)
     volEnvelope = _ahdsr->get_next_value();
 
-  double tremolo=0; // Disable tremolo for now
   return tremolo + volEnvelope;
 }
 

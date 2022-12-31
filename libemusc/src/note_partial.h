@@ -44,7 +44,7 @@ private:
 
   std::vector<float> &_pcmSamples;
 
-  float _samplePos;       // Sample position in number of samples from start
+  float _index;           // Sample position in number of samples from start
   bool _sampleDir;        // 0 = backward & 1 = foreward
 
   ControlRom &_ctrlRom;
@@ -67,7 +67,7 @@ public:
   ~NotePartial();
 
   void stop(void);
-  bool get_next_sample(float *sampleOut, float pitchBend);
+  bool get_next_sample(float *sampleOut, float pitchBend, float modWheel);
 
 };
 

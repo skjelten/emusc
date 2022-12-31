@@ -61,7 +61,7 @@ int Part::get_next_sample(float *sampleOut)
   // Get next sample from active notes, delete those which are finished
   std::list<Note*>::iterator itr = _notes.begin();
   while (itr != _notes.end()) {
-    bool finished = (*itr)->get_next_sample(partSample, _pitchBend);
+    bool finished = (*itr)->get_next_sample(partSample, _pitchBend, _modWheel);
 
     if (finished) {
 //      std::cout << "Both partials have finished -> delete note" << std::endl;
@@ -293,6 +293,10 @@ int Part::set_control(enum ControlMsg m, uint8_t value)
     _volume = value;
   } else if (m == cmsg_ModWheel) {
     _modulation = value;
+
+    // TODO: Figure out a proper way to calculate modWheel pitch value and
+    //       where this calculation should be done
+    _modWheel = value * 0.0003;
   } else if (m == cmsg_Pan) {
     _pan = (value == 0) ? 1 : value;
   } else if (m == cmsg_Expression) {

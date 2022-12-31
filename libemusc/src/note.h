@@ -46,7 +46,7 @@ public:
   ~Note();
 
   bool stop(uint8_t key);
-  bool get_next_sample(float *sampleOut, float pitchBend);
+  bool get_next_sample(float *sampleOut, float pitchBend, float modWheel);
   int get_num_partials(void);
 
 };

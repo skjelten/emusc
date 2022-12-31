@@ -147,6 +147,7 @@ private:
   uint16_t _masterFineTuning; // [0 - 0x4000] Default 0x2000
   uint8_t _masterCoarseTuning;// [0 - 0x7f] Default 0x40
   float _pitchBend;
+  float _modWheel;
 
   const double _7bScale;      // Constant: 1 / 127
 

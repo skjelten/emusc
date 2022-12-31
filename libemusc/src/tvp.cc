@@ -28,7 +28,9 @@ namespace EmuSC {
 
 TVP::TVP(ControlRom::InstPartial instPartial, uint32_t sampleRate)
   : _sampleRate(sampleRate),
-    _ahdsr(NULL)
+    _LFO(sampleRate),
+    _ahdsr(NULL),
+    _fade(0)
 {
   /*
   double phasePitch[5];         // Phase volume for phase 1-5
@@ -57,14 +59,19 @@ TVP::TVP(ControlRom::InstPartial instPartial, uint32_t sampleRate)
 //  _ahdsr = new AHDSR(phasePitch, phaseDuration, phaseShape, sampleRate);
 //  _ahdsr->start();
 
-  // TODO: tremolo / LFO
+  // TODO: Figure out how the sine wave for pitch modulation is found on the
+  //       Sound Canvas. In the meantime utilize a simple wavetable with 6Hz.
+  _LFO.set_frequency(6);
 
-  _LFODepth = instPartial.TVPLFODepth;
-
-  _frequency = 5;
-
-  _readPointer = 0;
-  
+  // TODO: Find LUT or formula for using Pitch LFO Depth. For now just using a
+  //       static approximation.
+  _LFODepth = (instPartial.TVPLFODepth & 0x7f) * 0.0009;
+  std::cout << "LFODepth = " << _LFODepth << std::endl;
+  // TODO: Figure out where the control data for controlling vibrato delay and
+  //       fade-in. In the meantime use static no delay and 1s for fade-in.
+  _delay = 0;//sampleRate / 2;
+  _fadeIn = sampleRate;
+  _fadeInStep = 1.0 / _fadeIn;
 }
 
 
@@ -83,36 +90,40 @@ double TVP::_convert_time_to_sec(uint8_t time)
 }
 
 
-double TVP::get_pitch(void)
+double TVP::get_pitch(float modWheel)
 {
-  // Disable TVP - work in progress
-  return 1;
+  // LFO hack
+  // TODO: Figure out how the LFOs are implemented and used on the Sound Canvas
+  //       3 LFOs, one for TVP/F/A? 6 LFOs due to individual partials?
+  //       Sound tests indicates that individual notes even on the same MIDI
+  //       channel are out of phase -> unlimited number of LFOs? And how does
+  //       this relate to LFO1 & LFO2 as referred to in the SysEx implementation
+  //       chart?
 
+  // For now just use a simple sine wavetable class; one instance per tvp/f/a
+  // per partial.
 
-  // LFO hack -> vibrato
-  float x = 1.0 / (float) _sampleRate;
-  _readPointer += _sinus.size() * _frequency * x;
-  while(_readPointer >= _sinus.size())
-    _readPointer -= _sinus.size();
+  double vibrato;
+  if (_delay > 0) {                                         // Delay
+    _delay--;
+    vibrato = 1;
 
-  //  std::cout << "LFO Depth=" << (int) _LFODepth << std::endl;
+  } else if (_fadeIn > 0) {                                 // Fade in
+    _fadeIn--;
+    _fade += _fadeInStep;
+    vibrato = 1 + (_LFO.next_sample() * ((_LFODepth * _fade) + modWheel));
 
-  // Vibrato
-  double vibratoLFO = (double) _sinus[(int) _readPointer] / 128.0 * _LFODepth;
-  double v = exp((vibratoLFO) * 2 * log(2) / 1200);
+  } else {                                                  // Full vibrato
+    vibrato = 1 + (_LFO.next_sample() * (_LFODepth + modWheel));
+  }
 
-  static int k = 0;
-//  if (k++ < 20)
-//  std::cout << "t=" << t << " vLFODepth=" << (int) _LFODepth << std::endl;
-  
-  // Envelope
-//  double e = _ahdsr->get_next_value();
-
+  // TODO: Implement pitch envelope
+  //  double e = _ahdsr->get_next_value();
   
   if (0)
-    std::cout << "v=" << v << std::endl;
+    std::cout << "v=" << vibrato << ", mw=" << modWheel << std::endl;
 
-  return v;
+  return vibrato;
 }
 
 
