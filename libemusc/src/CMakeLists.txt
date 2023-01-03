@@ -34,4 +34,5 @@ add_library(emusc
 
 
 target_compile_features(emusc PUBLIC cxx_std_11)
+target_include_directories(emusc PUBLIC "${CMAKE_CURRENT_BINARY_DIR}")
 set_target_properties(emusc PROPERTIES CXX_EXTENSIONS OFF)
