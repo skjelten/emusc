@@ -23,6 +23,7 @@
 #include "midi_config_dialog.h"
 #include "control_rom_info_dialog.h"
 #include "scene.h"
+#include "synth_dialog.h"
 
 #include <iostream>
 
@@ -59,34 +60,8 @@ MainWindow::MainWindow(QWidget *parent)
 {
   resize(1150, 280);
 
-  QMenu *fileMenu = menuBar()->addMenu("&File");
-  QAction *quitAct = new QAction("&Quit", this);
-  quitAct->setShortcut(tr("CTRL+Q"));
-  fileMenu->addAction(quitAct);
-
-  QMenu *toolsMenu = menuBar()->addMenu("&Tools");
-  QAction *dumpSongsAct = new QAction("&Dump MIDI files to disk", this);
-  toolsMenu->addAction(dumpSongsAct);
-  _viewCtrlRomDataAct = new QAction("&View control ROM data", this);
-  toolsMenu->addAction(_viewCtrlRomDataAct);
-  _allSoundsOffAct = new QAction("&Send 'All sounds off'", this);
-  _allSoundsOffAct->setEnabled(false);
-  toolsMenu->addAction(_allSoundsOffAct);
-
-  QMenu *optionsMenu = menuBar()->addMenu("&Options");
-  _audioAct = new QAction("&Audio Configuration...", this);
-  _audioAct->setShortcut(tr("CTRL+A"));
-  optionsMenu->addAction(_audioAct);
-  _midiAct = new QAction("&MIDI Configuration...", this);
-  _midiAct->setShortcut(tr("CTRL+M"));
-  optionsMenu->addAction(_midiAct);
-  _romAct = new QAction("&ROM Configuration...", this);
-  _romAct->setShortcut(tr("CTRL+R"));
-  optionsMenu->addAction(_romAct);
-
-  QMenu *helpMenu = menuBar()->addMenu("&Help");
-  QAction *aboutAct = new QAction("&About", this);
-  helpMenu->addAction(aboutAct);
+  _create_actions();
+  _create_menus();
 
   _emulator = new Emulator();
   _scene = new Scene(_emulator, this);
@@ -114,24 +89,10 @@ MainWindow::MainWindow(QWidget *parent)
       _emulator->load_pcm_rom(pcmRomPaths);
     } catch (QString errorMsg) { std::cout << "Do nothing" << std::endl; }
   }
-  _viewCtrlRomDataAct->setEnabled(_emulator->has_valid_control_rom());
-  statusBar()->hide();
 
-  connect(quitAct, &QAction::triggered, this, &QApplication::quit);
-  connect(_audioAct, &QAction::triggered,
-	  this, &MainWindow::_display_audio_dialog);
-  connect(_midiAct, &QAction::triggered,
-	  this, &MainWindow::_display_midi_dialog);
-  connect(_romAct, &QAction::triggered,
-	  this, &MainWindow::_display_rom_dialog);
-  connect(aboutAct, &QAction::triggered,
-	  this, &MainWindow::_display_about_dialog);
-  connect(dumpSongsAct, &QAction::triggered,
-	  this, &MainWindow::_dump_demo_songs);
-  connect(_viewCtrlRomDataAct, &QAction::triggered,
-	  this, &MainWindow::_display_control_rom_info);
-  connect(_allSoundsOffAct, &QAction::triggered,
-	  this, &MainWindow::_send_all_sounds_off);
+  _viewCtrlRomDataAct->setEnabled(_emulator->has_valid_control_rom());
+
+  statusBar()->hide();
 
   setCentralWidget(gView);
 
@@ -153,6 +114,90 @@ void MainWindow::cleanUp()
 }
 
 
+void MainWindow::_create_actions(void)
+{
+  _quitAct = new QAction("&Quit", this);
+  _quitAct->setShortcut(tr("CTRL+Q"));
+  connect(_quitAct, &QAction::triggered, this, &QApplication::quit);
+
+  _dumpSongsAct = new QAction("&Dump MIDI files to disk", this);
+  connect(_dumpSongsAct, &QAction::triggered,
+	  this, &MainWindow::_dump_demo_songs);
+
+  _viewCtrlRomDataAct = new QAction("&View control ROM data", this);
+  connect(_viewCtrlRomDataAct, &QAction::triggered,
+	  this, &MainWindow::_display_control_rom_info);
+
+  _allSoundsOffAct = new QAction("&Send 'All sounds off'", this);
+  _allSoundsOffAct->setEnabled(false);
+  connect(_allSoundsOffAct, &QAction::triggered,
+	  this, &MainWindow::_send_all_sounds_off);
+
+  _synthSettingsAct = new QAction("&Settings...", this);
+  _synthSettingsAct->setShortcut(tr("CTRL+S"));
+  _synthSettingsAct->setEnabled(false);
+  connect(_synthSettingsAct, &QAction::triggered,
+	  this, &MainWindow::_display_synth_dialog);
+
+  _GSmodeAct = new QAction("&GS mode", this);
+  _GSmodeAct->setCheckable(true);
+  _MT32modeAct = new QAction("&MT32 mode", this);
+  _MT32modeAct->setCheckable(true);
+
+  _modeGroup = new QActionGroup(this);
+  _modeGroup->addAction(_GSmodeAct);
+  _modeGroup->addAction(_MT32modeAct);
+  _GSmodeAct->setChecked(true);
+
+  _audioAct = new QAction("&Audio Configuration...", this);
+  _audioAct->setShortcut(tr("CTRL+A"));
+  connect(_audioAct, &QAction::triggered,
+	  this, &MainWindow::_display_audio_dialog);
+
+  _midiAct = new QAction("&MIDI Configuration...", this);
+  _midiAct->setShortcut(tr("CTRL+M"));
+  connect(_midiAct, &QAction::triggered,
+	  this, &MainWindow::_display_midi_dialog);
+
+  _romAct = new QAction("&ROM Configuration...", this);
+  _romAct->setShortcut(tr("CTRL+R"));
+  connect(_romAct, &QAction::triggered,
+	  this, &MainWindow::_display_rom_dialog);
+
+  _aboutAct = new QAction("&About", this);
+  connect(_aboutAct, &QAction::triggered,
+	  this, &MainWindow::_display_about_dialog);
+}
+
+
+void MainWindow::_create_menus(void)
+{
+  _fileMenu = menuBar()->addMenu("&File");
+  _fileMenu->addAction(_quitAct);
+
+  _toolsMenu = menuBar()->addMenu("&Tools");
+  _toolsMenu->addAction(_dumpSongsAct);
+  _toolsMenu->addAction(_viewCtrlRomDataAct);
+  _toolsMenu->addAction(_allSoundsOffAct);
+
+  _synthMenu = menuBar()->addMenu("&Synth");
+  _synthMenu->addAction(_synthSettingsAct);
+
+  // TODO: Add SC-88 modes
+  _synthModeMenu = _synthMenu->addMenu("Mode");
+  _synthModeMenu->addAction(_GSmodeAct);
+  _synthModeMenu->addAction(_MT32modeAct);
+
+  _optionsMenu = menuBar()->addMenu("&Options");
+  _optionsMenu->addAction(_audioAct);
+  _optionsMenu->addAction(_midiAct);
+  _optionsMenu->addAction(_romAct);
+
+  _helpMenu = menuBar()->addMenu("&Help");
+  _helpMenu->addAction(_aboutAct);
+}
+
+
 void MainWindow::_display_audio_dialog()
 {
   AudioConfigDialog *audioDialog = new AudioConfigDialog();
@@ -171,6 +216,14 @@ void MainWindow::_display_rom_dialog()
 {
   RomConfigDialog *romDialog = new RomConfigDialog(_emulator);
   romDialog->show();
+}
+
+
+void MainWindow::_display_synth_dialog()
+{
+  SynthDialog *synthDialog = new SynthDialog(_emulator);
+  synthDialog->setModal(false);
+  synthDialog->show();
 }
 
 
@@ -209,6 +262,7 @@ void MainWindow::power_switch(int newPowerState)
     }
 
     _allSoundsOffAct->setDisabled(false);
+    _synthSettingsAct->setDisabled(false);
     _audioAct->setDisabled(true);
     _midiAct->setDisabled(true);
     _romAct->setDisabled(true);
@@ -222,7 +276,10 @@ void MainWindow::power_switch(int newPowerState)
 
     _emulator->stop();
 
+    // TODO: Force close synth settings dialog
+
     _allSoundsOffAct->setDisabled(true);
+    _synthSettingsAct->setDisabled(true);
     _audioAct->setDisabled(false);
     _midiAct->setDisabled(false);
     _romAct->setDisabled(false);

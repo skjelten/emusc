@@ -36,8 +36,9 @@
 namespace EmuSC {
 
 
-TVF::TVF(ControlRom::InstPartial instPartial, uint8_t key, uint32_t sampleRate)
-  : _sampleRate(sampleRate),
+TVF::TVF(ControlRom::InstPartial &instPartial, uint8_t key, Settings *settings,
+	 int8_t partId)
+  : _sampleRate(settings->get_param_uint32(SystemParam::SampleRate)),
     _lpFilter(NULL),
     _ahdsr(NULL)
 {
@@ -68,6 +69,14 @@ TVF::TVF(ControlRom::InstPartial instPartial, uint8_t key, uint32_t sampleRate)
 //  _ahdsr = new AHDSR(phaseLevel, phaseDuration, phaseShape, sampleRate);
 //  _ahdsr->start();
 */
+  // TODO: Add calculations for TVF cutoff freq. and resonance
+  // -> partSettings[(int) SysExPart::TVFcutofFreq] - 0x40)
+  // -> partSettings[(int) SysExPart::TVFresonance] - 0x40)
+
+  // TODO: Add envelope adjustments TVF attack, decay and release
+  // -> partSettings[(int) SysExPart::TVFAenvAttack]  - 0x40)
+  // -> partSettings[(int) SysExPart::TVFAenvDecay]   - 0x40)
+  // -> partSettings[(int) SysExPart::TVFAenvRelease] - 0x40)
 
   // TODO: Replace this grossly approximate linear base frequency with a proper
   //       function or LUT
@@ -88,7 +97,7 @@ TVF::TVF(ControlRom::InstPartial instPartial, uint8_t key, uint32_t sampleRate)
   //       0.707 + (ROM / 128 * 8)
   _lpResonance = 0.707 + instPartial.TVFResonance / 16.0;
 
-  _lpFilter = new LowPassFilter(sampleRate);
+  _lpFilter = new LowPassFilter(_sampleRate);
   _lpFilter->calculate_coefficients(_lpBaseFrequency, _lpResonance);
 
   if (0)

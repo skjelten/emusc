@@ -24,8 +24,11 @@
 #include "control_rom.h"
 #include "lowpass_filter.h"
 #include "ahdsr.h"
+#include "settings.h"
 
 #include <stdint.h>
+
+#include <array>
 
 
 namespace EmuSC {
@@ -34,7 +37,8 @@ namespace EmuSC {
 class TVF
 {
 public:
-  TVF(ControlRom::InstPartial instPartial, uint8_t key, uint32_t sampleRate);
+  TVF(ControlRom::InstPartial &instPartial, uint8_t key, Settings *settings,
+      int8_t partId);
   ~TVF();
 
   double apply(double input);
@@ -43,6 +47,8 @@ public:
   inline bool finished(void) { if (_ahdsr) return _ahdsr->finished(); }
 
 private:
+  uint32_t _sampleRate;
+
   AHDSR *_ahdsr;
   LowPassFilter *_lpFilter;
 
@@ -50,8 +56,6 @@ private:
   float _lpResonance;
 
   ControlRom::InstPartial *_instPartial;
-
-  uint32_t _sampleRate;
   
   TVF();
 

@@ -26,9 +26,10 @@
 namespace EmuSC {
 
 
-TVA::TVA(ControlRom::InstPartial instPartial, uint8_t key, uint32_t sampleRate)
-  : _sampleRate(sampleRate),
-    _LFO(sampleRate),
+TVA::TVA(ControlRom::InstPartial &instPartial, uint8_t key, Settings *settings,
+	 int8_t partId)
+  : _sampleRate(settings->get_param_uint32(SystemParam::SampleRate)),
+    _LFO(_sampleRate),
     _finished(false),
     _ahdsr(NULL)
 {
@@ -65,8 +66,13 @@ TVA::TVA(ControlRom::InstPartial instPartial, uint8_t key, uint32_t sampleRate)
   phaseShape[3] = (instPartial.TVALenP4 & 0x80) ? 0 : 1;
   phaseShape[4] = (instPartial.TVALenP5 & 0x80) ? 0 : 1;
 
-  _ahdsr = new AHDSR(phaseVolume, phaseDuration, phaseShape, sampleRate);
+  _ahdsr = new AHDSR(phaseVolume, phaseDuration, phaseShape, _sampleRate);
   _ahdsr->start();
+
+  // TODO: Add envelope adjustments TVF attack, decay and release
+  // -> partSettings[(int) SysExPart::TVFAenvAttack]  - 0x40)
+  // -> partSettings[(int) SysExPart::TVFAenvDecay]   - 0x40)
+  // -> partSettings[(int) SysExPart::TVFAenvRelease] - 0x40)
 }
 
 

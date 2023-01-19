@@ -24,8 +24,11 @@
 #include "control_rom.h"
 #include "pcm_rom.h"
 #include "note_partial.h"
+#include "settings.h"
 
 #include <stdint.h>
+
+#include <array>
 
 
 namespace EmuSC {
@@ -42,7 +45,8 @@ private:
   
 public:
   Note(uint8_t key, int8_t keyShift, uint8_t velocity, uint16_t instrument,
-       int drum, ControlRom &ctrlRom, PcmRom &pcmRom, uint32_t sampleRate);
+       int drum, ControlRom &ctrlRom, PcmRom &pcmRom, Settings *settings,
+       int8_t partId);
   ~Note();
 
   bool stop(uint8_t key);

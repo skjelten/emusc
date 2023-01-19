@@ -827,5 +827,60 @@ void Scene::keyPressEvent(QKeyEvent *keyEvent)
 
   } else if (keyEvent->key() == Qt::Key_Space) {
     _powerButton->click();
+
+  } else if (keyEvent->key() == Qt::Key_Z) {
+    _emulator->play_note(60, 120);
+  } else if (keyEvent->key() == Qt::Key_S) {
+    _emulator->play_note(61, 120);
+  } else if (keyEvent->key() == Qt::Key_X) {
+    _emulator->play_note(62, 120);
+  } else if (keyEvent->key() == Qt::Key_D) {
+    _emulator->play_note(63, 120);
+  } else if (keyEvent->key() == Qt::Key_C) {
+    _emulator->play_note(64, 120);
+  } else if (keyEvent->key() == Qt::Key_V) {
+    _emulator->play_note(65, 120);
+  } else if (keyEvent->key() == Qt::Key_G) {
+    _emulator->play_note(66, 120);
+  } else if (keyEvent->key() == Qt::Key_B) {
+    _emulator->play_note(67, 120);
+  } else if (keyEvent->key() == Qt::Key_H) {
+    _emulator->play_note(68, 120);
+  } else if (keyEvent->key() == Qt::Key_N) {
+    _emulator->play_note(69, 120);
+  } else if (keyEvent->key() == Qt::Key_J) {
+    _emulator->play_note(70, 120);
+  } else if (keyEvent->key() == Qt::Key_M) {
+    _emulator->play_note(71, 120);
+  }
+}
+
+
+void Scene::keyReleaseEvent(QKeyEvent *keyEvent)
+{
+  if (keyEvent->key() == Qt::Key_Z) {
+    _emulator->play_note(60, 0);
+  } else if (keyEvent->key() == Qt::Key_S) {
+    _emulator->play_note(61, 0);
+  } else if (keyEvent->key() == Qt::Key_X) {
+    _emulator->play_note(62, 0);
+  } else if (keyEvent->key() == Qt::Key_D) {
+    _emulator->play_note(63, 0);
+  } else if (keyEvent->key() == Qt::Key_C) {
+    _emulator->play_note(64, 0);
+  } else if (keyEvent->key() == Qt::Key_V) {
+    _emulator->play_note(65, 0);
+  } else if (keyEvent->key() == Qt::Key_G) {
+    _emulator->play_note(66, 0);
+  } else if (keyEvent->key() == Qt::Key_B) {
+    _emulator->play_note(67, 0);
+  } else if (keyEvent->key() == Qt::Key_H) {
+    _emulator->play_note(68, 0);
+  } else if (keyEvent->key() == Qt::Key_N) {
+    _emulator->play_note(69, 0);
+  } else if (keyEvent->key() == Qt::Key_J) {
+    _emulator->play_note(70, 0);
+  } else if (keyEvent->key() == Qt::Key_M) {
+    _emulator->play_note(71, 0);
   }
 }

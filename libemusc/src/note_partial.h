@@ -22,6 +22,7 @@
 
 
 #include "control_rom.h"
+#include "settings.h"
 #include "tva.h"
 #include "tvf.h"
 #include "tvp.h"
@@ -63,7 +64,7 @@ public:
   NotePartial(uint8_t key, int8_t keyDiff, int drumSet,
 	      struct ControlRom::InstPartial &instPartial,
 	      struct ControlRom::Sample &sample, std::vector<float> &pcmSamples,
-	      ControlRom &ctrlRom, uint32_t sampleRate);
+	      ControlRom &ctrlRom, Settings *settings, int8_t partId);
   ~NotePartial();
 
   void stop(void);

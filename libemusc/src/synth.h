@@ -22,8 +22,10 @@
 
 
 #include "control_rom.h"
+#include "params.h"
 #include "pcm_rom.h"
 
+#include <array>
 #include <functional>
 #include <mutex>
 #include <string>
@@ -44,13 +46,16 @@
  * Audio samples are extracted by calling the get_next_sample() method. This
  * is typically done from a callback function triggered by the OS audio
  * driver when the audio buffer is running low.
+ *
+ * All settings are configured through the Settings class.
  */
 
 
 namespace EmuSC {
 
 class Part;
-  
+class Settings;
+
 class Synth
 {
 public:
@@ -64,12 +69,15 @@ public:
   Synth(ControlRom &cRom, PcmRom &pRom, Mode mode = scm_GS);
   ~Synth();
 
+  // Add start() and stop()? Won't start if sampleRate is not set?
+
   void midi_input(uint8_t status, uint8_t data1, uint8_t data2);
   void midi_input_sysex(uint8_t *data, uint16_t length);
 
   int get_next_sample(int16_t *sample);
   std::vector<float> get_parts_last_peak_sample(void);
 
+  // Setting audio properties (default is 44100, 2)
   void set_audio_format(uint32_t sampleRate, uint8_t channels);
 
   void reset(bool resetParts = false);
@@ -86,63 +94,43 @@ public:
   // Unute all parts
   void unmute_parts(std::vector<uint8_t> parts);
 
-  // System wide settings that affects all parts
-  uint8_t volume(void) { return _volume; }
-  void set_volume(uint8_t value) { _volume = (value > 127) ? 127 : value; }
-
-  uint8_t pan(void) { return _pan; }
-  void set_pan(uint8_t value) { _pan = (value > 127) ? 127 : value; }
-
-  uint8_t reverb(void) { return _reverb; };
-  void set_reverb(uint8_t value) { _reverb = (value > 127) ? 127 : value; }
-
-  uint8_t chorus(void) { return _chorus; }
-  void set_chorus(uint8_t value) { _chorus = (value > 127) ? 127 : value; }
-
-  uint8_t key_shift(void) { return _keyShift; }
-  void set_key_shift(uint8_t value) { _keyShift = value; }
-
   // Returns libEmuSC version as a string
   static std::string version(void);
 
-  // Get part information; needed for emulating the LCD display
+  // REMOVE!
   bool get_part_mute(uint8_t partId);
   uint8_t get_part_instrument(uint8_t partId, uint8_t &bank);
-  uint8_t get_part_level(uint8_t partId);
-  int8_t get_part_pan(uint8_t partId);
-  uint8_t get_part_reverb(uint8_t partId);
-  uint8_t get_part_chorus(uint8_t partId);
-  int8_t get_part_key_shift(uint8_t partId);
-  uint8_t get_part_midi_channel(uint8_t partId);
-  uint8_t get_part_mode(uint8_t partId);
-
-  // Update part state; needed for adapting to button inputs
   void set_part_mute(uint8_t partId, bool mute);
   void set_part_instrument(uint8_t partId, uint8_t index, uint8_t bank);
-  void set_part_level(uint8_t partId, uint8_t level);
-  void set_part_pan(uint8_t partId, uint8_t pan);
-  void set_part_reverb(uint8_t partId, uint8_t reverb);
-  void set_part_chorus(uint8_t partId, uint8_t chorus);
-  void set_part_key_shift(uint8_t partId, int8_t keyShift);
-  void set_part_midi_channel(uint8_t partId, uint8_t midiChannel);
-  void set_part_mode(uint8_t partId, uint8_t mode);
 
   void add_part_midi_mod_callback(std::function<void(const int)> callback);
   void clear_part_midi_mod_callback(void);
+
+  // EmuSC clients methods for getting synth paramters
+  uint8_t  get_param(enum SystemParam sp);
+  uint8_t* get_param_ptr(enum SystemParam sp);
+  uint16_t get_param_32nib(enum SystemParam sp);
+  uint8_t  get_param(enum PatchParam pp, int8_t part = -1);
+  uint8_t* get_param_ptr(enum PatchParam pp, int8_t part = -1);
+  uint8_t  get_patch_param(uint16_t address, int8_t part = -1);
+
+  // EmuSC clients methods for setting synth paramters
+  void set_param(enum SystemParam sp, uint8_t value);
+  void set_param(enum SystemParam sp, uint32_t value);
+  void set_param(enum SystemParam sp, uint8_t *data, uint8_t size = 1);
+  void set_param_32nib(enum SystemParam sp, uint16_t value);
+  void set_param(enum PatchParam pp, uint8_t value, int8_t part = -1);
+  void set_param(enum PatchParam sp, uint8_t *data, uint8_t size = 1,
+		 int8_t part = -1);
+  void set_patch_param(uint16_t address, uint8_t value, int8_t part = 1);
+
 
   /* End of public API. Below are internal data structures only */
 
 private:
   enum Mode _mode;
 
-  uint8_t _volume;            // [0-127] Default 127
-  uint8_t _pan;               // [0-127] Default 64 (64 = center)
-  uint8_t _reverb;            // [0-127] Default 64
-  uint8_t _chorus;            // [0-127] Default 64
-  int8_t _keyShift;           // [-24-24] Default 0
-  float _masterTune;          // [415,3-466,2] Default 440,0
-  uint8_t _reverbType;        // [1-8] Default 5
-  uint8_t _choursType;        // [1-8] Default 3
+  Settings *_settings;
 
   uint8_t _bank;              // MIDI CC0 message (always ch 0)
   
@@ -151,28 +139,8 @@ private:
 
   std::mutex midiMutex;
 
-  // System function settings
-  struct System {
-    bool rxInstChg;           // Off / On. Default On
-    bool sysEx;               // Off / On. Default On
-    bool rxGSReset;           // Off / On. Default On
-    uint8_t display;          // [1-8] Default 1
-    uint8_t peakHold;         // [0-3] = is Off. Default 1
-    uint8_t lcdContrast;      // [1-16] Default 8
-    bool backUp;              // Off / On. Default On
-    bool rxRemote;            // Off / On. Default On
-    uint8_t deviceID;         // [1-32] Default 17
-  };
-  struct System _system;
-
   struct std::vector<Part> _parts;
   std::vector<std::function<void(const int)>> _partMidiModCallbacks;
-
-  struct std::vector<ControlRom::Instrument> _instruments;
-  struct std::vector<ControlRom::Partial> _partials;
-  struct std::vector<ControlRom::Sample> _samples;
-  struct std::vector<ControlRom::DrumSet> _drumSets;
-  std::vector<std::vector<uint16_t>> _variations;
 
   ControlRom &_ctrlRom;
 

@@ -26,11 +26,10 @@
 
 namespace EmuSC {
 
-Part::Part(uint8_t id, uint8_t mode, uint8_t type, int8_t &keyShift,
-	   ControlRom &ctrlRom, PcmRom &pcmRom, uint32_t &sampleRate)
+Part::Part(uint8_t id, uint8_t mode, uint8_t type, Settings *settings,
+	   ControlRom &ctrlRom, PcmRom &pcmRom)
   : _id(id),
-    _synthKeyShift(keyShift),
-    _sampleRate(sampleRate),
+    _settings(settings),
     _ctrlRom(ctrlRom),
     _pcmRom(pcmRom),
     _7bScale(1/127.0)
@@ -73,18 +72,21 @@ int Part::get_next_sample(float *sampleOut)
   }
 
   // Apply volume from part (MIDI channel) and expression (CM11)
-  partSample[0] *= _volume * _7bScale * (_expression * _7bScale);
-  partSample[1] *= _volume * _7bScale * (_expression * _7bScale);
+  partSample[0] *= _settings->get_param(PatchParam::PartLevel, _id) *
+    _7bScale * (_expression * _7bScale);
+  partSample[1] *= _settings->get_param(PatchParam::PartLevel, _id) *
+    _7bScale * (_expression * _7bScale);
 
   // Store last (highest) value for future queries (typically for bar display)
   _lastPeakSample =
     (_lastPeakSample >= partSample[0]) ? _lastPeakSample : partSample[0];
   
   // Apply pan from part (MIDI Channel)
-  if (_pan > 64)
-    partSample[0] *= 1.0 - (_pan - 64) / 63.0;
-  else if (_pan < 64)
-    partSample[1] *= ((_pan - 1) / 64.0);
+  uint8_t panpot = _settings->get_param(PatchParam::PartPanpot, _id);
+  if (panpot > 64)
+    partSample[0] *= 1.0 - (panpot - 64) / 63.0;
+  else if (panpot < 64)
+    partSample[1] *= (panpot - 1) / 64.0;
 
   sampleOut[0] += partSample[0];
   sampleOut[1] += partSample[1];
@@ -121,39 +123,61 @@ int Part::get_num_partials(void)
 // Should mute => not accept key - or play silently in the background?
 int Part::add_note(uint8_t key, uint8_t keyVelocity)
 {
-  // 1. Check if part is muted FIXME: Verify that this is correct behavior
-  if (_mute)
+  // 1. Check if part is muted or rxNoteMessage is disabled
+  // FIXME: Verify that this is correct behavior for mute
+  if (_mute || !_settings->get_param(PatchParam::RxNoteMessage, _id))
     return 0;
 
-  // 2. Find partial(s) used by instrument or drum set
-  uint16_t instrumentIndex = (_mode == mode_Norm) ? _instrument :
-                             _ctrlRom.drumSet(_drumSet).preset[key];
+  // 2. Check if key is outside part configured key range
+  if (key < _settings->get_param(PatchParam::KeyRangeLow, _id) ||
+      key > _settings->get_param(PatchParam::KeyRangeHigh, _id))
+    return 0;
+
+  // 3. Find partial(s) used by instrument or drum set
+  uint16_t instrumentIndex;
+  int drumSet;
+  if (_settings->get_param(PatchParam::UseForRhythm, _id) == mode_Norm) {
+    uint8_t toneBank = _settings->get_param(PatchParam::ToneNumber, _id);
+    uint8_t toneIndex = _settings->get_param(PatchParam::ToneNumber2,_id);
+    instrumentIndex = _ctrlRom.variation(toneBank)[toneIndex];
+    drumSet = -1;
+  } else {
+    instrumentIndex = _ctrlRom.drumSet(_drumSet).preset[key];
+    drumSet = _drumSet;
+  }
+
   if (instrumentIndex == 0xffff)        // Ignore undefined instruments / drums
     return 0;
 
-  int drumSet = (_mode == mode_Norm) ? -1 : _drumSet;
-
-  // 3. If note is a drum -> check if drum accepts note on
+  // 4. If note is a drum -> check if drum accepts note on
   if (drumSet >= 0 && !(_ctrlRom.drumSet(drumSet).flags[key] & 0x10))
     return 0;
 
-  // 4. Calculate corrected key velocity based on velocity sens depth & offset
+  // 5. Calculate corrected key velocity based on velocity sens depth & offset
   //    according to description in SC-55 owner's manual page 38
-  float v = keyVelocity * (_velSensDepth / 64.0);
-  if (_velSensOffset >= 64)
-    v += _velSensOffset - 64;
+  uint8_t velSensDepth =
+    _settings->get_param(PatchParam::VelocitySenseDepth, _id);
+  uint8_t velSensOffset =
+    _settings->get_param(PatchParam::VelocitySenseOffset, _id);
+  float v = keyVelocity * (velSensDepth / 64.0);
+  if (velSensOffset >= 64)
+    v += velSensOffset - 64;
   else
-    v *= (_velSensOffset + 64) / 127.0;
+    v *= (velSensOffset + 64) / 127.0;
   uint8_t velocity = (v <= 127) ? std::roundf(v) : 127;
 
-  // 5. Remove all existing notes if part is in mono mode according to the
+  // 6. Remove all existing notes if part is in mono mode according to the
   //    SC-55 owner's manual page 39
-  if (_polyMode == false && _mode == mode_Norm)
+  if (_settings->get_param(PatchParam::PolyMode, _id) == false &&
+      _settings->get_param(PatchParam::UseForRhythm, _id) == 0)
     clear_all_notes();
 
-  // 5. Create new note and set default values (note: using pointers)
-  Note *n = new Note(key, _synthKeyShift + _keyShift, velocity, instrumentIndex,
-		     drumSet, _ctrlRom, _pcmRom, _sampleRate);
+  // 7. Create new note and set default values (note: using pointers)
+  uint8_t keyShift = _settings->get_param(SystemParam::KeyShift) - 0x40 +
+    _settings->get_param(PatchParam::PitchKeyShift, _id) - 0x40;
+
+  Note *n = new Note(key, keyShift, velocity, instrumentIndex,
+		     drumSet, _ctrlRom, _pcmRom, _settings, _id);
   _notes.push_back(n);
 
   if (0)
@@ -202,49 +226,17 @@ void Part::reset(void)
 {
   clear_all_notes();
 
-  // Default settings for each part according to SC-55 owner's manual page 64
-  _instrument = 0;
   _drumSet = 0;
-  _volume = 100;
-  _pan = 64;                       // 64 => 0
-  _reverb = 40;
-  _chorus = 0;
-  _keyShift = 0;
-  _midiChannel = _id;
-
-  if (_midiChannel == 9)           // MIDI channel 10 => standard drum set
-    _mode = mode_Drum1;
-  else
-    _mode = mode_Norm;
-
-  _bendRange = 2;
   _modDepth = 10;
-  _keyRangeL = 24;                 // => C1
-  _keyRangeH = 127;                // => G9
-  _velSensDepth = 64;
-  _velSensOffset = 64;
   _partialReserve = 2;
-  _polyMode = true;
-  _vibRate = 0;
-  _vibDepth = 0;
-  _vibDelay = 0;
-  _cutoffFreq = 0;
-  _resonance = 0;
-  _attackTime = 0;
-  _decayTime = 0;
-  _releaseTime = 0;
 
   // Other default settings for all parts
   _pitchBend = 1;
   _mute = false;
   _modulation = 0;
   _expression = 127;
-  _portamento = false;
   _holdPedal = false;
   _lastPeakSample = 0;
-
-  _programIndex = 0;
-  _programBank = 0;
 
   _rpnMSB = rpn_None;
   _rpnLSB = rpn_None;
@@ -257,13 +249,16 @@ void Part::reset(void)
 // For drum sets, index is the program number in the drum set bank
 int Part::set_program(uint8_t index, uint8_t bank)
 {
+  if (!_settings->get_param(PatchParam::RxProgramChange, _id))
+    return -1;
+
   // Finds correct instrument variation from variations table
   // Implemented according to SC-55 Owner's Manual page 42-45
-  if (_mode == mode_Norm) {
-    _instrument = _ctrlRom.variation(bank)[index];
+  if (_settings->get_param(PatchParam::UseForRhythm, _id) == mode_Norm) {
+    uint16_t instrument = _ctrlRom.variation(bank)[index];
     if (bank < 63 && index < 120)
-      while (_instrument == 0xffff)
-	_instrument = _ctrlRom.variation(--bank)[index];
+      while (instrument == 0xffff)
+	instrument = _ctrlRom.variation(--bank)[index];
 
   // If part is used for drums, select correct drum set
   } else {
@@ -280,8 +275,8 @@ int Part::set_program(uint8_t index, uint8_t bank)
     }
   }
 
-  _programIndex = index;
-  _programBank = bank;
+  _settings->set_param(PatchParam::ToneNumber, bank, _id);
+  _settings->set_param(PatchParam::ToneNumber2, index, _id);
 
   return 1;
 }
@@ -289,37 +284,45 @@ int Part::set_program(uint8_t index, uint8_t bank)
 
 int Part::set_control(enum ControlMsg m, uint8_t value)
 {
-  if (m == cmsg_Volume) {
-    _volume = value;
-  } else if (m == cmsg_ModWheel) {
+  if (!_settings->get_param(PatchParam::RxControlChange, _id))
+    return -1;
+
+  if (m == cmsg_Volume && _settings->get_param(PatchParam::RxVolume, _id)) {
+    _settings->set_param(PatchParam::PartLevel, value, _id);
+  } else if (m == cmsg_ModWheel &&
+	     _settings->get_param(PatchParam::RxModulation, _id)) {
     _modulation = value;
 
     // TODO: Figure out a proper way to calculate modWheel pitch value and
     //       where this calculation should be done
     _modWheel = value * 0.0003;
-  } else if (m == cmsg_Pan) {
-    _pan = (value == 0) ? 1 : value;
-  } else if (m == cmsg_Expression) {
+  } else if (m == cmsg_Pan && _settings->get_param(PatchParam::RxPanpot, _id)) {
+    uint8_t panpot = (value == 0) ? 1 : value;
+    _settings->set_param(PatchParam::PartPanpot, panpot, _id);
+  } else if (m == cmsg_Expression &&
+	     _settings->get_param(PatchParam::RxExpression, _id)) {
     _expression =  value;
-  } else if (m == cmsg_HoldPedal) {
+  } else if (m == cmsg_HoldPedal &&
+	     _settings->get_param(PatchParam::RxHold1, _id)) {
     _holdPedal =  (value >= 64) ? true : false;
     if (_holdPedal == false) {
       for (auto &k : _holdPedalKeys)
 	stop_note(k);
       _holdPedalKeys.clear();
     }
-  } else if (m == cmsg_Portamento) {
+  } else if (m == cmsg_Portamento &&
+	     _settings->get_param(PatchParam::RxPortamento, _id)) {
     _portamento =  (value >= 64) ? true : false;
   } else if (m == cmsg_PortamentoTime) {
     _portamentoTime =  value;
   } else if (m == cmsg_Reverb) {
-    _reverb =  value;
+    _settings->set_param(PatchParam::ReverbSendLevel, value, _id);
   } else if (m == cmsg_Chorus) {
-    _chorus =  value;
-  } else if (m == cmsg_RPN_LSB) {
+    _settings->set_param(PatchParam::ChorusSendLevel, value, _id);
+  } else if (m == cmsg_RPN_LSB && _settings->get_param(PatchParam::RxRPN, _id)){
     if (value == 0x00 || value == 0x01 || value == 0x02 || value == 0x7f)
       _rpnLSB = (RPN) value;
-  } else if (m == cmsg_RPN_MSB) {
+  } else if (m == cmsg_RPN_MSB && _settings->get_param(PatchParam::RxRPN, _id)){
     if (value == 0x00 || value == 0x01 || value == 0x02 || value == 0x7f)
       _rpnMSB = (RPN) value;
   } else if (m == cmsg_DataEntry_LSB) {
@@ -327,7 +330,7 @@ int Part::set_control(enum ControlMsg m, uint8_t value)
       _masterFineTuning |= value;
   } else if (m == cmsg_DataEntry_MSB) {
     if (_rpnMSB == rpn_PitchBendSensitivity)
-      _bendRange = value;
+      _settings->set_param(PatchParam::PB_PitchControl,  value, _id);
     else if (_rpnMSB == rpn_MasterFineTuning)
       _masterFineTuning |= value << 8;
     else if (_rpnMSB == rpn_MasterCoarseTuning)
@@ -341,12 +344,25 @@ int Part::set_control(enum ControlMsg m, uint8_t value)
 // Note: One semitone = log(2)/12
 void Part::set_pitchBend(int16_t pitchBend)
 {
-  _pitchBend = exp(((pitchBend - 8192) / 8192.0) * _bendRange * (log(2) / 12));
+  if (_settings->get_param(PatchParam::RxPitchBend, _id)) {
+    uint8_t bendRange =
+      _settings->get_param(PatchParam::PB_PitchControl, _id) - 64;
+    _pitchBend = exp(((pitchBend - 8192) / 8192.0) * bendRange * (log(2) /12));
 
-  if (0)
-    std::cout << "libEmuSC: Set pitch bend on part " << std::dec << (int) _id
-	      << " -> " << pitchBend << " => " << _pitchBend << " [ range:"
-	      << (int) _bendRange << " ]" << std::endl;
+    if (0)
+      std::cout << "libEmuSC: Set pitch bend [part=" << std::dec << (int) _id
+		<< "] -> " << pitchBend << " => " << _pitchBend << " [ range:"
+		<< (int) bendRange << " ]" << std::endl;
+  }
+}
+
+
+uint16_t Part::_native_endian_uint16(uint8_t *ptr)
+{
+  if (_le_native())
+    return (ptr[0] << 8 | ptr[1]);
+
+  return (ptr[1] << 8 | ptr[0]);
 }
 
 }

@@ -4,9 +4,10 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 
 # Copy include files from libemusc (needed due to directory include path)
-configure_file(../../libemusc/src/synth.h include/emusc/synth.h COPYONLY)
 configure_file(../../libemusc/src/control_rom.h include/emusc/control_rom.h COPYONLY)
+configure_file(../../libemusc/src/params.h include/emusc/params.h COPYONLY)
 configure_file(../../libemusc/src/pcm_rom.h include/emusc/pcm_rom.h COPYONLY)
+configure_file(../../libemusc/src/synth.h include/emusc/synth.h COPYONLY)
 include_directories(include)
 
 configure_file(config.h.in config.h)
@@ -53,6 +54,8 @@ add_executable(emusc-client
   rom_config_dialog.h
   scene.cc
   scene.h
+  synth_dialog.cc
+  synth_dialog.h
   ../res/emusc.qrc)
 
 set_property(TARGET emusc-client PROPERTY RUNTIME_OUTPUT_NAME emusc)

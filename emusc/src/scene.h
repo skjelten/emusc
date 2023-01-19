@@ -93,6 +93,7 @@ private:
   QColor _lcdOffFontColor;
  
   void keyPressEvent(QKeyEvent *keyEvent);
+  void keyReleaseEvent(QKeyEvent *keyEvent);
 
 public:
   Scene(Emulator *emulator, QWidget *parent = nullptr);

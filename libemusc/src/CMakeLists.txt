@@ -15,12 +15,15 @@ add_library(emusc
   note.h
   note_partial.cc
   note_partial.h
+  params.h
   part.cc
   part.h
   pcm_rom.cc
   pcm_rom.h
   riaa_filter.cc
   riaa_filter.h
+  settings.cc
+  settings.h
   synth.cc
   synth.h
   tva.cc

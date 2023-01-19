@@ -1,20 +1,17 @@
 # EmuSC
-Emulating the Sound Canvas
 
 ## About
-EmuSC is a software synthesizer that aims to use the ROM files of the Roland Sound Canvas SC-55 lineup (and perhaps the SC-88 in the future) to recreate the original sounds of these '90s era synthesizers.
-
-EmuSC is currently in an early development stage and is not able to reproduce sounds anywhere near the quality of the original synths, but the goal is to be able to reproduce sounds that will make it difficult to notice the difference. If you are interested in emulating the SC-55 today your best bet is to try the [SC-55 sound font](https://github.com/Kitrinx/SC55_Soundfont) made by Kitrinx and NewRisingSun.
+libEmuSC is a software synthesizer library that aims to emulate the Roland Sound Canvas SC-55 lineup to recreate the original sounds of these '90s era synthesizers. Emulation is done by extracting relevant information from the original control and PCM ROMs and reimplement the synth's behavior in modern C++.
 
 This project is in no way endorsed by or affiliated with Roland Corp.
 
 ## Status
-We are in the early stages of development and the application is limited to reading MIDI messages, some basic control functions and audio playback. In addition there is an unfinished LCD display that is relatively accurate to the original.
+We are in the early stages of development, but EmuSC is already able to display a relatively correct GUI compared to the original synth. MIDI input and audio output works, albeit with some quirks, for Linux, macOS and Windows. 
 
-Currently EmuSC supports all modern versions of Linux, macOS and Windows.
+For status on the quiality of the synth audio emulation, see progress in [libEmuSC](../libemusc/README.md).
 
 ## Requirements
-In order to emulate the Sound Canvas you need the original control ROM and the PCM ROM(s). These ROM files can either be extracted from a physical unit by desoldering the ROM chips and read their content, or you can download the ROM files from the Internet.
+EmuSC depends on C++11 and libQT5 in addition to platform dependent APIs for MIDI and audio. In adition you will need the original control and PCM ROMs.
 
 ### Linux
 ALSA sequencer is needed for MIDI input. Both ALSA and PulseAudio are supported for audio output. Note that PulseAudio has a lot of latency in its default configuration so it is recommended to use ALSA if possible.
@@ -34,8 +31,6 @@ Note the following dependencies for Linux:
 * PulseAudio (libpulse-dev for debian based distributions) is needed for PulseAudio support.
 
 ### Windows
-On Windows common build environments are MSYS2/MinGW-w64 and Visual Studio.
-
 For building EmuSC on MSYS2/MinGW-w64 you need to do the following steps:
 
 1. Install MSYS2 build environment: https://www.msys2.org and follow the [instructions for building and installing libEmuSC](../libemusc/README.md)
@@ -55,7 +50,7 @@ cmake . -G "MSYS Makefiles"
 ```
 make
 ```
-The `emusc.exe` binary is located in `emusc/src/` if no build directory was specified. Note that you will need to deploy Qt and include a number of DLL-files if you want to run EmuSC outside MSYS. A simple script for deploying Qt and coping all the needed DLL-files is found in the emusc/utils directory. To create a directory with all files needed for running EmuSC, make sure you have Qt tools package installed:
+The `emusc.exe` binary is located in `emusc/src/` if no build directory was specified. Note that you will need to deploy Qt and include a number of DLL-files if you want to run EmuSC outside MSYS. A simple script for automating the deployment of Qt and copying all the necessary DLL-files is found in the emusc/utils directory. To use this script you must have the Qt tools package installed:
 ```
 pacman -S mingw-w64-ucrt-x86_64-qt5-tools
 ```
@@ -75,7 +70,7 @@ If you are using homebrew, install qt@5. Remember to also specify the correct pa
 ```
 cmake . -DCMAKE_PREFIX_PATH=/usr/local/Cellar/qt@5/5.15.6
 ```
-On macOS the default build is not a binary file, but a bundle. To install the application copy src/emusc.app to your application folder. To run EmuSC directly from the terminal execute
+On macOS the default build is not a binary file, but a bundle. To install the application copy src/emusc.app to your application folder. To run EmuSC directly from the terminal:
 ```
 open src/emusc.app
 ```

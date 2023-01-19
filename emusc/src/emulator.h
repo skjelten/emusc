@@ -23,6 +23,7 @@
 #include "emusc/control_rom.h"
 #include "emusc/pcm_rom.h"
 #include "emusc/synth.h"
+#include "emusc/params.h"
 
 #include "audio_output.h"
 #include "midi_input.h"
@@ -73,6 +74,22 @@ public:
 
   QVector<bool> get_part_amplitude_vector(void);
 
+  // libEmuSC Synth API for get & set paramters
+  uint8_t  get_param(enum EmuSC::SystemParam sp);
+  uint8_t* get_param_ptr(enum EmuSC::SystemParam sp);
+  uint16_t get_param_32nib(enum EmuSC::SystemParam sp);
+  uint8_t  get_param(enum EmuSC::PatchParam pp, int8_t part = -1);
+  uint8_t* get_param_ptr(enum EmuSC::PatchParam pp, int8_t part = -1);
+  uint8_t get_patch_param(uint16_t address, int8_t part);
+  void set_param(enum EmuSC::SystemParam sp, uint8_t value);
+  void set_param(enum EmuSC::SystemParam sp, uint8_t *data, uint8_t size = 1);
+  void set_param(enum EmuSC::SystemParam sp, uint32_t value);
+  void set_param_32nib(enum EmuSC::SystemParam sp, uint16_t value);
+  void set_param(enum EmuSC::PatchParam pp, uint8_t value, int8_t part = -1);
+  void set_param(enum EmuSC::PatchParam sp, uint8_t *data, uint8_t size = 1,
+		 int8_t part = -1);
+  void set_patch_param(uint16_t address, uint8_t value, int8_t part = -1);
+
 signals:
   void emulator_started(void);
   void emulator_stopped(void);
@@ -115,6 +132,12 @@ public slots:
 
   void generate_bar_display(void);
   void play_intro_anim_bar_display(void);
+
+  void play_note(uint8_t key, uint8_t velocity);
+
+  std::vector<EmuSC::ControlRom::DrumSet> &get_drumsets_ref(void);
+
+  void update_LCD_display(int8_t part = -1);
 
 private:
   EmuSC::ControlRom *_emuscControlRom;
@@ -161,7 +184,7 @@ private:
   void set_pan(uint8_t value, bool update);
   void set_reverb(uint8_t value, bool update);
   void set_chorus(uint8_t value, bool update);
-  void set_key_shift(int8_t value, bool update);
+  void set_key_shift(uint8_t value, bool update);
   void set_midi_channel(uint8_t value, bool update);
 
   void part_mod_callback(const int partId);

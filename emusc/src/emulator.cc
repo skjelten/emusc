@@ -126,6 +126,8 @@ void Emulator::start(void)
     _start_audio_subsystem();
     _start_midi_subsystem();
 
+    // TODO: Set audio format -> _emuscSynth->set_audio_format(44100, 2);
+
   } catch (QString errorMsg) {
     stop();
     throw(errorMsg);
@@ -169,8 +171,10 @@ void Emulator::start(void)
 
 void Emulator::part_mod_callback(const int partId)
 {
-  if (partId == _selectedPart)
+  if (partId == _selectedPart && !_allMode)
     set_part(partId);
+  else if (partId < 0 && _allMode)
+    set_all();
 }
 
 
@@ -721,11 +725,11 @@ void Emulator::set_all(void)
   emit display_part_updated("ALL");
   emit display_instrument_updated("- SOUND Canvas -");
 
-  set_level(_emuscSynth->volume(), false);
-  set_pan(_emuscSynth->pan(), false);
-  set_reverb(_emuscSynth->reverb(), false);
-  set_chorus(_emuscSynth->chorus(), false);
-  set_key_shift(_emuscSynth->key_shift(), false);
+  set_level(_emuscSynth->get_param(EmuSC::SystemParam::Volume), false);
+  set_pan(_emuscSynth->get_param(EmuSC::SystemParam::Pan), false);
+  set_reverb(_emuscSynth->get_param(EmuSC::PatchParam::ReverbLevel), false);
+  set_chorus(_emuscSynth->get_param(EmuSC::PatchParam::ChorusLevel), false);
+  set_key_shift(_emuscSynth->get_param(EmuSC::SystemParam::KeyShift), false);
 
   emit display_midi_channel_updated(" 17");
 
@@ -744,14 +748,20 @@ void Emulator::set_part(uint8_t value)
   str.prepend(' ');
   emit display_part_updated(str);
 
-  uint8_t bank; uint8_t index = _emuscSynth->get_part_instrument(value, bank);
-  set_instrument(index, bank, false);
-  set_level(_emuscSynth->get_part_level(value), false);
-  set_pan(_emuscSynth->get_part_pan(value), false);
-  set_reverb(_emuscSynth->get_part_reverb(value), false);
-  set_chorus(_emuscSynth->get_part_chorus(value), false);
-  set_key_shift(_emuscSynth->get_part_key_shift(value), false);
-  set_midi_channel(_emuscSynth->get_part_midi_channel(value), false);
+  uint8_t *toneNumber =
+    _emuscSynth->get_param_ptr(EmuSC::PatchParam::ToneNumber, value);
+  set_instrument(toneNumber[1], toneNumber[0], false);
+  set_level(_emuscSynth->get_param(EmuSC::PatchParam::PartLevel, value), false);
+  set_pan(_emuscSynth->get_param(EmuSC::PatchParam::PartPanpot, value), false);
+  set_reverb(_emuscSynth->get_param(EmuSC::PatchParam::ReverbSendLevel, value),
+	     false);
+  set_chorus(_emuscSynth->get_param(EmuSC::PatchParam::ChorusSendLevel, value),
+	     false);
+  set_key_shift(_emuscSynth->get_param(EmuSC::PatchParam::PitchKeyShift, value),
+		false);
+  set_midi_channel(_emuscSynth->get_param(EmuSC::PatchParam::RxChannel, value),
+		   false);
+
 
   emit (mute_button_changed(_emuscSynth->get_part_mute(value)));
 }
@@ -762,10 +772,15 @@ void Emulator::select_prev_instrument()
   if (_emuscSynth == NULL || _allMode)
     return;
 
-  uint8_t bank;
-  uint8_t index = _emuscSynth->get_part_instrument(_selectedPart, bank);
+  uint8_t *toneNumber =
+    _emuscSynth->get_param_ptr(EmuSC::PatchParam::ToneNumber, _selectedPart);
+  uint8_t bank = toneNumber[0];
+  uint8_t index = toneNumber[1];
 
-  if (_emuscSynth->get_part_mode(_selectedPart) == 0) {     // Instrument
+  set_instrument(index, bank, false);
+
+  // Instrument
+  if (_emuscSynth->get_param(EmuSC::PatchParam::UseForRhythm,_selectedPart)==0){
     const std::array<uint16_t, 128> &var = _emuscControlRom->variation(bank);
     for (int i = index - 1; i >= 0; i--) {
       if (var[i] != 0xffff) {
@@ -774,7 +789,8 @@ void Emulator::select_prev_instrument()
       }
     }
 
-  } else {                                                  // Drum set
+  // Drum set
+  } else {
     const std::vector<int> &drumSetBank = _emuscControlRom->drum_set_bank();
     std::vector<int>::const_iterator it = std::find(drumSetBank.begin(),
 						    drumSetBank.end(),
@@ -791,10 +807,14 @@ void Emulator::select_next_instrument()
   if (!_emuscSynth || _allMode)
     return;
 
-  uint8_t bank;
-  uint8_t index = _emuscSynth->get_part_instrument(_selectedPart, bank);
+  uint8_t *toneNumber =
+    _emuscSynth->get_param_ptr(EmuSC::PatchParam::ToneNumber, _selectedPart);
+  uint8_t bank = toneNumber[0];
+  uint8_t index = toneNumber[1];
+  set_instrument(index, bank, false);
 
-  if (_emuscSynth->get_part_mode(_selectedPart) == 0) {     // Instrument
+  // Instrument
+  if (_emuscSynth->get_param(EmuSC::PatchParam::UseForRhythm,_selectedPart)==0){
     const std::array<uint16_t, 128> &var = _emuscControlRom->variation(bank);
     for (int i = index + 1; i < var.size(); i++) {
       if (var[i] != 0xffff) {
@@ -803,11 +823,12 @@ void Emulator::select_next_instrument()
       }
     }
 
-  } else {                                                  // Drum set
+  // Drum set
+  } else {
     const std::vector<int> &drumSetBank = _emuscControlRom->drum_set_bank();
     std::vector<int>::const_iterator it = std::find(drumSetBank.begin(),
 						    drumSetBank.end(),
-						    (int) index);
+						    (int) toneNumber[1]);
     if (it != drumSetBank.end() - 1)
       set_instrument(drumSetBank[std::distance(drumSetBank.begin(), it) + 1],
 		     0, true);
@@ -820,8 +841,7 @@ void Emulator::set_instrument(uint8_t index, uint8_t bank, bool update)
     return;
 
   QString str;
-  if (_emuscSynth->get_part_mode(_selectedPart) == 0) {
-
+  if (_emuscSynth->get_param(EmuSC::PatchParam::UseForRhythm,_selectedPart)==0){
     if (update)
       _emuscSynth->set_part_instrument(_selectedPart, index, bank);
 
@@ -858,9 +878,10 @@ void Emulator::select_prev_level(void)
   uint8_t currentLevel;
 
   if (_allMode)
-    currentLevel = _emuscSynth->volume();
+    currentLevel = _emuscSynth->get_param(EmuSC::SystemParam::Volume);
   else
-    currentLevel = _emuscSynth->get_part_level(_selectedPart);
+    currentLevel = _emuscSynth->get_param(EmuSC::PatchParam::PartLevel,
+					  _selectedPart);
 
   if (currentLevel > 0)
     set_level(currentLevel - 1, true);
@@ -875,9 +896,10 @@ void Emulator::select_next_level(void)
   uint8_t currentLevel;
 
   if (_allMode)
-    currentLevel = _emuscSynth->volume();
+    currentLevel = _emuscSynth->get_param(EmuSC::SystemParam::Volume);
   else
-    currentLevel = _emuscSynth->get_part_level(_selectedPart);
+    currentLevel = _emuscSynth->get_param(EmuSC::PatchParam::PartLevel,
+					  _selectedPart);
 
   if (currentLevel < 127)
     set_level(currentLevel + 1, true);
@@ -891,9 +913,9 @@ void Emulator::set_level(uint8_t value, bool update)
 
   if (update) {
     if (_allMode)
-      _emuscSynth->set_volume(value);
+      _emuscSynth->set_param(EmuSC::SystemParam::Volume, value);
     else
-      _emuscSynth->set_part_level(_selectedPart, value);
+      _emuscSynth->set_param(EmuSC::PatchParam::PartLevel, value,_selectedPart);
   }
 
   QString str = QStringLiteral("%1").arg(value, 3, 10,QLatin1Char(' '));
@@ -909,9 +931,10 @@ void Emulator::select_prev_pan()
   uint8_t currentPan;
 
   if (_allMode)
-    currentPan = _emuscSynth->pan();
+    currentPan = _emuscSynth->get_param(EmuSC::SystemParam::Pan);
   else
-    currentPan = _emuscSynth->get_part_pan(_selectedPart);
+    currentPan = _emuscSynth->get_param(EmuSC::PatchParam::PartPanpot,
+					      _selectedPart);
 
   if ((_allMode && currentPan > 1) || (!_allMode && currentPan > 0))
     set_pan(currentPan - 1, true);
@@ -926,9 +949,10 @@ void Emulator::select_next_pan()
   uint8_t currentPan;;
 
   if (_allMode)
-    currentPan = _emuscSynth->pan();
+    currentPan = _emuscSynth->get_param(EmuSC::SystemParam::Pan);
   else
-    currentPan = _emuscSynth->get_part_pan(_selectedPart);
+    currentPan = _emuscSynth->get_param(EmuSC::PatchParam::PartPanpot,
+					      _selectedPart);
 
   if (currentPan < 127)
     set_pan(currentPan + 1, true);
@@ -942,9 +966,9 @@ void Emulator::set_pan(uint8_t value, bool update)
 
   if (update)
     if (_allMode)
-      _emuscSynth->set_pan(value);
+      _emuscSynth->set_param(EmuSC::SystemParam::Pan, value);
     else
-      _emuscSynth->set_part_pan(_selectedPart, value);
+      _emuscSynth->set_param(EmuSC::PatchParam::PartPanpot, value, _selectedPart);
 
   QString str = QStringLiteral("%1").arg(abs(value - 64),3,10,QLatin1Char(' '));
 
@@ -968,9 +992,10 @@ void Emulator::select_prev_reverb()
   uint8_t currentReverb;
 
   if (_allMode)
-    currentReverb = _emuscSynth->reverb();
+    currentReverb =_emuscSynth->get_param(EmuSC::PatchParam::ReverbLevel);
   else
-    currentReverb = _emuscSynth->get_part_reverb(_selectedPart);
+    currentReverb = _emuscSynth->get_param(EmuSC::PatchParam::ReverbSendLevel,
+					   _selectedPart);
 
   if (currentReverb > 0)
     set_reverb(currentReverb - 1, true);
@@ -985,9 +1010,10 @@ void Emulator::select_next_reverb()
   uint8_t currentReverb;
 
   if (_allMode)
-    currentReverb = _emuscSynth->reverb();
+    currentReverb =_emuscSynth->get_param(EmuSC::PatchParam::ReverbLevel);
   else
-    currentReverb = _emuscSynth->get_part_reverb(_selectedPart);
+    currentReverb = _emuscSynth->get_param(EmuSC::PatchParam::ReverbSendLevel,
+					   _selectedPart);
 
   if (currentReverb < 127)
     set_reverb(currentReverb + 1, true);
@@ -1001,9 +1027,10 @@ void Emulator::set_reverb(uint8_t value, bool update)
 
   if (update) {
     if (_allMode)
-      _emuscSynth->set_reverb(value);
+      _emuscSynth->set_param(EmuSC::PatchParam::ReverbLevel, value);
     else
-      _emuscSynth->set_part_reverb(_selectedPart, value);
+      _emuscSynth->set_param(EmuSC::PatchParam::ReverbSendLevel, value,
+			     _selectedPart);
   }
 
   QString str = QStringLiteral("%1").arg(value, 3, 10, QLatin1Char(' '));
@@ -1019,9 +1046,10 @@ void Emulator::select_prev_chorus()
   uint8_t currentChorus;
 
   if (_allMode)
-    currentChorus = _emuscSynth->chorus();
+    currentChorus =_emuscSynth->get_param(EmuSC::PatchParam::ChorusLevel);
   else
-    currentChorus = _emuscSynth->get_part_chorus(_selectedPart);
+    currentChorus = _emuscSynth->get_param(EmuSC::PatchParam::ChorusSendLevel,
+					   _selectedPart);
 
   if (currentChorus > 0)
     set_chorus(currentChorus - 1, true);
@@ -1036,9 +1064,10 @@ void Emulator::select_next_chorus()
   uint8_t currentChorus;
 
   if (_allMode)
-    currentChorus = _emuscSynth->chorus();
+    currentChorus =_emuscSynth->get_param(EmuSC::PatchParam::ChorusLevel);
   else
-    currentChorus = _emuscSynth->get_part_chorus(_selectedPart);
+    currentChorus = _emuscSynth->get_param(EmuSC::PatchParam::ChorusSendLevel,
+					   _selectedPart);
 
   if (currentChorus < 127)
     set_chorus(currentChorus + 1, true);
@@ -1052,9 +1081,10 @@ void Emulator::set_chorus(uint8_t value, bool update)
 
   if (update) {
     if (_allMode)
-      _emuscSynth->set_chorus(value);
+      _emuscSynth->set_param(EmuSC::PatchParam::ChorusLevel, value);
     else
-      _emuscSynth->set_part_chorus(_selectedPart, value);
+      _emuscSynth->set_param(EmuSC::PatchParam::ChorusSendLevel, value,
+			     _selectedPart);
   }
 
   QString str = QStringLiteral("%1").arg(value, 3, 10, QLatin1Char(' '));
@@ -1070,11 +1100,12 @@ void Emulator::select_prev_key_shift()
   int8_t currentKeyShift;
 
   if (_allMode)
-    currentKeyShift = _emuscSynth->key_shift();
+    currentKeyShift = _emuscSynth->get_param(EmuSC::SystemParam::KeyShift);
   else
-    currentKeyShift = _emuscSynth->get_part_key_shift(_selectedPart);
+    currentKeyShift = _emuscSynth->get_param(EmuSC::PatchParam::PitchKeyShift,
+					     _selectedPart);
 
-  if (currentKeyShift > -24)
+  if (currentKeyShift > 0x28)
     set_key_shift(currentKeyShift - 1, true);
 }
 
@@ -1087,31 +1118,34 @@ void Emulator::select_next_key_shift()
   int8_t currentKeyShift;
 
   if (_allMode)
-    currentKeyShift = _emuscSynth->key_shift();
+    currentKeyShift = _emuscSynth->get_param(EmuSC::SystemParam::KeyShift);
   else
-    currentKeyShift = _emuscSynth->get_part_key_shift(_selectedPart);
+    currentKeyShift = _emuscSynth->get_param(EmuSC::PatchParam::PitchKeyShift,
+					     _selectedPart);
 
-  if (currentKeyShift < 24)
+  if (currentKeyShift < 0x58)
     set_key_shift(currentKeyShift + 1, true);
 }
 
 
-void Emulator::set_key_shift(int8_t value, bool update)
+void Emulator::set_key_shift(uint8_t value, bool update)
 {
   if (!_emuscSynth && update)
     return;
 
   if (update) {
     if (_allMode)
-      _emuscSynth->set_key_shift(value);
+      _emuscSynth->set_param(EmuSC::SystemParam::KeyShift, value);
     else
-      _emuscSynth->set_part_key_shift(_selectedPart, value);
+      _emuscSynth->set_param(EmuSC::PatchParam::PitchKeyShift, value,
+			     _selectedPart);
   }
 
-  QString str = QStringLiteral("%1").arg(abs(value), 3, 10, QLatin1Char(' '));
-  if (value > 0)
+  int8_t aValue = value - 0x40;   // Adjust value for default value 0x40 => 0
+  QString str = QStringLiteral("%1").arg(abs(aValue), 3, 10, QLatin1Char(' '));
+  if (aValue > 0)
     str.replace(0, 1, '+');
-  else if (value < 0)
+  else if (aValue < 0)
     str.replace(0, 1, '-');
   emit display_key_shift_updated(str);
 }
@@ -1122,7 +1156,8 @@ void Emulator::select_prev_midi_channel()
   if (_emuscSynth == NULL || _allMode)
     return;
 
-  uint8_t currentMidiChannel =_emuscSynth->get_part_midi_channel(_selectedPart);
+  uint8_t currentMidiChannel =
+    _emuscSynth->get_param(EmuSC::PatchParam::RxChannel, _selectedPart);
   if (currentMidiChannel > 0)
     set_midi_channel(currentMidiChannel - 1, true);
 }
@@ -1133,7 +1168,9 @@ void Emulator::select_next_midi_channel()
   if (_emuscSynth == NULL || _allMode)
     return;
 
-  uint8_t currentMidiChannel =_emuscSynth->get_part_midi_channel(_selectedPart);
+  uint8_t currentMidiChannel =
+    _emuscSynth->get_param(EmuSC::PatchParam::RxChannel, _selectedPart);
+  std::cout << "currentMidiChannel=" << (int) currentMidiChannel << std::endl;
   if (currentMidiChannel < 15)
     set_midi_channel(currentMidiChannel + 1, true);
 }
@@ -1145,7 +1182,7 @@ void Emulator::set_midi_channel(uint8_t value, bool update)
     return;
 
   if (update)
-    _emuscSynth->set_part_midi_channel(_selectedPart, value);
+    _emuscSynth->set_param(EmuSC::PatchParam::RxChannel, value, _selectedPart);
 
   QString str = QStringLiteral("%1").arg(value + 1, 2, 10, QLatin1Char('0'));
   str.prepend(' ');
@@ -1165,4 +1202,106 @@ void Emulator::change_volume(int volume)
     volume = 100;
 
   _audioOutput->set_volume(volume / 100.0);
+}
+
+
+uint8_t Emulator::get_param(enum EmuSC::SystemParam sp)
+{
+  return _emuscSynth->get_param(sp);
+}
+
+uint8_t* Emulator::get_param_ptr(enum EmuSC::SystemParam sp)
+{
+  return _emuscSynth->get_param_ptr(sp);
+}
+
+
+uint16_t Emulator::get_param_32nib(enum EmuSC::SystemParam sp)
+{
+  return _emuscSynth->get_param_32nib(sp);
+}
+
+
+uint8_t Emulator::get_param(enum EmuSC::PatchParam pp, int8_t part)
+{
+  return _emuscSynth->get_param(pp, part);
+}
+
+
+uint8_t* Emulator::get_param_ptr(enum EmuSC::PatchParam pp, int8_t part)
+{
+  return _emuscSynth->get_param_ptr(pp, part);
+}
+
+
+uint8_t Emulator::get_patch_param(uint16_t address, int8_t part)
+{
+  return _emuscSynth->get_patch_param(address, part);
+}
+
+
+void Emulator::set_param(enum EmuSC::SystemParam sp, uint8_t value)
+{
+  _emuscSynth->set_param(sp, value);
+}
+
+
+void Emulator::set_param(enum EmuSC::SystemParam sp, uint8_t *data,uint8_t size)
+{
+  _emuscSynth->set_param(sp, data, size);
+}
+
+
+void Emulator::set_param(enum EmuSC::SystemParam sp, uint32_t value)
+{
+  _emuscSynth->set_param(sp, value);
+}
+
+
+void Emulator::set_param_32nib(enum EmuSC::SystemParam sp, uint16_t value)
+{
+  _emuscSynth->set_param_32nib(sp, value);
+}
+
+
+void Emulator::set_param(enum EmuSC::PatchParam pp, uint8_t value, int8_t part)
+{
+  _emuscSynth->set_param(pp, value, part);
+}
+
+
+void Emulator::set_param(enum EmuSC::PatchParam sp, uint8_t *data, uint8_t size,
+			 int8_t part)
+{
+  _emuscSynth->set_param(sp, data, size, part);
+}
+
+
+void Emulator::set_patch_param(uint16_t address, uint8_t value, int8_t part)
+{
+  _emuscSynth->set_patch_param(address, value, part);
+}
+
+
+void Emulator::play_note(uint8_t key, uint8_t velocity)
+{
+  if (_emuscSynth)
+    _emuscSynth->midi_input((0x90 | _selectedPart), key, velocity);
+}
+
+
+std::vector<EmuSC::ControlRom::DrumSet> &Emulator::get_drumsets_ref(void)
+{
+  return _emuscControlRom->get_drumsets_ref();
+}
+
+
+void Emulator::update_LCD_display(int8_t part)
+{
+  if (_allMode) {
+    set_all();
+  } else {
+    if (part < 0 || part == _selectedPart)
+      set_part(part);
+  }
 }

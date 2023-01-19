@@ -19,6 +19,7 @@
 
 #include "synth.h"
 #include "part.h"
+#include "settings.h"
 
 #include <cstring>
 #include <sys/stat.h>
@@ -44,12 +45,14 @@ Synth::Synth(ControlRom &controlRom, PcmRom &pcmRom, Mode mode)
     _channels(0),
     _ctrlRom(controlRom)
 {
-  // FIXME: Mode is currently ignored
-  reset();
+  _settings = new Settings();
 
+  // FIXME: Mode is currently ignored -> read from settings
+  reset();
+  
   // Initialize all parts
   for (int i = 0; i < 16; i++) {
-    Part part(i, _mode, 0, _keyShift, controlRom, pcmRom, _sampleRate);
+    Part part(i, _mode, 0, _settings, controlRom, pcmRom);
     _parts.push_back(part);
   }
   if (_mode == scm_GS)
@@ -62,23 +65,17 @@ Synth::Synth(ControlRom &controlRom, PcmRom &pcmRom, Mode mode)
 Synth::~Synth()
 {
   _parts.clear();
+  delete _settings;
 }
 
 
 void Synth::reset(bool resetParts)
 {
-  _bank = 0;
-  _volume = 127;
-  _pan = 64;
-  _reverb = 64;
-  _chorus = 64;
-  _keyShift = 0;
-  _masterTune = 440.0;
-  _reverbType = 5;
-  _choursType = 3;
-
   if (resetParts)
-    for (auto &p : _parts) p.reset();
+    for (auto &p : _parts) p.reset();   //? TODO: CLEAN UP
+
+  _bank = 0;
+  _settings->reset(Settings::Mode::GS);
 }
 
 
@@ -334,6 +331,7 @@ void Synth::midi_input(uint8_t status, uint8_t data1, uint8_t data2)
 //	  if (_ctrlRom.synthModel == ControlRom::sm_SC55)   // 12 bit resolution
 //	    p.set_pitchBend((data1 & 0x70) | ((data2 & 0x7f) << 7));
 //	  else
+	  if (p.midi_channel() == channel)
 	    p.set_pitchBend((data1 & 0x7f) | ((data2 & 0x7f) << 7));
 	}
       }
@@ -362,8 +360,20 @@ void Synth::midi_input(uint8_t status, uint8_t data1, uint8_t data2)
 
 void Synth::midi_input_sysex(uint8_t *data, uint16_t length)
 {
+  // First check if SysEx messages has been disabled
+  if (!_settings->get_param(SystemParam::RxSysEx))
+    return;
+  
   // Verify correct SysEx status codes and Manufacturer ID: Roland = 0x41
   if (data[0] != 0xf0 || data[1] != 0x41 || data[length - 1] != 0xf7)
+    return;
+
+  // Verify correct SysEx Device ID
+  if (data[2] != _settings->get_param(SystemParam::DeviceID) - 1)
+    return;
+  
+  // Verify valid Model IDs: GSstandard (0x42) or SC-55/88 (0x45)
+  if (data[3] != 0x42 && data[3] != 0x45)
     return;
 
   // Verify checksum (assuming 1 byte Device ID)
@@ -378,10 +388,12 @@ void Synth::midi_input_sysex(uint8_t *data, uint16_t length)
     return;
   }
 
-  // FIXME: We currently only support Deivce ID = 0x10 and Model ID = 0x42
-  // Model IDs: GSstandard = 0x42, SC-55/88 = 0x45
-  if (data[2] != 0x10 || !(data[3] == 0x42 || data[3] == 0x45))
-    return;
+  if (1) {
+    std::cout << "libEmuSC: Valid SysEx  message received: ";
+    for (int i = 0; i < length; i ++)
+      std::cout << std::hex << (int) data[i] << " " << std::flush;
+    std::cout << std::endl;
+  }
 
   if (data[4] == 0x11) {
     std::cerr << "SysEx responses are not implemented yet" << std::endl;
@@ -390,50 +402,133 @@ void Synth::midi_input_sysex(uint8_t *data, uint16_t length)
 
   midiMutex.lock();
 
+  // Request data 1 (RQ1)
 //  if (data[4] == 0x11)
 //  _midi_input_sysex_RQ1(&data[5], length - 5 - 2); // Add reply data buffer
 
+  // Data set 1 (DT1)
   if (data[4] == 0x12)
     _midi_input_sysex_DT1(data[3], &data[5], length - 5 - 2);
 
   midiMutex.unlock();
 }
 
-
+// TODO: Verify length when expexted data length is known!!
 void Synth::_midi_input_sysex_DT1(uint8_t model, uint8_t *data, uint16_t length)
 {
   if (length < 4)
     return;
 
-  std::cout << "Valid SysEx DT1 message received. Data bytes are: ";
-  for (int i = 0; i < length; i ++)
-    std::cout << std::hex << (int) data[i] << ", " << std::flush;
-  std::cout << std::endl;
-
   int p = 0;
   if (model == 0x42) {
-    // Master tune [-100.0 - 100.0] cent (nibblized data)      DATA = 4 bytes
-    if (data[p] == 0x40 && data[p+1] == 0x00 && data[p+2] == 0x00) {
-      p += 7;
-    }
 
-    // Master volume [0 - 127]                                 DATA = 1 bytes
-    if (data[p] == 0x40 && data[p+1] == 0x00 && data[p+2] == 0x04) {
-      set_volume(data[p+3]);
-      p += 4;
-    }
+    // System parameters
+    if (data[0] == 0x40 && data[1] == 0x00) {
 
-    // Master key-shift [-24 - 24]                             DATA = 1 bytes
-    if (data[p] == 0x40 && data[p+1] == 0x00 && data[p+2] == 0x05) {
-      set_key_shift(data[p+3]);
-      p += 4;
-    }
+      // First handle the special case: Reset to the GSstandard mode message
+      if (data[2] == 0x7f) {
+	reset(true);
+	return;
+      }
 
-    // Reset to GSstandard mode                                DATA = 1 bytes
-    if (data[p] == 0x40 && data[p+1] == 0x00 && data[p+2] == 0x7f) {
-      if (data[p+3] == 0x00)
-        reset(true);
-      p += 4;
+      uint8_t dataLength;             // Based on SysEx chart in Owner's Manual
+      if (data[2] == (int) SystemParam::Tune)
+	dataLength = 4;
+      else
+	dataLength = 1;
+
+      if (length - dataLength != 3) {
+	std::cerr << "libemusc: Roland SysEx message has invalid data length! "
+		  << "Message discarded." << std::endl;
+	return;
+      }
+
+      _settings->set_system_param(data[2], &data[3], dataLength);
+
+      for (const auto &cb : _partMidiModCallbacks)     // Update user interface
+	cb(-1);
+
+    // Patch parameters part 1: Address space 40 01 XX
+    } else if (data[0] == 0x40 && data[1] == 0x01) {
+
+      uint8_t dataLength = 1;          // Based on SysEx chart in Owner's Manual
+      if (data[2] == 0x00 || data[2] == 0x10)
+	dataLength = 0x10;
+
+      if (length - dataLength != 3) {
+	std::cerr << "libemusc: Roland SysEx message has invalid data length! "
+		  << "Message discarded." << std::endl;
+	return;
+      }
+
+      uint16_t a = data[2] | (data[1] << 8);
+      _settings->set_patch_param(a, &data[3], dataLength);
+
+      for (const auto &cb : _partMidiModCallbacks)     // Update user interface
+	cb(-1);
+
+    // Patch parameters part 2: Address spcae 40 1P XX (P = Part)
+    } else if (data[0] == 0x40 && (data[1] & 0x10)) {
+
+      // Set length of message based on SysEx chart in Owner's Manual
+      uint8_t dataLength;
+      switch (data[2])
+	{
+	case 0x00:
+	case 0x17:
+	  dataLength = 2;
+	  break;
+	case 0x40:
+	  dataLength = 12;
+	  break;
+	default:
+	  dataLength = 1;
+	}
+
+      if (length - dataLength != 3) {
+	std::cerr << "libemusc: Roland SysEx message has invalid data length! "
+		  << "Message discarded." << std::endl;
+	return;
+      }
+
+      uint16_t address = data[2] | (data[1] << 8);
+      _settings->set_patch_param(address, &data[3], dataLength);
+
+      // Update user interface
+      for (const auto &cb : _partMidiModCallbacks)
+	cb(Settings::convert_from_roland_part_id(data[1] & 0x0f));
+
+    // Part parameters, Block 2/2: Address 40 2P XX (P = Part)
+    } else if (data[0] == 0x40 && (data[1] & 0x20)) {
+
+      // All relevant messages has data length of 1 byte
+      if (length != 4) {
+	std::cerr << "libemusc: Roland SysEx message has invalid data length! "
+		  << "Message discarded." << std::endl;
+	return;
+      }
+
+      uint16_t address = data[2] | (data[1] << 8);
+      _settings->set_patch_param(address, &data[3], 1);
+
+    // Drum parameters: Address 41 MX XX (M = Map)
+    } else if (data[0] == 0x41 && !(data[1] & 0xe0)) {
+
+      // All relevant messages has data length of 1 byte
+      if (length != 4) {
+	std::cerr << "libemusc: Roland SysEx message has invalid data length! "
+		  << "Message discarded." << std::endl;
+	return;
+      }
+
+      bool map = data[1] & 0x10;
+      std::vector<ControlRom::DrumSet> &drumset = _ctrlRom.get_drumsets_ref();
+
+      std::cout << "Work in progress MAP=" << map << std::endl;
+
+      // TODO: Allow to change name and key number (pitch)
+//      switch (data[1] & 0x0f)
+//      {}
     }
   }
 }
@@ -467,14 +562,17 @@ int Synth::get_next_sample(int16_t *sampleOut)
   // Apply sample effects that applies to "system" level (all parts & notes)
 
   // Apply pan
-  if (_pan > 64)
-    accumulatedSample[0] *= 1.0 - (_pan - 64) / 63.0;
-  else if (_pan < 64)
-    accumulatedSample[1] *= ((_pan - 1) / 64.0);
+  uint8_t pan = _settings->get_param(SystemParam::Pan);
+  if (pan > 64)
+    accumulatedSample[0] *= 1.0 - (pan - 64) / 63.0;
+  else if (pan < 64)
+    accumulatedSample[1] *= ((pan - 1) / 64.0);
 
   // Apply master volume conversion
-  accumulatedSample[0] *= (_volume / 127.0);
-  accumulatedSample[1] *= (_volume / 127.0);
+  uint8_t volume = _settings->get_param(SystemParam::Volume);
+
+  accumulatedSample[0] *= (volume / 127.0);
+  accumulatedSample[1] *= (volume / 127.0);
 
   // Check if sound is too loud => clipping
   if (accumulatedSample[0] > 1 || accumulatedSample[0] < -1) {
@@ -507,6 +605,9 @@ std::vector<float> Synth::get_parts_last_peak_sample(void)
 
 void Synth::set_audio_format(uint32_t sampleRate, uint8_t channels)
 {
+  _settings->set_param_uint32(SystemParam::SampleRate, sampleRate);
+  _settings->set_param(SystemParam::Channels, channels);
+
   _sampleRate = sampleRate;
   _channels = channels;
 }
@@ -518,105 +619,20 @@ std::string Synth::version(void)
 }
 
 
+
 bool Synth::get_part_mute(uint8_t partId)
 {
   return _parts[partId].mute();
 }
 
-uint8_t Synth::get_part_instrument(uint8_t partId, uint8_t &bank)
-{
-  return _parts[partId].program(bank);
-}
-
-uint8_t Synth::get_part_level(uint8_t partId)
-{
-  return _parts[partId].level();
-}
-
-int8_t Synth::get_part_pan(uint8_t partId)
-{
-  return _parts[partId].pan();
-}
-
-uint8_t Synth::get_part_reverb(uint8_t partId)
-{
-  return _parts[partId].reverb();
-}
-
-uint8_t Synth::get_part_chorus(uint8_t partId)
-{
-  return _parts[partId].chorus();
-}
-
-int8_t Synth::get_part_key_shift(uint8_t partId)
-{
-  return _parts[partId].key_shift();
-}
-
-uint8_t Synth::get_part_midi_channel(uint8_t partId)
-{
-  return _parts[partId].midi_channel();
-}
-
-uint8_t Synth::get_part_mode(uint8_t partId)
-{
-  return _parts[partId].mode();
-}
-
-// Update part state; needed for adapting to button inputs
 void Synth::set_part_mute(uint8_t partId, bool mute)
 {
   _parts[partId].set_mute(mute);
 }
-/*
-void Synth::set_part_instrument(uint8_t partId, uint16_t instrument)
-{
-  _parts[partId].set_instrument(instrument);
-}
-*/
+
 void Synth::set_part_instrument(uint8_t partId, uint8_t index, uint8_t bank)
 {
   _parts[partId].set_program(index, bank);
-}
-
-void Synth::set_part_level(uint8_t partId, uint8_t level)
-{
-  _parts[partId].set_level(level);
-}
-
-
-void Synth::set_part_pan(uint8_t partId, uint8_t pan)
-{
-  _parts[partId].set_pan(pan);
-}
-
-
-void Synth::set_part_reverb(uint8_t partId, uint8_t reverb)
-{
-  _parts[partId].set_reverb(reverb);
-}
-
-
-void Synth::set_part_chorus(uint8_t partId, uint8_t chorus)
-{
-  _parts[partId].set_chorus(chorus);
-}
-
-
-void Synth::set_part_key_shift(uint8_t partId, int8_t keyShift)
-{
-  _parts[partId].set_key_shift(keyShift);
-}
-
-
-void Synth::set_part_midi_channel(uint8_t partId, uint8_t midiChannel)
-{
-  _parts[partId].set_midi_channel(midiChannel);
-}
-
-void Synth::set_part_mode(uint8_t partId, uint8_t mode)
-{
-  _parts[partId].set_mode(mode);
 }
 
 
@@ -629,6 +645,86 @@ void Synth::add_part_midi_mod_callback(std::function<void(const int)> callback)
 void Synth::clear_part_midi_mod_callback(void)
 {
   _partMidiModCallbacks.clear();
+}
+
+
+uint8_t Synth::get_param(enum SystemParam sp)
+{
+  return _settings->get_param(sp);
+}
+
+
+uint8_t* Synth::get_param_ptr(enum SystemParam sp)
+{
+  return _settings->get_param_ptr(sp);
+}
+
+
+uint16_t Synth::get_param_32nib(enum SystemParam sp)
+{
+  return _settings->get_param_32nib(sp);
+}
+
+
+uint8_t  Synth::get_param(enum PatchParam pp, int8_t part)
+{
+  return _settings->get_param(pp, part);
+}
+
+
+uint8_t* Synth::get_param_ptr(enum PatchParam pp, int8_t part)
+{
+  return _settings->get_param_ptr(pp, part);
+}
+
+
+uint8_t Synth::get_patch_param(uint16_t address, int8_t part)
+{
+  return _settings->get_patch_param(address, part);
+}
+
+
+void Synth::set_param(enum SystemParam sp, uint8_t value)
+{
+  _settings->set_param(sp, value);
+}
+
+
+void Synth::set_param(enum SystemParam sp, uint32_t value)
+{
+  _settings->set_param(sp, value);
+}
+
+
+void Synth::set_param(enum SystemParam sp, uint8_t *data, uint8_t size)
+{
+  _settings->set_param(sp, data, size);
+
+}
+
+
+void Synth::set_param_32nib(enum SystemParam sp, uint16_t value)
+{
+  _settings->set_param_32nib(sp, value);
+}
+
+
+void Synth::set_param(enum PatchParam pp, uint8_t value, int8_t part)
+{
+  _settings->set_param(pp, value, part);
+}
+
+
+void Synth::set_param(enum PatchParam pp, uint8_t *data, uint8_t size,
+		      int8_t part)
+{
+  _settings->set_param(pp, data, size, part);
+}
+
+
+void Synth::set_patch_param(uint16_t address, uint8_t value, int8_t part)
+{
+  _settings->set_patch_param(address, value, part);
 }
 
 }

@@ -26,9 +26,9 @@
 namespace EmuSC {
 
 
-TVP::TVP(ControlRom::InstPartial instPartial, uint32_t sampleRate)
-  : _sampleRate(sampleRate),
-    _LFO(sampleRate),
+TVP::TVP(ControlRom::InstPartial &instPartial, Settings *settings,int8_t partId)
+  : _sampleRate(settings->get_param_uint32(SystemParam::SampleRate)),
+    _LFO(_sampleRate),
     _ahdsr(NULL),
     _fade(0)
 {
@@ -59,6 +59,11 @@ TVP::TVP(ControlRom::InstPartial instPartial, uint32_t sampleRate)
 //  _ahdsr = new AHDSR(phasePitch, phaseDuration, phaseShape, sampleRate);
 //  _ahdsr->start();
 
+  // TODO: Add calculations for Vibrato rate, depth and delay
+  // -> partSettings[(int) SysExPart::vibratoRate] - 0x40)
+  // -> partSettings[(int) SysExPart::vibratoDepth] - 0x40)
+  // -> partSettings[(int) SysExPart::vibratoDelay] - 0x40)
+
   // TODO: Figure out how the sine wave for pitch modulation is found on the
   //       Sound Canvas. In the meantime utilize a simple wavetable with 6Hz.
   _LFO.set_frequency(6);
@@ -66,12 +71,13 @@ TVP::TVP(ControlRom::InstPartial instPartial, uint32_t sampleRate)
   // TODO: Find LUT or formula for using Pitch LFO Depth. For now just using a
   //       static approximation.
   _LFODepth = (instPartial.TVPLFODepth & 0x7f) * 0.0009;
-  std::cout << "LFODepth = " << _LFODepth << std::endl;
+
   // TODO: Figure out where the control data for controlling vibrato delay and
   //       fade-in. In the meantime use static no delay and 1s for fade-in.
   _delay = 0;//sampleRate / 2;
-  _fadeIn = sampleRate;
+  _fadeIn = _sampleRate;
   _fadeInStep = 1.0 / _fadeIn;
+
 }
 
 
@@ -119,9 +125,10 @@ double TVP::get_pitch(float modWheel)
 
   // TODO: Implement pitch envelope
   //  double e = _ahdsr->get_next_value();
-  
+
   if (0)
-    std::cout << "v=" << vibrato << ", mw=" << modWheel << std::endl;
+    std::cout << "v=" << vibrato << ", mw=" << modWheel
+	      << " depth=" << _LFODepth <<  std::endl;
 
   return vibrato;
 }

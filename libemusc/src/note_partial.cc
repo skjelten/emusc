@@ -22,6 +22,7 @@
 #include <iostream>
 #include <cmath>
 
+
 namespace EmuSC {
 
 
@@ -29,7 +30,7 @@ NotePartial::NotePartial(uint8_t key, int8_t keyDiff, int drumSet,
 			 struct ControlRom::InstPartial &instPartial,
 			 struct ControlRom::Sample &ctrlSample,
 			 std::vector<float> &pcmSamples,
-			 ControlRom &ctrlRom, uint32_t sampleRate)
+			 ControlRom &ctrlRom, Settings *settings, int8_t partId)
   : _key(key),
     _keyDiff(keyDiff),
     _ctrlSample(ctrlSample),
@@ -40,7 +41,7 @@ NotePartial::NotePartial(uint8_t key, int8_t keyDiff, int drumSet,
     _instPartial(instPartial),
     _ctrlRom(ctrlRom)
 {
-  _sampleFactor = 32000.0 / sampleRate;
+  _sampleFactor = 32000.0 / settings->get_param_uint32(SystemParam::SampleRate);
 
   // Calculate coarse & fine pitch offset from instrument partial definition
   double instPartPitchTune =
@@ -50,7 +51,24 @@ NotePartial::NotePartial(uint8_t key, int8_t keyDiff, int drumSet,
   // Calculate fine pitch offset from sample definition
   double samplePitchTune = exp((ctrlSample.pitch - 1024) / 16 * log(2) / 1200);
 
-  _instPitchTune = instPartPitchTune * samplePitchTune;
+  // Calculate scale tuning of different notes from patch parameters
+  int8_t tuning = settings->get_patch_param((int) PatchParam::ScaleTuningC +
+					    (key % 12), partId) - 0x40;
+  double scalePitchTune = exp(tuning * log(2) / 1200);
+
+  // Calculate master pitch tune from system parameters
+  uint32_t masterPitchTune =
+    settings->get_param_uint32(SystemParam::Tune) - 0x040000;
+  // TODO: Calculate master tune [-100.0 - +100.0 cent] for 0018 - 0fe8 : 040000
+//std::cout << "Master tune: " << std::hex << (int) masterPitchTune <<std::endl;
+
+  // Calculate pitch offset fine from patch parameters
+  uint16_t pitchOffsetFine =
+    settings->get_param_uint16(PatchParam::PitchOffsetFine, partId) - 0x0800;
+  // TODO: Calculate pitchOffsetFine [-12.0 - +12.0 Hz] for 0008 - 0f08 : 0800
+//  std::cout << "Pitch offset fine: " << (int) pitchOffsetFine << std::endl;
+
+  _instPitchTune = instPartPitchTune * samplePitchTune * scalePitchTune;
 
   // TODO: Find correct formula for pitch key follow
   if (instPartial.pitchKeyFlw - 0x40 != 10) {
@@ -63,13 +81,13 @@ NotePartial::NotePartial(uint8_t key, int8_t keyDiff, int drumSet,
   }
 
   // 1. Pitch: Vibrato & TVP envelope
-  _tvp = new TVP(instPartial, sampleRate);
+  _tvp = new TVP(instPartial, settings, partId);
 
   // 2. Filter: ?wah? & TVF envelope
-  _tvf = new TVF(instPartial, key, sampleRate);
+  _tvf = new TVF(instPartial, key, settings, partId);
 
   // 3. Volume: Tremolo & TVA envelope
-  _tva = new TVA(instPartial, key, sampleRate);
+  _tva = new TVA(instPartial, key, settings, partId);
 }
 
 

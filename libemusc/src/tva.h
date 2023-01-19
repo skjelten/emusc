@@ -23,9 +23,12 @@
 
 #include "ahdsr.h"
 #include "control_rom.h"
+#include "settings.h"
 #include "wavetable.h"
 
 #include <stdint.h>
+
+#include <array>
 
 
 namespace EmuSC {
@@ -34,7 +37,8 @@ namespace EmuSC {
 class TVA
 {
 public:
-  TVA(ControlRom::InstPartial instPartial, uint8_t key, uint32_t sampleRate);
+  TVA(ControlRom::InstPartial &instPartial, uint8_t key, Settings *settings,
+      int8_t partId);
   ~TVA();
 
   double get_amplification();
@@ -43,6 +47,8 @@ public:
   bool finished(void);
 
 private:
+  uint32_t _sampleRate;
+
   Wavetable _LFO;
   float _LFODepth;
 
@@ -50,8 +56,6 @@ private:
   bool _finished;
   
   ControlRom::InstPartial *_instPartial;
-
-  uint32_t _sampleRate;
 
   TVA();
 

@@ -162,6 +162,8 @@ public:
   inline int numSampleSets(void) { return _samples.size(); }
   inline int numInstruments(void) { return _instruments.size(); }
 
+  inline std::vector<DrumSet> &get_drumsets_ref(void) { return _drumSets; }
+
 private:
   std::string _romPath;
 

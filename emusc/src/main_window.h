@@ -35,16 +35,33 @@ class MainWindow : public QMainWindow
   Q_OBJECT
 
 private:
+  QMenu *_fileMenu;
+  QMenu *_toolsMenu;
+  QMenu *_synthMenu;
+  QMenu *_synthModeMenu;
+  QMenu *_optionsMenu;
+  QMenu *_helpMenu;
+
+  QActionGroup *_modeGroup;
+  QAction *_quitAct;
+  QAction *_dumpSongsAct;
+  QAction *_viewCtrlRomDataAct;
   QAction *_allSoundsOffAct;
+  QAction *_synthSettingsAct;
+  QAction *_GSmodeAct;
+  QAction *_MT32modeAct;
   QAction *_audioAct;
   QAction *_midiAct;
   QAction *_romAct;
-  QAction *_viewCtrlRomDataAct;
+  QAction *_aboutAct;
 
   Scene *_scene;
 
   bool _powerState;
   Emulator *_emulator;
+
+  void _create_actions(void);
+  void _create_menus(void);
 
 public:
   MainWindow(QWidget *parent = nullptr);
@@ -52,10 +69,11 @@ public:
 
 private slots:
   void cleanUp(void);
-  
+
   void _display_audio_dialog(void);
   void _display_midi_dialog(void);
   void _display_rom_dialog(void);
+  void _display_synth_dialog(void);
   void _display_about_dialog(void);
 
   void _dump_demo_songs(void);

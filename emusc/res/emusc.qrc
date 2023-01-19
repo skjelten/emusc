@@ -2,4 +2,16 @@
     <qresource prefix="/fonts">
         <file>retro_synth.ttf</file>
     </qresource>
+
+    <qresource prefix="/icons">
+        <file>master.png</file>
+	<file>reverb.png</file>
+	<file>chorus.png</file>
+	<file>part.png</file>
+	<file>rx.png</file>
+	<file>tone.png</file>
+	<file>scale.png</file>
+	<file>controller.png</file>
+	<file>drum.png</file>
+    </qresource>
 </RCC>

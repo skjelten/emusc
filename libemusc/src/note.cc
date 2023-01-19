@@ -25,7 +25,8 @@ namespace EmuSC {
 
 
 Note::Note(uint8_t key, int8_t keyShift, uint8_t velocity, uint16_t instrument,
-	   int drumSet, ControlRom &ctrlRom, PcmRom &pcmRom,uint32_t sampleRate)
+	   int drumSet, ControlRom &ctrlRom, PcmRom &pcmRom, Settings *settings,
+	   int8_t partId)
   : _key(key),
     _velocity(velocity),
     _7bScale(1/127.0)
@@ -65,7 +66,7 @@ Note::Note(uint8_t key, int8_t keyShift, uint8_t velocity, uint16_t instrument,
 					  ctrlRom.instrument(instrument).partials[i],
 					  ctrlRom.sample(sampleIndex),
 					  pcmRom.samples(sampleIndex).samplesF,
-					  ctrlRom, sampleRate);
+					  ctrlRom, settings, partId);
 	break;
       }
     }
