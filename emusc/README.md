@@ -8,13 +8,13 @@ This project is in no way endorsed by or affiliated with Roland Corp.
 ## Status
 We are in the early stages of development, but EmuSC is already able to display a relatively correct GUI compared to the original synth. MIDI input and audio output works, albeit with some quirks, for Linux, macOS and Windows. 
 
-For status on the quiality of the synth audio emulation, see progress in [libEmuSC](../libemusc/README.md).
+For current status on the quality of the synth audio emulation, see Status section in [libEmuSC](../libemusc/README.md).
 
 ## Requirements
-EmuSC depends on C++11 and libQT5 in addition to platform dependent APIs for MIDI and audio. In adition you will need the original control and PCM ROMs.
+EmuSC depends on C++11 and libQT5 in addition to platform dependent APIs for MIDI and audio. In addition you will need the original control and PCM ROMs.
 
 ### Linux
-ALSA sequencer is needed for MIDI input. Both ALSA and PulseAudio are supported for audio output. Note that PulseAudio has a lot of latency in its default configuration so it is recommended to use ALSA if possible.
+ALSA sequencer is needed for MIDI input. Both ALSA and PulseAudio are supported for audio output, but note that PulseAudio has a lot of latency in its default configuration so it is recommended to use ALSA if possible.
 
 ### Windows
 There is rudimentary support for all modern versions of Windows for both MIDI input and audio output. Windows has however no default MIDI sequencer, so you will either need to have a hardware MIDI port with appropriate device driver, or you will have to use a "virtual loopback MIDI cable" program. There is unfortunately no free software alternative for the latter alternative today, but for example [LoopBe1](https://www.nerds.de/en/loopbe1.html) and [loopMIDI](https://www.nerds.de/en/loopbe1.html) are freely available for non-commercial use.
@@ -64,7 +64,7 @@ The `emusc/BUILD_WIN32` directory shall now contain all files needed to run EmuS
 Note that if you have a running in a Linux environment you can also cross-compile a Windows binary by using the MinGW toolchain.
 
 ### macOS
-For some weird reason Apple decided to not follow the C standard in their MIDI implementation. Due to this, Clang is needed for compiling MIDI support on macOS.
+For some reason Apple decided to not follow the C standard in their MIDI implementation. Due to this, Clang is needed for compiling MIDI support on macOS.
 
 If you are using homebrew, install qt@5. Remember to also specify the correct paths to configure, e.g. 
 ```
