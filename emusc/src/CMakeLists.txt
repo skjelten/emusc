@@ -46,8 +46,6 @@ add_executable(emusc-client
   midi_input_alsa.h
   midi_input_core.cc
   midi_input_core.h
-  midi_input_keyboard.cc
-  midi_input_keyboard.h
   midi_input_win32.cc
   midi_input_win32.h
   rom_config_dialog.cc

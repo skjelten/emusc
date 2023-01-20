@@ -35,7 +35,6 @@
 
 #include "midi_input_alsa.h"
 #include "midi_input_core.h"
-#include "midi_input_keyboard.h"
 #include "midi_input_win32.h"
 
 
