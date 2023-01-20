@@ -1,6 +1,6 @@
 /*  
  *  This file is part of libEmuSC, a Sound Canvas emulator library
- *  Copyright (C) 2023  Håkon Skjelten
+ *  Copyright (C) 2023-2023  Håkon Skjelten
  *
  *  libEmuSC is free software: you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published
