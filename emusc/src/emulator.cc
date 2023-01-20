@@ -204,8 +204,6 @@ void Emulator::_start_midi_subsystem()
 #else
       throw(QString("Win32 MIDI system is missing in this build"));
 #endif
-    } else if (!midiSystem.compare("keyboard", Qt::CaseInsensitive)) {
-      _midiInput = new MidiInputKeyboard();
     } else {
       throw(QString("No valid MIDI system configured"));
     }
