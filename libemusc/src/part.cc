@@ -222,6 +222,7 @@ int Part::clear_all_notes(void)
 }
 
 
+// TODO: Remove all unnecessary variables and initialization
 void Part::reset(void)
 {
   clear_all_notes();
@@ -231,6 +232,10 @@ void Part::reset(void)
   _partialReserve = 2;
 
   // Other default settings for all parts
+
+  // Temporary fix until _modWheel is no longer used
+  _modWheel = 0;
+
   _pitchBend = 1;
   _mute = false;
   _modulation = 0;
