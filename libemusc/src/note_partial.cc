@@ -70,6 +70,14 @@ NotePartial::NotePartial(uint8_t key, int8_t keyDiff, int drumSet,
   // TODO: Calculate pitchOffsetFine [-12.0 - +12.0 Hz] for 0008 - 0f08 : 0800
 //  std::cout << "Pitch offset fine: " << (int) pitchOffsetFine << std::endl;
 
+  // Calculate Master Fine Tuning (NRP #1) from patch paramters
+  // 8192/100 cents steps
+  // TODO: Add this to settings and apply
+
+  // Calculate Master coarse tuning patch parameter (NRP #2)
+  // -24 - 24 semitones (similar to key shift? The same?)
+  // TODO: Add this to settings and apply
+
   _instPitchTune = instPartPitchTune * samplePitchTune * scalePitchTune;
 
   // TODO: Find correct formula for pitch key follow

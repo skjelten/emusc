@@ -131,8 +131,6 @@ private:
   enum Mode _mode;
 
   Settings *_settings;
-
-  uint8_t _bank;              // MIDI CC0 message (always ch 0)
   
   uint32_t _sampleRate;
   uint8_t _channels;
@@ -145,13 +143,13 @@ private:
   ControlRom &_ctrlRom;
 
   // MIDI message types
-  static const uint8_t midi_NoteOff     = 0x80;
-  static const uint8_t midi_NoteOn      = 0x90;
-  static const uint8_t midi_KeyPressure = 0xa0;
-  static const uint8_t midi_CtrlChange  = 0xb0;
-  static const uint8_t midi_PrgChange   = 0xc0;
-  static const uint8_t midi_ChPressure  = 0xd0;
-  static const uint8_t midi_PitchBend   = 0xe0;
+  static const uint8_t midi_NoteOff         = 0x80;
+  static const uint8_t midi_NoteOn          = 0x90;
+  static const uint8_t midi_PolyKeyPressure = 0xa0;
+  static const uint8_t midi_CtrlChange      = 0xb0;
+  static const uint8_t midi_PrgChange       = 0xc0;
+  static const uint8_t midi_ChPressure      = 0xd0;
+  static const uint8_t midi_PitchBend       = 0xe0;
 
 // int _export_sample_24(std::vector<int32_t> &sampleSet, std::string filename);
   void _add_note(uint8_t midiChannel, uint8_t key, uint8_t velocity);

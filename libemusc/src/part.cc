@@ -174,7 +174,7 @@ int Part::add_note(uint8_t key, uint8_t keyVelocity)
     clear_all_notes();
 
   // 7. Create new note and set default values (note: using pointers)
-  uint8_t keyShift = _settings->get_param(SystemParam::KeyShift) - 0x40 +
+  int8_t keyShift = _settings->get_param(SystemParam::KeyShift) - 0x40 +
     _settings->get_param(PatchParam::PitchKeyShift, _id) - 0x40;
 
   Note *n = new Note(key, keyShift, velocity, instrumentIndex,
@@ -194,8 +194,8 @@ int Part::add_note(uint8_t key, uint8_t keyVelocity)
 
 int Part::stop_note(uint8_t key)
 {
-  // 1. Check if CM64 is active (Hold Pedal) and store notes if true
-  if (_settings->get_param(PatchParam::Hold1, _id) >= 64) {
+  // 1. Check if CC64 (Hold Pedal) is active and sustain notes if true
+  if (_settings->get_param(PatchParam::Hold1, _id)) {
     _holdPedalKeys.push_back(key);
     return 0;
   }
@@ -208,6 +208,206 @@ int Part::stop_note(uint8_t key)
   }
 
   return i;
+}
+
+
+int Part::control_change(uint8_t msgId, uint8_t value)
+{
+  if (!_settings->get_param(PatchParam::RxControlChange, _id))
+    return 0;
+
+  bool updateGUI = false;
+
+  if (msgId == 0) {                                    // Bank select
+    _settings->set_param(PatchParam::ToneNumber, value, _id);
+
+  } else if (msgId == 1) {                             // Modulation
+    if (_settings->get_param(PatchParam::RxModulation, _id))
+      _settings->set_param(PatchParam::Modulation, value, _id);
+
+  } else if (msgId == 5) {                             // Portamento time
+    _settings->set_param(PatchParam::PortamentoTime, value, _id);
+
+  } else if (msgId == 6) {                             // Data entry MSB
+    // RPN
+    uint8_t msb = _settings->get_param(PatchParam::RPN_MSB, _id);
+    uint8_t lsb = _settings->get_param(PatchParam::RPN_LSB, _id);
+    if (msb != 0x7f && lsb != 0x7f)
+      if (msb == 0 && lsb == 0)                        // Pitch bend range
+	_settings->set_param(PatchParam::PB_PitchControl, value, _id);
+      else if (msb == 0 && lsb == 1)                   // Master fine tuning
+	std::cout << "Master fine tuning (part) not implemented" << std::endl;
+      else if (msb == 0 && lsb == 2)                   // Master coarse tuning
+	std::cout << "Master coarse tuning (part) not implemented" << std::endl;
+
+    // NRPN
+    msb = _settings->get_param(PatchParam::NRPN_MSB, _id);
+    lsb = _settings->get_param(PatchParam::NRPN_LSB, _id);
+    if (msb != 0x7f && lsb != 0x7f)
+      if (msb == 0x01 && lsb == 0x08)
+	_settings->set_param(PatchParam::VibratoRate, value, _id);
+      else if (msb == 0x01 && lsb == 0x09)
+	_settings->set_param(PatchParam::VibratoDepth, value, _id);
+      else if (msb == 0x01 && lsb == 0x0a)
+	_settings->set_param(PatchParam::VibratoDelay, value, _id);
+      else if (msb == 0x01 && lsb == 0x20)
+	_settings->set_param(PatchParam::TVFCutoffFreq, value, _id);
+      else if (msb == 0x01 && lsb == 0x21)
+	_settings->set_param(PatchParam::TVFResonance, value, _id);
+      else if (msb == 0x01 && lsb == 0x63)
+	_settings->set_param(PatchParam::TVFAEnvAttack, value, _id);
+      else if (msb == 0x01 && lsb == 0x64)
+	_settings->set_param(PatchParam::TVFAEnvDecay, value, _id);
+      else if (msb == 0x01 && lsb == 0x66)
+	_settings->set_param(PatchParam::TVFAEnvRelease, value, _id);
+      else if (msb == 0x18)
+	std::cout << "Pitch coarse (drums) not implemented yet" << std::endl;
+      else if (msb == 0x1a)
+	std::cout << "TVA level (drums) not implemented yet" << std::endl;
+      else if (msb == 0x1c)
+	std::cout << "Panpot (drums) not implemented yet" << std::endl;
+      else if (msb == 0x1d)
+	std::cout << "Reverb (drums) not implemented yet" << std::endl;
+    // SC-88 adds Chorus and Delay
+
+  } else if (msgId == 7) {                             // Volume
+    if (_settings->get_param(PatchParam::RxVolume, _id)) {
+      _settings->set_param(PatchParam::PartLevel, value, _id);
+      updateGUI = true;
+    }
+
+  } else if (msgId == 10) {                            // Panpot
+    if (_settings->get_param(PatchParam::RxPanpot, _id)) {
+      _settings->set_param(PatchParam::PartPanpot, value, _id);
+      updateGUI = true;
+    }
+
+  } else if (msgId == 11) {                            // Expression
+    if (_settings->get_param(PatchParam::RxExpression, _id))
+      _settings->set_param(PatchParam::Expression, value, _id);
+
+  } else if (msgId == 38) {                            // Data entry LSB
+    // Only RPN #1
+    uint8_t msb = _settings->get_param(PatchParam::RPN_MSB, _id);
+    uint8_t lsb = _settings->get_param(PatchParam::RPN_LSB, _id);
+    if (msb == 0 && lsb == 1)
+      std::cout << "Master fine tuning (part) not implemented yet" << std::endl;
+
+  } else if (msgId == 64) {                            // Hold1
+    if (_settings->get_param(PatchParam::RxHold1, _id)) {
+      if (value < 64) {
+	_settings->set_param(PatchParam::Hold1, (uint8_t) 0, _id);
+
+	for (auto &k : _holdPedalKeys)
+	  stop_note(k);
+	_holdPedalKeys.clear();
+
+      } else {
+	_settings->set_param(PatchParam::Hold1, (uint8_t) 1, _id);
+      }
+    } // Note: SC-88 Pro seems to use full 7 bit value for Hold1
+
+  } else if (msgId == 65) {                            // Portamento
+    if (_settings->get_param(PatchParam::RxPortamento, _id)) {
+      if (value < 64)
+	_settings->set_param(PatchParam::Portamento, (uint8_t)0,_id);
+      else
+	_settings->set_param(PatchParam::Portamento, (uint8_t)1,_id);
+    }
+
+  } else if (msgId == 66) {                            // Sostenuto
+    if (_settings->get_param(PatchParam::RxSostenuto, _id)) {
+      if (value < 64)
+	_settings->set_param(PatchParam::Sostenuto, (uint8_t)0,_id);
+      else
+	_settings->set_param(PatchParam::Sostenuto, (uint8_t)1,_id);
+    }
+
+  } else if (msgId == 67) {                            // Soft
+    if (_settings->get_param(PatchParam::RxSoft, _id)) {
+      if (value < 64)
+	_settings->set_param(PatchParam::Soft, (uint8_t)0,_id);
+      else
+	_settings->set_param(PatchParam::Soft, (uint8_t)1,_id);
+    }
+
+  } else if (msgId == 91) {                            // Reverb
+    _settings->set_param(PatchParam::ReverbSendLevel, value, _id);
+    updateGUI = true;
+
+  } else if (msgId == 93) {                            // Chorus
+    _settings->set_param(PatchParam::ChorusSendLevel, value, _id);
+    updateGUI = true;
+
+  } else if (msgId == 98) {                            // NRPN LSB
+    if (_settings->get_param(PatchParam::RxNRPN, _id))
+      _settings->set_param(PatchParam::NRPN_LSB, value, _id);
+
+  } else if (msgId == 99) {                            // NRPN MSB
+    if (_settings->get_param(PatchParam::RxNRPN, _id))
+      _settings->set_param(PatchParam::NRPN_MSB, value, _id);
+
+  } else if (msgId == 100) {                           // RPN LSB
+    if (_settings->get_param(PatchParam::RxRPN, _id))
+      _settings->set_param(PatchParam::RPN_LSB, value, _id);
+
+  } else if (msgId == 101) {                           // RPN MSB
+    if (_settings->get_param(PatchParam::RxRPN, _id))
+      _settings->set_param(PatchParam::RPN_MSB, value, _id);
+
+  } else if (msgId == 120 || msgId == 123 || msgId == 124 ||
+	     msgId == 125 || msgId == 126 || msgId == 127) {
+    clear_all_notes();
+  }
+
+  // Update CC1 and CC2 based on configured controller inputs
+  if (_settings->get_param(PatchParam::CC1ControllerNumber, _id) == msgId)
+    _settings->set_param(PatchParam::CC1Controller, value, _id);
+
+  if (_settings->get_param(PatchParam::CC2ControllerNumber, _id) == msgId)
+    _settings->set_param(PatchParam::CC2Controller, value, _id);
+
+  return updateGUI;
+}
+
+
+int Part::poly_key_pressure(uint8_t key, uint8_t value)
+{
+  std::cout << "Polyphonic key pressure not implemented (ch="
+	    << _settings->get_param(PatchParam::RxChannel, _id)
+	    << ", key=" << (int) key << ", value=" << value << ")"
+	    << std::endl;
+
+  return 0;
+}
+
+
+int Part::channel_pressure(uint8_t value)
+{
+  if (_settings->get_param(PatchParam::RxChPressure, _id))
+    _settings->set_param(PatchParam::ChannelPressure, value, _id);
+
+  return 0;
+}
+
+
+int Part::pitch_bend_change(uint8_t lsb, uint8_t msb)
+{
+  if (!_settings->get_param(PatchParam::RxPitchBend, _id))
+    return -1;
+  
+  _settings->set_patch_param((uint16_t) PatchParam::PitchBend,
+			     (uint8_t) ((msb & 0x7f) >> 1), _id);
+
+  // SC-55 line has 12 bit resolution on pitch wheel (that is 14 bit)
+  //	  if (_ctrlRom.synthModel == ControlRom::ss_SC55)
+  _settings->set_patch_param((uint16_t) PatchParam::PitchBend + 1,
+			     (uint8_t) ((lsb & 0x7c) | (msb << 7)), _id);
+  //	    else               // SC-88 line has normal 14 bit resolution
+  //	    set_patch_param((uint16_t) PatchParam::PitchBend + 1,
+  //			    (uint8_t) ((lsb & 0x7f) | (msb << 7)), _id);
+
+  return 0;
 }
 
 
@@ -229,42 +429,34 @@ void Part::reset(void)
   clear_all_notes();
 
   _drumSet = 0;
-//  _modDepth = 10;
   _partialReserve = 2;
 
-  // Other default settings for all parts
-
-  // Temporary fix until _modWheel is no longer used
-//  _modWheel = 0;
-
-//  _pitchBend = 1;
   _mute = false;
-//  _modulation = 0;
-//  _expression = 127;
-//  _holdPedal = false;
   _lastPeakSample = 0;
-
-//  _rpnMSB = rpn_None;
-//  _rpnLSB = rpn_None;
-//  _masterFineTuning = 0x2000;
-//  _masterCoarseTuning = 0x40;
 }
 
 
 // [index, bank] is the [x,y] coordinate in the variation table
 // For drum sets, index is the program number in the drum set bank
-int Part::set_program(uint8_t index, uint8_t bank)
+int Part::set_program(uint8_t index)
 {
   if (!_settings->get_param(PatchParam::RxProgramChange, _id))
     return -1;
+
+  _settings->set_param(PatchParam::ToneNumber2, index, _id);
+
+  uint8_t bank = _settings->get_param(PatchParam::ToneNumber, _id);
 
   // Finds correct instrument variation from variations table
   // Implemented according to SC-55 Owner's Manual page 42-45
   if (_settings->get_param(PatchParam::UseForRhythm, _id) == mode_Norm) {
     uint16_t instrument = _ctrlRom.variation(bank)[index];
-    if (bank < 63 && index < 120)
+    if (bank < 63 && index < 120) {
       while (instrument == 0xffff)
 	instrument = _ctrlRom.variation(--bank)[index];
+
+      _settings->set_param(PatchParam::ToneNumber, bank, _id);
+    }
 
   // If part is used for drums, select correct drum set
   } else {
@@ -281,59 +473,7 @@ int Part::set_program(uint8_t index, uint8_t bank)
     }
   }
 
-  _settings->set_param(PatchParam::ToneNumber, bank, _id);
-  _settings->set_param(PatchParam::ToneNumber2, index, _id);
-
   return 1;
-}
-
-
-int Part::set_control(enum ControlMsg m, uint8_t value)
-{
-  if (!_settings->get_param(PatchParam::RxControlChange, _id))
-    return -1;
-
-  if (m == cmsg_HoldPedal &&
-      _settings->get_param(PatchParam::RxHold1, _id)) {
-    _settings->set_param(PatchParam::Hold1, value, _id);
-    if (value < 64) {
-      for (auto &k : _holdPedalKeys)
-	stop_note(k);
-      _holdPedalKeys.clear();
-    }
-  } else if (m == cmsg_RPN_LSB && _settings->get_param(PatchParam::RxRPN, _id)){
-    if (value == 0x00 || value == 0x01 || value == 0x02 || value == 0x7f)
-      _rpnLSB = (RPN) value;
-  } else if (m == cmsg_RPN_MSB && _settings->get_param(PatchParam::RxRPN, _id)){
-    if (value == 0x00 || value == 0x01 || value == 0x02 || value == 0x7f)
-      _rpnMSB = (RPN) value;
-  } else if (m == cmsg_DataEntry_LSB) {
-    if (_rpnLSB == rpn_MasterFineTuning)
-      std::cout << "FIXME" << std::endl;
-      // TODO: Find a way to denibbilize one byte and set in settings
-//      _settings->set_param(SystemParam::Tune ,  value, _id);
-//      _masterFineTuning |= value;
-
-  } else if (m == cmsg_DataEntry_MSB) {
-    if (_rpnMSB == rpn_PitchBendSensitivity)
-      _settings->set_param(PatchParam::PB_PitchControl,  value, _id);
-//    else if (_rpnMSB == rpn_MasterFineTuning)
-      // See comment above
-//      _masterFineTuning |= value << 8;
-//    else if (_rpnMSB == rpn_MasterCoarseTuning)
-      // See comment above
-      //      _masterCoarseTuning  = value;
-  }
-
-  return 1;
-}
-
-
-// Note: One semitone = log(2)/12
-void Part::set_pitchBend(int16_t pitchBend)
-{
-  if (_settings->get_param(PatchParam::RxPitchBend, _id)) {
-  }
 }
 
 

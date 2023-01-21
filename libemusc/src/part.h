@@ -42,42 +42,28 @@ public:
        ControlRom &cRom, PcmRom &pRom);
   ~Part();
 
-  enum ControlMsg {
-    cmsg_Unknown,
-    cmsg_ModWheel,
-    cmsg_PortamentoTime,
-    cmsg_Volume,
-    cmsg_Pan,
-    cmsg_Expression,
-    cmsg_HoldPedal,
-    cmsg_Portamento,
-    cmsg_Reverb,
-    cmsg_Chorus,
-    cmsg_RPN_LSB,
-    cmsg_RPN_MSB,
-    cmsg_DataEntry_LSB,
-    cmsg_DataEntry_MSB
-  };
-
   int get_next_sample(float *sampleOut);
   float get_last_peak_sample(void);
   int get_num_partials(void);
 
+  // MIDI Channel Voice Messages
+  int set_program(uint8_t index);
   int add_note(uint8_t key, uint8_t velocity);
   int stop_note(uint8_t key);
+  int control_change(uint8_t msgId, uint8_t value);
+  int channel_pressure(uint8_t value);
+  int poly_key_pressure(uint8_t key, uint8_t value);
+  int pitch_bend_change(uint8_t lsb, uint8_t msb);
+
+  // MIDI Channel Mode Messages
   int clear_all_notes(void);
 
   void reset(void);
-
-  int set_control(enum ControlMsg m, uint8_t value);
-  void set_pitchBend(int16_t pitchbend);
 
   uint8_t id(void) { return _id; }
 
   bool mute() { return(_mute); }
   void set_mute(bool mute) { _mute = mute; }
-
-  int set_program(uint8_t index, uint8_t bank);
 
   uint8_t midi_channel(void) { return _settings->get_param(PatchParam::RxChannel, _id); }
 
@@ -89,39 +75,15 @@ private:
   uint16_t _instrument;       // [0-127] -> variation table
   int8_t _drumSet;            // [0-13] drumSet (SC-55)
 
-//  uint8_t _bendRange;         // [0-24] Number of semitones Default 2
-//  uint8_t _modDepth;          // [0-127] Default 10
   uint8_t _partialReserve;    // [0-24] Default 2
 
   bool _mute;                 // Part muted
-//  uint8_t _modulation;        // [0-127] MOD Wheel (CM 1) Default 0
-//  uint8_t _expression;        // [0-127] temporary volume modifier (CM 11)
- // bool _portamento;           // Portamento pitch slide [on / off] Default off
- // bool _holdPedal;            // Hold all notes [on / off] Default off
-//  uint8_t _portamentoTime;    // [0-127] Pitch slide, 0 is slowest
 
   std::vector<uint8_t> _holdPedalKeys;
-  //    uint8_t lever;          // [0-127]
-
-//  uint16_t _masterFineTuning; // [0 - 0x4000] Default 0x2000
-//  uint8_t _masterCoarseTuning;// [0 - 0x7f] Default 0x40
-//  float _pitchBend;
-//  float _modWheel;
 
   const double _7bScale;      // Constant: 1 / 127
 
   float _lastPeakSample;
-
-  // All SC-55/88 supports four official RPN messages, but LSB is ignored on
-  // pitch bend sensitivity and master coarse tuning. See SC-55 OM page 75.
-  enum RPN {
-    rpn_PitchBendSensitivity = 0x00,
-    rpn_MasterFineTuning     = 0x01,
-    rpn_MasterCoarseTuning   = 0x02,
-    rpn_None                 = 0x7f
-  };
-  enum RPN _rpnMSB;
-  enum RPN _rpnLSB;
 
   enum Mode {
     mode_Norm  = 0,

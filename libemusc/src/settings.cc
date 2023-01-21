@@ -313,6 +313,7 @@ void Settings::_initialize_patch_params(enum Mode m)
     _patchParams[(int) PatchParam::RxPolyPressure  | (partAddr << 8)] = 1;
     _patchParams[(int) PatchParam::RxNoteMessage   | (partAddr << 8)] = 1;
     _patchParams[(int) PatchParam::RxRPN           | (partAddr << 8)] = 1;
+    _patchParams[(int) PatchParam::RxNRPN          | (partAddr << 8)] = 1;
     _patchParams[(int) PatchParam::RxModulation    | (partAddr << 8)] = 1;
     _patchParams[(int) PatchParam::RxVolume        | (partAddr << 8)] = 1;
     _patchParams[(int) PatchParam::RxPanpot        | (partAddr << 8)] = 1;
@@ -444,19 +445,24 @@ void Settings::_initialize_patch_params(enum Mode m)
     _patchParams[(int) PatchParam::CC2_LFO2TVADepth    |(partAddr << 8)] = 0x00;
 
     // Controller values
-    _patchParams[(int) PatchParam::PitchBend           |(partAddr << 8)] = 0x20;
-    _patchParams[(int) PatchParam::PitchBend + 1       |(partAddr << 8)] = 0x00;
-    _patchParams[(int) PatchParam::Modulation          |(partAddr << 8)] = 0x00;
-    _patchParams[(int) PatchParam::CC1Controller       |(partAddr << 8)] = 0x00;
-    _patchParams[(int) PatchParam::CC2Controller       |(partAddr << 8)] = 0x00;
-    _patchParams[(int) PatchParam::ChannelPressure     |(partAddr << 8)] = 0x00;
-    _patchParams[(int) PatchParam::PolyKeyPressure     |(partAddr << 8)] = 0x00;
-    _patchParams[(int) PatchParam::Hold1               |(partAddr << 8)] = 0x00;
-    _patchParams[(int) PatchParam::Sostenuto           |(partAddr << 8)] = 0x00;
-    _patchParams[(int) PatchParam::Soft                |(partAddr << 8)] = 0x00;
-    _patchParams[(int) PatchParam::Expression          |(partAddr << 8)] = 0x7f;
-    _patchParams[(int) PatchParam::Portamento          |(partAddr << 8)] = 0x00;
-    _patchParams[(int) PatchParam::PortamentoTime      |(partAddr << 8)] = 0x00;
+    _patchParams[(int) PatchParam::PitchBend       |(partAddr << 8)] = 0x20;
+    _patchParams[(int) PatchParam::PitchBend + 1   |(partAddr << 8)] = 0x00;
+    _patchParams[(int) PatchParam::Modulation      |(partAddr << 8)] = 0x00;
+    _patchParams[(int) PatchParam::CC1Controller   |(partAddr << 8)] = 0x00;
+    _patchParams[(int) PatchParam::CC2Controller   |(partAddr << 8)] = 0x00;
+    _patchParams[(int) PatchParam::ChannelPressure |(partAddr << 8)] = 0x00;
+    _patchParams[(int) PatchParam::PolyKeyPressure |(partAddr << 8)] = 0x00;
+    _patchParams[(int) PatchParam::Hold1           |(partAddr << 8)] = 0x00;
+    _patchParams[(int) PatchParam::Sostenuto       |(partAddr << 8)] = 0x00;
+    _patchParams[(int) PatchParam::Soft            |(partAddr << 8)] = 0x00;
+    _patchParams[(int) PatchParam::Expression      |(partAddr << 8)] = 0x7f;
+    _patchParams[(int) PatchParam::Portamento      |(partAddr << 8)] = 0x00;
+    _patchParams[(int) PatchParam::PortamentoTime  |(partAddr << 8)] = 0x00;
+
+    _patchParams[(int) PatchParam::RPN_LSB         |(partAddr << 8)] = 0x7f;
+    _patchParams[(int) PatchParam::RPN_MSB         |(partAddr << 8)] = 0x7f;
+    _patchParams[(int) PatchParam::NRPN_LSB        |(partAddr << 8)] = 0x7f;
+    _patchParams[(int) PatchParam::NRPN_MSB        |(partAddr << 8)] = 0x7f;
   }
 }
 

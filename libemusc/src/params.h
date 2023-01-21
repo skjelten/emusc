@@ -239,7 +239,7 @@ enum class PatchParam : int {
 
   // Part 2: Settings outside SysEx chart
 
-  // Controllers
+  // Status controller inputs
   PitchBend           = 0x20f0,    // 2B [0x00 - 0x4000 : 0x2000]
   Modulation          = 0x20f2,    // [0x00 - 0x7f]
   CC1Controller       = 0x20f3,    // [0x00 - 0x7f : 0]
@@ -251,8 +251,13 @@ enum class PatchParam : int {
   Soft                = 0x20f9,    // [0x00 - 0x7f : 0] 0-63: OFF, 64-127: ON
   Expression          = 0x20fa,    // [0x00 - 0x7f : 0xff]
   Portamento          = 0x20fb,    // [0 - 1 : 0]
-  PortamentoTime      = 0x20fb     // [0x00 - 0x7f : 0]
+  PortamentoTime      = 0x20fb,    // [0x00 - 0x7f : 0]
 
+  // Current RPN and NRPN input paramters
+  RPN_LSB             = 0x20fc,    // [0x00 - 0x7f : 0]
+  RPN_MSB             = 0x20fd,    // [0x00 - 0x7f : 0]
+  NRPN_LSB            = 0x20fe,    // [0x00 - 0x7f : 0]
+  NRPN_MSB            = 0x20ff     // [0x00 - 0x7f : 0]
 };
 
 // All variables for individual parts as defined by the Sound Canvas lineup

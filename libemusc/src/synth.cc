@@ -74,7 +74,6 @@ void Synth::reset(bool resetParts)
   if (resetParts)
     for (auto &p : _parts) p.reset();   //? TODO: CLEAN UP
 
-  _bank = 0;
   _settings->reset(Settings::Mode::GS);
 }
 
@@ -176,26 +175,12 @@ void Synth::midi_input(uint8_t status, uint8_t data1, uint8_t data2)
   switch (status & 0xf0)
     {
     case midi_NoteOff:
-      if (0)
-	std::cout << "EmuSC MIDI: Note Off, ch=" << (int) channel
-		  << " key=" << (int) data1 << std::endl;
-
       for (auto &p: _parts)
 	if (p.midi_channel() == channel)
 	  p.stop_note(data1);
       break;
 
     case midi_NoteOn:
-      if (!_sampleRate) {
-	std::cerr << "LibEmuSC error: MIDI note on received, but audio format "
-		  << "has not been set. Note on ignored."
-		  << std::endl;
-	break;
-      }
-
-      if (0)
-	std::cout << "EmuSC MIDI: Note On, ch=" << (int) channel
-		  << " key=" << (int) data1 << std::endl;
       if (!data2) {                   // Note On with velocity = 0 => Note Off
 	for (auto &p: _parts)
 	  if (p.midi_channel() == channel)
@@ -205,247 +190,45 @@ void Synth::midi_input(uint8_t status, uint8_t data1, uint8_t data2)
       }
       break;
 
-    case midi_KeyPressure:
-      if (1)
-	std::cout << "EmuSC MIDI: Key pressure (AfterTouch), ch="
-		  << (int) channel << ", key=" << (int) data1
-		  << ", value=" << (int) data2  << " -NOT IMPLEMENTED-"
-		  << std::endl;
-      // TODO: Not implemented
+    case midi_PolyKeyPressure:
+      for (auto &p: _parts) {
+	if (p.midi_channel() == channel)
+	  p.poly_key_pressure(data1, data2);
+      }
       break;
 
     case midi_CtrlChange:
-      if (1)
-	std::cout << "libEmuSC: New CtrlChange MIDI event, ch=" << (int) channel
-		  << " CC Number=" << std::dec << (int) data1
-		  << ", value=" << (int) data2 << std::endl;
-      {
-	enum Part::ControlMsg cMsg;
-	if (data1 == 0) {                                   // Bank select
-	  _bank = data2;
-	  break;
-
-	} else if (data1 == 1) {                            // Modulation
-	  for (auto &p: _parts) {
-	    if (p.midi_channel() == channel &&
-		_settings->get_param(PatchParam::RxModulation, p.id()))
-	      _settings->set_param(PatchParam::Modulation, data2, p.id());
-	  }
-	  break;
-
-	} else if (data1 == 5) {                            // Portamento time
-	  for (auto &p: _parts) {
-	    if (p.midi_channel() == channel)
-	      _settings->set_param(PatchParam::PortamentoTime, data2, p.id());
-	  }
-	  break;
-
-	} else if (data1 == 6) {                            // Data entry MSB
-	  cMsg = Part::cmsg_DataEntry_MSB;
-
-	} else if (data1 == 7) {                            // Volume
-	  for (auto &p: _parts) {
-	    if (p.midi_channel() == channel &&
-		_settings->get_param(PatchParam::RxVolume, p.id())) {
-	      _settings->set_param(PatchParam::PartLevel, data2, p.id());
-	      for (const auto &cb : _partMidiModCallbacks)
-		cb(p.id());
-	    }
-	  }
-	  break;
-
-	} else if (data1 == 10) {                           // Panpot
-	  for (auto &p: _parts) {
-	    if (p.midi_channel() == channel &&
-		_settings->get_param(PatchParam::RxPanpot, p.id())) {
-	      _settings->set_param(PatchParam::PartPanpot, data2, p.id());
-	      for (const auto &cb : _partMidiModCallbacks)
-		cb(p.id());
-	    }
-	  }
-	  break;
-
-	} else if (data1 == 11) {                           // Expression
-	  for (auto &p: _parts) {
-	    if (p.midi_channel() == channel &&
-		_settings->get_param(PatchParam::RxExpression, p.id()))
-	      _settings->set_param(PatchParam::Expression, data2, p.id());
-	  }
-	  break;
-
-	} else if (data1 == 38) {                           // Data entry LSB
-	  cMsg = Part::cmsg_DataEntry_LSB;
-
-	} else if (data1 == 64) {                           // Hold1
-	  for (auto &p: _parts) {
-	    if (p.midi_channel() == channel &&
-		_settings->get_param(PatchParam::RxHold1, p.id())) {
-	      if (data2 < 64)
-		_settings->set_param(PatchParam::Hold1, (uint8_t) 0, p.id());
-	      else
-		_settings->set_param(PatchParam::Hold1, (uint8_t) 1, p.id());
-	    }
-	  } // Note: SC-88 Pro seems to use full 7 bit value for Hold1
-	  break;
-
-	} else if (data1 == 65) {                           // Portamento
-	  for (auto &p: _parts) {
-	    if (p.midi_channel() == channel &&
-		_settings->get_param(PatchParam::RxPortamento, p.id())) {
-	      if (data2 < 64)
-		_settings->set_param(PatchParam::Portamento, (uint8_t)0,p.id());
-	      else
-		_settings->set_param(PatchParam::Portamento, (uint8_t)1,p.id());
-	    }
-	  }
-	  break;
-
-	} else if (data1 == 66) {                           // Sostenuto
-	  for (auto &p: _parts) {
-	    if (p.midi_channel() == channel &&
-		_settings->get_param(PatchParam::RxSostenuto, p.id())) {
-	      if (data2 < 64)
-		_settings->set_param(PatchParam::Sostenuto, (uint8_t)0,p.id());
-	      else
-		_settings->set_param(PatchParam::Sostenuto, (uint8_t)1,p.id());
-	    }
-	  }
-	  break;
-
-	} else if (data1 == 67) {                           // Soft
-	  for (auto &p: _parts) {
-	    if (p.midi_channel() == channel &&
-		_settings->get_param(PatchParam::RxSoft, p.id())) {
-	      if (data2 < 64)
-		_settings->set_param(PatchParam::Soft, (uint8_t)0,p.id());
-	      else
-		_settings->set_param(PatchParam::Soft, (uint8_t)1,p.id());
-	    }
-	  }
-	  break;
-
-	} else if (data1 == 91) {                           // Reverb
-	  for (auto &p: _parts) {
-	    if (p.midi_channel() == channel) {
-	      _settings->set_param(PatchParam::ReverbSendLevel, data2, p.id());
-	      for (const auto &cb : _partMidiModCallbacks)
-		cb(p.id());
-	    }
-	  }
-	  break;
-
-	  } else if (data1 == 93) {                         // Chorus
-	  for (auto &p: _parts) {
-	    if (p.midi_channel() == channel) {
-	      _settings->set_param(PatchParam::ChorusSendLevel, data2, p.id());
-	      for (const auto &cb : _partMidiModCallbacks)
-		cb(p.id());
-	    }
-	  }
-	  break;
-
-	} else if (data1 == 98 || data1 == 99) {            // NRPN
-	  if (0)
-	    std::cout << "libEmuSC: NRPN message ignored ("
-		      << (int) data1 << ", " << (int) data2 << ")" << std::endl;
-	} else if (data1 == 100) {                          // RPN LSB
-	  cMsg = Part::cmsg_RPN_LSB;
-	} else if (data1 == 101) {                          // RPN MSB
-	  cMsg = Part::cmsg_RPN_MSB;
-	} else if (data1 == 120 ||
-		   data1 == 123 ||
-		   data1 == 124 ||
-		   data1 == 125 ||
-  		   data1 == 126 ||
-		   data1 == 127) {
-	  if (0)
-	    std::cout << "EmuSC MIDI: Clear all notes" << std::endl;
-
-	  for (auto &p: _parts)
-	    p.clear_all_notes();
-
-	  break;
-	}
-
-	for (auto &p: _parts) {
-	  if (_settings->get_param(PatchParam::CC1ControllerNumber, p.id())
-	      == data1)
-	    _settings->set_param(PatchParam::CC1Controller, data2,p.id());
-
-	  if (_settings->get_param(PatchParam::CC2ControllerNumber, p.id())
-	      == data1)
-	    _settings->set_param(PatchParam::CC2Controller, data2,p.id());
-	}
-
-	if (cMsg == Part::cmsg_Unknown) {       // REMOVE
-	  break;
-	}
-
-	for (auto &p : _parts) {
-	  if (p.midi_channel() == channel) {
-	    p.set_control(cMsg, data2);
-	  }
-	}
-      }
-
-      break;
-
-    case midi_PrgChange:
-      if (0)
-	std::cout << "EmuSC MIDI: Program change, ch=" << (int) channel
-		  << " preset=" << (int) data1 << std::endl;
-      {
-	for (auto &p : _parts)
-	  if (p.midi_channel() == channel) {
-	    p.set_program(data1, _bank);
-
+      for (auto &p: _parts) {
+	if (p.midi_channel() == channel) {
+	  if (p.control_change(data1, data2)) {
 	    for (const auto &cb : _partMidiModCallbacks)
 	      cb(p.id());
 	  }
+	}
       }
+      break;
 
+    case midi_PrgChange:
+      for (auto &p : _parts)
+	if (p.midi_channel() == channel) {
+	  p.set_program(data1);
+
+	  for (const auto &cb : _partMidiModCallbacks)
+	    cb(p.id());
+	}
       break;
 
     case midi_ChPressure:
       for (auto &p: _parts) {
-	if (p.midi_channel() == channel &&
-	    _settings->get_param(PatchParam::RxChPressure, p.id())) {
-
-	  set_param(PatchParam::ChannelPressure, data1, p.id());
-
-	  if (1)
-	    std::cout << "libEmuSC chPressure [" << p.id() << "] = "
-		      << _settings->get_param(PatchParam::ChannelPressure,
-					      p.id())
-		      << std::endl;
-	}
+	if (p.midi_channel() == channel)
+	  p.channel_pressure(data1);
       }
       break;
 
     case midi_PitchBend:
-      {
-	for (auto &p: _parts) {
-	  if (p.midi_channel() == channel &&
-	      _settings->get_param(PatchParam::RxPitchBend, p.id())) {
-
-	    set_patch_param((uint16_t) PatchParam::PitchBend,
-			    (uint8_t) ((data2 & 0x7f) >> 1), p.id());
-
-	    // SC-55 line has 12 bit resolution on pitch wheel (that is 14 bit)
-//	  if (_ctrlRom.synthModel == ControlRom::ss_SC55)
-	    set_patch_param((uint16_t) PatchParam::PitchBend + 1,
-			    (uint8_t) ((data1 & 0x7c) | (data2 << 7)), p.id());
-//	    else               // SC-88 line has normal 14 bit resolution
-//	    set_patch_param((uint16_t) PatchParam::PitchBend + 1,
-//			    (uint8_t) ((data1 & 0x7f) | (data2 << 7)), p.id());
-
-	    if (1)
-	      std::cout << "libEmuSC: CTRL Pitch wheel [" << (int) p.id()
-			<< "] = " <<
-		_settings->get_param_uint16(PatchParam::PitchBend, p.id()) -8192
-			<< std::endl;
-	  }
-	}
+      for (auto &p: _parts) {
+	if (p.midi_channel() == channel)
+	  p.pitch_bend_change(data1, data2);
       }
       break;
 
@@ -512,6 +295,202 @@ void Synth::midi_input_sysex(uint8_t *data, uint16_t length)
 
   midiMutex.unlock();
 }
+
+
+int Synth::get_next_sample(int16_t *sampleOut)
+{
+  float partSample[2];
+  float accumulatedSample[2] = { 0, 0 };
+
+  // Write silence
+  for (int i = 0; i < _channels; i++) {
+    sampleOut[i] = 0;
+  }
+
+  midiMutex.lock();
+
+  // Iterate all parts and ask for next sample
+  for (auto &p : _parts) {
+    partSample[0] = partSample[1] = 0;
+    p.get_next_sample(partSample);
+
+    accumulatedSample[0] += partSample[0];
+    accumulatedSample[1] += partSample[1];
+  }
+
+  // Finished working MIDI data
+  midiMutex.unlock();
+
+
+  // Apply sample effects that applies to "system" level (all parts & notes)
+
+  // Apply pan
+  uint8_t pan = _settings->get_param(SystemParam::Pan);
+  if (pan > 64)
+    accumulatedSample[0] *= 1.0 - (pan - 64) / 63.0;
+  else if (pan < 64)
+    accumulatedSample[1] *= ((pan - 1) / 64.0);
+
+  // Apply master volume conversion
+  uint8_t volume = _settings->get_param(SystemParam::Volume);
+
+  accumulatedSample[0] *= (volume / 127.0);
+  accumulatedSample[1] *= (volume / 127.0);
+
+  // Check if sound is too loud => clipping
+  if (accumulatedSample[0] > 1 || accumulatedSample[0] < -1) {
+    std::cout << "EmuSC: Warning - audio clipped (too loud)" << std::endl;
+    accumulatedSample[0] = (accumulatedSample[0] > 1) ? 1 : -1;
+  }
+  if (accumulatedSample[1] > 1 || accumulatedSample[1] < -1) {
+    std::cout << "EmuSC: Warning - audio clipped (too loud)" << std::endl;
+    accumulatedSample[1] = (accumulatedSample[1] > 1) ? 1 : -1;
+  }
+
+  // Convert to 16 bit and update sample data in audio output driver
+  for (int c = 0; c < _channels; c++)
+    sampleOut[c] += (int16_t) (accumulatedSample[c] * 0xffff);
+
+  return 0;
+}
+
+
+std::vector<float> Synth::get_parts_last_peak_sample(void)
+{
+  std::vector<float> partVolumes;
+  
+  for (auto &p : _parts)
+    partVolumes.push_back(p.get_last_peak_sample());
+  
+  return partVolumes;
+}
+
+
+void Synth::set_audio_format(uint32_t sampleRate, uint8_t channels)
+{
+  _settings->set_param_uint32(SystemParam::SampleRate, sampleRate);
+  _settings->set_param(SystemParam::Channels, channels);
+
+  _sampleRate = sampleRate;
+  _channels = channels;
+}
+
+
+std::string Synth::version(void)
+{
+  return VERSION;
+}
+
+
+
+bool Synth::get_part_mute(uint8_t partId)
+{
+  return _parts[partId].mute();
+}
+
+void Synth::set_part_mute(uint8_t partId, bool mute)
+{
+  _parts[partId].set_mute(mute);
+}
+
+void Synth::set_part_instrument(uint8_t partId, uint8_t index, uint8_t bank)
+{
+  _settings->set_param(PatchParam::ToneNumber, bank, partId);
+  _parts[partId].set_program(index);
+}
+
+
+void Synth::add_part_midi_mod_callback(std::function<void(const int)> callback)
+{
+  _partMidiModCallbacks.push_back(callback);
+}
+
+
+void Synth::clear_part_midi_mod_callback(void)
+{
+  _partMidiModCallbacks.clear();
+}
+
+
+uint8_t Synth::get_param(enum SystemParam sp)
+{
+  return _settings->get_param(sp);
+}
+
+
+uint8_t* Synth::get_param_ptr(enum SystemParam sp)
+{
+  return _settings->get_param_ptr(sp);
+}
+
+
+uint16_t Synth::get_param_32nib(enum SystemParam sp)
+{
+  return _settings->get_param_32nib(sp);
+}
+
+
+uint8_t  Synth::get_param(enum PatchParam pp, int8_t part)
+{
+  return _settings->get_param(pp, part);
+}
+
+
+uint8_t* Synth::get_param_ptr(enum PatchParam pp, int8_t part)
+{
+  return _settings->get_param_ptr(pp, part);
+}
+
+
+uint8_t Synth::get_patch_param(uint16_t address, int8_t part)
+{
+  return _settings->get_patch_param(address, part);
+}
+
+
+void Synth::set_param(enum SystemParam sp, uint8_t value)
+{
+  _settings->set_param(sp, value);
+}
+
+
+void Synth::set_param(enum SystemParam sp, uint32_t value)
+{
+  _settings->set_param(sp, value);
+}
+
+
+void Synth::set_param(enum SystemParam sp, uint8_t *data, uint8_t size)
+{
+  _settings->set_param(sp, data, size);
+
+}
+
+
+void Synth::set_param_32nib(enum SystemParam sp, uint16_t value)
+{
+  _settings->set_param_32nib(sp, value);
+}
+
+
+void Synth::set_param(enum PatchParam pp, uint8_t value, int8_t part)
+{
+  _settings->set_param(pp, value, part);
+}
+
+
+void Synth::set_param(enum PatchParam pp, uint8_t *data, uint8_t size,
+		      int8_t part)
+{
+  _settings->set_param(pp, data, size, part);
+}
+
+
+void Synth::set_patch_param(uint16_t address, uint8_t value, int8_t part)
+{
+  _settings->set_patch_param(address, value, part);
+}
+
 
 // TODO: Verify length when expexted data length is known!!
 void Synth::_midi_input_sysex_DT1(uint8_t model, uint8_t *data, uint16_t length)
@@ -634,197 +613,5 @@ void Synth::_midi_input_sysex_DT1(uint8_t model, uint8_t *data, uint16_t length)
 }
 
 
-int Synth::get_next_sample(int16_t *sampleOut)
-{
-  float partSample[2];
-  float accumulatedSample[2] = { 0, 0 };
-
-  // Write silence
-  for (int i = 0; i < _channels; i++) {
-    sampleOut[i] = 0;
-  }
-
-  midiMutex.lock();
-
-  // Iterate all parts and ask for next sample
-  for (auto &p : _parts) {
-    partSample[0] = partSample[1] = 0;
-    p.get_next_sample(partSample);
-
-    accumulatedSample[0] += partSample[0];
-    accumulatedSample[1] += partSample[1];
-  }
-
-  // Finished working MIDI data
-  midiMutex.unlock();
-
-
-  // Apply sample effects that applies to "system" level (all parts & notes)
-
-  // Apply pan
-  uint8_t pan = _settings->get_param(SystemParam::Pan);
-  if (pan > 64)
-    accumulatedSample[0] *= 1.0 - (pan - 64) / 63.0;
-  else if (pan < 64)
-    accumulatedSample[1] *= ((pan - 1) / 64.0);
-
-  // Apply master volume conversion
-  uint8_t volume = _settings->get_param(SystemParam::Volume);
-
-  accumulatedSample[0] *= (volume / 127.0);
-  accumulatedSample[1] *= (volume / 127.0);
-
-  // Check if sound is too loud => clipping
-  if (accumulatedSample[0] > 1 || accumulatedSample[0] < -1) {
-    std::cout << "EmuSC: Warning - audio clipped (too loud)" << std::endl;
-    accumulatedSample[0] = (accumulatedSample[0] > 1) ? 1 : -1;
-  }
-  if (accumulatedSample[1] > 1 || accumulatedSample[1] < -1) {
-    std::cout << "EmuSC: Warning - audio clipped (too loud)" << std::endl;
-    accumulatedSample[1] = (accumulatedSample[1] > 1) ? 1 : -1;
-  }
-
-  // Convert to 16 bit and update sample data in audio output driver
-  for (int c = 0; c < _channels; c++)
-    sampleOut[c] += (int16_t) (accumulatedSample[c] * 0xffff);
-
-  return 0;
-}
-
-
-std::vector<float> Synth::get_parts_last_peak_sample(void)
-{
-  std::vector<float> partVolumes;
-  
-  for (auto &p : _parts)
-    partVolumes.push_back(p.get_last_peak_sample());
-  
-  return partVolumes;
-}
-
-
-void Synth::set_audio_format(uint32_t sampleRate, uint8_t channels)
-{
-  _settings->set_param_uint32(SystemParam::SampleRate, sampleRate);
-  _settings->set_param(SystemParam::Channels, channels);
-
-  _sampleRate = sampleRate;
-  _channels = channels;
-}
-
-
-std::string Synth::version(void)
-{
-  return VERSION;
-}
-
-
-
-bool Synth::get_part_mute(uint8_t partId)
-{
-  return _parts[partId].mute();
-}
-
-void Synth::set_part_mute(uint8_t partId, bool mute)
-{
-  _parts[partId].set_mute(mute);
-}
-
-void Synth::set_part_instrument(uint8_t partId, uint8_t index, uint8_t bank)
-{
-  _parts[partId].set_program(index, bank);
-}
-
-
-void Synth::add_part_midi_mod_callback(std::function<void(const int)> callback)
-{
-  _partMidiModCallbacks.push_back(callback);
-}
-
-
-void Synth::clear_part_midi_mod_callback(void)
-{
-  _partMidiModCallbacks.clear();
-}
-
-
-uint8_t Synth::get_param(enum SystemParam sp)
-{
-  return _settings->get_param(sp);
-}
-
-
-uint8_t* Synth::get_param_ptr(enum SystemParam sp)
-{
-  return _settings->get_param_ptr(sp);
-}
-
-
-uint16_t Synth::get_param_32nib(enum SystemParam sp)
-{
-  return _settings->get_param_32nib(sp);
-}
-
-
-uint8_t  Synth::get_param(enum PatchParam pp, int8_t part)
-{
-  return _settings->get_param(pp, part);
-}
-
-
-uint8_t* Synth::get_param_ptr(enum PatchParam pp, int8_t part)
-{
-  return _settings->get_param_ptr(pp, part);
-}
-
-
-uint8_t Synth::get_patch_param(uint16_t address, int8_t part)
-{
-  return _settings->get_patch_param(address, part);
-}
-
-
-void Synth::set_param(enum SystemParam sp, uint8_t value)
-{
-  _settings->set_param(sp, value);
-}
-
-
-void Synth::set_param(enum SystemParam sp, uint32_t value)
-{
-  _settings->set_param(sp, value);
-}
-
-
-void Synth::set_param(enum SystemParam sp, uint8_t *data, uint8_t size)
-{
-  _settings->set_param(sp, data, size);
-
-}
-
-
-void Synth::set_param_32nib(enum SystemParam sp, uint16_t value)
-{
-  _settings->set_param_32nib(sp, value);
-}
-
-
-void Synth::set_param(enum PatchParam pp, uint8_t value, int8_t part)
-{
-  _settings->set_param(pp, value, part);
-}
-
-
-void Synth::set_param(enum PatchParam pp, uint8_t *data, uint8_t size,
-		      int8_t part)
-{
-  _settings->set_param(pp, data, size, part);
-}
-
-
-void Synth::set_patch_param(uint16_t address, uint8_t value, int8_t part)
-{
-  _settings->set_patch_param(address, value, part);
-}
 
 }
