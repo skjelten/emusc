@@ -54,6 +54,9 @@ private:
 
   double _instPitchTune;  // Instrument pitch offset factor
 
+  Settings *_settings;
+  int8_t _partId;
+
   TVP *_tvp;
   TVF *_tvf;
   TVA *_tva;
@@ -68,7 +71,7 @@ public:
   ~NotePartial();
 
   void stop(void);
-  bool get_next_sample(float *sampleOut, float pitchBend, float modWheel);
+  bool get_next_sample(float *sampleOut);
 
 };
 

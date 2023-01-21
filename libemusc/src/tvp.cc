@@ -27,7 +27,9 @@ namespace EmuSC {
 
 
 TVP::TVP(ControlRom::InstPartial &instPartial, Settings *settings,int8_t partId)
-  : _sampleRate(settings->get_param_uint32(SystemParam::SampleRate)),
+  : _settings(settings),
+    _partId(partId),
+    _sampleRate(settings->get_param_uint32(SystemParam::SampleRate)),
     _LFO(_sampleRate),
     _ahdsr(NULL),
     _fade(0)
@@ -96,7 +98,7 @@ double TVP::_convert_time_to_sec(uint8_t time)
 }
 
 
-double TVP::get_pitch(float modWheel)
+double TVP::get_pitch()
 {
   // LFO hack
   // TODO: Figure out how the LFOs are implemented and used on the Sound Canvas
@@ -109,7 +111,12 @@ double TVP::get_pitch(float modWheel)
   // For now just use a simple sine wavetable class; one instance per tvp/f/a
   // per partial.
 
-  double vibrato;
+  float modWheelPitch = 0;
+  uint8_t modWheel = _settings->get_param(PatchParam::Modulation, _partId);
+  if (modWheel)
+    modWheelPitch = 0.001;
+
+      double vibrato;
   if (_delay > 0) {                                         // Delay
     _delay--;
     vibrato = 1;
@@ -117,10 +124,10 @@ double TVP::get_pitch(float modWheel)
   } else if (_fadeIn > 0) {                                 // Fade in
     _fadeIn--;
     _fade += _fadeInStep;
-    vibrato = 1 + (_LFO.next_sample() * ((_LFODepth * _fade) + modWheel));
+    vibrato = 1 + (_LFO.next_sample() * ((_LFODepth * _fade) + modWheelPitch));
 
   } else {                                                  // Full vibrato
-    vibrato = 1 + (_LFO.next_sample() * (_LFODepth + modWheel));
+    vibrato = 1 + (_LFO.next_sample() * (_LFODepth + modWheelPitch));
   }
 
   // TODO: Implement pitch envelope

@@ -99,7 +99,7 @@ bool Note::stop(uint8_t key)
 }
 
 
-bool Note::get_next_sample(float *partSample, float pitchBend, float modWheel)
+bool Note::get_next_sample(float *partSample)
 {
   bool finished[2] = {0, 0};
 
@@ -115,7 +115,7 @@ bool Note::get_next_sample(float *partSample, float pitchBend, float modWheel)
       continue;
     }
 
-    finished[p] = _notePartial[p]->get_next_sample(sample, pitchBend, modWheel);
+    finished[p] = _notePartial[p]->get_next_sample(sample);
   }
 
   if (finished[0] == true && finished[1] == true)

@@ -39,7 +39,9 @@ NotePartial::NotePartial(uint8_t key, int8_t keyDiff, int drumSet,
     _index(0),
     _sampleDir(1),
     _instPartial(instPartial),
-    _ctrlRom(ctrlRom)
+    _ctrlRom(ctrlRom),
+    _settings(settings),
+    _partId(partId)
 {
   _sampleFactor = 32000.0 / settings->get_param_uint32(SystemParam::SampleRate);
 
@@ -115,7 +117,7 @@ void NotePartial::stop(void)
 
 // Pitch is the only variable input for a note's get_next_sample
 // Pitch < 0 => fixed pitch (e.g. for drums)
-bool NotePartial::get_next_sample(float *noteSample, float pitchBend, float modWheel)
+bool NotePartial::get_next_sample(float *noteSample)
 {
   int nextIndex;
 
@@ -123,6 +125,13 @@ bool NotePartial::get_next_sample(float *noteSample, float pitchBend, float modW
   if  (_tva->finished())
     return 1;
 
+  float pitchBend = 1;
+  if (_settings->get_param_uint16(PatchParam::PitchBend, _partId) - 8192) {
+    uint8_t bendRange = _settings->get_param(PatchParam::PB_PitchControl,
+					     _partId);
+    pitchBend = exp(((pitchBend - 8192) / 8192.0) * bendRange * (log(2) /12));
+  }
+  if (pitchBend != 1) std::cout << "PITCHBEND:" << pitchBend << std::endl;
   // Update sample position going in forward direction
   if (_sampleDir == 1) {
     if (0)
@@ -135,7 +144,7 @@ bool NotePartial::get_next_sample(float *noteSample, float pitchBend, float modW
     // Update partial sample position based on pitch input
     // FIXME: Should drumsets be modified by pitch bend messages?
     _index += exp(_keyDiff * (log(2)/12)) * pitchBend * _instPitchTune *
-      _sampleFactor * _tvp->get_pitch(modWheel);
+      _sampleFactor * _tvp->get_pitch();
 
     // Check for sample position passing sample boundary
     if (_index >= _ctrlSample.sampleLen) {
@@ -180,7 +189,7 @@ bool NotePartial::get_next_sample(float *noteSample, float pitchBend, float modW
     // Update partial sample position based on pitch input
     // FIXME: Should drumsets be modified by pitch bend messages?
     _index -= exp(_keyDiff * (log(2)/12)) * pitchBend * _instPitchTune *
-      _sampleFactor * _tvp->get_pitch(modWheel);
+      _sampleFactor * _tvp->get_pitch();
 
     // Check for sample position passing sample boundary
     if (_index < _ctrlSample.sampleLen - _ctrlSample.loopLen - 1) {

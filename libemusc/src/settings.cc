@@ -265,6 +265,23 @@ void Settings::_initialize_system_params(enum Mode m)
 
 void Settings::_initialize_patch_params(enum Mode m)
 {
+  _patchParams[(int) PatchParam::PartialReserve +  0] = 0x02;
+  _patchParams[(int) PatchParam::PartialReserve +  1] = 0x06;
+  _patchParams[(int) PatchParam::PartialReserve +  2] = 0x02;
+  _patchParams[(int) PatchParam::PartialReserve +  3] = 0x02;
+  _patchParams[(int) PatchParam::PartialReserve +  4] = 0x02;
+  _patchParams[(int) PatchParam::PartialReserve +  5] = 0x02;
+  _patchParams[(int) PatchParam::PartialReserve +  6] = 0x02;
+  _patchParams[(int) PatchParam::PartialReserve +  7] = 0x02;
+  _patchParams[(int) PatchParam::PartialReserve +  8] = 0x02;
+  _patchParams[(int) PatchParam::PartialReserve +  9] = 0x02;
+  _patchParams[(int) PatchParam::PartialReserve + 10] = 0x00;
+  _patchParams[(int) PatchParam::PartialReserve + 11] = 0x00;
+  _patchParams[(int) PatchParam::PartialReserve + 12] = 0x00;
+  _patchParams[(int) PatchParam::PartialReserve + 13] = 0x00;
+  _patchParams[(int) PatchParam::PartialReserve + 14] = 0x00;
+  _patchParams[(int) PatchParam::PartialReserve + 15] = 0x00;
+
   _patchParams[(int) PatchParam::ReverbMacro] =         0x04;
   _patchParams[(int) PatchParam::ReverbCharacter] =     0x04;
   _patchParams[(int) PatchParam::ReverbPreLPF] =        0x00;
@@ -425,8 +442,22 @@ void Settings::_initialize_patch_params(enum Mode m)
     _patchParams[(int) PatchParam::CC2_LFO2PitchDepth  |(partAddr << 8)] = 0x00;
     _patchParams[(int) PatchParam::CC2_LFO2TVFDepth    |(partAddr << 8)] = 0x00;
     _patchParams[(int) PatchParam::CC2_LFO2TVADepth    |(partAddr << 8)] = 0x00;
-  }
 
+    // Controller values
+    _patchParams[(int) PatchParam::PitchBend           |(partAddr << 8)] = 0x20;
+    _patchParams[(int) PatchParam::PitchBend + 1       |(partAddr << 8)] = 0x00;
+    _patchParams[(int) PatchParam::Modulation          |(partAddr << 8)] = 0x00;
+    _patchParams[(int) PatchParam::CC1Controller       |(partAddr << 8)] = 0x00;
+    _patchParams[(int) PatchParam::CC2Controller       |(partAddr << 8)] = 0x00;
+    _patchParams[(int) PatchParam::ChannelPressure     |(partAddr << 8)] = 0x00;
+    _patchParams[(int) PatchParam::PolyKeyPressure     |(partAddr << 8)] = 0x00;
+    _patchParams[(int) PatchParam::Hold1               |(partAddr << 8)] = 0x00;
+    _patchParams[(int) PatchParam::Sostenuto           |(partAddr << 8)] = 0x00;
+    _patchParams[(int) PatchParam::Soft                |(partAddr << 8)] = 0x00;
+    _patchParams[(int) PatchParam::Expression          |(partAddr << 8)] = 0x7f;
+    _patchParams[(int) PatchParam::Portamento          |(partAddr << 8)] = 0x00;
+    _patchParams[(int) PatchParam::PortamentoTime      |(partAddr << 8)] = 0x00;
+  }
 }
 
 

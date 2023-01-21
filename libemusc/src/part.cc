@@ -60,7 +60,7 @@ int Part::get_next_sample(float *sampleOut)
   // Get next sample from active notes, delete those which are finished
   std::list<Note*>::iterator itr = _notes.begin();
   while (itr != _notes.end()) {
-    bool finished = (*itr)->get_next_sample(partSample, _pitchBend, _modWheel);
+    bool finished = (*itr)->get_next_sample(partSample);
 
     if (finished) {
 //      std::cout << "Both partials have finished -> delete note" << std::endl;
@@ -72,10 +72,11 @@ int Part::get_next_sample(float *sampleOut)
   }
 
   // Apply volume from part (MIDI channel) and expression (CM11)
+  uint8_t expression = _settings->get_param(PatchParam::Expression, _id);
   partSample[0] *= _settings->get_param(PatchParam::PartLevel, _id) *
-    _7bScale * (_expression * _7bScale);
+    _7bScale * (expression * _7bScale);
   partSample[1] *= _settings->get_param(PatchParam::PartLevel, _id) *
-    _7bScale * (_expression * _7bScale);
+    _7bScale * (expression * _7bScale);
 
   // Store last (highest) value for future queries (typically for bar display)
   _lastPeakSample =
@@ -194,7 +195,7 @@ int Part::add_note(uint8_t key, uint8_t keyVelocity)
 int Part::stop_note(uint8_t key)
 {
   // 1. Check if CM64 is active (Hold Pedal) and store notes if true
-  if (_holdPedal) {
+  if (_settings->get_param(PatchParam::Hold1, _id) >= 64) {
     _holdPedalKeys.push_back(key);
     return 0;
   }
@@ -228,25 +229,25 @@ void Part::reset(void)
   clear_all_notes();
 
   _drumSet = 0;
-  _modDepth = 10;
+//  _modDepth = 10;
   _partialReserve = 2;
 
   // Other default settings for all parts
 
   // Temporary fix until _modWheel is no longer used
-  _modWheel = 0;
+//  _modWheel = 0;
 
-  _pitchBend = 1;
+//  _pitchBend = 1;
   _mute = false;
-  _modulation = 0;
-  _expression = 127;
-  _holdPedal = false;
+//  _modulation = 0;
+//  _expression = 127;
+//  _holdPedal = false;
   _lastPeakSample = 0;
 
-  _rpnMSB = rpn_None;
-  _rpnLSB = rpn_None;
-  _masterFineTuning = 0x2000;
-  _masterCoarseTuning = 0x40;
+//  _rpnMSB = rpn_None;
+//  _rpnLSB = rpn_None;
+//  _masterFineTuning = 0x2000;
+//  _masterCoarseTuning = 0x40;
 }
 
 
@@ -292,38 +293,14 @@ int Part::set_control(enum ControlMsg m, uint8_t value)
   if (!_settings->get_param(PatchParam::RxControlChange, _id))
     return -1;
 
-  if (m == cmsg_Volume && _settings->get_param(PatchParam::RxVolume, _id)) {
-    _settings->set_param(PatchParam::PartLevel, value, _id);
-  } else if (m == cmsg_ModWheel &&
-	     _settings->get_param(PatchParam::RxModulation, _id)) {
-    _modulation = value;
-
-    // TODO: Figure out a proper way to calculate modWheel pitch value and
-    //       where this calculation should be done
-    _modWheel = value * 0.0003;
-  } else if (m == cmsg_Pan && _settings->get_param(PatchParam::RxPanpot, _id)) {
-    uint8_t panpot = (value == 0) ? 1 : value;
-    _settings->set_param(PatchParam::PartPanpot, panpot, _id);
-  } else if (m == cmsg_Expression &&
-	     _settings->get_param(PatchParam::RxExpression, _id)) {
-    _expression =  value;
-  } else if (m == cmsg_HoldPedal &&
-	     _settings->get_param(PatchParam::RxHold1, _id)) {
-    _holdPedal =  (value >= 64) ? true : false;
-    if (_holdPedal == false) {
+  if (m == cmsg_HoldPedal &&
+      _settings->get_param(PatchParam::RxHold1, _id)) {
+    _settings->set_param(PatchParam::Hold1, value, _id);
+    if (value < 64) {
       for (auto &k : _holdPedalKeys)
 	stop_note(k);
       _holdPedalKeys.clear();
     }
-  } else if (m == cmsg_Portamento &&
-	     _settings->get_param(PatchParam::RxPortamento, _id)) {
-    _portamento =  (value >= 64) ? true : false;
-  } else if (m == cmsg_PortamentoTime) {
-    _portamentoTime =  value;
-  } else if (m == cmsg_Reverb) {
-    _settings->set_param(PatchParam::ReverbSendLevel, value, _id);
-  } else if (m == cmsg_Chorus) {
-    _settings->set_param(PatchParam::ChorusSendLevel, value, _id);
   } else if (m == cmsg_RPN_LSB && _settings->get_param(PatchParam::RxRPN, _id)){
     if (value == 0x00 || value == 0x01 || value == 0x02 || value == 0x7f)
       _rpnLSB = (RPN) value;
@@ -332,14 +309,20 @@ int Part::set_control(enum ControlMsg m, uint8_t value)
       _rpnMSB = (RPN) value;
   } else if (m == cmsg_DataEntry_LSB) {
     if (_rpnLSB == rpn_MasterFineTuning)
-      _masterFineTuning |= value;
+      std::cout << "FIXME" << std::endl;
+      // TODO: Find a way to denibbilize one byte and set in settings
+//      _settings->set_param(SystemParam::Tune ,  value, _id);
+//      _masterFineTuning |= value;
+
   } else if (m == cmsg_DataEntry_MSB) {
     if (_rpnMSB == rpn_PitchBendSensitivity)
       _settings->set_param(PatchParam::PB_PitchControl,  value, _id);
-    else if (_rpnMSB == rpn_MasterFineTuning)
-      _masterFineTuning |= value << 8;
-    else if (_rpnMSB == rpn_MasterCoarseTuning)
-      _masterCoarseTuning  = value;
+//    else if (_rpnMSB == rpn_MasterFineTuning)
+      // See comment above
+//      _masterFineTuning |= value << 8;
+//    else if (_rpnMSB == rpn_MasterCoarseTuning)
+      // See comment above
+      //      _masterCoarseTuning  = value;
   }
 
   return 1;
@@ -350,14 +333,6 @@ int Part::set_control(enum ControlMsg m, uint8_t value)
 void Part::set_pitchBend(int16_t pitchBend)
 {
   if (_settings->get_param(PatchParam::RxPitchBend, _id)) {
-    uint8_t bendRange =
-      _settings->get_param(PatchParam::PB_PitchControl, _id) - 64;
-    _pitchBend = exp(((pitchBend - 8192) / 8192.0) * bendRange * (log(2) /12));
-
-    if (0)
-      std::cout << "libEmuSC: Set pitch bend [part=" << std::dec << (int) _id
-		<< "] -> " << pitchBend << " => " << _pitchBend << " [ range:"
-		<< (int) bendRange << " ]" << std::endl;
   }
 }
 

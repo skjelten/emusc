@@ -172,7 +172,7 @@ void Synth::midi_input(uint8_t status, uint8_t data1, uint8_t data2)
   uint8_t channel = status & 0x0f;
 
   midiMutex.lock();
-	
+
   switch (status & 0xf0)
     {
     case midi_NoteOff:
@@ -206,56 +206,151 @@ void Synth::midi_input(uint8_t status, uint8_t data1, uint8_t data2)
       break;
 
     case midi_KeyPressure:
-      if (0)
+      if (1)
 	std::cout << "EmuSC MIDI: Key pressure (AfterTouch), ch="
-		  << (int) channel
-		  << " -NOT IMPLEMENTED YET-" << std::endl;
+		  << (int) channel << ", key=" << (int) data1
+		  << ", value=" << (int) data2  << " -NOT IMPLEMENTED-"
+		  << std::endl;
       // TODO: Not implemented
       break;
 
     case midi_CtrlChange:
-      if (0)
-	std::cout << "EmuSC MIDI: CtrlChange, ch=" << (int) channel
-		  << " ctrlMsgNum=" << std::dec << (int) data1
-		  << ", value=" << (int) data2
-		  << std::endl;
+      if (1)
+	std::cout << "libEmuSC: New CtrlChange MIDI event, ch=" << (int) channel
+		  << " CC Number=" << std::dec << (int) data1
+		  << ", value=" << (int) data2 << std::endl;
       {
-	// MIDI CC messages
-	enum Part::ControlMsg cMsg = Part::cmsg_Unknown;
-	if (data1 == 0) {                                     // Bank select
+	enum Part::ControlMsg cMsg;
+	if (data1 == 0) {                                   // Bank select
 	  _bank = data2;
 	  break;
-	} else if (data1 == 1) {
-	  cMsg = Part::cmsg_ModWheel;
-	} else if (data1 == 5) {
-	  cMsg = Part::cmsg_PortamentoTime;
-	} else if (data1 == 6) {                              // Data entry MSB
+
+	} else if (data1 == 1) {                            // Modulation
+	  for (auto &p: _parts) {
+	    if (p.midi_channel() == channel &&
+		_settings->get_param(PatchParam::RxModulation, p.id()))
+	      _settings->set_param(PatchParam::Modulation, data2, p.id());
+	  }
+	  break;
+
+	} else if (data1 == 5) {                            // Portamento time
+	  for (auto &p: _parts) {
+	    if (p.midi_channel() == channel)
+	      _settings->set_param(PatchParam::PortamentoTime, data2, p.id());
+	  }
+	  break;
+
+	} else if (data1 == 6) {                            // Data entry MSB
 	  cMsg = Part::cmsg_DataEntry_MSB;
-	} else if (data1 == 7) {
-	  cMsg = Part::cmsg_Volume;
-	} else if (data1 == 10) {
-	  cMsg = Part::cmsg_Pan;
-	} else if (data1 == 11) {
-	  cMsg = Part::cmsg_Expression;
-	} else if (data1 == 38) {                             // Data entry LSB
+
+	} else if (data1 == 7) {                            // Volume
+	  for (auto &p: _parts) {
+	    if (p.midi_channel() == channel &&
+		_settings->get_param(PatchParam::RxVolume, p.id())) {
+	      _settings->set_param(PatchParam::PartLevel, data2, p.id());
+	      for (const auto &cb : _partMidiModCallbacks)
+		cb(p.id());
+	    }
+	  }
+	  break;
+
+	} else if (data1 == 10) {                           // Panpot
+	  for (auto &p: _parts) {
+	    if (p.midi_channel() == channel &&
+		_settings->get_param(PatchParam::RxPanpot, p.id())) {
+	      _settings->set_param(PatchParam::PartPanpot, data2, p.id());
+	      for (const auto &cb : _partMidiModCallbacks)
+		cb(p.id());
+	    }
+	  }
+	  break;
+
+	} else if (data1 == 11) {                           // Expression
+	  for (auto &p: _parts) {
+	    if (p.midi_channel() == channel &&
+		_settings->get_param(PatchParam::RxExpression, p.id()))
+	      _settings->set_param(PatchParam::Expression, data2, p.id());
+	  }
+	  break;
+
+	} else if (data1 == 38) {                           // Data entry LSB
 	  cMsg = Part::cmsg_DataEntry_LSB;
-	} else if (data1 == 64) {
-	  cMsg = Part::cmsg_HoldPedal;
-	} else if (data1 == 65) {
-	  cMsg = Part::cmsg_Portamento;
-	} else if (data1 == 66) {                             // Sostenuto
-	} else if (data1 == 67) {                             // Soft
-	} else if (data1 == 91) {
-	  cMsg = Part::cmsg_Reverb;
-	} else if (data1 == 93) {
-	  cMsg = Part::cmsg_Chorus;
-	} else if (data1 == 98 || data1 == 99) {              // NRPN
+
+	} else if (data1 == 64) {                           // Hold1
+	  for (auto &p: _parts) {
+	    if (p.midi_channel() == channel &&
+		_settings->get_param(PatchParam::RxHold1, p.id())) {
+	      if (data2 < 64)
+		_settings->set_param(PatchParam::Hold1, (uint8_t) 0, p.id());
+	      else
+		_settings->set_param(PatchParam::Hold1, (uint8_t) 1, p.id());
+	    }
+	  } // Note: SC-88 Pro seems to use full 7 bit value for Hold1
+	  break;
+
+	} else if (data1 == 65) {                           // Portamento
+	  for (auto &p: _parts) {
+	    if (p.midi_channel() == channel &&
+		_settings->get_param(PatchParam::RxPortamento, p.id())) {
+	      if (data2 < 64)
+		_settings->set_param(PatchParam::Portamento, (uint8_t)0,p.id());
+	      else
+		_settings->set_param(PatchParam::Portamento, (uint8_t)1,p.id());
+	    }
+	  }
+	  break;
+
+	} else if (data1 == 66) {                           // Sostenuto
+	  for (auto &p: _parts) {
+	    if (p.midi_channel() == channel &&
+		_settings->get_param(PatchParam::RxSostenuto, p.id())) {
+	      if (data2 < 64)
+		_settings->set_param(PatchParam::Sostenuto, (uint8_t)0,p.id());
+	      else
+		_settings->set_param(PatchParam::Sostenuto, (uint8_t)1,p.id());
+	    }
+	  }
+	  break;
+
+	} else if (data1 == 67) {                           // Soft
+	  for (auto &p: _parts) {
+	    if (p.midi_channel() == channel &&
+		_settings->get_param(PatchParam::RxSoft, p.id())) {
+	      if (data2 < 64)
+		_settings->set_param(PatchParam::Soft, (uint8_t)0,p.id());
+	      else
+		_settings->set_param(PatchParam::Soft, (uint8_t)1,p.id());
+	    }
+	  }
+	  break;
+
+	} else if (data1 == 91) {                           // Reverb
+	  for (auto &p: _parts) {
+	    if (p.midi_channel() == channel) {
+	      _settings->set_param(PatchParam::ReverbSendLevel, data2, p.id());
+	      for (const auto &cb : _partMidiModCallbacks)
+		cb(p.id());
+	    }
+	  }
+	  break;
+
+	  } else if (data1 == 93) {                         // Chorus
+	  for (auto &p: _parts) {
+	    if (p.midi_channel() == channel) {
+	      _settings->set_param(PatchParam::ChorusSendLevel, data2, p.id());
+	      for (const auto &cb : _partMidiModCallbacks)
+		cb(p.id());
+	    }
+	  }
+	  break;
+
+	} else if (data1 == 98 || data1 == 99) {            // NRPN
 	  if (0)
 	    std::cout << "libEmuSC: NRPN message ignored ("
 		      << (int) data1 << ", " << (int) data2 << ")" << std::endl;
-	} else if (data1 == 100) {                            // RPN LSB
+	} else if (data1 == 100) {                          // RPN LSB
 	  cMsg = Part::cmsg_RPN_LSB;
-	} else if (data1 == 101) {                            // RPN MSB
+	} else if (data1 == 101) {                          // RPN MSB
 	  cMsg = Part::cmsg_RPN_MSB;
 	} else if (data1 == 120 ||
 		   data1 == 123 ||
@@ -270,28 +365,25 @@ void Synth::midi_input(uint8_t status, uint8_t data1, uint8_t data2)
 	    p.clear_all_notes();
 
 	  break;
-	} else {
-	  if (0)
-	    std::cout << "Warning: CtrlChange message not supported by "
-		      << "Sound Canvas received. Ignored."
-		      << std::endl;
-	  break;
 	}
 
-	if (cMsg == Part::cmsg_Unknown) {
-	  if (0)
-	    std::cout << "Warning: CtrlChange message not implemented by "
-		      << "libEmuSC receviced. Ignored."
-		      << std::endl;
+	for (auto &p: _parts) {
+	  if (_settings->get_param(PatchParam::CC1ControllerNumber, p.id())
+	      == data1)
+	    _settings->set_param(PatchParam::CC1Controller, data2,p.id());
+
+	  if (_settings->get_param(PatchParam::CC2ControllerNumber, p.id())
+	      == data1)
+	    _settings->set_param(PatchParam::CC2Controller, data2,p.id());
+	}
+
+	if (cMsg == Part::cmsg_Unknown) {       // REMOVE
 	  break;
 	}
 
 	for (auto &p : _parts) {
 	  if (p.midi_channel() == channel) {
 	    p.set_control(cMsg, data2);
-
-	    for (const auto &cb : _partMidiModCallbacks)
-	      cb(p.id());
 	  }
 	}
       }
@@ -314,25 +406,45 @@ void Synth::midi_input(uint8_t status, uint8_t data1, uint8_t data2)
 
       break;
 
-    case midi_ChPressure:                         // Data 0 <-> 16383
-      if (0)
-	std::cout << "EmuSC MIDI: Channel. pressure, ch=" << (int) channel
-		  << " CH PRESSURE NOT IMPLEMENTED YET" << std::endl;
-      // TODO: Not implemented
+    case midi_ChPressure:
+      for (auto &p: _parts) {
+	if (p.midi_channel() == channel &&
+	    _settings->get_param(PatchParam::RxChPressure, p.id())) {
+
+	  set_param(PatchParam::ChannelPressure, data1, p.id());
+
+	  if (1)
+	    std::cout << "libEmuSC chPressure [" << p.id() << "] = "
+		      << _settings->get_param(PatchParam::ChannelPressure,
+					      p.id())
+		      << std::endl;
+	}
+      }
       break;
 
-    case midi_PitchBend:                          // Data 0 <-> 16383
-      if (0)
-	std::cout << "EmuSC MIDI: Pitchbend, ch=" << (int) channel
-		  << " value=" << (int) ((data1 & 0x7f) | ((data2 & 0x7f) << 7))
-		  << std::endl;
+    case midi_PitchBend:
       {
 	for (auto &p: _parts) {
-//	  if (_ctrlRom.synthModel == ControlRom::sm_SC55)   // 12 bit resolution
-//	    p.set_pitchBend((data1 & 0x70) | ((data2 & 0x7f) << 7));
-//	  else
-	  if (p.midi_channel() == channel)
-	    p.set_pitchBend((data1 & 0x7f) | ((data2 & 0x7f) << 7));
+	  if (p.midi_channel() == channel &&
+	      _settings->get_param(PatchParam::RxPitchBend, p.id())) {
+
+	    set_patch_param((uint16_t) PatchParam::PitchBend,
+			    (uint8_t) ((data2 & 0x7f) >> 1), p.id());
+
+	    // SC-55 line has 12 bit resolution on pitch wheel (that is 14 bit)
+//	  if (_ctrlRom.synthModel == ControlRom::ss_SC55)
+	    set_patch_param((uint16_t) PatchParam::PitchBend + 1,
+			    (uint8_t) ((data1 & 0x7c) | (data2 << 7)), p.id());
+//	    else               // SC-88 line has normal 14 bit resolution
+//	    set_patch_param((uint16_t) PatchParam::PitchBend + 1,
+//			    (uint8_t) ((data1 & 0x7f) | (data2 << 7)), p.id());
+
+	    if (1)
+	      std::cout << "libEmuSC: CTRL Pitch wheel [" << (int) p.id()
+			<< "] = " <<
+		_settings->get_param_uint16(PatchParam::PitchBend, p.id()) -8192
+			<< std::endl;
+	  }
 	}
       }
       break;
@@ -341,18 +453,6 @@ void Synth::midi_input(uint8_t status, uint8_t data1, uint8_t data2)
       std::cout << "EmuSC MIDI: Unknown event received" << std::endl;
       break;
     }
-
-      /*     
-      if (0) {
-	std::cout << "EmuSC MIDI: Sysex message [length="
-		  << (int) midiEvent->data1 << " data:";
-	for (int i = 0; i < midiEvent->data1; i++)
-	  std::cout << " " << std::hex << std::setw(2) <<(int)midiEvent->ptr[i];
-	std::cout << "]" << std::dec << std::endl;
-      }
-	// TODO: Not implemented
-      break;
-      */
 
   midiMutex.unlock();
 }

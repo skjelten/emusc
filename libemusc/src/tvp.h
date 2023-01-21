@@ -40,7 +40,7 @@ public:
   TVP(ControlRom::InstPartial &instPartial, Settings *settings, int8_t partId);
   ~TVP();
 
-  double get_pitch(float modWheel);
+  double get_pitch(void);
   void note_off();
 
   inline bool finished(void) { if (_ahdsr) return _ahdsr->finished(); }
@@ -60,8 +60,9 @@ private:
   float _fadeInStep;
   float _fade;
 
-  int test, test2;
-  
+  Settings *_settings;
+  int8_t _partId;
+
   // Since LFO pitch rate is not found in control ROM (yet) all capital
   // instruments have been measured on an SC-55mkII. Numbers in Hz.
   // Note: Last ~10 instruments where hard to measure precisely
