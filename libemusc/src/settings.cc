@@ -20,6 +20,7 @@
 #include "settings.h"
 #include "config.h"
 
+#include <cmath>
 #include <iostream>
 
 
@@ -240,6 +241,15 @@ int8_t Settings::convert_from_roland_part_id(int8_t part)
     return part - 1;
 
   return part; 
+}
+
+
+// TODO: Evaluate this solution with other controllers
+void Settings::update_pitchBend_factor(int8_t part)
+{
+  uint8_t pbRng = get_param(PatchParam::PB_PitchControl, part) - 0x40;
+  uint16_t pbIn = get_param_uint16(PatchParam::PitchBend, part);
+  _PBController[part] = exp(((pbIn - 8192) / 8192.0) * pbRng * (log(2) / 12));
 }
 
 

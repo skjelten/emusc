@@ -83,25 +83,33 @@ Note::~Note()
 }
 
 
-bool Note::stop(uint8_t key)
+void Note::stop(void)
 {
-  if (_sustain) {                     // Hold pedal (hold1) or Sostenuto
+  if (_sustain) {                       // Hold pedal (hold1) or Sostenuto
     _stopped = true;
 
-    return 0;
-  }
-
-  if (key == _key) {
+  } else {
     if (_notePartial[0])
       _notePartial[0]->stop();
 
     if (_notePartial[1])
       _notePartial[1]->stop();
-
-    return 1;
   }
+}
 
-  return 0;
+
+void Note::stop(uint8_t key)
+{
+  if (key == _key) {
+    if (_sustain)                       // Hold pedal (hold1) or Sostenuto
+      _stopped = true;
+
+    if (_notePartial[0])
+      _notePartial[0]->stop();
+
+    if (_notePartial[1])
+      _notePartial[1]->stop();
+  }
 }
 
 

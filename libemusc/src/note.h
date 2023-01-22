@@ -41,7 +41,8 @@ public:
        int8_t partId);
   ~Note();
 
-  bool stop(uint8_t key);
+  void stop(void);
+  void stop(uint8_t key);
   void sustain(bool state);
 
   bool get_next_sample(float *sampleOut);

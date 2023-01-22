@@ -53,10 +53,11 @@ public:
   int control_change(uint8_t msgId, uint8_t value);
   int channel_pressure(uint8_t value);
   int poly_key_pressure(uint8_t key, uint8_t value);
-  int pitch_bend_change(uint8_t lsb, uint8_t msb);
+  int pitch_bend_change(uint8_t lsb, uint8_t msb, bool force = false);
 
   // MIDI Channel Mode Messages
-  int clear_all_notes(void);
+  int delete_all_notes(void);
+  int stop_all_notes(void);
 
   void reset(void);
 
@@ -96,7 +97,6 @@ private:
 
   // Calculated controller values (minimize number of calculations)
   // TODO: Figure out how to do this properly. Only relevant for pitchBend?
-  uint16_t _lastPitchBendInput;
   uint8_t _lastPitchBendRange;
 
 };

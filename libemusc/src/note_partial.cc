@@ -133,7 +133,7 @@ bool NotePartial::get_next_sample(float *noteSample)
   if  (_tva->finished())
     return 1;
 
-  float pitchBend = _settings->get_pitchBend(_partId);
+  float pitchBend = _settings->get_pitchBend_factor(_partId);
 
   // Update sample position going in forward direction
   if (_sampleDir == 1) {

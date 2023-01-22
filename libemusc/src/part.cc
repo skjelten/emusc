@@ -33,7 +33,6 @@ Part::Part(uint8_t id, uint8_t mode, uint8_t type, Settings *settings,
     _ctrlRom(ctrlRom),
     _pcmRom(pcmRom),
     _7bScale(1/127.0),
-    _lastPitchBendInput(0),
     _lastPitchBendRange(2)
 {
   // TODO: Rename mode => synthMode and set proper defaults for MT32 mode
@@ -44,7 +43,7 @@ Part::Part(uint8_t id, uint8_t mode, uint8_t type, Settings *settings,
 
 Part::~Part()
 {
-  clear_all_notes();
+  delete_all_notes();
 }
 
 
@@ -58,13 +57,10 @@ int Part::get_next_sample(float *sampleOut)
 
   // TODO: Figure out a proper way to efficiently calculate new controller
   //       values when needed. Is PitchBend the only one that needs this?
-  uint16_t pbIn = _settings->get_param_uint16(PatchParam::PitchBend, _id);
   uint8_t pbRng = _settings->get_param(PatchParam::PB_PitchControl, _id) - 0x40;
-  if (pbIn != _lastPitchBendInput || pbRng != _lastPitchBendRange) {
-    _lastPitchBendInput = pbIn;
+  if (pbRng != _lastPitchBendRange) {
     _lastPitchBendRange = pbRng;
-    _settings->set_pitchBend(exp(((pbIn - 8192) / 8192.0) * pbRng *(log(2)/12)),
-			     _id);
+    _settings->update_pitchBend_factor(_id);
   }
 
   float partSample[2] = { 0, 0 };
@@ -184,7 +180,7 @@ int Part::add_note(uint8_t key, uint8_t keyVelocity)
   //    SC-55 owner's manual page 39
   if (_settings->get_param(PatchParam::PolyMode, _id) == false &&
       _settings->get_param(PatchParam::UseForRhythm, _id) == 0)
-    clear_all_notes();
+    delete_all_notes();
 
   // 7. Create new note and set default values (note: using pointers)
   int8_t keyShift = _settings->get_param(SystemParam::KeyShift) - 0x40 +
@@ -210,11 +206,30 @@ int Part::add_note(uint8_t key, uint8_t keyVelocity)
 
 int Part::stop_note(uint8_t key)
 {
-  int i;
-  for (auto &n : _notes) {
-    bool ret = n->stop(key);
-    i += ret;
-  }
+  for (auto &n : _notes)
+    n->stop(key);
+
+  return 0;
+}
+
+
+int Part::stop_all_notes(void)
+{
+  int i = _notes.size();
+  for (auto n : _notes)
+    n->stop();
+
+  return i;
+}
+
+
+int Part::delete_all_notes(void)
+{
+  int i = _notes.size();
+  for (auto n : _notes)
+    delete n;
+
+  _notes.clear();
 
   return i;
 }
@@ -222,7 +237,8 @@ int Part::stop_note(uint8_t key)
 
 int Part::control_change(uint8_t msgId, uint8_t value)
 {
-  if (!_settings->get_param(PatchParam::RxControlChange, _id))
+  // RxControlChange does not affect Channel Mode messages
+  if (!_settings->get_param(PatchParam::RxControlChange, _id) && msgId < 120)
     return 0;
 
   bool updateGUI = false;
@@ -366,9 +382,38 @@ int Part::control_change(uint8_t msgId, uint8_t value)
     if (_settings->get_param(PatchParam::RxRPN, _id))
       _settings->set_param(PatchParam::RPN_MSB, value, _id);
 
-  } else if (msgId == 120 || msgId == 123 || msgId == 124 ||
-	     msgId == 125 || msgId == 126 || msgId == 127) {
-    clear_all_notes();
+  // Channel Mode messages
+  } else if (msgId == 120) {                           // All Sounds Off
+    delete_all_notes();
+
+  } else if (msgId == 121) {                           // Reset All Controllers
+    pitch_bend_change(0x00, 0x20, true);
+    _settings->set_param(PatchParam::PolyKeyPressure, 0, _id);
+    _settings->set_param(PatchParam::ChannelPressure, 0, _id);
+    _settings->set_param(PatchParam::Modulation, 0, _id);
+    _settings->set_param(PatchParam::Expression, 127, _id);
+    _settings->set_param(PatchParam::Hold1, 0, _id);
+    _settings->set_param(PatchParam::Portamento, 0, _id);
+    _settings->set_param(PatchParam::Sostenuto, 0, _id);
+    _settings->set_param(PatchParam::Soft, 0, _id);
+    // RPN & NRPN LSB/MSB -> 0x7f?
+
+  } else if (msgId == 123) {                           // All Notes Off
+    stop_all_notes();
+
+  } else if (msgId == 124) {                           // OMNI Off
+    stop_all_notes();
+
+  } else if (msgId == 125) {                           // OMNI On
+    stop_all_notes();
+
+  } else if (msgId == 126) {                           // Mono (-> Mode 4)
+    stop_all_notes();
+    _settings->set_param(PatchParam::PolyMode, 0, _id);
+
+  } else if (msgId == 127) {                           // Poly (-> Mode 3)
+    stop_all_notes();
+    _settings->set_param(PatchParam::PolyMode, 1, _id);
   }
 
   // Update CC1 and CC2 based on configured controller inputs
@@ -402,9 +447,9 @@ int Part::channel_pressure(uint8_t value)
 }
 
 
-int Part::pitch_bend_change(uint8_t lsb, uint8_t msb)
+int Part::pitch_bend_change(uint8_t lsb, uint8_t msb, bool force)
 {
-  if (!_settings->get_param(PatchParam::RxPitchBend, _id))
+  if (!force && !_settings->get_param(PatchParam::RxPitchBend, _id))
     return -1;
   
   _settings->set_patch_param((uint16_t) PatchParam::PitchBend,
@@ -418,26 +463,17 @@ int Part::pitch_bend_change(uint8_t lsb, uint8_t msb)
   //	    set_patch_param((uint16_t) PatchParam::PitchBend + 1,
   //			    (uint8_t) ((lsb & 0x7f) | (msb << 7)), _id);
 
+  // Update PitchBend factor
+  _settings->update_pitchBend_factor(_id);
+
   return 0;
-}
-
-
-int Part::clear_all_notes(void)
-{
-  int i = _notes.size();
-  for (auto n : _notes)
-    delete n;
-
-  _notes.clear();
-
-  return i;
 }
 
 
 // TODO: Remove all unnecessary variables and initialization
 void Part::reset(void)
 {
-  clear_all_notes();
+  delete_all_notes();
 
   _drumSet = 0;
   _partialReserve = 2;
