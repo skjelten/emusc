@@ -81,6 +81,11 @@ public:
   // Reset all settings to specific mode
   void reset(enum Mode);
 
+  // Temporary solution
+  // Figure out the need for a common way with all controllers
+  void set_pitchBend(float value, int8_t partId) { _PBController[partId]=value;}
+  float get_pitchBend(int8_t partId) { return _PBController[partId]; }
+
   static int8_t convert_to_roland_part_id(int8_t part);
   static int8_t convert_from_roland_part_id(int8_t part);
 
@@ -95,6 +100,9 @@ private:
   inline bool _le_native(void) { uint16_t n = 1; return (*(uint8_t *) & n); }
   uint16_t _to_native_endian_uint16(uint8_t *ptr);
   uint32_t _to_native_endian_uint32(uint8_t *ptr);
+
+  // Temporary storage for pitchbend
+  float _PBController[16];
 };
 
 }

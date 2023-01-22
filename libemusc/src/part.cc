@@ -32,7 +32,9 @@ Part::Part(uint8_t id, uint8_t mode, uint8_t type, Settings *settings,
     _settings(settings),
     _ctrlRom(ctrlRom),
     _pcmRom(pcmRom),
-    _7bScale(1/127.0)
+    _7bScale(1/127.0),
+    _lastPitchBendInput(0),
+    _lastPitchBendRange(2)
 {
   // TODO: Rename mode => synthMode and set proper defaults for MT32 mode
 
@@ -53,6 +55,17 @@ int Part::get_next_sample(float *sampleOut)
   // Return immediately if we have no notes to play
   if (_notes.size() == 0)
     return 0;
+
+  // TODO: Figure out a proper way to efficiently calculate new controller
+  //       values when needed. Is PitchBend the only one that needs this?
+  uint16_t pbIn = _settings->get_param_uint16(PatchParam::PitchBend, _id);
+  uint8_t pbRng = _settings->get_param(PatchParam::PB_PitchControl, _id) - 0x40;
+  if (pbIn != _lastPitchBendInput || pbRng != _lastPitchBendRange) {
+    _lastPitchBendInput = pbIn;
+    _lastPitchBendRange = pbRng;
+    _settings->set_pitchBend(exp(((pbIn - 8192) / 8192.0) * pbRng *(log(2)/12)),
+			     _id);
+  }
 
   float partSample[2] = { 0, 0 };
   float accSample = 0;
@@ -472,15 +485,6 @@ int Part::set_program(uint8_t index)
   }
 
   return 1;
-}
-
-
-uint16_t Part::_native_endian_uint16(uint8_t *ptr)
-{
-  if (_le_native())
-    return (ptr[0] << 8 | ptr[1]);
-
-  return (ptr[1] << 8 | ptr[0]);
 }
 
 }

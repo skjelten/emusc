@@ -133,13 +133,8 @@ bool NotePartial::get_next_sample(float *noteSample)
   if  (_tva->finished())
     return 1;
 
-  float pitchBend = 1;
-  if (_settings->get_param_uint16(PatchParam::PitchBend, _partId) - 8192) {
-    uint8_t bendRange = _settings->get_param(PatchParam::PB_PitchControl,
-					     _partId);
-    pitchBend = exp(((pitchBend - 8192) / 8192.0) * bendRange * (log(2) /12));
-  }
-  if (pitchBend != 1) std::cout << "PITCHBEND:" << pitchBend << std::endl;
+  float pitchBend = _settings->get_pitchBend(_partId);
+
   // Update sample position going in forward direction
   if (_sampleDir == 1) {
     if (0)

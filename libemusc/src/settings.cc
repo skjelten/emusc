@@ -31,6 +31,10 @@ Settings::Settings()
   // TODO: Add SC-55/88 to master settings
   _initialize_system_params();
   _initialize_patch_params();
+
+  // TODO: Find a proper way to handle calculated controller values
+  for (int i = 0; i < 16; i ++)
+    _PBController[i] = 1;
 }
 
 

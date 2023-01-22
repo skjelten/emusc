@@ -94,8 +94,10 @@ private:
   ControlRom &_ctrlRom;
   PcmRom &_pcmRom;
 
-  inline bool _le_native(void) { uint16_t n = 1; return (*(uint8_t *) & n); } 
-  uint16_t _native_endian_uint16(uint8_t *ptr);
+  // Calculated controller values (minimize number of calculations)
+  // TODO: Figure out how to do this properly. Only relevant for pitchBend?
+  uint16_t _lastPitchBendInput;
+  uint8_t _lastPitchBendRange;
 
 };
 
