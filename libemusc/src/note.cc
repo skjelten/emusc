@@ -29,6 +29,8 @@ Note::Note(uint8_t key, int8_t keyShift, uint8_t velocity, uint16_t instrument,
 	   int8_t partId)
   : _key(key),
     _velocity(velocity),
+    _sustain(false),
+    _stopped(false),
     _7bScale(1/127.0)
 {
   _notePartial[0] = _notePartial[1] = NULL;
@@ -83,9 +85,13 @@ Note::~Note()
 
 bool Note::stop(uint8_t key)
 {
-  // If keys match, trigger stop event for each Note Partial
+  if (_sustain) {                     // Hold pedal (hold1) or Sostenuto
+    _stopped = true;
+
+    return 0;
+  }
+
   if (key == _key) {
-    
     if (_notePartial[0])
       _notePartial[0]->stop();
 
@@ -96,6 +102,15 @@ bool Note::stop(uint8_t key)
   }
 
   return 0;
+}
+
+
+void Note::sustain(bool state)
+{
+  _sustain = state;
+
+  if (state == false && _stopped == true)
+    stop(_key);
 }
 
 

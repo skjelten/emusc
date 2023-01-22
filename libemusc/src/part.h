@@ -79,8 +79,6 @@ private:
 
   bool _mute;                 // Part muted
 
-  std::vector<uint8_t> _holdPedalKeys;
-
   const double _7bScale;      // Constant: 1 / 127
 
   float _lastPeakSample;

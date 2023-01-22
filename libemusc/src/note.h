@@ -35,14 +35,6 @@ namespace EmuSC {
 
 class Note
 {
-private:
-  uint8_t _key;
-  uint8_t _velocity;
-
-  const double _7bScale;     // Constant: 1 / 127
-
-  struct NotePartial *_notePartial[2];
-  
 public:
   Note(uint8_t key, int8_t keyShift, uint8_t velocity, uint16_t instrument,
        int drum, ControlRom &ctrlRom, PcmRom &pcmRom, Settings *settings,
@@ -50,9 +42,21 @@ public:
   ~Note();
 
   bool stop(uint8_t key);
+  void sustain(bool state);
+
   bool get_next_sample(float *sampleOut);
   int get_num_partials(void);
 
+private:
+  uint8_t _key;
+  uint8_t _velocity;
+
+  bool _sustain;
+  bool _stopped;
+
+  const double _7bScale;     // Constant: 1 / 127
+
+  struct NotePartial *_notePartial[2];
 };
 
 }

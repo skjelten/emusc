@@ -181,6 +181,9 @@ int Part::add_note(uint8_t key, uint8_t keyVelocity)
 		     drumSet, _ctrlRom, _pcmRom, _settings, _id);
   _notes.push_back(n);
 
+  if (_settings->get_param(PatchParam::Hold1, _id))
+      n->sustain(true);
+
   if (0)
     std::cout << "EmuSC: New note [ part=" << (int) _id
 	      << " key=" << (int) key
@@ -194,13 +197,6 @@ int Part::add_note(uint8_t key, uint8_t keyVelocity)
 
 int Part::stop_note(uint8_t key)
 {
-  // 1. Check if CC64 (Hold Pedal) is active and sustain notes if true
-  if (_settings->get_param(PatchParam::Hold1, _id)) {
-    _holdPedalKeys.push_back(key);
-    return 0;
-  }
-
-  // 2. Else iterate through notes list and send stop signal (-> release)
   int i;
   for (auto &n : _notes) {
     bool ret = n->stop(key);
@@ -297,14 +293,13 @@ int Part::control_change(uint8_t msgId, uint8_t value)
     if (_settings->get_param(PatchParam::RxHold1, _id)) {
       if (value < 64) {
 	_settings->set_param(PatchParam::Hold1, (uint8_t) 0, _id);
-
-	for (auto &k : _holdPedalKeys)
-	  stop_note(k);
-	_holdPedalKeys.clear();
-
       } else {
 	_settings->set_param(PatchParam::Hold1, (uint8_t) 1, _id);
       }
+
+      for (auto &n : _notes)
+	n->sustain(_settings->get_param(PatchParam::Hold1, _id));
+
     } // Note: SC-88 Pro seems to use full 7 bit value for Hold1
 
   } else if (msgId == 65) {                            // Portamento
@@ -321,6 +316,9 @@ int Part::control_change(uint8_t msgId, uint8_t value)
 	_settings->set_param(PatchParam::Sostenuto, (uint8_t)0,_id);
       else
 	_settings->set_param(PatchParam::Sostenuto, (uint8_t)1,_id);
+
+      for (auto &n : _notes)
+	n->sustain(_settings->get_param(PatchParam::Sostenuto, _id));
     }
 
   } else if (msgId == 67) {                            // Soft
