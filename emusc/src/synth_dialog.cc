@@ -909,11 +909,14 @@ PartMainSettings::PartMainSettings(Emulator *emulator, int8_t &partId,
   gridLayout->addWidget(new QLabel("Chorus"),          5, 0);
 //  gridLayout->addWidget(new QLabel("Delay"), 9, 0);  // TODO: SC-88
   gridLayout->addWidget(spacerL,                       6, 0);
-  gridLayout->addWidget(new QLabel("Velocity Depth"),  7, 0);
-  gridLayout->addWidget(new QLabel("Velocity Offset"), 8, 0);
+  gridLayout->addWidget(new QLabel("Fine Tune"),       7, 0);
+  gridLayout->addWidget(new QLabel("Coarse Tune"),     8, 0);
   gridLayout->addWidget(spacerL,                       9, 0);
-  gridLayout->addWidget(new QLabel("Key Range Low"),  10, 0);
-  gridLayout->addWidget(new QLabel("Key Range High"), 11, 0);
+  gridLayout->addWidget(new QLabel("Velocity Depth"), 10, 0);
+  gridLayout->addWidget(new QLabel("Velocity Offset"),11, 0);
+  gridLayout->addWidget(spacerL,                      12, 0);
+  gridLayout->addWidget(new QLabel("Key Range Low"),  13, 0);
+  gridLayout->addWidget(new QLabel("Key Range High"), 14, 0);
 
   _levelL = new QLabel(": ");
   _panL = new QLabel(": ");
@@ -922,6 +925,8 @@ PartMainSettings::PartMainSettings(Emulator *emulator, int8_t &partId,
   _reverbL = new QLabel(": ");
   _chorusL = new QLabel(": ");
 //  _delayL = new QLabel(": ");
+  _fineTuneL = new QLabel(": ");
+  _coarseTuneL = new QLabel(": ");
   _velDepthL = new QLabel(": ");
   _velOffsetL = new QLabel(": ");
   _keyRangeLL = new QLabel(": ");
@@ -934,14 +939,16 @@ PartMainSettings::PartMainSettings(Emulator *emulator, int8_t &partId,
   gridLayout->addWidget(_reverbL,     4, 1);
   gridLayout->addWidget(_chorusL,     5, 1);
 //  gridLayout->addWidget(_delayL,  9, 1);
-  gridLayout->addWidget(_velDepthL,   7, 1);
-  gridLayout->addWidget(_velOffsetL,  8, 1);
-  gridLayout->addWidget(_keyRangeLL, 10, 1);
-  gridLayout->addWidget(_keyRangeHL, 11, 1);
+  gridLayout->addWidget(_fineTuneL,   7, 1);
+  gridLayout->addWidget(_coarseTuneL, 8, 1);
+  gridLayout->addWidget(_velDepthL,  10, 1);
+  gridLayout->addWidget(_velOffsetL, 11, 1);
+  gridLayout->addWidget(_keyRangeLL, 13, 1);
+  gridLayout->addWidget(_keyRangeHL, 14, 1);
 
   // Set static width for slider value labels
   QFontMetrics fontMetrics(_levelL->font());
-  int labelWidth = fontMetrics.horizontalAdvance(":8888");
+  int labelWidth = fontMetrics.horizontalAdvance(":188888");
   _levelL->setFixedWidth(labelWidth);
 
   _levelS = new QSlider(Qt::Horizontal);
@@ -960,9 +967,9 @@ PartMainSettings::PartMainSettings(Emulator *emulator, int8_t &partId,
   _keyShiftS->setTickInterval(1);
 
   _tuneS = new QSlider(Qt::Horizontal);
-  _tuneS->setRange(0, 127);
+  _tuneS->setRange(8, 248);
   _tuneS->setTickPosition(QSlider::TicksBelow);
-  _tuneS->setTickInterval(64);
+  _tuneS->setTickInterval(120);
 
   _reverbS = new QSlider(Qt::Horizontal);
   _reverbS->setRange(0, 127);
@@ -973,6 +980,16 @@ PartMainSettings::PartMainSettings(Emulator *emulator, int8_t &partId,
   _chorusS->setRange(0, 127);
   _chorusS->setTickPosition(QSlider::TicksBelow);
   _chorusS->setTickInterval(64);
+
+  _fineTuneS = new QSlider(Qt::Horizontal);
+  _fineTuneS->setRange(0, 16383);
+  _fineTuneS->setTickPosition(QSlider::TicksBelow);
+  _fineTuneS->setTickInterval(8192);
+
+  _coarseTuneS = new QSlider(Qt::Horizontal);
+  _coarseTuneS->setRange(40, 88);
+  _coarseTuneS->setTickPosition(QSlider::TicksBelow);
+  _coarseTuneS->setTickInterval(24);
 
   _velDepthS = new QSlider(Qt::Horizontal);
   _velDepthS->setRange(0, 127);
@@ -1000,10 +1017,12 @@ PartMainSettings::PartMainSettings(Emulator *emulator, int8_t &partId,
   gridLayout->addWidget(_tuneS,       3, 2);
   gridLayout->addWidget(_reverbS,     4, 2);
   gridLayout->addWidget(_chorusS,     5, 2);
-  gridLayout->addWidget(_velDepthS,   7, 2);
-  gridLayout->addWidget(_velOffsetS,  8, 2);
-  gridLayout->addWidget(_keyRangeLS, 10, 2);
-  gridLayout->addWidget(_keyRangeHS, 11, 2);
+  gridLayout->addWidget(_fineTuneS,   7, 2);
+  gridLayout->addWidget(_coarseTuneS, 8, 2);
+  gridLayout->addWidget(_velDepthS,  10, 2);
+  gridLayout->addWidget(_velOffsetS, 11, 2);
+  gridLayout->addWidget(_keyRangeLS, 13, 2);
+  gridLayout->addWidget(_keyRangeHS, 14, 2);
 
   vboxLayout->addLayout(hboxLayout2);
   vboxLayout->addSpacing(10);
@@ -1021,13 +1040,22 @@ PartMainSettings::PartMainSettings(Emulator *emulator, int8_t &partId,
   connect(_instModeC, SIGNAL(currentIndexChanged(int)),
 	  this, SLOT(_instMode_changed(int)));
 
-  connect(_levelS, SIGNAL(valueChanged(int)), this, SLOT(_level_changed(int)));
-  connect(_panS, SIGNAL(valueChanged(int)), this, SLOT(_pan_changed(int)));
+  connect(_levelS, SIGNAL(valueChanged(int)),
+	  this, SLOT(_level_changed(int)));
+  connect(_panS, SIGNAL(valueChanged(int)),
+	  this, SLOT(_pan_changed(int)));
   connect(_keyShiftS, SIGNAL(valueChanged(int)),
 	  this, SLOT(_keyShift_changed(int)));
-  connect(_tuneS, SIGNAL(valueChanged(int)), this, SLOT(_tune_changed(int)));
-  connect(_reverbS, SIGNAL(valueChanged(int)), this,SLOT(_reverb_changed(int)));
-  connect(_chorusS, SIGNAL(valueChanged(int)), this,SLOT(_chorus_changed(int)));
+  connect(_tuneS, SIGNAL(valueChanged(int)),
+	  this, SLOT(_tune_changed(int)));
+  connect(_reverbS, SIGNAL(valueChanged(int)),
+	  this,SLOT(_reverb_changed(int)));
+  connect(_chorusS, SIGNAL(valueChanged(int)),
+	  this,SLOT(_chorus_changed(int)));
+  connect(_fineTuneS, SIGNAL(valueChanged(int)),
+	  this, SLOT(_fineTune_changed(int)));
+  connect(_coarseTuneS, SIGNAL(valueChanged(int)),
+	  this, SLOT(_coarseTune_changed(int)));
   connect(_velDepthS, SIGNAL(valueChanged(int)),
 	  this, SLOT(_velDepth_changed(int)));
   connect(_velOffsetS, SIGNAL(valueChanged(int)),
@@ -1055,11 +1083,11 @@ void PartMainSettings::update_all_widgets(void)
   _levelS->setValue(_emulator->get_param(EmuSC::PatchParam::PartLevel,_partId));
   _panS->setValue(_emulator->get_param(EmuSC::PatchParam::PartPanpot, _partId) - 0x40);
   _keyShiftS->setValue(_emulator->get_param(EmuSC::PatchParam::PitchKeyShift, _partId) - 0x40);
-
-  // TODO: 16bit
-  _tuneS->setValue(_emulator->get_param(EmuSC::PatchParam::PitchOffsetFine, _partId));
+  _tuneS->setValue(_emulator->get_param_nib16(EmuSC::PatchParam::PitchOffsetFine, _partId));
   _reverbS->setValue(_emulator->get_param(EmuSC::PatchParam::ReverbSendLevel, _partId));
   _chorusS->setValue(_emulator->get_param(EmuSC::PatchParam::ChorusSendLevel, _partId));
+  _fineTuneS->setValue(_emulator->get_param_uint14(EmuSC::PatchParam::PitchFineTune, _partId));
+  _coarseTuneS->setValue(_emulator->get_param(EmuSC::PatchParam::PitchCoarseTune, _partId));
   _velDepthS->setValue(_emulator->get_param(EmuSC::PatchParam::VelocitySenseDepth, _partId));
   _velOffsetS->setValue(_emulator->get_param(EmuSC::PatchParam::VelocitySenseOffset, _partId));
   _keyRangeLS->setValue(_emulator->get_param(EmuSC::PatchParam::KeyRangeLow, _partId));
@@ -1068,9 +1096,11 @@ void PartMainSettings::update_all_widgets(void)
   _levelL->setText(": " + QString::number(_levelS->value()));
   _panL->setText(": " + QString::number(_panS->value()));
   _keyShiftL->setText(": " + QString::number(_keyShiftS->value()));
-  _tuneL->setText(": " + QString::number(_tuneS->value()));
+  _tuneL->setText(": " + QString::number((float) (_tuneS->value() - 128) / 10, 'f', 1));
   _reverbL->setText(": " + QString::number(_reverbS->value()));
   _chorusL->setText(": " + QString::number(_chorusS->value()));
+  _fineTuneL->setText(": " + QString::number((float)(_fineTuneS->value() - 8192) * 100 / 8192, 'f', 2));
+  _coarseTuneL->setText(": " + QString::number(_coarseTuneS->value() - 0x40));
   _velDepthL->setText(": " + QString::number(_velDepthS->value()));
   _velOffsetL->setText(": " + QString::number(_velOffsetS->value()));
   _keyRangeLL->setText(": " + QString::number(_keyRangeLS->value()));
@@ -1134,8 +1164,9 @@ void PartMainSettings::_keyShift_changed(int value)
 
 void PartMainSettings::_tune_changed(int value)
 {
-  _tuneL->setText(": " + QString::number(value));
-  _emulator->set_param(EmuSC::PatchParam::PitchOffsetFine, (uint8_t) value);
+  _tuneL->setText(": " + QString::number((float) (value - 128) / 10, 'f', 1));
+  _emulator->set_param_nib16(EmuSC::PatchParam::PitchOffsetFine,
+			     (uint8_t) value, _partId);
 }
 
 void PartMainSettings::_reverb_changed(int value)
@@ -1153,6 +1184,21 @@ void PartMainSettings::_chorus_changed(int value)
   _emulator->set_param(EmuSC::PatchParam::ChorusSendLevel, (uint8_t) value,
 		       _partId);
   _emulator->update_LCD_display(_partId);
+}
+
+void PartMainSettings::_fineTune_changed(int value)
+{
+  _fineTuneL->setText(": " + QString::number((float)(value - 8192) * 100 / 8192,
+					     'f', 2));
+  _emulator->set_param_uint14(EmuSC::PatchParam::PitchFineTune,
+			      (uint16_t) value, _partId);
+}
+
+void PartMainSettings::_coarseTune_changed(int value)
+{
+  _coarseTuneL->setText(": " + QString::number(value - 0x40));
+  _emulator->set_param(EmuSC::PatchParam::PitchCoarseTune, (uint8_t) value,
+		       _partId);
 }
 
 void PartMainSettings::_velDepth_changed(int value)
@@ -1230,8 +1276,7 @@ PartRxModeSettings::PartRxModeSettings(Emulator *emulator, int8_t &partId,
   _rxSoftCh = new QCheckBox("Rx Soft");
   _rxExpressionCh = new QCheckBox("Rx Expression");
 
-//  _rxBankSelectCh = new QCheckBox("Rx Bank Select");
-//  _rxMapSelectCh = new QCheckBox("Rx Map Select");
+  //  _rxMapSelectCh = new QCheckBox("Rx Map Select");
  
   QGridLayout *gridLayout = new QGridLayout();
   gridLayout->addWidget(_rxVolumeCh,         0, 0);
@@ -1279,8 +1324,6 @@ PartRxModeSettings::PartRxModeSettings(Emulator *emulator, int8_t &partId,
   vboxLayout->insertSpacing(5, 10);
   vboxLayout->insertSpacing(7, 15);
 
-  update_all_widgets();
-
   connect(_partC, SIGNAL(currentIndexChanged(int)),
 	  this, SLOT(_partC_changed(int)));
 
@@ -1322,11 +1365,19 @@ PartRxModeSettings::PartRxModeSettings(Emulator *emulator, int8_t &partId,
   connect(_rxExpressionCh, SIGNAL(stateChanged(int)),
 	  this, SLOT(_rxExpression_changed(int)));
 
+  // TODO: Add check for which hw gen from Control ROM
+  // Additional widgets for later models:
+  // SC-55mkII+
+  _rxBankSelectCh = new QCheckBox("Rx Bank Select");
+  gridLayout->addWidget(_rxBankSelectCh,     8, 0);
+  connect(_rxBankSelectCh, SIGNAL(stateChanged(int)),
+	  this, SLOT(_rxBankSelect_changed(int)));
+
 // TODO: SC-88
-//  connect(_rxBankSelectCh, SIGNAL(stateChanged(int)),
-//	  this, SLOT(rxBankSelect_changed(int)));
 //  connect(_rxMapSelectCh, SIGNAL(stateChanged(int)),
 //          this, SLOT(rxMapSelect_changed(int)));
+
+  update_all_widgets();
 
   setLayout(vboxLayout);
 }
@@ -1447,10 +1498,15 @@ void PartRxModeSettings::_rxExpression_changed(int value)
 }
 
 
+// SC-55mkII+
+void PartRxModeSettings::_rxBankSelect_changed(int value)
+{
+  _emulator->set_param(EmuSC::PatchParam::RxBankSelect, (uint8_t) value, _partId);
+}
+
+
 // SC-88
-//void PartRxModeSettings::rxBankSelect_changed(int value)
-//{  _emulator->set_param(EmuSC::PatchParam::RxBankSelect, (uint8_t) value, _partId);}
-//void PartRxModeSettings::rxMapSelect_changed(int value)
+//void PartRxModeSettings::_rxMapSelect_changed(int value)
 //{  _emulator->set_param(EmuSC::PatchParam::RxMapSelect, (uint8_t) value, _partId); }
 
 void PartRxModeSettings::update_all_widgets(void)
@@ -1468,6 +1524,7 @@ void PartRxModeSettings::update_all_widgets(void)
   _rxPitchBendCh->setChecked(_emulator->get_param(EmuSC::PatchParam::RxPitchBend, _partId));
   _rxChAftertouchCh->setChecked(_emulator->get_param(EmuSC::PatchParam::RxChPressure, _partId));
   _rxPolyAftertouchCh->setChecked(_emulator->get_param(EmuSC::PatchParam::RxPolyPressure, _partId));
+  _rxBankSelectCh->setChecked(_emulator->get_param(EmuSC::PatchParam::RxBankSelect, _partId));
   _rxRPNCh->setChecked(_emulator->get_param(EmuSC::PatchParam::RxRPN, _partId));
   _rxNRPNCh->setChecked(_emulator->get_param(EmuSC::PatchParam::RxNRPN, _partId));
   _rxModulationCh->setChecked(_emulator->get_param(EmuSC::PatchParam::RxModulation, _partId));
@@ -1478,7 +1535,6 @@ void PartRxModeSettings::update_all_widgets(void)
   _rxExpressionCh->setChecked(_emulator->get_param(EmuSC::PatchParam::RxExpression, _partId));
 
 //  SC-88
-//  _rxBankSelectCh->setChecked(_emulator->get_param(EmuSC::PatchParam::RxBankSelect, _partId));
 //  _rxMapSelectCh->setChecked(_emulator->get_param(EmuSC::PatchParam::RxMapSelect, _partId));
 }
 

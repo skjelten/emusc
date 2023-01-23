@@ -108,6 +108,7 @@ enum class PatchParam : int {
   UseForRhythm        = 0x1015,    // [0 - 3] 0 = Off, 1 = Map1, 2 = Map2
   PitchKeyShift       = 0x1016,    // [0x28 - 0x58 : 0x40] -24 - 24 semitone
   PitchOffsetFine     = 0x1017,    // 2B [0x08 - 0xf8 : 0x0800] -12.0 - 12.0 Hz
+  PitchOffsetFine2    = 0x1018,
   PartLevel           = 0x1019,    // [0x00 - 0x7f : 0x64]
   VelocitySenseDepth  = 0x101a,    // [0x00 - 0x7f : 0x40]
   VelocitySenseOffset = 0x101b,    // [0x00 - 0x7f : 0x40]
@@ -118,12 +119,12 @@ enum class PatchParam : int {
   CC2ControllerNumber = 0x1020,    // [0x00 - 0x5f : 0x40]
   ChorusSendLevel     = 0x1021,    // [0x00 - 0x7f : 0x00] (CC# 93)
   ReverbSendLevel     = 0x1022,    // [0x00 - 0x7f : 0x28] (CC# 91)
-
-  // SC-88 only addons
-  RxBankSelect        = 0x1023,
-  RxBankSelectLSB     = 0x1024,
-  PitchFineTune       = 0x102a,
-  DelaySendLevel      = 0x102c,
+  RxBankSelect        = 0x1023,    // [0 - 1 : 1]  Note: Missing from SC-55 OM,
+                                   // but present on SC-55mkII and onwards
+  RxBankSelectLSB     = 0x1024,    // (SC88+)
+  PitchFineTune       = 0x102a,    // [SC88+][0x0000 - 0x7f7f : 0x400] (14 bit)
+  PitchFineTune2      = 0x102b,    // Also RPN #1 so used for that on SC-55
+  DelaySendLevel      = 0x102c,    // (SC88+)
 
   // Tone modify
   // Note: SC-55 has [0x0e - 0x72 : 0x40] for all tone modify parameters
@@ -231,33 +232,36 @@ enum class PatchParam : int {
   CC2_LFO2TVADepth    = 0x205a,    // [0x00 - 0x7f : 0x00], 0 - 100.0 %
 
   // SC-88 only additions TODO: FIX
-  ToneMapNumber       = 0x300,     // [SC-88Pro]
-  ToneMap0Number      = 0x301,     // [SC-88Pro]
-  EqOnOff             = 0x320,     // [SC-88]
-  OutputAssign        = 0x321,     // [SC-88Pro]
-  PartEfxAssign       = 0x322,     // [SC-88Pro]
+//  ToneMapNumber       = 0x4000,     // [SC-88Pro]
+//  ToneMap0Number      = 0x4001,     // [SC-88Pro]
+//  EqOnOff             = 0x4020,     // [SC-88]
+//  OutputAssign        = 0x4021,     // [SC-88Pro]
+//  PartEfxAssign       = 0x4022,     // [SC-88Pro]
 
   // Part 2: Settings outside SysEx chart
 
   // Status controller inputs
-  PitchBend           = 0x20f0,    // 2B [0x00 - 0x4000 : 0x2000]
-  Modulation          = 0x20f2,    // [0x00 - 0x7f]
-  CC1Controller       = 0x20f3,    // [0x00 - 0x7f : 0]
-  CC2Controller       = 0x20f4,    // [0x00 - 0x7f : 0]
-  ChannelPressure     = 0x20f5,    // [0x00 - 0x7f : 0]
-  PolyKeyPressure     = 0x20f6,    // [0x00 - 0x7f : 0] pr. key. Need an array?
-  Hold1               = 0x20f7,    // [0x00 - 0x7f : 0] 0-63: OFF, 64-127: ON
-  Sostenuto           = 0x20f8,    // [0x00 - 0x7f : 0] 0-63: OFF, 64-127: ON
-  Soft                = 0x20f9,    // [0x00 - 0x7f : 0] 0-63: OFF, 64-127: ON
-  Expression          = 0x20fa,    // [0x00 - 0x7f : 0xff]
-  Portamento          = 0x20fb,    // [0 - 1 : 0]
-  PortamentoTime      = 0x20fb,    // [0x00 - 0x7f : 0]
+  PitchBend           = 0x1080,    // 2B [0x00 - 0x4000 : 0x2000]
+  Modulation          = 0x1082,    // [0x00 - 0x7f]
+  CC1Controller       = 0x1083,    // [0x00 - 0x7f : 0]
+  CC2Controller       = 0x1084,    // [0x00 - 0x7f : 0]
+  ChannelPressure     = 0x1085,    // [0x00 - 0x7f : 0]
+  PolyKeyPressure     = 0x1086,    // [0x00 - 0x7f : 0] pr. key. Need an array?
+  Hold1               = 0x1087,    // [0x00 - 0x7f : 0] 0-63: OFF, 64-127: ON
+  Sostenuto           = 0x1088,    // [0x00 - 0x7f : 0] 0-63: OFF, 64-127: ON
+  Soft                = 0x1089,    // [0x00 - 0x7f : 0] 0-63: OFF, 64-127: ON
+  Expression          = 0x108a,    // [0x00 - 0x7f : 0xff]
+  Portamento          = 0x108b,    // [0 - 1 : 0]
+  PortamentoTime      = 0x108c,    // [0x00 - 0x7f : 0]
 
-  // Current RPN and NRPN input paramters
-  RPN_LSB             = 0x20fc,    // [0x00 - 0x7f : 0]
-  RPN_MSB             = 0x20fd,    // [0x00 - 0x7f : 0]
-  NRPN_LSB            = 0x20fe,    // [0x00 - 0x7f : 0]
-  NRPN_MSB            = 0x20ff     // [0x00 - 0x7f : 0]
+  // Current RPN and NRPN
+  RPN_LSB             = 0x1090,    // [0x00 - 0x7f : 0]
+  RPN_MSB             = 0x1091,    // [0x00 - 0x7f : 0]
+  NRPN_LSB            = 0x1092,    // [0x00 - 0x7f : 0]
+  NRPN_MSB            = 0x1093,    // [0x00 - 0x7f : 0]
+
+  // Other patch parameters from CC / RPN / NRPN / menu
+  PitchCoarseTune     = 0x1094     // [0x28 - 0x58 : 0x40] -24 - 24 semit. RPN#2
 };
 
 // All variables for individual parts as defined by the Sound Canvas lineup

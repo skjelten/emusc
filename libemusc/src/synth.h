@@ -112,6 +112,8 @@ public:
   uint16_t get_param_32nib(enum SystemParam sp);
   uint8_t  get_param(enum PatchParam pp, int8_t part = -1);
   uint8_t* get_param_ptr(enum PatchParam pp, int8_t part = -1);
+  uint16_t get_param_uint14(enum PatchParam pp, int8_t part = -1);
+  uint8_t  get_param_nib16(enum PatchParam pp, int8_t part = -1);
   uint8_t  get_patch_param(uint16_t address, int8_t part = -1);
 
   // EmuSC clients methods for setting synth paramters
@@ -122,6 +124,8 @@ public:
   void set_param(enum PatchParam pp, uint8_t value, int8_t part = -1);
   void set_param(enum PatchParam sp, uint8_t *data, uint8_t size = 1,
 		 int8_t part = -1);
+  void set_param_uint14(enum PatchParam pp, uint16_t value, int8_t part = -1);
+  void set_param_nib16(enum PatchParam pp, uint8_t value, int8_t part = -1);
   void set_patch_param(uint16_t address, uint8_t value, int8_t part = 1);
 
 

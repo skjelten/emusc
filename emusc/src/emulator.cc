@@ -1231,6 +1231,18 @@ uint8_t* Emulator::get_param_ptr(enum EmuSC::PatchParam pp, int8_t part)
 }
 
 
+uint8_t Emulator::get_param_nib16(enum EmuSC::PatchParam pp, int8_t part)
+{
+  return _emuscSynth->get_param_nib16(pp, part);
+}
+
+
+uint16_t Emulator::get_param_uint14(enum EmuSC::PatchParam pp, int8_t part)
+{
+  return _emuscSynth->get_param_uint14(pp, part);
+}
+
+
 uint8_t Emulator::get_patch_param(uint16_t address, int8_t part)
 {
   return _emuscSynth->get_patch_param(address, part);
@@ -1271,6 +1283,18 @@ void Emulator::set_param(enum EmuSC::PatchParam sp, uint8_t *data, uint8_t size,
 			 int8_t part)
 {
   _emuscSynth->set_param(sp, data, size, part);
+}
+
+void Emulator::set_param_uint14(enum EmuSC::PatchParam pp, uint16_t value,
+				int8_t part)
+{
+  _emuscSynth->set_param_uint14(pp, value, part);
+}
+
+
+void Emulator::set_param_nib16(enum EmuSC::PatchParam pp, uint8_t value, int8_t part)
+{
+  _emuscSynth->set_param_nib16(pp, value, part);
 }
 
 

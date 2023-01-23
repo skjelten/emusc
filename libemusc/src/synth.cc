@@ -442,6 +442,18 @@ uint8_t* Synth::get_param_ptr(enum PatchParam pp, int8_t part)
 }
 
 
+uint16_t Synth::get_param_uint14(enum PatchParam pp, int8_t part)
+{
+  return _settings->get_param_uint14(pp, part);
+}
+
+
+uint8_t Synth::get_param_nib16(enum PatchParam pp, int8_t part)
+{
+  return _settings->get_param_nib16(pp, part);
+}
+
+
 uint8_t Synth::get_patch_param(uint16_t address, int8_t part)
 {
   return _settings->get_patch_param(address, part);
@@ -483,6 +495,19 @@ void Synth::set_param(enum PatchParam pp, uint8_t *data, uint8_t size,
 		      int8_t part)
 {
   _settings->set_param(pp, data, size, part);
+}
+
+
+void Synth::set_param_uint14(enum EmuSC::PatchParam pp, uint16_t value,
+			     int8_t part)
+{
+  _settings->set_param_uint14(pp, value, part);
+}
+
+
+void Synth::set_param_nib16(enum PatchParam pp, uint8_t value, int8_t part)
+{
+  _settings->set_param_nib16(pp, value, part);
 }
 
 

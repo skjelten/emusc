@@ -95,6 +95,18 @@ uint8_t* Settings::get_param_ptr(enum PatchParam pp, int8_t part)
 }
 
 
+uint16_t Settings::get_param_uint14(enum PatchParam pp, int8_t part)
+{
+  int8_t rolandPart = convert_to_roland_part_id(part);
+  int address = (int) pp;
+
+  if (rolandPart < 0)
+    return  _to_native_endian_uint14(&_patchParams[address]);
+
+  return _to_native_endian_uint14(&_patchParams[(address | (rolandPart << 8))]);
+}
+
+
 uint16_t Settings::get_param_uint16(enum PatchParam pp, int8_t part)
 {
   int8_t rolandPart = convert_to_roland_part_id(part);
@@ -104,6 +116,17 @@ uint16_t Settings::get_param_uint16(enum PatchParam pp, int8_t part)
     return  _to_native_endian_uint16(&_patchParams[address]);
 
   return _to_native_endian_uint16(&_patchParams[(address | (rolandPart << 8))]);
+}
+
+
+uint8_t Settings::get_param_nib16(enum PatchParam pp, int8_t part)
+{
+  int8_t rolandPart = convert_to_roland_part_id(part);
+  if (rolandPart < 0)
+    rolandPart = 0;
+
+  int address = (int) pp;
+  return _to_native_endian_nib16(&_patchParams[(address | (rolandPart << 8))]);
 }
 
 
@@ -156,7 +179,7 @@ void Settings::set_param_32nib(enum SystemParam sp, uint16_t value)
     _systemParams[(int) sp + 2] = ((value >> 0) & 0xf0) >> 4;
     _systemParams[(int) sp + 3] = ((value >> 0) & 0x0f) >> 0;
     
-  } else { // TODO: FIXME!!
+  } else { // TODO: Verify!
     _systemParams[(int) sp + 3] = (value >> 8) & 0xf0 >> 4;
     _systemParams[(int) sp + 2] = (value >> 8) & 0x0f >> 0;
     _systemParams[(int) sp + 1] = (value >> 0) & 0xf0 >> 4;
@@ -193,6 +216,41 @@ void Settings::set_param(enum PatchParam pp, uint8_t *data, uint8_t size,
       _patchParams[(int) pp + i] = data[i];
     else
       _patchParams[(((int) pp) | (rolandPart << 8)) + i] = data[i];   
+  }
+}
+
+
+void Settings::set_param_uint14(enum PatchParam pp, uint16_t value, int8_t part)
+{
+  int8_t rolandPart = convert_to_roland_part_id(part);
+  if (rolandPart < 0)
+    rolandPart == 0;
+
+  if (_le_native()) {
+    _patchParams[(int) pp | (rolandPart << 8) + 0] = (value >> 7) & 0x7f;
+    _patchParams[(int) pp | (rolandPart << 8) + 1] = (value >> 0) & 0x7f;
+
+  } else {
+    _patchParams[(int) pp | (rolandPart << 8) + 0] = (value >> 0) & 0x7f;
+    _patchParams[(int) pp | (rolandPart << 8) + 1] = (value >> 7) & 0x7f;
+  }
+}
+
+
+void Settings::set_param_nib16(enum PatchParam pp, uint8_t value, int8_t part)
+{
+  int8_t rolandPart = convert_to_roland_part_id(part);
+  if (rolandPart < 0)
+    rolandPart == 0;
+
+  int address = (int) pp | (rolandPart << 8);
+  if (_le_native()) {
+    _patchParams[address + 0] = ((value & 0xf0) >> 4) & 0x0f;
+    _patchParams[address + 1] = (value & 0x0f);
+
+  } else { // TODO: Verify!
+    _patchParams[address + 0] = (value & 0x0f);
+    _patchParams[address + 1] = ((value & 0xf0) >> 4) & 0x0f;
   }
 }
 
@@ -358,8 +416,12 @@ void Settings::_initialize_patch_params(enum Mode m)
     _patchParams[(int) PatchParam::KeyRangeHigh       | (partAddr << 8)] = 0x7f;
     _patchParams[(int) PatchParam::CC1ControllerNumber| (partAddr << 8)] = 0x10;
     _patchParams[(int) PatchParam::CC2ControllerNumber| (partAddr << 8)] = 0x11;
-    _patchParams[(int) PatchParam::ReverbSendLevel    | (partAddr << 8)] = 0x28;
     _patchParams[(int) PatchParam::ChorusSendLevel    | (partAddr << 8)] = 0x00;
+    _patchParams[(int) PatchParam::ReverbSendLevel    | (partAddr << 8)] = 0x28;
+    _patchParams[(int) PatchParam::RxBankSelect       | (partAddr << 8)] = 0x01;
+
+    _patchParams[(int) PatchParam::PitchFineTune      | (partAddr << 8)] = 0x40;
+    _patchParams[(int) PatchParam::PitchFineTune + 1  | (partAddr << 8)] = 0x00;
 
     // Tone mofify
     _patchParams[(int) PatchParam::VibratoRate    | (partAddr << 8)] = 0x40;
@@ -477,6 +539,8 @@ void Settings::_initialize_patch_params(enum Mode m)
     _patchParams[(int) PatchParam::RPN_MSB         |(partAddr << 8)] = 0x7f;
     _patchParams[(int) PatchParam::NRPN_LSB        |(partAddr << 8)] = 0x7f;
     _patchParams[(int) PatchParam::NRPN_MSB        |(partAddr << 8)] = 0x7f;
+
+    _patchParams[(int) PatchParam::PitchCoarseTune |(partAddr << 8)] = 0x40;
   }
 }
 
@@ -496,6 +560,24 @@ void Settings::reset(enum Mode m)
 {
   _initialize_system_params();
   _initialize_patch_params();
+}
+
+
+uint8_t Settings::_to_native_endian_nib16(uint8_t *ptr)
+{
+  if (_le_native())
+    return ((ptr[0] << 4) | (ptr[1] & 0x0f));
+
+  return (ptr[1] << 4 | (ptr[0] & 0x0f));
+}
+
+
+uint16_t Settings::_to_native_endian_uint14(uint8_t *ptr)
+{
+  if (_le_native())
+    return ((ptr[0] & 0x7f) << 7 | ptr[1]);
+
+  return ((ptr[1] & 0x7f) << 7 | ptr[0]);
 }
 
 

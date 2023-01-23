@@ -212,6 +212,8 @@ private:
   QSlider *_tuneS;
   QSlider *_reverbS;
   QSlider *_chorusS;
+  QSlider *_fineTuneS;
+  QSlider *_coarseTuneS;
   QSlider *_velDepthS;
   QSlider *_velOffsetS;
   QSlider *_keyRangeLS;
@@ -223,6 +225,8 @@ private:
   QLabel *_tuneL;
   QLabel *_reverbL;
   QLabel *_chorusL;
+  QLabel *_fineTuneL;
+  QLabel *_coarseTuneL;
   QLabel *_velDepthL;
   QLabel *_velOffsetL;
   QLabel *_keyRangeLL;
@@ -249,6 +253,8 @@ private slots:
   void _tune_changed(int value);
   void _reverb_changed(int value);
   void _chorus_changed(int value);
+  void _fineTune_changed(int value);
+  void _coarseTune_changed(int value);
   void _velDepth_changed(int value);
   void _velOffset_changed(int value); 
   void _keyRangeL_changed(int value);
@@ -282,8 +288,10 @@ private:
   QCheckBox *_rxSoftCh;
   QCheckBox *_rxExpressionCh;
 
-// SC-88 
-//  QCheckBox *_rxBankSelectCh;
+  // SC-55mkII+
+  QCheckBox *_rxBankSelectCh;
+
+  // SC-88+
 //  QCheckBox *_rxMapSelectCh;
 
   int8_t &_partId;
@@ -317,9 +325,11 @@ private slots:
   void _rxSoft_changed(int state);
   void _rxExpression_changed(int state);
 
-// SC-88 
-//  void rxBankSelect_changed(int state);
-//  void rxMapSelect_changed(int state);
+  // SC-55mkII+
+  void _rxBankSelect_changed(int state);
+
+  // SC-88+
+//  void _rxMapSelect_changed(int state);
 };
 
 

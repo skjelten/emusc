@@ -53,7 +53,9 @@ public:
   uint16_t get_param_32nib(enum SystemParam sp);
   uint8_t  get_param(enum PatchParam pp, int8_t part = -1);
   uint8_t* get_param_ptr(enum PatchParam pp, int8_t part = -1);
+  uint16_t get_param_uint14(enum PatchParam pp, int8_t part = -1);
   uint16_t get_param_uint16(enum PatchParam pp, int8_t part = -1);
+  uint8_t  get_param_nib16(enum PatchParam pp, int8_t part = -1);
   uint8_t  get_patch_param(uint16_t address, int8_t part = -1);
 
   uint8_t  get_param(enum DrumParam);
@@ -69,6 +71,8 @@ public:
   void set_param(enum PatchParam pp, uint8_t value, int8_t part = -1);
   void set_param(enum PatchParam pp, uint8_t *data, uint8_t size = 1,
 		       int8_t part = -1);
+  void set_param_uint14(enum PatchParam pp, uint16_t value, int8_t part = -1);
+  void set_param_nib16(enum PatchParam pp, uint8_t value, int8_t part = -1);
   void set_patch_param(uint16_t address, uint8_t *data, uint8_t size = 1);
   void set_patch_param(uint16_t address, uint8_t value, int8_t part = -1);
   
@@ -98,6 +102,8 @@ private:
 
   // BE / LE conversion
   inline bool _le_native(void) { uint16_t n = 1; return (*(uint8_t *) & n); }
+  uint8_t  _to_native_endian_nib16(uint8_t *ptr);
+  uint16_t _to_native_endian_uint14(uint8_t *ptr);
   uint16_t _to_native_endian_uint16(uint8_t *ptr);
   uint32_t _to_native_endian_uint32(uint8_t *ptr);
 

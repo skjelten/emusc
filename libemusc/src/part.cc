@@ -244,7 +244,9 @@ int Part::control_change(uint8_t msgId, uint8_t value)
   bool updateGUI = false;
 
   if (msgId == 0) {                                    // Bank select
-    _settings->set_param(PatchParam::ToneNumber, value, _id);
+    // TODO: This check is only available for SC-55mkII+
+    if (_settings->get_param(PatchParam::RxBankSelect, _id))
+      _settings->set_param(PatchParam::ToneNumber, value, _id);
 
   } else if (msgId == 1) {                             // Modulation
     if (_settings->get_param(PatchParam::RxModulation, _id))
@@ -258,32 +260,32 @@ int Part::control_change(uint8_t msgId, uint8_t value)
     uint8_t msb = _settings->get_param(PatchParam::RPN_MSB, _id);
     uint8_t lsb = _settings->get_param(PatchParam::RPN_LSB, _id);
     if (msb != 0x7f && lsb != 0x7f)
-      if (msb == 0 && lsb == 0)                        // Pitch bend range
-	_settings->set_param(PatchParam::PB_PitchControl, value, _id);
-      else if (msb == 0 && lsb == 1)                   // Master fine tuning
-	std::cout << "Master fine tuning (part) not implemented" << std::endl;
-      else if (msb == 0 && lsb == 2)                   // Master coarse tuning
-	std::cout << "Master coarse tuning (part) not implemented" << std::endl;
-
+      if (msb == 0 && lsb == 0 && value <= 24) {         // Pitch bend range
+	_settings->set_param(PatchParam::PB_PitchControl, value + 0x40, _id);
+      } else if (msb == 0 && lsb == 1) {                 // Master fine tuning
+	_settings->set_param(PatchParam::PitchFineTune, value, _id);
+      } else if (msb == 0 && lsb == 2) {                 // Master coarse tuning
+	_settings->set_param(PatchParam::PitchCoarseTune, value, _id);
+      }
     // NRPN
     msb = _settings->get_param(PatchParam::NRPN_MSB, _id);
     lsb = _settings->get_param(PatchParam::NRPN_LSB, _id);
     if (msb != 0x7f && lsb != 0x7f)
-      if (msb == 0x01 && lsb == 0x08)
+      if (msb == 0x01 && lsb == 0x08 && value >= 0x0e && value <= 0x72)
 	_settings->set_param(PatchParam::VibratoRate, value, _id);
-      else if (msb == 0x01 && lsb == 0x09)
+      else if (msb == 0x01 && lsb == 0x09 && value >= 0x0e && value <= 0x72)
 	_settings->set_param(PatchParam::VibratoDepth, value, _id);
-      else if (msb == 0x01 && lsb == 0x0a)
+      else if (msb == 0x01 && lsb == 0x0a && value >= 0x0e && value <= 0x72)
 	_settings->set_param(PatchParam::VibratoDelay, value, _id);
-      else if (msb == 0x01 && lsb == 0x20)
+      else if (msb == 0x01 && lsb == 0x20 && value >= 0x0e && value <= 0x72)
 	_settings->set_param(PatchParam::TVFCutoffFreq, value, _id);
-      else if (msb == 0x01 && lsb == 0x21)
+      else if (msb == 0x01 && lsb == 0x21 && value >= 0x0e && value <= 0x72)
 	_settings->set_param(PatchParam::TVFResonance, value, _id);
-      else if (msb == 0x01 && lsb == 0x63)
+      else if (msb == 0x01 && lsb == 0x63 && value >= 0x0e && value <= 0x72)
 	_settings->set_param(PatchParam::TVFAEnvAttack, value, _id);
-      else if (msb == 0x01 && lsb == 0x64)
+      else if (msb == 0x01 && lsb == 0x64 && value >= 0x0e && value <= 0x72)
 	_settings->set_param(PatchParam::TVFAEnvDecay, value, _id);
-      else if (msb == 0x01 && lsb == 0x66)
+      else if (msb == 0x01 && lsb == 0x66 && value >= 0x0e && value <= 0x72)
 	_settings->set_param(PatchParam::TVFAEnvRelease, value, _id);
       else if (msb == 0x18)
 	std::cout << "Pitch coarse (drums) not implemented yet" << std::endl;
@@ -313,10 +315,10 @@ int Part::control_change(uint8_t msgId, uint8_t value)
 
   } else if (msgId == 38) {                            // Data entry LSB
     // Only RPN #1
-    uint8_t msb = _settings->get_param(PatchParam::RPN_MSB, _id);
-    uint8_t lsb = _settings->get_param(PatchParam::RPN_LSB, _id);
-    if (msb == 0 && lsb == 1)
-      std::cout << "Master fine tuning (part) not implemented yet" << std::endl;
+    if (_settings->get_param(PatchParam::RPN_MSB, _id) == 0 &&
+	_settings->get_param(PatchParam::RPN_LSB, _id) == 1) {
+      _settings->set_param(PatchParam::PitchFineTune2, value, _id);
+    }
 
   } else if (msgId == 64) {                            // Hold1
     if (_settings->get_param(PatchParam::RxHold1, _id)) {
