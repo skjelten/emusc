@@ -37,48 +37,26 @@ NotePartial::NotePartial(uint8_t key, int8_t keyDiff, int drumSet,
     _pcmSamples(pcmSamples),
     _drumSet(drumSet),
     _index(0),
-    _sampleDir(1),
+    _direction(1),
     _instPartial(instPartial),
     _ctrlRom(ctrlRom),
     _settings(settings),
     _partId(partId)
 {
-  _sampleFactor = 32000.0 / settings->get_param_uint32(SystemParam::SampleRate);
+  // Calculate key frequency for pitch offset in Hz
+  _keyFreq = 440 * exp(log(2) * (key - 69) / 12);
 
-  // Calculate coarse & fine pitch offset from instrument partial definition
-  double instPartPitchTune =
-    exp(((instPartial.coarsePitch - 0x40)* 100 + (instPartial.finePitch - 0x40))
-	* log(2) / 1200);
+  // Calculate static pitch correction for the entire life of the partial:
+  //  - Coarse and fine pitch offset from instrument partial definition
+  //  - Pitch correction from sample definition
+  //  - Sample rate conversion
+  _staticPitchTune =
+    (exp(((instPartial.coarsePitch - 0x40) * 100 +
+	  instPartial.finePitch - 0x40 +
+	  (ctrlSample.pitch - 1024) / 16) * log(2) / 1200))
+    *  32000.0 / settings->get_param_uint32(SystemParam::SampleRate);
 
-  // Calculate fine pitch offset from sample definition
-  double samplePitchTune = exp((ctrlSample.pitch - 1024) / 16 * log(2) / 1200);
-
-  // Calculate scale tuning of different notes from patch parameters
-  int8_t tuning = settings->get_patch_param((int) PatchParam::ScaleTuningC +
-					    (key % 12), partId) - 0x40;
-  double scalePitchTune = exp(tuning * log(2) / 1200);
-
-  // Calculate master pitch tune from system parameters
-  uint32_t masterPitchTune =
-    settings->get_param_uint32(SystemParam::Tune) - 0x040000;
-  // TODO: Calculate master tune [-100.0 - +100.0 cent] for 0018 - 0fe8 : 040000
-//std::cout << "Master tune: " << std::hex << (int) masterPitchTune <<std::endl;
-
-  // Calculate pitch offset fine from patch parameters
-  uint16_t pitchOffsetFine =
-    settings->get_param_uint16(PatchParam::PitchOffsetFine, partId) - 0x0800;
-  // TODO: Calculate pitchOffsetFine [-12.0 - +12.0 Hz] for 0008 - 0f08 : 0800
-//  std::cout << "Pitch offset fine: " << (int) pitchOffsetFine << std::endl;
-
-  // Calculate Master Fine Tuning (NRP #1) from patch paramters
-  // 8192/100 cents steps
-  // TODO: Add this to settings and apply
-
-  // Calculate Master coarse tuning patch parameter (NRP #2)
-  // -24 - 24 semitones (similar to key shift? The same?)
-  // TODO: Add this to settings and apply
-
-  _instPitchTune = instPartPitchTune * samplePitchTune * scalePitchTune;
+  _expFactor = log(2) / 12000;
 
   // TODO: Find correct formula for pitch key follow
   if (instPartial.pitchKeyFlw - 0x40 != 10) {
@@ -135,8 +113,22 @@ bool NotePartial::get_next_sample(float *noteSample)
 
   float pitchBend = _settings->get_pitchBend_factor(_partId);
 
+  float freqKeyTuned = _keyFreq +
+    (_settings->get_param_nib16(PatchParam::PitchOffsetFine,_partId) -0x080)/10;
+  float pitchOffsetHz = freqKeyTuned / _keyFreq;
+
+  float pitchExp = _keyDiff * 1000
+    + _settings->get_param_32nib(SystemParam::Tune) - 0x400
+    + (_settings->get_patch_param((int) PatchParam::ScaleTuningC +
+				  (_key % 12), _partId) - 0x40) * 10
+    + ((_settings->get_param_uint16(PatchParam::PitchFineTune, _partId) - 8192)
+	/ 8.192);
+
+  float pitchAdj = exp(pitchExp * _expFactor) * pitchOffsetHz * pitchBend *
+    _staticPitchTune * _tvp->get_pitch();
+
   // Update sample position going in forward direction
-  if (_sampleDir == 1) {
+  if (_direction == 1) {
     if (0)
       std::cout << "-> FW " << std::dec << "pos=" << (int)_index
 		<< " sLength=" << (int) _ctrlSample.sampleLen
@@ -146,8 +138,7 @@ bool NotePartial::get_next_sample(float *noteSample)
 
     // Update partial sample position based on pitch input
     // FIXME: Should drumsets be modified by pitch bend messages?
-    _index += exp(_keyDiff * (log(2)/12)) * pitchBend * _instPitchTune *
-      _sampleFactor * _tvp->get_pitch();
+    _index += pitchAdj;
 
     // Check for sample position passing sample boundary
     if (_index >= _ctrlSample.sampleLen) {
@@ -162,7 +153,7 @@ bool NotePartial::get_next_sample(float *noteSample)
       // loopMode == 1 => Forward-backward. Start moving backwards
       } else if (_ctrlSample.loopMode == 1) {
 	_index = _ctrlSample.sampleLen - remaining - 1;
-	_sampleDir = 0;                                // Turn backward
+	_direction = 0;                                // Turn backward
 
       // loopMode == 2 => Forward-stop. End playback
       } else if (_ctrlSample.loopMode == 2) {
@@ -183,7 +174,7 @@ bool NotePartial::get_next_sample(float *noteSample)
     }
 
   // Update sample position going in backward direction
-  } else {   // => _sampleDir == 0
+  } else {   // => _direction == 0
     if (0)
       std::cout << "<- BW " << std::dec << "pos=" << (int) _index
 		<< " length=" << (int) _ctrlSample.sampleLen 
@@ -191,8 +182,7 @@ bool NotePartial::get_next_sample(float *noteSample)
 
     // Update partial sample position based on pitch input
     // FIXME: Should drumsets be modified by pitch bend messages?
-    _index -= exp(_keyDiff * (log(2)/12)) * pitchBend * _instPitchTune *
-      _sampleFactor * _tvp->get_pitch();
+    _index -= pitchAdj;
 
     // Check for sample position passing sample boundary
     if (_index < _ctrlSample.sampleLen - _ctrlSample.loopLen - 1) {
@@ -202,7 +192,7 @@ bool NotePartial::get_next_sample(float *noteSample)
 
       // Start moving forward
       _index = _ctrlSample.sampleLen - _ctrlSample.loopLen - 1 + remaining;
-      _sampleDir = 1;
+      _direction = 1;
     }
 
     // Find next index for linear interpolation and adjust if at start of sample
@@ -217,7 +207,7 @@ bool NotePartial::get_next_sample(float *noteSample)
   // Calculate linear interpolation of PCM sample
   double fractionNext;
   double fractionPrev;
-  if (_sampleDir) {                                 // Moving forward in sample
+  if (_direction) {                                 // Moving forward in sample
     fractionNext = _index - ((int) _index);
     fractionPrev = 1.0 - fractionNext;
   } else {                                          // Moving backwards

@@ -80,6 +80,7 @@ private:
   QLabel *_panL;
   QLabel *_keyShiftL;
   QLabel *_tuneL;
+  QLabel *_tuneHzL;
 
   QComboBox *_deviceIdC;
 

@@ -36,6 +36,7 @@ class NotePartial
 {
 private:
   uint8_t _key;           // MIDI key number for note on
+  float _keyFreq;         // Frequency of current MIDI key
   float _keyDiff;         // Difference in number of keys from original tone
                           // If pitchKeyFollow is used, keyDiff is adjusted
   int _drumSet;           // < 0 => not drums (normal instrument)
@@ -46,13 +47,13 @@ private:
   std::vector<float> &_pcmSamples;
 
   float _index;           // Sample position in number of samples from start
-  bool _sampleDir;        // 0 = backward & 1 = foreward
+  bool _direction;        // 0 = backward & 1 = foreward
 
   ControlRom &_ctrlRom;
 
-  float _sampleFactor;    // => 32000 / sample rate
+  float _expFactor;       // log(2) / 12000
 
-  double _instPitchTune;  // Instrument pitch offset factor
+  float  _staticPitchTune;
 
   Settings *_settings;
   int8_t _partId;

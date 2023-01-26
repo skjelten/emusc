@@ -256,35 +256,40 @@ MasterSettings::MasterSettings(Emulator *emulator, QWidget *parent)
   _volumeS->setTickPosition(QSlider::TicksBelow);
   _volumeS->setTickInterval(64);
   _volumeS->setValue(emulator->get_param(EmuSC::SystemParam::Volume));
-  
+  _volumeS->setToolTip("Master Volume [0-127]");
+
   _panS = new QSlider(Qt::Horizontal);
   _panS->setRange(-64, 63);
   _panS->setTickPosition(QSlider::TicksBelow);
   _panS->setTickInterval(64);
   _panS->setValue(emulator->get_param(EmuSC::SystemParam::Pan) - 0x40);
+  _panS->setToolTip("Master Pan: Rnd, -63 - 64");
 
   _keyShiftS = new QSlider(Qt::Horizontal);
   _keyShiftS->setRange(-24, 24);
   _keyShiftS->setTickPosition(QSlider::TicksBelow);
   _keyShiftS->setTickInterval(1);
   _keyShiftS->setValue(emulator->get_param(EmuSC::SystemParam::KeyShift) -0x40);
+  _keyShiftS->setToolTip("Master Key Shift: -24 - 24 [semitones]");
 
   _tuneS = new QSlider(Qt::Horizontal);
   _tuneS->setRange(-1000, 1000);
   _tuneS->setTickPosition(QSlider::TicksBelow);
   _tuneS->setTickInterval(1000);
   _tuneS->setValue(emulator->get_param_32nib(EmuSC::SystemParam::Tune)- 0x400);
-  
+  _tuneS->setToolTip("Master Tune: -100 - 100 [cent] / 415.3 - 466.2 [Hz]");
+
   _volumeL = new QLabel();
   _panL = new QLabel();
   _keyShiftL = new QLabel();
   _tuneL = new QLabel();
+  _tuneHzL = new QLabel();
 
   _volume_changed(_volumeS->value());
   _pan_changed(_panS->value());
   _keyShift_changed(_keyShiftS->value());
   _tune_changed(_tuneS->value());
-  
+
   connect(_volumeS, SIGNAL(valueChanged(int)), this,SLOT(_volume_changed(int)));
   connect(_panS, SIGNAL(valueChanged(int)), this, SLOT(_pan_changed(int)));
   connect(_keyShiftS, SIGNAL(valueChanged(int)),
@@ -300,11 +305,12 @@ MasterSettings::MasterSettings(Emulator *emulator, QWidget *parent)
   gridLayout->addWidget(_panL,      1, 1);
   gridLayout->addWidget(_keyShiftL, 2, 1);
   gridLayout->addWidget(_tuneL,     3, 1);
+  gridLayout->addWidget(_tuneHzL,     4, 1);
   gridLayout->addWidget(_volumeS,   0, 2);
   gridLayout->addWidget(_panS,      1, 2);
   gridLayout->addWidget(_keyShiftS, 2, 2);
   gridLayout->addWidget(_tuneS,     3, 2);
-  
+
   QGridLayout *gridLayout2 = new QGridLayout();
   gridLayout2->addWidget(new QLabel("Device ID"), 0, 0);
 
@@ -312,15 +318,17 @@ MasterSettings::MasterSettings(Emulator *emulator, QWidget *parent)
   for (int i = 1; i < 33; i++)
     _deviceIdC->addItem(QString::number(i));
 
-  _deviceIdC->setCurrentIndex(emulator->get_param(EmuSC::SystemParam::DeviceID) - 1);
+  _deviceIdC->setCurrentIndex(emulator->get_param(EmuSC::SystemParam::DeviceID)
+			      - 1);
   _deviceIdC->setEditable(false);
+  _deviceIdC->setToolTip("SysEx Device ID");
 
   gridLayout2->addWidget(_deviceIdC, 0, 1);
   gridLayout2->setColumnStretch(2, 1);
 
   connect(_deviceIdC, SIGNAL(currentIndexChanged(int)),
 	  this, SLOT(_device_id_changed(int)));  
-  
+
   _rxSysExCh = new QCheckBox("Rx SysEx");
   _rxGMOnCh = new QCheckBox("Rx GM on");
   _rxGSResetCh = new QCheckBox("Rx GS reset");
@@ -343,7 +351,7 @@ MasterSettings::MasterSettings(Emulator *emulator, QWidget *parent)
 	  this, SLOT(_rxInstChg_changed(int)));
   connect(_rxFuncCtrlCh, SIGNAL(stateChanged(int)),
 	  this, SLOT(_rxFuncCtrl_changed(int)));
-  
+
   QGridLayout *gridLayout3 = new QGridLayout();
   gridLayout3->addWidget(_rxSysExCh,    7, 0);
   gridLayout3->addWidget(_rxGMOnCh,     8, 0);
@@ -400,7 +408,9 @@ void MasterSettings::_keyShift_changed(int value)
 
 void MasterSettings::_tune_changed(int value)
 {
+  float tuneHz = 440.0 * exp(log(2) * value / 12000);
   _tuneL->setText(": " + QString::number((float) (value / 10.0), 'f', 1));
+  _tuneHzL->setText(": " + QString::number((float) tuneHz, 'f', 1));
   _emulator->set_param_32nib(EmuSC::SystemParam::Tune, (uint16_t) value + 1024);
 }
 
@@ -538,7 +548,6 @@ ReverbSettings::ReverbSettings(Emulator *emulator, QWidget *parent)
   connect(_characterC, SIGNAL(currentIndexChanged(int)),
 	  this, SLOT(_character_changed(int)));
 
-  
   connect(_levelS, SIGNAL(valueChanged(int)), this,
 	  SLOT(_level_changed(int)));
   connect(_filterS, SIGNAL(valueChanged(int)), this,
@@ -955,61 +964,75 @@ PartMainSettings::PartMainSettings(Emulator *emulator, int8_t &partId,
   _levelS->setRange(0, 127);
   _levelS->setTickPosition(QSlider::TicksBelow);
   _levelS->setTickInterval(64);
+  _levelS->setToolTip("Part Volume: 0 - 127");
 
   _panS = new QSlider(Qt::Horizontal);
   _panS->setRange(-64, 64);
   _panS->setTickPosition(QSlider::TicksBelow);
   _panS->setTickInterval(64);
+  _panS->setToolTip("Part Pan: RND, -63 - 63");
 
   _keyShiftS = new QSlider(Qt::Horizontal);
   _keyShiftS->setRange(-24, 24);
   _keyShiftS->setTickPosition(QSlider::TicksBelow);
   _keyShiftS->setTickInterval(1);
+  _keyShiftS->setToolTip("Part Key Shift: -24 - 24 [semitones]");
+
 
   _tuneS = new QSlider(Qt::Horizontal);
   _tuneS->setRange(8, 248);
   _tuneS->setTickPosition(QSlider::TicksBelow);
   _tuneS->setTickInterval(120);
+  _tuneS->setToolTip("Pitch Offset Fine: -12 - 12 [Hz]");
+
 
   _reverbS = new QSlider(Qt::Horizontal);
   _reverbS->setRange(0, 127);
   _reverbS->setTickPosition(QSlider::TicksBelow);
   _reverbS->setTickInterval(64);
+  _reverbS->setToolTip("Reverb Level [0 - 127");
 
   _chorusS = new QSlider(Qt::Horizontal);
   _chorusS->setRange(0, 127);
   _chorusS->setTickPosition(QSlider::TicksBelow);
   _chorusS->setTickInterval(64);
+  _chorusS->setToolTip("Chorus Level [0 - 127");
 
   _fineTuneS = new QSlider(Qt::Horizontal);
   _fineTuneS->setRange(0, 16383);
   _fineTuneS->setTickPosition(QSlider::TicksBelow);
   _fineTuneS->setTickInterval(8192);
+  _fineTuneS->setToolTip("Master Fine Tuning (RPN#1): -100 - 100 [cent]");
 
   _coarseTuneS = new QSlider(Qt::Horizontal);
   _coarseTuneS->setRange(40, 88);
   _coarseTuneS->setTickPosition(QSlider::TicksBelow);
   _coarseTuneS->setTickInterval(24);
+  _coarseTuneS->setToolTip("Master Coarse Tuning (RPN#2): -24 - 24 [semitones]");
 
   _velDepthS = new QSlider(Qt::Horizontal);
   _velDepthS->setRange(0, 127);
   _velDepthS->setTickPosition(QSlider::TicksBelow);
   _velDepthS->setTickInterval(64);
+  _velDepthS->setToolTip("Velocity Depth: 0 - 127");
 
   _velOffsetS = new QSlider(Qt::Horizontal);
   _velOffsetS->setRange(0, 127);
   _velOffsetS->setTickPosition(QSlider::TicksBelow);
   _velOffsetS->setTickInterval(64);
+  _velOffsetS->setToolTip("Velocity Offset: 0 - 127");
 
   _keyRangeLS = new QSlider(Qt::Horizontal);
   _keyRangeLS->setRange(0, 127);
   _keyRangeLS->setTickPosition(QSlider::TicksBelow);
   _keyRangeLS->setTickInterval(64);
+  _keyRangeLS->setToolTip("Keyboard Range Low: 0 (C1) - 127 (G9)");
 
   _keyRangeHS = new QSlider(Qt::Horizontal);
   _keyRangeHS->setRange(0, 127);
   _keyRangeHS->setTickPosition(QSlider::TicksBelow);
   _keyRangeHS->setTickInterval(64);
+  _keyRangeHS->setToolTip("Keyboard Range High: 0 (C1) - 127 (G9)");
 
   gridLayout->addWidget(_levelS,      0, 2);
   gridLayout->addWidget(_panS,        1, 2);

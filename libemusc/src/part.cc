@@ -182,9 +182,11 @@ int Part::add_note(uint8_t key, uint8_t keyVelocity)
       _settings->get_param(PatchParam::UseForRhythm, _id) == 0)
     delete_all_notes();
 
-  // 7. Create new note and set default values (note: using pointers)
+  // 7. Calculate offset in semitones based on key shift (Master + Part) and
+  //    RPN#2 (Master Coarse Tune)
   int8_t keyShift = _settings->get_param(SystemParam::KeyShift) - 0x40 +
-    _settings->get_param(PatchParam::PitchKeyShift, _id) - 0x40;
+    _settings->get_param(PatchParam::PitchKeyShift, _id) - 0x40 +
+    _settings->get_param(PatchParam::PitchCoarseTune, _id) - 0x40;
 
   Note *n = new Note(key, keyShift, velocity, instrumentIndex,
 		     drumSet, _ctrlRom, _pcmRom, _settings, _id);
