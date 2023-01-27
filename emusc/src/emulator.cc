@@ -519,10 +519,10 @@ int Emulator::dump_demo_songs(QString path)
   return _emuscControlRom->dump_demo_songs(path.toStdString());
 }
 
-void Emulator::all_sounds_off(void)
+void Emulator::panic(void)
 {
-  if (_emuscSynth || _midiInput)
-    _midiInput->send_midi_event(0xb0, 120, 0);
+  if (_emuscSynth)
+    _emuscSynth->panic();
 }
 
 
@@ -530,8 +530,13 @@ QVector<uint8_t> Emulator::get_intro_anim(void)
 {
   if (!_emuscControlRom)
   return QVector<uint8_t> { };
-  
+
+#if QT_VERSION <= QT_VERSION_CHECK(5,14,0)
   return QVector<uint8_t>::fromStdVector(_emuscControlRom->get_intro_anim());
+#endif
+
+  std::vector<uint8_t> intro = _emuscControlRom->get_intro_anim();
+  return QVector<uint8_t>(intro.begin(), intro.end());
 }
 
 
@@ -1168,7 +1173,7 @@ void Emulator::select_next_midi_channel()
   uint8_t currentMidiChannel =
     _emuscSynth->get_param(EmuSC::PatchParam::RxChannel, _selectedPart);
   std::cout << "currentMidiChannel=" << (int) currentMidiChannel << std::endl;
-  if (currentMidiChannel < 15)
+  if (currentMidiChannel < 16)
     set_midi_channel(currentMidiChannel + 1, true);
 }
 
@@ -1181,8 +1186,13 @@ void Emulator::set_midi_channel(uint8_t value, bool update)
   if (update)
     _emuscSynth->set_param(EmuSC::PatchParam::RxChannel, value, _selectedPart);
 
-  QString str = QStringLiteral("%1").arg(value + 1, 2, 10, QLatin1Char('0'));
-  str.prepend(' ');
+  QString str;
+  if (value < 16) {
+    str = QStringLiteral("%1").arg(value + 1, 2, 10, QLatin1Char('0'));
+    str.prepend(' ');
+  } else {
+    str = "Off";
+  }
   emit display_midi_channel_updated(str);
 }
 
@@ -1325,4 +1335,10 @@ void Emulator::update_LCD_display(int8_t part)
     if (part < 0 || part == _selectedPart)
       set_part(part);
   }
+}
+
+
+enum EmuSC::ControlRom::SynthGen Emulator::get_synth_generation(void)
+{
+  return _emuscControlRom->generation();
 }

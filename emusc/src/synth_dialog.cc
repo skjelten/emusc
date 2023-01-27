@@ -19,6 +19,8 @@
 
 #include "synth_dialog.h"
 
+#include "emusc/control_rom.h"
+
 #include <cmath>
 #include <iostream>
 
@@ -330,21 +332,17 @@ MasterSettings::MasterSettings(Emulator *emulator, QWidget *parent)
 	  this, SLOT(_device_id_changed(int)));  
 
   _rxSysExCh = new QCheckBox("Rx SysEx");
-  _rxGMOnCh = new QCheckBox("Rx GM on");
   _rxGSResetCh = new QCheckBox("Rx GS reset");
   _rxInstChgCh = new QCheckBox("Rx Instrument change");
   _rxFuncCtrlCh = new QCheckBox("Rx Function Control");
 
   _rxSysExCh->setChecked(emulator->get_param(EmuSC::SystemParam::RxSysEx));
-  _rxGMOnCh->setChecked(emulator->get_param(EmuSC::SystemParam::RxGMOn));
   _rxGSResetCh->setChecked(emulator->get_param(EmuSC::SystemParam::RxGSReset));
   _rxInstChgCh->setChecked(emulator->get_param(EmuSC::SystemParam::RxInstrumentChange));
   _rxFuncCtrlCh->setChecked(emulator->get_param(EmuSC::SystemParam::RxFunctionControl));
 
   connect(_rxSysExCh, SIGNAL(stateChanged(int)),
 	  this, SLOT(_rxSysEx_changed(int)));
-  connect(_rxGMOnCh, SIGNAL(stateChanged(int)),
-	  this, SLOT(_rxGMOn_changed(int)));
   connect(_rxGSResetCh, SIGNAL(stateChanged(int)),
 	  this, SLOT(_rxGSReset_changed(int)));
   connect(_rxInstChgCh, SIGNAL(stateChanged(int)),
@@ -354,13 +352,21 @@ MasterSettings::MasterSettings(Emulator *emulator, QWidget *parent)
 
   QGridLayout *gridLayout3 = new QGridLayout();
   gridLayout3->addWidget(_rxSysExCh,    7, 0);
-  gridLayout3->addWidget(_rxGMOnCh,     8, 0);
-  gridLayout3->addWidget(_rxGSResetCh,  9, 0);
+  gridLayout3->addWidget(_rxGSResetCh,  8, 0);
   gridLayout3->addWidget(_rxInstChgCh,  7, 1);
   gridLayout3->addWidget(_rxFuncCtrlCh, 8, 1);
 
   gridLayout3->setHorizontalSpacing(50);
   gridLayout3->setColumnStretch(2, 1);
+
+  // Additional widgets for later generations
+  if (_emulator->get_synth_generation() >=EmuSC::ControlRom::SynthGen::SC55mk2){
+    _rxGMOnCh = new QCheckBox("Rx GM on");
+    _rxGMOnCh->setChecked(emulator->get_param(EmuSC::SystemParam::RxGMOn));
+    connect(_rxGMOnCh, SIGNAL(stateChanged(int)),
+	    this, SLOT(_rxGMOn_changed(int)));
+    gridLayout3->addWidget(_rxGMOnCh,     9, 0);
+  }
 
   vboxLayout->addLayout(gridLayout);
   vboxLayout->addLayout(gridLayout2);
@@ -893,6 +899,7 @@ PartMainSettings::PartMainSettings(Emulator *emulator, int8_t &partId,
   _midiChC = new QComboBox();
   for (int i = 1; i <= 16; i++)
     _midiChC->addItem(QString::number(i));
+  _midiChC->addItem("Off");
   _midiChC->setEditable(false);
   hboxLayout2->addWidget(_midiChC);
 
@@ -1388,13 +1395,14 @@ PartRxModeSettings::PartRxModeSettings(Emulator *emulator, int8_t &partId,
   connect(_rxExpressionCh, SIGNAL(stateChanged(int)),
 	  this, SLOT(_rxExpression_changed(int)));
 
-  // TODO: Add check for which hw gen from Control ROM
   // Additional widgets for later models:
   // SC-55mkII+
-  _rxBankSelectCh = new QCheckBox("Rx Bank Select");
-  gridLayout->addWidget(_rxBankSelectCh,     8, 0);
-  connect(_rxBankSelectCh, SIGNAL(stateChanged(int)),
-	  this, SLOT(_rxBankSelect_changed(int)));
+  if (_emulator->get_synth_generation() >=EmuSC::ControlRom::SynthGen::SC55mk2){
+    _rxBankSelectCh = new QCheckBox("Rx Bank Select");
+    gridLayout->addWidget(_rxBankSelectCh,     8, 0);
+    connect(_rxBankSelectCh, SIGNAL(stateChanged(int)),
+	    this, SLOT(_rxBankSelect_changed(int)));
+  }
 
 // TODO: SC-88
 //  connect(_rxMapSelectCh, SIGNAL(stateChanged(int)),
@@ -1547,7 +1555,6 @@ void PartRxModeSettings::update_all_widgets(void)
   _rxPitchBendCh->setChecked(_emulator->get_param(EmuSC::PatchParam::RxPitchBend, _partId));
   _rxChAftertouchCh->setChecked(_emulator->get_param(EmuSC::PatchParam::RxChPressure, _partId));
   _rxPolyAftertouchCh->setChecked(_emulator->get_param(EmuSC::PatchParam::RxPolyPressure, _partId));
-  _rxBankSelectCh->setChecked(_emulator->get_param(EmuSC::PatchParam::RxBankSelect, _partId));
   _rxRPNCh->setChecked(_emulator->get_param(EmuSC::PatchParam::RxRPN, _partId));
   _rxNRPNCh->setChecked(_emulator->get_param(EmuSC::PatchParam::RxNRPN, _partId));
   _rxModulationCh->setChecked(_emulator->get_param(EmuSC::PatchParam::RxModulation, _partId));
@@ -1556,6 +1563,10 @@ void PartRxModeSettings::update_all_widgets(void)
   _rxSostenutoCh->setChecked(_emulator->get_param(EmuSC::PatchParam::RxSostenuto, _partId));
   _rxSoftCh->setChecked(_emulator->get_param(EmuSC::PatchParam::RxSoft, _partId));
   _rxExpressionCh->setChecked(_emulator->get_param(EmuSC::PatchParam::RxExpression, _partId));
+
+  if (_emulator->get_synth_generation() >= EmuSC::ControlRom::SynthGen::SC55mk2)
+    _rxBankSelectCh->setChecked(_emulator->get_param(EmuSC::PatchParam::RxBankSelect,
+						     _partId));
 
 //  SC-88
 //  _rxMapSelectCh->setChecked(_emulator->get_param(EmuSC::PatchParam::RxMapSelect, _partId));

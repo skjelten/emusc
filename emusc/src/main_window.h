@@ -46,10 +46,11 @@ private:
   QAction *_quitAct;
   QAction *_dumpSongsAct;
   QAction *_viewCtrlRomDataAct;
-  QAction *_allSoundsOffAct;
   QAction *_synthSettingsAct;
   QAction *_GSmodeAct;
+  QAction *_GMmodeAct;
   QAction *_MT32modeAct;
+  QAction *_panicAct;
   QAction *_audioAct;
   QAction *_midiAct;
   QAction *_romAct;
@@ -78,7 +79,7 @@ private slots:
 
   void _dump_demo_songs(void);
   void _display_control_rom_info(void);
-  void _send_all_sounds_off(void);
+  void _panic(void);
 
   void power_switch(int state = -1);
 };

@@ -30,6 +30,7 @@
 
 #include <array>
 #include <list>
+#include <mutex>
 #include <vector>
 
 
@@ -91,6 +92,7 @@ private:
   };
 
   struct std::list<Note*> _notes;
+  std::mutex *_notesMutex;
 
   ControlRom &_ctrlRom;
   PcmRom &_pcmRom;

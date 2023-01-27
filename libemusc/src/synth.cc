@@ -32,7 +32,6 @@
 #include <fstream>
 #include <iostream>
 #include <iomanip>
-#include <mutex>
 
 #include "config.h"
 
@@ -49,12 +48,12 @@ Synth::Synth(ControlRom &controlRom, PcmRom &pcmRom, Mode mode)
 
   // FIXME: Mode is currently ignored -> read from settings
   reset();
-  
+
   // Initialize all parts
-  for (int i = 0; i < 16; i++) {
-    Part part(i, _mode, 0, _settings, controlRom, pcmRom);
-    _parts.push_back(part);
-  }
+  _parts.reserve(16);
+  for (int i = 0; i < 16; i++)
+    _parts.emplace_back(i, _mode, 0, _settings, controlRom, pcmRom);
+
   if (_mode == scm_GS)
     std::cout << "EmuSC: GS mode initialized" << std::endl;
   else if (_mode == scm_MT32)
@@ -381,6 +380,12 @@ std::string Synth::version(void)
   return VERSION;
 }
 
+
+void Synth::panic(void)
+{
+  for (auto &p : _parts)
+    p.delete_all_notes();
+}
 
 
 bool Synth::get_part_mute(uint8_t partId)

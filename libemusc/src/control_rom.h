@@ -131,6 +131,13 @@ public:
     std::string name;     // 12 chars
   };
 
+  enum class SynthGen {
+    SC55    = 0,
+    SC55mk2 = 1,
+    SC88    = 2,
+    SC88Pro = 3
+  };
+
   // TODO: define constants for lookup table dimensions
   std::array<std::array<uint8_t, 128>, 19> _lookupTables;
   int _read_lookup_tables(std::ifstream &romFile);
@@ -143,6 +150,7 @@ public:
   std::string model(void) { return _model; }
   std::string version(void) { return _version; }
   std::string date(void) { return _date; }
+  enum SynthGen generation(void) { return _synthGeneration; }
 
   const std::vector<int>& drum_set_bank(void);
   const uint8_t max_polyphony(void);
@@ -179,6 +187,8 @@ private:
     sm_SC88Pro,
   };
   enum SynthModel _synthModel;
+
+  enum SynthGen _synthGeneration;
 
   static constexpr uint8_t _maxPolyphonySC55     = 24;
   static constexpr uint8_t _maxPolyphonySC55mkII = 28;

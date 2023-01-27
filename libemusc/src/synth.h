@@ -82,6 +82,8 @@ public:
 
   void reset(bool resetParts = false);
 
+  void panic(void);
+
   // Mute all parts. Similar to push MUTE-button on real hardware
   void mute(void);
 

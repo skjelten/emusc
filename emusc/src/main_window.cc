@@ -128,26 +128,30 @@ void MainWindow::_create_actions(void)
   connect(_viewCtrlRomDataAct, &QAction::triggered,
 	  this, &MainWindow::_display_control_rom_info);
 
-  _allSoundsOffAct = new QAction("&Send 'All sounds off'", this);
-  _allSoundsOffAct->setEnabled(false);
-  connect(_allSoundsOffAct, &QAction::triggered,
-	  this, &MainWindow::_send_all_sounds_off);
-
   _synthSettingsAct = new QAction("&Settings...", this);
   _synthSettingsAct->setShortcut(tr("CTRL+S"));
   _synthSettingsAct->setEnabled(false);
   connect(_synthSettingsAct, &QAction::triggered,
 	  this, &MainWindow::_display_synth_dialog);
 
-  _GSmodeAct = new QAction("&GS mode", this);
+  _GSmodeAct = new QAction("&GS", this);
   _GSmodeAct->setCheckable(true);
-  _MT32modeAct = new QAction("&MT32 mode", this);
+  _GMmodeAct = new QAction("G&S (GM mode)", this);
+  _GMmodeAct->setCheckable(true);
+  _MT32modeAct = new QAction("&MT32", this);
   _MT32modeAct->setCheckable(true);
 
   _modeGroup = new QActionGroup(this);
   _modeGroup->addAction(_GSmodeAct);
+  _modeGroup->addAction(_GMmodeAct);
   _modeGroup->addAction(_MT32modeAct);
   _GSmodeAct->setChecked(true);
+
+  _panicAct = new QAction("&Panic", this);
+  _panicAct->setShortcut(tr("CTRL+P"));
+  _panicAct->setEnabled(false);
+  connect(_panicAct, &QAction::triggered,
+	  this, &MainWindow::_panic);
 
   _audioAct = new QAction("&Audio Configuration...", this);
   _audioAct->setShortcut(tr("CTRL+A"));
@@ -178,15 +182,18 @@ void MainWindow::_create_menus(void)
   _toolsMenu = menuBar()->addMenu("&Tools");
   _toolsMenu->addAction(_dumpSongsAct);
   _toolsMenu->addAction(_viewCtrlRomDataAct);
-  _toolsMenu->addAction(_allSoundsOffAct);
 
   _synthMenu = menuBar()->addMenu("&Synth");
   _synthMenu->addAction(_synthSettingsAct);
 
   // TODO: Add SC-88 modes
-  _synthModeMenu = _synthMenu->addMenu("Mode");
+  _synthModeMenu = _synthMenu->addMenu("Sound Map");
   _synthModeMenu->addAction(_GSmodeAct);
+  _synthModeMenu->addAction(_GMmodeAct);
   _synthModeMenu->addAction(_MT32modeAct);
+
+  _synthMenu->addSeparator();
+  _synthMenu->addAction(_panicAct);
 
   _optionsMenu = menuBar()->addMenu("&Options");
   _optionsMenu->addAction(_audioAct);
@@ -261,7 +268,7 @@ void MainWindow::power_switch(int newPowerState)
       return;
     }
 
-    _allSoundsOffAct->setDisabled(false);
+    _panicAct->setDisabled(false);
     _synthSettingsAct->setDisabled(false);
     _audioAct->setDisabled(true);
     _midiAct->setDisabled(true);
@@ -278,7 +285,7 @@ void MainWindow::power_switch(int newPowerState)
 
     // TODO: Force close synth settings dialog
 
-    _allSoundsOffAct->setDisabled(true);
+    _panicAct->setDisabled(true);
     _synthSettingsAct->setDisabled(true);
     _audioAct->setDisabled(false);
     _midiAct->setDisabled(false);
@@ -315,8 +322,8 @@ void MainWindow::_display_control_rom_info(void)
 }
 
 
-void MainWindow::_send_all_sounds_off(void)
+void MainWindow::_panic(void)
 {
   if (_emulator)
-    _emulator->all_sounds_off();
+    _emulator->panic();
 }

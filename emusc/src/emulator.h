@@ -70,9 +70,11 @@ public:
   QVector<uint8_t> get_intro_anim(void);
   bool control_rom_changed(void);
 
-  void all_sounds_off(void);
+  void panic(void);
 
   QVector<bool> get_part_amplitude_vector(void);
+
+  enum EmuSC::ControlRom::SynthGen get_synth_generation(void);
 
   // libEmuSC Synth API for get & set paramters
   uint8_t  get_param(enum EmuSC::SystemParam sp);

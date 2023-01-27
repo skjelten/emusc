@@ -36,6 +36,7 @@ Part::Part(uint8_t id, uint8_t mode, uint8_t type, Settings *settings,
     _lastPitchBendRange(2)
 {
   // TODO: Rename mode => synthMode and set proper defaults for MT32 mode
+  _notesMutex = new std::mutex();
 
   reset();
 }
@@ -44,6 +45,7 @@ Part::Part(uint8_t id, uint8_t mode, uint8_t type, Settings *settings,
 Part::~Part()
 {
   delete_all_notes();
+  delete _notesMutex;
 }
 
 
@@ -66,6 +68,8 @@ int Part::get_next_sample(float *sampleOut)
   float partSample[2] = { 0, 0 };
   float accSample = 0;
 
+  _notesMutex->lock();
+
   // Get next sample from active notes, delete those which are finished
   std::list<Note*>::iterator itr = _notes.begin();
   while (itr != _notes.end()) {
@@ -79,6 +83,8 @@ int Part::get_next_sample(float *sampleOut)
       ++itr;
     }
   }
+
+  _notesMutex->unlock();
 
   // Apply volume from part (MIDI channel) and expression (CM11)
   uint8_t expression = _settings->get_param(PatchParam::Expression, _id);
@@ -188,9 +194,13 @@ int Part::add_note(uint8_t key, uint8_t keyVelocity)
     _settings->get_param(PatchParam::PitchKeyShift, _id) - 0x40 +
     _settings->get_param(PatchParam::PitchCoarseTune, _id) - 0x40;
 
+  _notesMutex->lock();
+
   Note *n = new Note(key, keyShift, velocity, instrumentIndex,
 		     drumSet, _ctrlRom, _pcmRom, _settings, _id);
   _notes.push_back(n);
+
+  _notesMutex->unlock();
 
   if (_settings->get_param(PatchParam::Hold1, _id))
       n->sustain(true);
@@ -227,11 +237,15 @@ int Part::stop_all_notes(void)
 
 int Part::delete_all_notes(void)
 {
+  _notesMutex->lock();
+
   int i = _notes.size();
   for (auto n : _notes)
     delete n;
 
   _notes.clear();
+
+  _notesMutex->unlock();
 
   return i;
 }

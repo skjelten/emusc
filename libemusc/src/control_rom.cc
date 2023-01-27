@@ -143,6 +143,7 @@ int ControlRom::_identify_model(std::ifstream &romFile)
     _date.assign(&data[24], 5);
     _model.assign("SC-55");
     _synthModel = sm_SC55;
+    _synthGeneration = SynthGen::SC55;
 
     return 0;
   }
@@ -162,6 +163,7 @@ int ControlRom::_identify_model(std::ifstream &romFile)
     _date.assign(ss.str());
     _model.assign("SC-55mkII");
     _synthModel = sm_SC55mkII;
+    _synthGeneration = SynthGen::SC55mk2;
 
     return 0;
     
@@ -170,6 +172,7 @@ int ControlRom::_identify_model(std::ifstream &romFile)
     _date.assign("?");
     _model.assign("SCB-55 (SC-55mkII)");
     _synthModel = sm_SC55mkII;
+    _synthGeneration = SynthGen::SC55mk2;
 
     return 0;
   }
@@ -182,6 +185,7 @@ int ControlRom::_identify_model(std::ifstream &romFile)
     _date.assign(&data[24], 5);
     _model.assign("SCC-1");
     _synthModel = sm_SCC1;
+    _synthGeneration = SynthGen::SC55;
   }
 
   // Search for SC-88 control ROM files
@@ -192,6 +196,7 @@ int ControlRom::_identify_model(std::ifstream &romFile)
     _date.assign("?");
     _model.assign("SC-88");
     _synthModel = sm_SC88;
+    _synthGeneration = SynthGen::SC88;
   }
 
   if (_model.empty())        // No valid ROM file found    TODO: SC88 ??
