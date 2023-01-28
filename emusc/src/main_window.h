@@ -24,9 +24,10 @@
 #include <QMainWindow>
 #include <QAction>
 #include <QLineEdit>
+#include <QPointer>
 
 #include "scene.h"
-
+#include "synth_dialog.h"
 #include "emulator.h"
 
 
@@ -56,6 +57,8 @@ private:
   QAction *_romAct;
   QAction *_aboutAct;
 
+  QPointer<SynthDialog> _synthDialog;
+
   Scene *_scene;
 
   bool _powerState;
@@ -80,6 +83,10 @@ private slots:
   void _dump_demo_songs(void);
   void _display_control_rom_info(void);
   void _panic(void);
+
+  void _set_gs_map(void);
+  void _set_gs_gm_map(void);
+  void _set_mt32_map(void);
 
   void power_switch(int state = -1);
 };

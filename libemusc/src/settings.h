@@ -45,7 +45,7 @@ public:
 
     // TODO: What about GM mode?
   };
-  
+
   // Retrieve settings from Config paramters
   uint8_t  get_param(enum SystemParam sp);
   uint8_t* get_param_ptr(enum SystemParam sp);
@@ -67,7 +67,7 @@ public:
   void set_param_uint32(enum SystemParam sp, uint32_t value);
   void set_param_32nib(enum SystemParam sp, uint16_t value);
   void set_system_param(uint16_t address, uint8_t *data, uint8_t size = 1);
-  
+
   void set_param(enum PatchParam pp, uint8_t value, int8_t part = -1);
   void set_param(enum PatchParam pp, uint8_t *data, uint8_t size = 1,
 		       int8_t part = -1);
@@ -75,15 +75,17 @@ public:
   void set_param_nib16(enum PatchParam pp, uint8_t value, int8_t part = -1);
   void set_patch_param(uint16_t address, uint8_t *data, uint8_t size = 1);
   void set_patch_param(uint16_t address, uint8_t value, int8_t part = -1);
-  
+
   // TODO: Add drum params
-  
+
   // Store settings paramters to file (aka battery backup)
   bool load(std::string filePath);
   bool save(std::string filePath);
 
-  // Reset all settings to specific mode
-  void reset(enum Mode);
+  // Reset all settings to default GS mode
+  void reset();
+  void set_gm_mode(void);
+  void set_map_mt32(void);
 
   // Temporary solution
   // Figure out the need for a common way with all controllers
@@ -96,7 +98,7 @@ public:
 private:
   std::array<uint8_t, 0x0100> _systemParams;  // Both SysEx and non-SysEx data
   std::array<uint8_t, 0x4000> _patchParams;   // SysEx data
-  
+
   void _initialize_system_params(enum Mode = Mode::GS);
   void _initialize_patch_params(enum Mode = Mode::GS);
 

@@ -38,26 +38,27 @@
 
 namespace EmuSC {
 
-Synth::Synth(ControlRom &controlRom, PcmRom &pcmRom, Mode mode)
-  : _mode(mode),
-    _sampleRate(0),
+Synth::Synth(ControlRom &controlRom, PcmRom &pcmRom, SoundMap map)
+  : _sampleRate(0),
     _channels(0),
     _ctrlRom(controlRom)
 {
   _settings = new Settings();
 
-  // FIXME: Mode is currently ignored -> read from settings
-  reset();
-
   // Initialize all parts
   _parts.reserve(16);
   for (int i = 0; i < 16; i++)
-    _parts.emplace_back(i, _mode, 0, _settings, controlRom, pcmRom);
+    _parts.emplace_back(i, _settings, controlRom, pcmRom);
 
-  if (_mode == scm_GS)
-    std::cout << "EmuSC: GS mode initialized" << std::endl;
-  else if (_mode == scm_MT32)
-    std::cout << "EmuSC: MT-32 mode initialized (not impl. yet!)" << std::endl;
+  if (map == SoundMap::GS) {
+    std::cout << "libEmuSC: GS sound map initialized" << std::endl;
+  } else if (map == SoundMap::GS_GM) {
+    std::cout << "libEmuSC: GS (GM system) sound map initialized" << std::endl;
+    _settings->set_gm_mode();
+  } else if (map == SoundMap::MT32) {
+    _settings->set_map_mt32();
+    std::cout << "libEmuSC: MT-32 sound map initialized" << std::endl;
+  }
 }
 
 
@@ -68,12 +69,17 @@ Synth::~Synth()
 }
 
 
-void Synth::reset(bool resetParts)
+void Synth::reset(SoundMap sm, bool resetParts)
 {
   if (resetParts)
     for (auto &p : _parts) p.reset();   //? TODO: CLEAN UP
 
-  _settings->reset(Settings::Mode::GS);
+  _settings->reset();
+  if (sm == SoundMap::GS_GM) {
+    _settings->set_gm_mode();
+  } else if (sm == SoundMap::MT32) {
+    _settings->set_map_mt32();
+  }
 }
 
 
@@ -536,7 +542,7 @@ void Synth::_midi_input_sysex_DT1(uint8_t model, uint8_t *data, uint16_t length)
 
       // First handle the special case: Reset to the GSstandard mode message
       if (data[2] == 0x7f) {
-	reset(true);
+	reset(SoundMap::GS, true);
 	return;
       }
 

@@ -25,6 +25,8 @@
 #include "scene.h"
 #include "synth_dialog.h"
 
+#include "emusc/control_rom.h"
+
 #include <iostream>
 
 #include <QApplication>
@@ -91,6 +93,13 @@ MainWindow::MainWindow(QWidget *parent)
   }
 
   _viewCtrlRomDataAct->setEnabled(_emulator->has_valid_control_rom());
+  _synthModeMenu->setEnabled(_emulator->has_valid_control_rom());
+
+  if (_emulator->has_valid_control_rom() &&
+      _emulator->get_synth_generation() > EmuSC::ControlRom::SynthGen::SC55)
+    _GMmodeAct->setVisible(true);
+  else
+    _GMmodeAct->setVisible(false);
 
   statusBar()->hide();
 
@@ -110,6 +119,9 @@ MainWindow::~MainWindow()
 
 void MainWindow::cleanUp()
 {
+  if (_synthDialog)
+    _synthDialog->close();
+
   power_switch(0);
 }
 
@@ -136,10 +148,17 @@ void MainWindow::_create_actions(void)
 
   _GSmodeAct = new QAction("&GS", this);
   _GSmodeAct->setCheckable(true);
+  connect(_GSmodeAct, &QAction::triggered,
+	  this, &MainWindow::_set_gs_map);
   _GMmodeAct = new QAction("G&S (GM mode)", this);
   _GMmodeAct->setCheckable(true);
+  _GMmodeAct->setVisible(false);
+  connect(_GMmodeAct, &QAction::triggered,
+	  this, &MainWindow::_set_gs_gm_map);
   _MT32modeAct = new QAction("&MT32", this);
   _MT32modeAct->setCheckable(true);
+  connect(_MT32modeAct, &QAction::triggered,
+	  this, &MainWindow::_set_mt32_map);
 
   _modeGroup = new QActionGroup(this);
   _modeGroup->addAction(_GSmodeAct);
@@ -191,6 +210,7 @@ void MainWindow::_create_menus(void)
   _synthModeMenu->addAction(_GSmodeAct);
   _synthModeMenu->addAction(_GMmodeAct);
   _synthModeMenu->addAction(_MT32modeAct);
+  _synthModeMenu->setEnabled(false);
 
   _synthMenu->addSeparator();
   _synthMenu->addAction(_panicAct);
@@ -222,15 +242,24 @@ void MainWindow::_display_midi_dialog()
 void MainWindow::_display_rom_dialog()
 {
   RomConfigDialog *romDialog = new RomConfigDialog(_emulator);
-  romDialog->show();
+  romDialog->exec();
+
+  _viewCtrlRomDataAct->setEnabled(_emulator->has_valid_control_rom());
+  _synthModeMenu->setEnabled(_emulator->has_valid_control_rom());
+
+  if (_emulator->has_valid_control_rom() &&
+      _emulator->get_synth_generation() > EmuSC::ControlRom::SynthGen::SC55)
+    _GMmodeAct->setVisible(true);
+  else
+    _GMmodeAct->setVisible(false);
 }
 
 
 void MainWindow::_display_synth_dialog()
 {
-  SynthDialog *synthDialog = new SynthDialog(_emulator);
-  synthDialog->setModal(false);
-  synthDialog->show();
+  _synthDialog = new SynthDialog(_emulator, this);
+  _synthDialog->setModal(false);
+  _synthDialog->show();
 }
 
 
@@ -326,4 +355,25 @@ void MainWindow::_panic(void)
 {
   if (_emulator)
     _emulator->panic();
+}
+
+
+void MainWindow::_set_gs_map(void)
+{
+  if (_emulator)
+    _emulator->set_gs_map();
+}
+
+
+void MainWindow::_set_gs_gm_map(void)
+{
+  if (_emulator)
+    _emulator->set_gs_gm_map();
+}
+
+
+void MainWindow::_set_mt32_map(void)
+{
+  if (_emulator)
+    _emulator->set_mt32_map();
 }

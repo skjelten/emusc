@@ -39,8 +39,7 @@ namespace EmuSC {
 class Part
 {
 public:
-  Part(uint8_t id, uint8_t mode, uint8_t type, Settings *settings,
-       ControlRom &cRom, PcmRom &pRom);
+  Part(uint8_t id, Settings *settings, ControlRom &cRom, PcmRom &pRom);
   ~Part();
 
   int get_next_sample(float *sampleOut);

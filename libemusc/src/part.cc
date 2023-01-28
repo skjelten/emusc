@@ -26,19 +26,21 @@
 
 namespace EmuSC {
 
-Part::Part(uint8_t id, uint8_t mode, uint8_t type, Settings *settings,
-	   ControlRom &ctrlRom, PcmRom &pcmRom)
+Part::Part(uint8_t id, Settings *settings, ControlRom &ctrlRom, PcmRom &pcmRom)
   : _id(id),
     _settings(settings),
     _ctrlRom(ctrlRom),
     _pcmRom(pcmRom),
     _7bScale(1/127.0),
+    _lastPeakSample(0),
     _lastPitchBendRange(2)
 {
   // TODO: Rename mode => synthMode and set proper defaults for MT32 mode
   _notesMutex = new std::mutex();
 
-  reset();
+  _drumSet = 0;                  // TODO: Remove the need for this variable
+  _partialReserve = 2;           // TODO: Add this to settings with propoer val
+  _mute = false;                 // TODO: Also move to settings
 }
 
 
@@ -406,14 +408,14 @@ int Part::control_change(uint8_t msgId, uint8_t value)
 
   } else if (msgId == 121) {                           // Reset All Controllers
     pitch_bend_change(0x00, 0x20, true);
-    _settings->set_param(PatchParam::PolyKeyPressure, 0, _id);
-    _settings->set_param(PatchParam::ChannelPressure, 0, _id);
-    _settings->set_param(PatchParam::Modulation, 0, _id);
-    _settings->set_param(PatchParam::Expression, 127, _id);
-    _settings->set_param(PatchParam::Hold1, 0, _id);
-    _settings->set_param(PatchParam::Portamento, 0, _id);
-    _settings->set_param(PatchParam::Sostenuto, 0, _id);
-    _settings->set_param(PatchParam::Soft, 0, _id);
+    _settings->set_param(PatchParam::PolyKeyPressure, 0, (int8_t) _id);
+    _settings->set_param(PatchParam::ChannelPressure, 0, (int8_t) _id);
+    _settings->set_param(PatchParam::Modulation, 0, (int8_t) _id);
+    _settings->set_param(PatchParam::Expression, 127, (int8_t) _id);
+    _settings->set_param(PatchParam::Hold1, 0, (int8_t) _id);
+    _settings->set_param(PatchParam::Portamento, 0, (int8_t) _id);
+    _settings->set_param(PatchParam::Sostenuto, 0, (int8_t) _id);
+    _settings->set_param(PatchParam::Soft, 0, (int8_t) _id);
     // RPN & NRPN LSB/MSB -> 0x7f?
 
   } else if (msgId == 123) {                           // All Notes Off

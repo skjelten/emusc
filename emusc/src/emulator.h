@@ -147,6 +147,11 @@ public slots:
 
   void update_LCD_display(int8_t part = -1);
 
+  void reset(void);
+  void set_gs_map(void);
+  void set_gs_gm_map(void);
+  void set_mt32_map(void);
+
 private:
   EmuSC::ControlRom *_emuscControlRom;
   EmuSC::PcmRom *_emuscPcmRom;
@@ -180,6 +185,8 @@ private:
   QVector<uint8_t> _introAnimData;
 
   bool _allMode;
+
+  EmuSC::Synth::SoundMap _soundMap;
 
   void _start_midi_subsystem();
   void _start_audio_subsystem();

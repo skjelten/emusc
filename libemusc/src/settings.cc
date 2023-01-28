@@ -545,6 +545,80 @@ void Settings::_initialize_patch_params(enum Mode m)
 }
 
 
+void Settings::set_gm_mode(void)
+{
+  for (int p = 0; p < 16; p ++) {           // TODO: Support SC-88 with 32 parts
+    uint8_t partAddr = convert_to_roland_part_id(p);
+    _patchParams[(int) PatchParam::RxNRPN       | (partAddr << 8)] = 0x0;
+    _patchParams[(int) PatchParam::RxBankSelect | (partAddr << 8)] = 0x0;
+  }
+}
+
+
+void Settings::set_map_mt32(void)
+{
+  uint8_t partAddr = convert_to_roland_part_id(0);
+  _patchParams[(int) PatchParam::ToneNumber      | (partAddr << 8)] = 0x7f;
+  _patchParams[(int) PatchParam::ToneNumber + 1  | (partAddr << 8)] = 0x00;
+  _patchParams[(int) PatchParam::PartPanpot      | (partAddr << 8)] = 0x40;
+  _patchParams[(int) PatchParam::ReverbSendLevel | (partAddr << 8)] = 0x40;
+
+  partAddr = convert_to_roland_part_id(1);
+  _patchParams[(int) PatchParam::ToneNumber      | (partAddr << 8)] = 0x7f;
+  _patchParams[(int) PatchParam::ToneNumber + 1  | (partAddr << 8)] = 0x44;
+  _patchParams[(int) PatchParam::PartPanpot      | (partAddr << 8)] = 0x36;
+  _patchParams[(int) PatchParam::ReverbSendLevel | (partAddr << 8)] = 0x40;
+
+  partAddr = convert_to_roland_part_id(2);
+  _patchParams[(int) PatchParam::ToneNumber      | (partAddr << 8)] = 0x7f;
+  _patchParams[(int) PatchParam::ToneNumber + 1  | (partAddr << 8)] = 0x30;
+  _patchParams[(int) PatchParam::PartPanpot      | (partAddr << 8)] = 0x36;
+  _patchParams[(int) PatchParam::ReverbSendLevel | (partAddr << 8)] = 0x40;
+
+  partAddr = convert_to_roland_part_id(3);
+  _patchParams[(int) PatchParam::ToneNumber      | (partAddr << 8)] = 0x7f;
+  _patchParams[(int) PatchParam::ToneNumber + 1  | (partAddr << 8)] = 0x5f;
+  _patchParams[(int) PatchParam::PartPanpot      | (partAddr << 8)] = 0x36;
+  _patchParams[(int) PatchParam::ReverbSendLevel | (partAddr << 8)] = 0x40;
+
+  partAddr = convert_to_roland_part_id(4);
+  _patchParams[(int) PatchParam::ToneNumber      | (partAddr << 8)] = 0x7f;
+  _patchParams[(int) PatchParam::ToneNumber + 1  | (partAddr << 8)] = 0x4e;
+  _patchParams[(int) PatchParam::PartPanpot      | (partAddr << 8)] = 0x36;
+  _patchParams[(int) PatchParam::ReverbSendLevel | (partAddr << 8)] = 0x40;
+
+  partAddr = convert_to_roland_part_id(5);
+  _patchParams[(int) PatchParam::ToneNumber      | (partAddr << 8)] = 0x7f;
+  _patchParams[(int) PatchParam::ToneNumber + 1  | (partAddr << 8)] = 0x29;
+  _patchParams[(int) PatchParam::PartPanpot      | (partAddr << 8)] = 0x12;
+  _patchParams[(int) PatchParam::ReverbSendLevel | (partAddr << 8)] = 0x40;
+
+  partAddr = convert_to_roland_part_id(6);
+  _patchParams[(int) PatchParam::ToneNumber      | (partAddr << 8)] = 0x7f;
+  _patchParams[(int) PatchParam::ToneNumber + 1  | (partAddr << 8)] = 0x03;
+  _patchParams[(int) PatchParam::PartPanpot      | (partAddr << 8)] = 0x5b;
+  _patchParams[(int) PatchParam::ReverbSendLevel | (partAddr << 8)] = 0x40;
+
+  partAddr = convert_to_roland_part_id(7);
+  _patchParams[(int) PatchParam::ToneNumber      | (partAddr << 8)] = 0x7f;
+  _patchParams[(int) PatchParam::ToneNumber + 1  | (partAddr << 8)] = 0x6e;
+  _patchParams[(int) PatchParam::PartPanpot      | (partAddr << 8)] = 0x01;
+  _patchParams[(int) PatchParam::ReverbSendLevel | (partAddr << 8)] = 0x40;
+
+  partAddr = convert_to_roland_part_id(8);
+  _patchParams[(int) PatchParam::ToneNumber      | (partAddr << 8)] = 0x7f;
+  _patchParams[(int) PatchParam::ToneNumber + 1  | (partAddr << 8)] = 0x7a;
+  _patchParams[(int) PatchParam::PartPanpot      | (partAddr << 8)] = 0x7f;
+  _patchParams[(int) PatchParam::ReverbSendLevel | (partAddr << 8)] = 0x40;
+
+  partAddr = convert_to_roland_part_id(9);
+  _patchParams[(int) PatchParam::ToneNumber      | (partAddr << 8)] = 0x7f;
+  _patchParams[(int) PatchParam::ToneNumber + 1  | (partAddr << 8)] = 0x7f;
+  _patchParams[(int) PatchParam::PartPanpot      | (partAddr << 8)] = 0x40;
+  _patchParams[(int) PatchParam::ReverbSendLevel | (partAddr << 8)] = 0x40;
+}
+
+
 bool Settings::load(std::string filePath)
 {
   return 0;
@@ -556,7 +630,7 @@ bool Settings::save(std::string filePath)
   return 0;
 }
 
-void Settings::reset(enum Mode m)
+void Settings::reset(void)
 {
   _initialize_system_params();
   _initialize_patch_params();

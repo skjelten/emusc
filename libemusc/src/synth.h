@@ -60,13 +60,13 @@ class Synth
 {
 public:
 
-  enum Mode {
-    scm_GS,                   // Default GM / GS mode as is default on all hw
-    scm_MT32,                 // MT32 mode found on most SC-55/88 models
-    scm_55                    // Sound Canvas 55 mode (only available on SC-88)
+  enum class SoundMap {
+    GS,                       // Default GS settings
+    GS_GM,                    // GS settings in GM mode (available on SC55mk2+)
+    MT32                      // MT32 arrangement
   };
 
-  Synth(ControlRom &cRom, PcmRom &pRom, Mode mode = scm_GS);
+  Synth(ControlRom &cRom, PcmRom &pRom, SoundMap map = SoundMap::GS);
   ~Synth();
 
   // Add start() and stop()? Won't start if sampleRate is not set?
@@ -80,7 +80,7 @@ public:
   // Setting audio properties (default is 44100, 2)
   void set_audio_format(uint32_t sampleRate, uint8_t channels);
 
-  void reset(bool resetParts = false);
+  void reset(SoundMap sm, bool resetParts = false);
 
   void panic(void);
 
@@ -134,8 +134,6 @@ public:
   /* End of public API. Below are internal data structures only */
 
 private:
-  enum Mode _mode;
-
   Settings *_settings;
   
   uint32_t _sampleRate;

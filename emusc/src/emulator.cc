@@ -120,7 +120,7 @@ void Emulator::start(void)
   }
 
   try {
-    _emuscSynth = new EmuSC::Synth(*_emuscControlRom, *_emuscPcmRom);
+    _emuscSynth = new EmuSC::Synth(*_emuscControlRom, *_emuscPcmRom, _soundMap);
 
     _start_audio_subsystem();
     _start_midi_subsystem();
@@ -848,9 +848,14 @@ void Emulator::set_instrument(uint8_t index, uint8_t bank, bool update)
       _emuscSynth->set_part_instrument(_selectedPart, index, bank);
 
     uint16_t instrument = _emuscControlRom->variation(bank)[index];
-    str = QStringLiteral("%1 ").arg(index + 1, 3, 10, QLatin1Char('0'));
+    str = QStringLiteral("%1").arg(index + 1, 3, 10, QLatin1Char('0'));
+    if (bank == 0)
+      str.append(" ");
+    else if (bank == 127)
+      str.append("#");
+    else
+      str.append("+");
     str.append(QString(_emuscControlRom->instrument(instrument).name.c_str()));
-
   } else {
     const std::vector<int> &drumSetBank = _emuscControlRom->drum_set_bank();
     std::vector<int>::const_iterator it = std::find(drumSetBank.begin(),
@@ -1341,4 +1346,38 @@ void Emulator::update_LCD_display(int8_t part)
 enum EmuSC::ControlRom::SynthGen Emulator::get_synth_generation(void)
 {
   return _emuscControlRom->generation();
+}
+
+
+void Emulator::reset(void)
+{
+  if (_emuscSynth)
+    _emuscSynth->reset(_soundMap);
+}
+
+
+void Emulator::set_gs_map(void)
+{
+  _soundMap = EmuSC::Synth::SoundMap::GS;
+  reset();
+  _selectedPart = 0;
+  update_LCD_display();
+}
+
+
+void Emulator::set_gs_gm_map(void)
+{
+  _soundMap = EmuSC::Synth::SoundMap::GS_GM;
+  reset();
+  _selectedPart = 0;
+  update_LCD_display();
+}
+
+
+void Emulator::set_mt32_map(void)
+{
+  _soundMap = EmuSC::Synth::SoundMap::MT32;
+  reset();
+  _selectedPart = 0;
+  update_LCD_display();
 }
