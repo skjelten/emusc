@@ -287,6 +287,19 @@ MasterSettings::MasterSettings(Emulator *emulator, QWidget *parent)
   _tuneL = new QLabel();
   _tuneHzL = new QLabel();
 
+  _volumeL->setText(": " + QString::number(_volumeS->value()));
+  if (_panS->value() < 0)
+    _panL->setText(": L" + QString::number(std::abs(_panS->value())));
+  else if (_panS->value() > 0)
+    _panL->setText(": R" + QString::number(std::abs(_panS->value())));
+  else
+    _panL->setText(": 0");
+  _keyShiftL->setText(": " + QString::number(_keyShiftS->value()));
+  _tuneL->setText(": " + QString::number((float) (_tuneS->value() / 10.0),
+					 'f', 1));
+  float tuneHz = 440.0 * exp(log(2) * _tuneS->value() / 12000);
+  _tuneHzL->setText(": " + QString::number((float) tuneHz, 'f', 1));
+
   connect(_volumeS, SIGNAL(valueChanged(int)), this,SLOT(_volume_changed(int)));
   connect(_panS, SIGNAL(valueChanged(int)), this, SLOT(_pan_changed(int)));
   connect(_keyShiftS, SIGNAL(valueChanged(int)),
