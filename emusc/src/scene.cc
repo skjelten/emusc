@@ -271,6 +271,7 @@ Scene::Scene(Emulator *emulator, QWidget *parent)
 
   // Add all / mute buttons
   _allButton = new QPushButton();
+  _allButton->setCheckable(true);
   _allButton->setGeometry(QRect(693, 0, 34, 34));
   _allButton->setStyleSheet("QPushButton { "		\
 			     "color: #aaa;"		\
@@ -280,13 +281,14 @@ Scene::Scene(Emulator *emulator, QWidget *parent)
 			     "background: qradialgradient(cx: 0.3, cy: -0.4," \
 			     "fx: 0.3, fy: -0.4,radius: 1.35, stop: 0 #fff, stop: 1 #888);" \
 			     "padding: 5px }"		\
-			     "QPushButton::pressed"	\
+			     "QPushButton::checked"	\
                              "{background-color : #ff7a45;}");
   _allButton->setAttribute(Qt::WA_TranslucentBackground);
   connect(_allButton, SIGNAL(clicked()), emulator, SLOT(select_all()));
   QGraphicsProxyWidget *allBtnProxy = addWidget(_allButton);
 
   _muteButton = new QPushButton();
+  _muteButton->setCheckable(true);
   _muteButton->setGeometry(QRect(693, 50, 34, 34));
   _muteButton->setStyleSheet("QPushButton { "		\
 			     "color: #aaa;"		\
@@ -296,7 +298,7 @@ Scene::Scene(Emulator *emulator, QWidget *parent)
 			     "background: qradialgradient(cx: 0.3, cy: -0.4," \
 			     "fx: 0.3, fy: -0.4,radius: 1.35, stop: 0 #fff, stop: 1 #888);" \
 			     "padding: 5px }"		\
-			     "QPushButton::pressed"	\
+			     "QPushButton::checked"	\
                              "{background-color : #ff7a45;}");
   _muteButton->setAttribute(Qt::WA_TranslucentBackground);
   connect(_muteButton, SIGNAL(clicked()), emulator, SLOT(select_mute()));
@@ -756,12 +758,12 @@ void Scene::update_lcd_bar_display(QVector<bool> *barDisplay)
 
 void Scene::update_all_button(bool status)
 {
-  _allButton->setDown(status);
+  _allButton->setChecked(status);
 }
 
 void Scene::update_mute_button(bool status)
 {
-  _muteButton->setDown(status);
+  _muteButton->setChecked(status);
 }
 
 
