@@ -1334,12 +1334,12 @@ std::vector<EmuSC::ControlRom::DrumSet> &Emulator::get_drumsets_ref(void)
 
 void Emulator::update_LCD_display(int8_t part)
 {
-  if (part < 0 && _allMode) {
+  if (part < 0 && _allMode)
     set_all();
-  } else {
-    if (part == _selectedPart && !_allMode)
-      set_part(part);
-  }
+  else if (part == _selectedPart && !_allMode)
+    set_part(part);
+  else if (part < 0 && !_allMode)
+    set_part(_selectedPart);
 }
 
 
