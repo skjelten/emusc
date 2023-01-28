@@ -138,8 +138,6 @@ private:
 public:
   explicit ReverbSettings(Emulator *emulator, QWidget *parent = nullptr);
 
-  void update_all_widgets(void);
-
 private slots:
   void _preset_changed(int value);
   void _character_changed(int value);
@@ -181,8 +179,6 @@ private:
 
 public:
   explicit ChorusSettings(Emulator *emulator, QWidget *parent = nullptr);
-
-  void update_all_widgets(void);
 
 private slots:
   void _preset_changed(int value);
