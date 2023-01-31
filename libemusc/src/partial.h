@@ -17,11 +17,12 @@
  */
 
 
-#ifndef __NOTE_PARTIAL_H__
-#define __NOTE_PARTIAL_H__
+#ifndef __PARTIAL_H__
+#define __PARTIAL_H__
 
 
 #include "control_rom.h"
+#include "pcm_rom.h"
 #include "settings.h"
 #include "tva.h"
 #include "tvf.h"
@@ -32,24 +33,23 @@
 
 namespace EmuSC {
 
-class NotePartial
+
+class Partial
 {
 private:
   uint8_t _key;           // MIDI key number for note on
   float _keyFreq;         // Frequency of current MIDI key
   float _keyDiff;         // Difference in number of keys from original tone
                           // If pitchKeyFollow is used, keyDiff is adjusted
-  int _drumSet;           // < 0 => not drums (normal instrument)
 
   struct ControlRom::InstPartial &_instPartial;
-  struct ControlRom::Sample &_ctrlSample;
+  struct ControlRom::Sample *_ctrlSample;
+  struct ControlRom::DrumSet *_drumSet;
 
-  std::vector<float> &_pcmSamples;
+  std::vector<float> *_pcmSamples;
 
   float _index;           // Sample position in number of samples from start
-  bool _direction;        // 0 = backward & 1 = foreward
-
-  ControlRom &_ctrlRom;
+  bool _direction;        // Sample read direction: 0 = backward & 1 = foreward
 
   float _expFactor;       // log(2) / 12000
 
@@ -58,6 +58,10 @@ private:
   Settings *_settings;
   int8_t _partId;
 
+  int _isDrum;
+
+
+
   TVP *_tvp;
   TVF *_tvf;
   TVA *_tva;
@@ -65,11 +69,10 @@ private:
   double _convert_volume(uint8_t volume);
 
 public:
-  NotePartial(uint8_t key, int8_t keyDiff, int drumSet,
-	      struct ControlRom::InstPartial &instPartial,
-	      struct ControlRom::Sample &sample, std::vector<float> &pcmSamples,
-	      ControlRom &ctrlRom, Settings *settings, int8_t partId);
-  ~NotePartial();
+  Partial(uint8_t key, int partialId, uint16_t instrumentIndex,
+	  ControlRom &controlRom, PcmRom &pcmRom, Settings *settings,
+	  int8_t partId);
+  ~Partial();
 
   void stop(void);
   bool get_next_sample(float *sampleOut);
@@ -78,4 +81,4 @@ public:
 
 }
 
-#endif  // __NOTE_PARTIAL_H__
+#endif  // __PARTIAL_H__

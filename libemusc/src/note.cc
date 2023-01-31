@@ -24,62 +24,45 @@
 namespace EmuSC {
 
 
-Note::Note(uint8_t key, int8_t keyShift, uint8_t velocity, uint16_t instrument,
-	   int drumSet, ControlRom &ctrlRom, PcmRom &pcmRom, Settings *settings,
-	   int8_t partId)
+Note::Note(uint8_t key, uint8_t velocity, ControlRom &ctrlRom, PcmRom &pcmRom,
+	   Settings *settings, int8_t partId)
   : _key(key),
     _velocity(velocity),
     _sustain(false),
     _stopped(false),
     _7bScale(1/127.0)
 {
-  _notePartial[0] = _notePartial[1] = NULL;
+  _partial[0] = _partial[1] = NULL;
+
+  // 1. Find correct instrument index for note
+  // Note: toneBank is used for drum set number for rhythm parts
+  uint8_t toneBank = settings->get_param(PatchParam::ToneNumber, partId);
+  uint8_t toneIndex = settings->get_param(PatchParam::ToneNumber2, partId);
+  uint16_t instrumentIndex;
+  if (settings->get_param(PatchParam::UseForRhythm, partId) == 0)
+    instrumentIndex = ctrlRom.variation(toneBank)[toneIndex];
+  else
+    instrumentIndex = ctrlRom.drumSet(toneBank).preset[key];
+
+  if (instrumentIndex == 0xffff)        // Ignore undefined instruments / drums
+    return;
 
   // Every Sound Canvas uses either 1 or 2 partials for each instrument
-  // Find correct original tone from break table if partial is in use
   for (int i = 0; i < 2; i ++) {
-    uint16_t pIndex = ctrlRom.instrument(instrument).partials[i].partialIndex;
+    uint16_t pIndex = ctrlRom.instrument(instrumentIndex).partials[i].partialIndex;
     if (pIndex == 0xffff)        // Partial 1 always used, but not 2. partial
       break;
 
-    // Key shift settings shall not affect drum parts (SC-55 OM, page 17 & 24)
-    uint8_t noteKey;
-    if (drumSet >= 0)
-      noteKey = key;
-    else
-      noteKey = key + keyShift;
-
-    for (int j = 0; j < 16; j ++) {
-      if (ctrlRom.partial(pIndex).breaks[j] >= noteKey ||
-	  ctrlRom.partial(pIndex).breaks[j] == 0x7f) {
-	uint16_t sampleIndex = ctrlRom.partial(pIndex).samples[j];
-	if (sampleIndex == 0xffff) {              // This should never happen
-	  std::cerr << "EmuSC: Internal error when reading sample" << std::endl;
-	  break;
-	}
-
-	int8_t keyDiff;
-	if (drumSet >= 0)
-	  keyDiff = ctrlRom.drumSet(drumSet).key[noteKey] - 0x3c;
-	else
-	  keyDiff = noteKey - ctrlRom.sample(sampleIndex).rootKey;
-
-	_notePartial[i] = new NotePartial(noteKey, keyDiff, drumSet,
-					  ctrlRom.instrument(instrument).partials[i],
-					  ctrlRom.sample(sampleIndex),
-					  pcmRom.samples(sampleIndex).samplesF,
-					  ctrlRom, settings, partId);
-	break;
-      }
-    }
+    _partial[i] = new Partial(key, i, instrumentIndex, ctrlRom,
+			      pcmRom, settings, partId);
   }
 }
 
 
 Note::~Note()
 {
-  delete _notePartial[0];
-  delete _notePartial[1];
+  delete _partial[0];
+  delete _partial[1];
 }
 
 
@@ -89,11 +72,11 @@ void Note::stop(void)
     _stopped = true;
 
   } else {
-    if (_notePartial[0])
-      _notePartial[0]->stop();
+    if (_partial[0])
+      _partial[0]->stop();
 
-    if (_notePartial[1])
-      _notePartial[1]->stop();
+    if (_partial[1])
+      _partial[1]->stop();
   }
 }
 
@@ -104,11 +87,11 @@ void Note::stop(uint8_t key)
     if (_sustain)                       // Hold pedal (hold1) or Sostenuto
       _stopped = true;
 
-    if (_notePartial[0])
-      _notePartial[0]->stop();
+    if (_partial[0])
+      _partial[0]->stop();
 
-    if (_notePartial[1])
-      _notePartial[1]->stop();
+    if (_partial[1])
+      _partial[1]->stop();
   }
 }
 
@@ -133,12 +116,12 @@ bool Note::get_next_sample(float *partSample)
   for (int p = 0; p < 2; p ++) {
 
     // Skip this iteration if the partial in not used
-    if  (_notePartial[p] == NULL) {
+    if  (_partial[p] == NULL) {
       finished[p] = 1;
       continue;
     }
 
-    finished[p] = _notePartial[p]->get_next_sample(sample);
+    finished[p] = _partial[p]->get_next_sample(sample);
   }
 
   if (finished[0] == true && finished[1] == true)
@@ -158,9 +141,9 @@ bool Note::get_next_sample(float *partSample)
 int Note::get_num_partials()
 {
   int numPartials = 0;
-  if (_notePartial[0])
+  if (_partial[0])
     numPartials ++;
-  if (_notePartial[1])
+  if (_partial[1])
     numPartials ++;
 
   return numPartials;

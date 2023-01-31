@@ -38,7 +38,6 @@ Part::Part(uint8_t id, Settings *settings, ControlRom &ctrlRom, PcmRom &pcmRom)
   // TODO: Rename mode => synthMode and set proper defaults for MT32 mode
   _notesMutex = new std::mutex();
 
-  _drumSet = 0;                  // TODO: Remove the need for this variable
   _partialReserve = 2;           // TODO: Add this to settings with propoer val
   _mute = false;                 // TODO: Also move to settings
 }
@@ -142,7 +141,6 @@ int Part::get_num_partials(void)
 int Part::add_note(uint8_t key, uint8_t keyVelocity)
 {
   // 1. Check if part is muted or rxNoteMessage is disabled
-  // FIXME: Verify that this is correct behavior for mute
   if (_mute || !_settings->get_param(PatchParam::RxNoteMessage, _id))
     return 0;
 
@@ -151,24 +149,10 @@ int Part::add_note(uint8_t key, uint8_t keyVelocity)
       key > _settings->get_param(PatchParam::KeyRangeHigh, _id))
     return 0;
 
-  // 3. Find partial(s) used by instrument or drum set
-  uint16_t instrumentIndex;
-  int drumSet;
-  if (_settings->get_param(PatchParam::UseForRhythm, _id) == mode_Norm) {
-    uint8_t toneBank = _settings->get_param(PatchParam::ToneNumber, _id);
-    uint8_t toneIndex = _settings->get_param(PatchParam::ToneNumber2,_id);
-    instrumentIndex = _ctrlRom.variation(toneBank)[toneIndex];
-    drumSet = -1;
-  } else {
-    instrumentIndex = _ctrlRom.drumSet(_drumSet).preset[key];
-    drumSet = _drumSet;
-  }
-
-  if (instrumentIndex == 0xffff)        // Ignore undefined instruments / drums
-    return 0;
-
   // 4. If note is a drum -> check if drum accepts note on
-  if (drumSet >= 0 && !(_ctrlRom.drumSet(drumSet).flags[key] & 0x10))
+  uint8_t drumSetIndex = _settings->get_param(PatchParam::ToneNumber, _id);
+  if (_settings->get_param(PatchParam::UseForRhythm, _id) != mode_Norm &&
+      !(_ctrlRom.drumSet(drumSetIndex).flags[key] & 0x10))
     return 0;
 
   // 5. Calculate corrected key velocity based on velocity sens depth & offset
@@ -187,19 +171,12 @@ int Part::add_note(uint8_t key, uint8_t keyVelocity)
   // 6. Remove all existing notes if part is in mono mode according to the
   //    SC-55 owner's manual page 39
   if (_settings->get_param(PatchParam::PolyMode, _id) == false &&
-      _settings->get_param(PatchParam::UseForRhythm, _id) == 0)
+      _settings->get_param(PatchParam::UseForRhythm, _id) == mode_Norm)
     delete_all_notes();
-
-  // 7. Calculate offset in semitones based on key shift (Master + Part) and
-  //    RPN#2 (Master Coarse Tune)
-  int8_t keyShift = _settings->get_param(SystemParam::KeyShift) - 0x40 +
-    _settings->get_param(PatchParam::PitchKeyShift, _id) - 0x40 +
-    _settings->get_param(PatchParam::PitchCoarseTune, _id) - 0x40;
 
   _notesMutex->lock();
 
-  Note *n = new Note(key, keyShift, velocity, instrumentIndex,
-		     drumSet, _ctrlRom, _pcmRom, _settings, _id);
+  Note *n = new Note(key, velocity, _ctrlRom, _pcmRom, _settings, _id);
   _notes.push_back(n);
 
   _notesMutex->unlock();
@@ -211,7 +188,6 @@ int Part::add_note(uint8_t key, uint8_t keyVelocity)
     std::cout << "EmuSC: New note [ part=" << (int) _id
 	      << " key=" << (int) key
 	      << " velocity=" << (int) velocity
-	      << " preset=" << _ctrlRom.instrument(instrumentIndex).name
 	      << " ]" << std::endl;
   
     return 1;
@@ -495,7 +471,6 @@ void Part::reset(void)
 {
   delete_all_notes();
 
-  _drumSet = 0;
   _partialReserve = 2;
 
   _mute = false;
@@ -532,7 +507,9 @@ int Part::set_program(uint8_t index)
 						    drumSetBank.end(),
 						    (int) index);
     if (it != drumSetBank.end()) {
-      _drumSet = (int8_t) std::distance(drumSetBank.begin(), it);
+      _settings->set_param(PatchParam::ToneNumber,
+			   (uint8_t) std::distance(drumSetBank.begin(), it),
+			   _id);
     } else {
       std::cerr << "EmuSC: Illegal program for drum set (" << (int) index << ")"
 		<< std::endl;

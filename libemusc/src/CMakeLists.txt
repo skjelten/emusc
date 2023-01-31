@@ -13,11 +13,11 @@ add_library(emusc
   lowpass_filter.h
   note.cc
   note.h
-  note_partial.cc
-  note_partial.h
   params.h
   part.cc
   part.h
+  partial.cc
+  partial.h
   pcm_rom.cc
   pcm_rom.h
   riaa_filter.cc

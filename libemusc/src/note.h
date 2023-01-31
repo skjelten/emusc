@@ -23,7 +23,7 @@
 
 #include "control_rom.h"
 #include "pcm_rom.h"
-#include "note_partial.h"
+#include "partial.h"
 #include "settings.h"
 
 #include <stdint.h>
@@ -36,9 +36,8 @@ namespace EmuSC {
 class Note
 {
 public:
-  Note(uint8_t key, int8_t keyShift, uint8_t velocity, uint16_t instrument,
-       int drum, ControlRom &ctrlRom, PcmRom &pcmRom, Settings *settings,
-       int8_t partId);
+  Note(uint8_t key, uint8_t velocity, ControlRom &ctrlRom, PcmRom &pcmRom,
+       Settings *settings, int8_t partId);
   ~Note();
 
   void stop(void);
@@ -57,7 +56,7 @@ private:
 
   const double _7bScale;     // Constant: 1 / 127
 
-  struct NotePartial *_notePartial[2];
+  struct Partial *_partial[2];
 };
 
 }
