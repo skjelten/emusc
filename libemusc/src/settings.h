@@ -21,6 +21,7 @@
 #define __SETTINGS_H__
 
 
+#include "control_rom.h"
 #include "params.h"
 
 #include <stdint.h>
@@ -34,7 +35,7 @@ namespace EmuSC {
 class Settings
 {
 public:
-  Settings();
+  Settings(ControlRom & ctrlRom);
   ~Settings();
 
   // Sound Canvas Modes
@@ -57,9 +58,8 @@ public:
   uint16_t get_param_uint16(enum PatchParam pp, int8_t part = -1);
   uint8_t  get_param_nib16(enum PatchParam pp, int8_t part = -1);
   uint8_t  get_patch_param(uint16_t address, int8_t part = -1);
-
-  uint8_t  get_param(enum DrumParam);
-  uint8_t* get_param_ptr(enum DrumParam);
+  uint8_t  get_param(enum DrumParam, uint8_t map, uint8_t key);
+  int8_t* get_param_ptr(enum DrumParam, uint8_t map);
 
   // Set settings from Config paramters
   void set_param(enum SystemParam sp, uint8_t value);
@@ -75,8 +75,11 @@ public:
   void set_param_nib16(enum PatchParam pp, uint8_t value, int8_t part = -1);
   void set_patch_param(uint16_t address, uint8_t *data, uint8_t size = 1);
   void set_patch_param(uint16_t address, uint8_t value, int8_t part = -1);
+  void set_param(enum DrumParam dp, uint8_t map, uint8_t key, uint8_t value);
+  void set_param(enum DrumParam dp, uint8_t map, uint8_t *data, uint8_t length);
+  void set_drum_param(uint16_t address, uint8_t *data, uint8_t size = 1);
 
-  // TODO: Add drum params
+  bool update_drum_set(uint8_t map, uint8_t bank);
 
   // Store settings paramters to file (aka battery backup)
   bool load(std::string filePath);
@@ -97,10 +100,14 @@ public:
 
 private:
   std::array<uint8_t, 0x0100> _systemParams;  // Both SysEx and non-SysEx data
-  std::array<uint8_t, 0x4000> _patchParams;   // SysEx data
+  std::array<uint8_t, 0x4000> _patchParams;
+  std::array<uint8_t, 0x2000> _drumParams;
+
+  ControlRom &_ctrlRom;
 
   void _initialize_system_params(enum Mode = Mode::GS);
   void _initialize_patch_params(enum Mode = Mode::GS);
+  void _initialize_drumSet_params();
 
   // BE / LE conversion
   inline bool _le_native(void) { uint16_t n = 1; return (*(uint8_t *) & n); }

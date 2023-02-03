@@ -117,6 +117,8 @@ public:
   uint16_t get_param_uint14(enum PatchParam pp, int8_t part = -1);
   uint8_t  get_param_nib16(enum PatchParam pp, int8_t part = -1);
   uint8_t  get_patch_param(uint16_t address, int8_t part = -1);
+  uint8_t  get_param(enum DrumParam, uint8_t map, uint8_t key);
+  int8_t* get_param_ptr(enum DrumParam, uint8_t map);
 
   // EmuSC clients methods for setting synth paramters
   void set_param(enum SystemParam sp, uint8_t value);
@@ -129,7 +131,8 @@ public:
   void set_param_uint14(enum PatchParam pp, uint16_t value, int8_t part = -1);
   void set_param_nib16(enum PatchParam pp, uint8_t value, int8_t part = -1);
   void set_patch_param(uint16_t address, uint8_t value, int8_t part = 1);
-
+  void set_param(enum DrumParam dp, uint8_t map, uint8_t key, uint8_t value);
+  void set_param(enum DrumParam dp, uint8_t map, uint8_t *data, uint8_t length);
 
   /* End of public API. Below are internal data structures only */
 

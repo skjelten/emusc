@@ -266,6 +266,15 @@ enum class PatchParam : int {
 
 // All variables for individual parts as defined by the Sound Canvas lineup
 enum class DrumParam : int {
+  DrumsMapName        = 0x0000,    // 12B ASCII
+  PlayKeyNumber       = 0x0100,    // [0x00 - 0x7f] semitones
+  Level               = 0x0200,    // [0x00 - 0x7f]
+  AssignGroupNumber   = 0x0300,    // [0x00 - 0x7f]
+  Panpot              = 0x0400,    // [0x00 - 0x7f]
+  ReverbDepth         = 0x0500,    // [0x00 - 0x7f]
+  ChorusDepth         = 0x0600,    // [0x00 - 0x7f]
+  RxNoteOff           = 0x0700,    // [0 - 1]
+  RxNoteOn            = 0x0800     // [0 - 1]
 };
 
 }

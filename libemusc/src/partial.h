@@ -44,7 +44,6 @@ private:
 
   struct ControlRom::InstPartial &_instPartial;
   struct ControlRom::Sample *_ctrlSample;
-  struct ControlRom::DrumSet *_drumSet;
 
   std::vector<float> *_pcmSamples;
 
@@ -58,9 +57,8 @@ private:
   Settings *_settings;
   int8_t _partId;
 
-  int _isDrum;
-
-
+  bool _isDrum;
+  int _drumMap;
 
   TVP *_tvp;
   TVF *_tvf;

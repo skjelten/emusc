@@ -2466,8 +2466,7 @@ void PartControllerSettings::_lfo2TVADepth_changed(int value)
 
 
 DrumSettings::DrumSettings(Emulator *emulator, QWidget *parent)
-  : _emulator(emulator),
-    _drumSets(emulator->get_drumsets_ref())
+  : _emulator(emulator)
 {
   QVBoxLayout *vboxLayout = new QVBoxLayout();
 
@@ -2484,13 +2483,12 @@ DrumSettings::DrumSettings(Emulator *emulator, QWidget *parent)
   _mapC->setEditable(false);  
   hboxLayout->addWidget(_mapC);
   hboxLayout->addSpacing(50);
-  hboxLayout->addWidget(new QLabel("Set:"));
-  _setC = new QComboBox();
-  for (auto &d : _drumSets)
-    _setC->addItem(d.name.c_str());
-  _setC->setEditable(false);  
-  _drumSet = _setC->currentIndex();
-  hboxLayout->addWidget(_setC);
+  hboxLayout->addWidget(new QLabel("Name:"));
+  _nameLE = new QLineEdit();
+  _nameLE->setMaxLength(12);
+  _nameLE->setValidator(new QRegExpValidator(QRegExp("[A-Za-z0-9_]{0,255}"),
+					     this ));
+  hboxLayout->addWidget(_nameLE);
   hboxLayout->addStretch(1);
   vboxLayout->addLayout(hboxLayout);
 
@@ -2501,7 +2499,7 @@ DrumSettings::DrumSettings(Emulator *emulator, QWidget *parent)
   vboxLayout->addWidget(line);
 
   QHBoxLayout *hboxLayout2 = new QHBoxLayout();
-  hboxLayout2->addWidget(new QLabel("Instrument:"));
+  hboxLayout2->addWidget(new QLabel("Drum instrument:"));
   _instrumentC = new QComboBox();
   for (int i = 0; i < 128; i++)
     _instrumentC->addItem(QString::number(i) + QString(" Drum"));
@@ -2511,16 +2509,16 @@ DrumSettings::DrumSettings(Emulator *emulator, QWidget *parent)
   vboxLayout->addLayout(hboxLayout2);
 
   QGridLayout *gridLayout = new QGridLayout();
-  gridLayout->addWidget(new QLabel("Volume"),      0, 0);
-//  gridLayout->addWidget(new QLabel("Pitch Shift"), 1, 0);
-  gridLayout->addWidget(new QLabel("Pan"),         1, 0);
-  gridLayout->addWidget(new QLabel("Reverb"),      2, 0);
-  gridLayout->addWidget(new QLabel("Chorus"),      3, 0);
+  gridLayout->addWidget(new QLabel("Volume"),       0, 0);
+  gridLayout->addWidget(new QLabel("Coarse tune"),  1, 0);
+  gridLayout->addWidget(new QLabel("Panpot"),       2, 0);
+  gridLayout->addWidget(new QLabel("Reverb Depth"), 3, 0);
+  gridLayout->addWidget(new QLabel("Chorus Depth"), 4, 0);
+  gridLayout->addWidget(new QLabel("Assign group"), 5, 0);
 //  gridLayout->addWidget(new QLabel("Delay"),       5, 0);   // TODO: SC-88
-  gridLayout->addWidget(new QLabel("Excl. group"), 4, 0);
 
   _volumeL = new QLabel(": ");
-//  _pitchL = new QLabel(": ");
+  _pitchL = new QLabel(": ");
   _panL = new QLabel(": ");
   _reverbL = new QLabel(": ");
   _chorusL = new QLabel(": ");
@@ -2529,60 +2527,60 @@ DrumSettings::DrumSettings(Emulator *emulator, QWidget *parent)
 
   // Set static width for slider value labels
   QFontMetrics fontMetrics(_volumeL->font());
-  int labelWidth = fontMetrics.horizontalAdvance(": 888");
+  int labelWidth = fontMetrics.horizontalAdvance(": 18888");
   _volumeL->setFixedWidth(labelWidth);
 
   gridLayout->addWidget(_volumeL,   0, 1);
-//  gridLayout->addWidget(_pitchL,    1, 1);
-  gridLayout->addWidget(_panL,      1, 1);
-  gridLayout->addWidget(_reverbL,   2, 1);
-  gridLayout->addWidget(_chorusL,   3, 1);
+  gridLayout->addWidget(_pitchL,    1, 1);
+  gridLayout->addWidget(_panL,      2, 1);
+  gridLayout->addWidget(_reverbL,   3, 1);
+  gridLayout->addWidget(_chorusL,   4, 1);
+  gridLayout->addWidget(_exlGroupL, 5, 1);
 //  gridLayout->addWidget(_delayL,  4, 1);
-  gridLayout->addWidget(_exlGroupL, 4, 1);
 
   _volumeS = new QSlider(Qt::Horizontal);
   _volumeS->setRange(0, 127);
   _volumeS->setTickPosition(QSlider::TicksBelow);
-  _volumeS->setTickInterval(1);
+  _volumeS->setTickInterval(64);
 
-//  _pitchS = new QSlider(Qt::Horizontal);
-//  _pitchS->setRange(0, 127);
-//  _pitchS->setTickPosition(QSlider::TicksBelow);
-//  _pitchS->setTickInterval(1);
+  _pitchS = new QSlider(Qt::Horizontal);
+  _pitchS->setRange(0, 127);
+  _pitchS->setTickPosition(QSlider::TicksBelow);
+  _pitchS->setTickInterval(64);
 
   _panS = new QSlider(Qt::Horizontal);
   _panS->setRange(0, 127);
   _panS->setTickPosition(QSlider::TicksBelow);
-  _panS->setTickInterval(1);
+  _panS->setTickInterval(64);
 
   _reverbS = new QSlider(Qt::Horizontal);
   _reverbS->setRange(0, 127);
   _reverbS->setTickPosition(QSlider::TicksBelow);
-  _reverbS->setTickInterval(1);
+  _reverbS->setTickInterval(64);
 
   _chorusS = new QSlider(Qt::Horizontal);
   _chorusS->setRange(0, 127);
   _chorusS->setTickPosition(QSlider::TicksBelow);
-  _chorusS->setTickInterval(1);
+  _chorusS->setTickInterval(64);
+
+  _exlGroupS = new QSlider(Qt::Horizontal);
+  _exlGroupS->setRange(0, 127);
+  _exlGroupS->setTickPosition(QSlider::TicksBelow);
+  _exlGroupS->setTickInterval(64);
 
 // TODO: SC-88
 //  _delayS = new QSlider(Qt::Horizontal);
 //  _delayS->setRange(0, 127);
 //  _delayS->setTickPosition(QSlider::TicksBelow);
-//  _delayS->setTickInterval(1);
-
-  _exlGroupS = new QSlider(Qt::Horizontal);
-  _exlGroupS->setRange(0, 127);
-  _exlGroupS->setTickPosition(QSlider::TicksBelow);
-  _exlGroupS->setTickInterval(1);
+//  _delayS->setTickInterval(64);
 
   gridLayout->addWidget(_volumeS,   0, 2);
-//  gridLayout->addWidget(_pitchS,    1, 2);
-  gridLayout->addWidget(_panS,      1, 2);
-  gridLayout->addWidget(_reverbS,   2, 2);
-  gridLayout->addWidget(_chorusS,   3, 2);
+  gridLayout->addWidget(_pitchS,    1, 2);
+  gridLayout->addWidget(_panS,      2, 2);
+  gridLayout->addWidget(_reverbS,   3, 2);
+  gridLayout->addWidget(_chorusS,   4, 2);
+  gridLayout->addWidget(_exlGroupS, 5, 2);
 //  gridLayout->addWidget(_delayS,    4, 2);
-  gridLayout->addWidget(_exlGroupS, 4, 2);
 
   vboxLayout->addLayout(gridLayout);
 
@@ -2605,12 +2603,13 @@ DrumSettings::DrumSettings(Emulator *emulator, QWidget *parent)
 
   connect(_mapC, SIGNAL(currentIndexChanged(int)),
 	  this, SLOT(_map_changed(int)));
-  connect(_setC, SIGNAL(currentIndexChanged(int)),
-	  this, SLOT(_set_changed(int)));
+  connect(_nameLE, SIGNAL(textChanged(const QString)),
+	  this, SLOT(_name_changed(const QString)));
   connect(_instrumentC, SIGNAL(currentIndexChanged(int)),
 	  this, SLOT(_instrument_changed(int)));
 
   connect(_volumeS, SIGNAL(valueChanged(int)), this,SLOT(_volume_changed(int)));
+  connect(_pitchS, SIGNAL(valueChanged(int)), this, SLOT(_pitch_changed(int)));
   connect(_panS, SIGNAL(valueChanged(int)), this, SLOT(_pan_changed(int)));
   connect(_reverbS, SIGNAL(valueChanged(int)), this,SLOT(_reverb_changed(int)));
   connect(_chorusS, SIGNAL(valueChanged(int)), this,SLOT(_chorus_changed(int)));
@@ -2627,30 +2626,60 @@ DrumSettings::DrumSettings(Emulator *emulator, QWidget *parent)
 
 void DrumSettings::update_all_widgets(void)
 {
-  _drumSet = _setC->currentIndex();
   _instrument = _instrumentC->currentIndex();
+  _map = _mapC->currentIndex();
   
-  _volumeS->setValue(_drumSets[_drumSet].volume[_instrument]);
-  _panS->setValue(_drumSets[_drumSet].panpot[_instrument]);
-  _reverbS->setValue(_drumSets[_drumSet].reverb[_instrument]);
-  _chorusS->setValue(_drumSets[_drumSet].chorus[_instrument]);
-//  _delayS->setValue(_drumSets[_drumSet].volume[_instrument]);
-  _exlGroupS->setValue(_drumSets[_drumSet].assignGroup[_instrument]);
+  std::string name((const char *) _emulator->get_param_ptr(EmuSC::DrumParam::DrumsMapName, _map), 12);
+  _nameLE->setText(QString::fromStdString(name));
+
+  _volumeS->setValue(_emulator->get_param(EmuSC::DrumParam::Level,
+					  _map, _instrument));
+  _pitchS->setValue(_emulator->get_param(EmuSC::DrumParam::PlayKeyNumber,
+					 _map, _instrument));
+  _panS->setValue(_emulator->get_param(EmuSC::DrumParam::Panpot,
+				       _map, _instrument));
+  _reverbS->setValue(_emulator->get_param(EmuSC::DrumParam::ReverbDepth,
+					  _map, _instrument));
+  _chorusS->setValue(_emulator->get_param(EmuSC::DrumParam::ChorusDepth,
+					  _map, _instrument));
+  _exlGroupS->setValue(_emulator->get_param(EmuSC::DrumParam::AssignGroupNumber,
+					    _map, _instrument));
+  //  _delayS->setValue(_drumSets[_drumSet].volume[_instrument]);
 
   _volumeL->setText(": " + QString::number(_volumeS->value()));
+  _pitchL->setText(": " + QString::number(_pitchS->value() - 0x40));
 
   if (_panS->value() == 0)
     _panL->setText(": RND");
+  else if (_panS->value() < 0x40)
+    _panL->setText(": L" + QString::number(std::abs(_panS->value() - 0x40)));
+  else if (_panS->value() > 0x40)
+    _panL->setText(": R" + QString::number(_panS->value() - 0x40));
   else
-    _panL->setText(": " + QString::number(_panS->value() - 64));
+    _panL->setText(": 0");
 
-  _reverbL->setText(": " + QString::number(_reverbS->value()));
-  _chorusL->setText(": " + QString::number(_chorusS->value()));
+  if (_reverbS->value() < 127)
+    _reverbL->setText(": " + QString::number((float) _reverbS->value() *
+					     100 / 127.0, 'f', 1) + "%");
+  else
+    _reverbL->setText(": 100%");
+
+  if (_chorusS->value() < 127)
+    _chorusL->setText(": " + QString::number((float) _chorusS->value() *
+					     100 / 127.0, 'f', 1) + "%");
+  else
+    _chorusL->setText(": 100%");
+
+  if (_exlGroupS->value() == 0)
+    _exlGroupL->setText(": Off");
+  else
+    _exlGroupL->setText(": " + QString::number(_exlGroupS->value()));
 //  _delayL->setText(": " + QString::number(_delayS->value()));
-  _exlGroupL->setText(": " + QString::number(_exlGroupS->value()));
 
-  _rxNoteOn->setChecked(_drumSets[_drumSet].flags[_instrument] & 0x10);
-  _rxNoteOff->setChecked(_drumSets[_drumSet].flags[_instrument] & 0x01);  
+  _rxNoteOn->setChecked(_emulator->get_param(EmuSC::DrumParam::RxNoteOn,
+					     _map, _instrument));
+  _rxNoteOff->setChecked(_emulator->get_param(EmuSC::DrumParam::RxNoteOff,
+					      _map, _instrument));
 }
 
 
@@ -2661,10 +2690,10 @@ void DrumSettings::_map_changed(int value)
 }
 
 
-void DrumSettings::_set_changed(int value)
+void DrumSettings::_name_changed(const QString &name)
 {
-  _drumSet = (int8_t) value;
-  update_all_widgets();
+  _emulator->set_param(EmuSC::DrumParam::DrumsMapName, _map,
+		       (uint8_t*) name.toStdString().c_str(), name.length());
 }
 
 
@@ -2678,61 +2707,75 @@ void DrumSettings::_instrument_changed(int value)
 void DrumSettings::_volume_changed(int value)
 {
   _volumeL->setText(": " + QString::number(value));
-  _drumSets[_drumSet].volume[_instrument] = value;
+  _emulator->set_param(EmuSC::DrumParam::Level, _map, _instrument, value);
 }
 
 
-//void DrumSettings::_pitch_changed(int value)
-//{
-//  _pitchL->setText(": " + QString::number(value));
-//  _drumSets[_drumSet].panpot[_instrument] = value;
-//}
+void DrumSettings::_pitch_changed(int value)
+{
+  _pitchL->setText(": " + QString::number(value));
+  _emulator->set_param(EmuSC::DrumParam::PlayKeyNumber, _map,_instrument,value);
+}
 
 
 void DrumSettings::_pan_changed(int value)
 {
-  if (_panS->value() == 0)
+  if (value == 0)
     _panL->setText(": RND");
+  else if (value < 0x40)
+    _panL->setText(": L" + QString::number(std::abs(value - 0x40)));
+  else if (value > 0x40)
+    _panL->setText(": R" + QString::number(value - 0x40));
   else
-    _panL->setText(": " + QString::number(_panS->value() - 64));
+    _panL->setText(": 0");
 
-  _drumSets[_drumSet].panpot[_instrument] = value;
+  _emulator->set_param(EmuSC::DrumParam::Panpot, _map, _instrument, value);
 }
 
 
 void DrumSettings::_reverb_changed(int value)
 {
-  _reverbL->setText(": " + QString::number(value));
-  _drumSets[_drumSet].reverb[_instrument] = value;
+  if (value < 127)
+    _reverbL->setText(": " + QString::number((float) value * 100 / 127.0,
+					     'f', 1) + "%");
+  else
+    _reverbL->setText(": 100%");
+
+  _emulator->set_param(EmuSC::DrumParam::ReverbDepth, _map, _instrument, value);
 }
 
 
 void DrumSettings::_chorus_changed(int value)
 {
-  _chorusL->setText(": " + QString::number(value));
-  _drumSets[_drumSet].chorus[_instrument] = value;
+  if (value < 127)
+    _chorusL->setText(": " + QString::number((float) value * 100 / 127.0,
+					     'f', 1) + "%");
+  else
+    _chorusL->setText(": 100%");
+
+  _emulator->set_param(EmuSC::DrumParam::ChorusDepth, _map, _instrument, value);
 }
 
 
 void DrumSettings::_exlGroup_changed(int value)
 {
-  _exlGroupL->setText(": " + QString::number(value));
-  _drumSets[_drumSet].assignGroup[_instrument] = value;
+  if (value == 0)
+    _exlGroupL->setText(": Off");
+  else
+    _exlGroupL->setText(": " + QString::number(value));
+
+  _emulator->set_param(EmuSC::DrumParam::AssignGroupNumber, _map, _instrument,
+		       value);
 }
 
 
 void DrumSettings::_rxNoteOn_changed(int value)
 {
-  if (value)
-    _drumSets[_drumSet].flags[_instrument] |= 0x10;
-  else
-    _drumSets[_drumSet].flags[_instrument] &= ~0x10;
+  _emulator->set_param(EmuSC::DrumParam::RxNoteOn, _map, _instrument, value);
 }
+
 
 void DrumSettings::_rxNoteOff_changed(int value)
 {
-  if (value)
-    _drumSets[_drumSet].flags[_instrument] |= 0x01;
-  else
-    _drumSets[_drumSet].flags[_instrument] &= ~0x01;
+  _emulator->set_param(EmuSC::DrumParam::RxNoteOff, _map, _instrument, value);
 }

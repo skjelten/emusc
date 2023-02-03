@@ -85,6 +85,9 @@ public:
   uint8_t  get_param_nib16(enum EmuSC::PatchParam pp, int8_t part = -1);
   uint16_t get_param_uint14(enum EmuSC::PatchParam pp, int8_t part = -1);
   uint8_t get_patch_param(uint16_t address, int8_t part);
+  uint8_t  get_param(enum EmuSC::DrumParam, uint8_t map, uint8_t key);
+  int8_t* get_param_ptr(enum EmuSC::DrumParam, uint8_t map);
+
   void set_param(enum EmuSC::SystemParam sp, uint8_t value);
   void set_param(enum EmuSC::SystemParam sp, uint8_t *data, uint8_t size = 1);
   void set_param(enum EmuSC::SystemParam sp, uint32_t value);
@@ -97,6 +100,10 @@ public:
   void set_param_nib16(enum EmuSC::PatchParam pp, uint8_t value,
 		       int8_t part = -1);
   void set_patch_param(uint16_t address, uint8_t value, int8_t part = -1);
+  void set_param(enum EmuSC::DrumParam dp, uint8_t map, uint8_t key,
+		 uint8_t value);
+  void set_param(enum EmuSC::DrumParam dp, uint8_t map, uint8_t *data,
+		 uint8_t length);
 
 signals:
   void emulator_started(void);

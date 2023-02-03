@@ -489,12 +489,12 @@ class DrumSettings : public QWidget
 
 private:
   QComboBox *_mapC;
-  QComboBox *_setC;
+  QLineEdit *_nameLE;
 
   QComboBox *_instrumentC;
 
   QSlider *_volumeS;
-//  QSlider *_pitchS;
+  QSlider *_pitchS;
   QSlider *_panS;
   QSlider *_reverbS;
   QSlider *_chorusS;
@@ -502,7 +502,7 @@ private:
   QSlider *_exlGroupS;
 
   QLabel *_volumeL;
-//  QLabel *_pitchL;
+  QLabel *_pitchL;
   QLabel *_panL;
   QLabel *_reverbL;
   QLabel *_chorusL;
@@ -513,11 +513,9 @@ private:
   QCheckBox *_rxNoteOff;
   
   Emulator *_emulator;
-  std::vector<EmuSC::ControlRom::DrumSet> &_drumSets;
 
   int _map;
   int _instrument;
-  int _drumSet;
   
 public:
   explicit DrumSettings(Emulator *emulator, QWidget *parent = nullptr);
@@ -526,11 +524,11 @@ public:
 
 private slots:
   void _map_changed(int value);
-  void _set_changed(int value);
+  void _name_changed(const QString &name);
   void _instrument_changed(int value);
 
   void _volume_changed(int value);
-//  void _pitch_changed(int value);
+  void _pitch_changed(int value);
   void _pan_changed(int value);
   void _reverb_changed(int value);
   void _chorus_changed(int value);

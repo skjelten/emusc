@@ -96,9 +96,9 @@ Partial::Partial(uint8_t key, int partialId, uint16_t instrumentIndex,
 
   // 4. Find actual key difference and calculate static pitch corrections
   if (_isDrum) {
-    uint8_t drumSetIndex = settings->get_param(PatchParam::ToneNumber, partId);
-    _drumSet = &ctrlRom.drumSet(drumSetIndex);
-    _keyDiff = keyShift + ctrlRom.drumSet(drumSetIndex).key[key] - 0x3c;
+    _drumMap = settings->get_param(PatchParam::UseForRhythm, partId) - 1;
+    _keyDiff = keyShift + settings->get_param(DrumParam::PlayKeyNumber,
+					      _drumMap, key) - 0x3c;
 
   } else {                                        // Regular instrument
     _keyDiff = key + keyShift - _ctrlSample->rootKey;
@@ -149,7 +149,7 @@ double Partial::_convert_volume(uint8_t volume)
 void Partial::stop(void)
 {
   // Ignore note off for uninterruptible drums (set by drum set flag)
-  if (!(_isDrum && !(_drumSet->flags[_key] & 0x01)))
+  if (!(_isDrum && !(_settings->get_param(DrumParam::RxNoteOff,_drumMap,_key))))
     _tva->note_off();
 }
 
@@ -279,7 +279,8 @@ bool Partial::get_next_sample(float *noteSample)
   // Calculate volume correction from drum set definition
   double drumVol = 1;
   if (_isDrum)
-    drumVol = _convert_volume(_drumSet->volume[_key]);
+    drumVol = _convert_volume(_settings->get_param(DrumParam::Level, _drumMap,
+						   _key));
 
   // Apply volume changes
   sample[0] *= sampleVol * partialVol * drumVol;
@@ -298,7 +299,7 @@ bool Partial::get_next_sample(float *noteSample)
   if (!_isDrum)
     panpot = (_instPartial.panpot - 0x40) / 64.0;
   else
-    panpot = (_drumSet->panpot[_key] - 0x40) / 64.0;
+    panpot = (_settings->get_param(DrumParam::Panpot, _drumMap, _key) - 0x40) / 64.0;
 
   if (panpot < 0)
     sample[1] *= (1 + panpot);

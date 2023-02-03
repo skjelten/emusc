@@ -43,7 +43,7 @@ Synth::Synth(ControlRom &controlRom, PcmRom &pcmRom, SoundMap map)
     _channels(0),
     _ctrlRom(controlRom)
 {
-  _settings = new Settings();
+  _settings = new Settings(controlRom);
 
   // Initialize all parts
   _parts.reserve(16);
@@ -406,8 +406,7 @@ void Synth::set_part_mute(uint8_t partId, bool mute)
 
 void Synth::set_part_instrument(uint8_t partId, uint8_t index, uint8_t bank)
 {
-  _settings->set_param(PatchParam::ToneNumber, bank, partId);
-  _parts[partId].set_program(index);
+  _parts[partId].set_program(index, bank, true);
 }
 
 
@@ -471,6 +470,18 @@ uint8_t Synth::get_patch_param(uint16_t address, int8_t part)
 }
 
 
+uint8_t Synth::get_param(enum DrumParam dp, uint8_t map, uint8_t key)
+{
+  return _settings->get_param(dp, map, key);
+}
+
+
+int8_t* Synth::get_param_ptr(enum DrumParam dp, uint8_t map)
+{
+  return _settings->get_param_ptr(dp, map);
+}
+
+
 void Synth::set_param(enum SystemParam sp, uint8_t value)
 {
   _settings->set_param(sp, value);
@@ -525,6 +536,19 @@ void Synth::set_param_nib16(enum PatchParam pp, uint8_t value, int8_t part)
 void Synth::set_patch_param(uint16_t address, uint8_t value, int8_t part)
 {
   _settings->set_patch_param(address, value, part);
+}
+
+
+void Synth::set_param(enum DrumParam dp, uint8_t map, uint8_t key,uint8_t value)
+{
+  _settings->set_param(dp, map, key, value);
+}
+
+
+void Synth::set_param(enum DrumParam dp, uint8_t map, uint8_t *data,
+		      uint8_t length)
+{
+  _settings->set_param(dp, map, data, length);
 }
 
 
@@ -628,22 +652,24 @@ void Synth::_midi_input_sysex_DT1(uint8_t model, uint8_t *data, uint16_t length)
 
     // Drum parameters: Address 41 MX XX (M = Map)
     } else if (data[0] == 0x41 && !(data[1] & 0xe0)) {
+      // Set length of message based on SysEx chart in Owner's Manual
+      uint8_t dataLength;
+      switch (data[1] & 0x0f)
+	{
+	case 0x00:
+	  dataLength = 12;
+	  break;
+	default:
+	  dataLength = 1;
+	}
 
-      // All relevant messages has data length of 1 byte
-      if (length != 4) {
+      if (length - dataLength != 3) {
 	std::cerr << "libemusc: Roland SysEx message has invalid data length! "
 		  << "Message discarded." << std::endl;
 	return;
       }
 
-      bool map = data[1] & 0x10;
-      std::vector<ControlRom::DrumSet> &drumset = _ctrlRom.get_drumsets_ref();
-
-      std::cout << "Work in progress MAP=" << map << std::endl;
-
-      // TODO: Allow to change name and key number (pitch)
-//      switch (data[1] & 0x0f)
-//      {}
+      _settings->set_drum_param(data[2] | data[1] << 8, &data[3], dataLength);
     }
   }
 }

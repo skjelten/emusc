@@ -47,7 +47,7 @@ public:
   int get_num_partials(void);
 
   // MIDI Channel Voice Messages
-  int set_program(uint8_t index);
+  int set_program(uint8_t index, int8_t bank = -1, bool ignRxPC = false);
   int add_note(uint8_t key, uint8_t velocity);
   int stop_note(uint8_t key);
   int control_change(uint8_t msgId, uint8_t value);

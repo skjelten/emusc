@@ -781,8 +781,10 @@ void Emulator::select_prev_instrument()
 
   set_instrument(index, bank, false);
 
+  uint8_t rhythm = _emuscSynth->get_param(EmuSC::PatchParam::UseForRhythm,
+					  _selectedPart);
   // Instrument
-  if (_emuscSynth->get_param(EmuSC::PatchParam::UseForRhythm,_selectedPart)==0){
+  if (!rhythm) {
     const std::array<uint16_t, 128> &var = _emuscControlRom->variation(bank);
     for (int i = index - 1; i >= 0; i--) {
       if (var[i] != 0xffff) {
@@ -843,7 +845,9 @@ void Emulator::set_instrument(uint8_t index, uint8_t bank, bool update)
     return;
 
   QString str;
-  if (_emuscSynth->get_param(EmuSC::PatchParam::UseForRhythm,_selectedPart)==0){
+  uint8_t rhythm =
+    _emuscSynth->get_param(EmuSC::PatchParam::UseForRhythm,_selectedPart);
+  if (!rhythm) {
     if (update)
       _emuscSynth->set_part_instrument(_selectedPart, index, bank);
 
@@ -856,21 +860,16 @@ void Emulator::set_instrument(uint8_t index, uint8_t bank, bool update)
     else
       str.append("+");
     str.append(QString(_emuscControlRom->instrument(instrument).name.c_str()));
+
+  // Drum set
   } else {
-    const std::vector<int> &drumSetBank = _emuscControlRom->drum_set_bank();
-    std::vector<int>::const_iterator it = std::find(drumSetBank.begin(),
-						    drumSetBank.end(),
-						    (int) index);
-    if (it == drumSetBank.end())
-      return;
-
-    uint8_t vi = std::distance(drumSetBank.begin(), it);
-
     if (update)
       _emuscSynth->set_part_instrument(_selectedPart, index, bank);
 
+    std::string name((char *) get_param_ptr(EmuSC::DrumParam::DrumsMapName,
+					    rhythm - 1), 12);
     str = QStringLiteral("%1*").arg(index + 1, 3, 10, QLatin1Char('0'));
-    str.append(QString(_emuscControlRom->drumSet(vi).name.c_str()));
+    str.append(QString(name.c_str()));
   }
 
   emit display_instrument_updated(str);
@@ -1264,6 +1263,18 @@ uint8_t Emulator::get_patch_param(uint16_t address, int8_t part)
 }
 
 
+uint8_t Emulator::get_param(enum EmuSC::DrumParam dp, uint8_t map, uint8_t key)
+{
+  return _emuscSynth->get_param(dp, map, key);
+}
+
+
+int8_t* Emulator::get_param_ptr(enum EmuSC::DrumParam dp, uint8_t map)
+{
+  return _emuscSynth->get_param_ptr(dp, map);
+}
+
+
 void Emulator::set_param(enum EmuSC::SystemParam sp, uint8_t value)
 {
   _emuscSynth->set_param(sp, value);
@@ -1316,6 +1327,20 @@ void Emulator::set_param_nib16(enum EmuSC::PatchParam pp, uint8_t value, int8_t 
 void Emulator::set_patch_param(uint16_t address, uint8_t value, int8_t part)
 {
   _emuscSynth->set_patch_param(address, value, part);
+}
+
+
+void Emulator::set_param(enum EmuSC::DrumParam dp, uint8_t map, uint8_t key,
+			 uint8_t value)
+{
+  _emuscSynth->set_param(dp, map, key, value);
+}
+
+
+void Emulator::set_param(enum EmuSC::DrumParam dp, uint8_t map, uint8_t *data,
+			 uint8_t length)
+{
+  _emuscSynth->set_param(dp, map, data, length);
 }
 
 

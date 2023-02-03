@@ -151,8 +151,9 @@ int Part::add_note(uint8_t key, uint8_t keyVelocity)
 
   // 4. If note is a drum -> check if drum accepts note on
   uint8_t drumSetIndex = _settings->get_param(PatchParam::ToneNumber, _id);
-  if (_settings->get_param(PatchParam::UseForRhythm, _id) != mode_Norm &&
-      !(_ctrlRom.drumSet(drumSetIndex).flags[key] & 0x10))
+  uint8_t rhythm = _settings->get_param(PatchParam::UseForRhythm, _id);
+  if (rhythm != mode_Norm &&
+      !(_settings->get_param(DrumParam::RxNoteOn, rhythm - 1, key)))
     return 0;
 
   // 5. Calculate corrected key velocity based on velocity sens depth & offset
@@ -265,31 +266,40 @@ int Part::control_change(uint8_t msgId, uint8_t value)
     msb = _settings->get_param(PatchParam::NRPN_MSB, _id);
     lsb = _settings->get_param(PatchParam::NRPN_LSB, _id);
     if (msb != 0x7f && lsb != 0x7f)
-      if (msb == 0x01 && lsb == 0x08 && value >= 0x0e && value <= 0x72)
+      if (msb == 0x01 && lsb == 0x08 && value >= 0x0e && value <= 0x72) {
 	_settings->set_param(PatchParam::VibratoRate, value, _id);
-      else if (msb == 0x01 && lsb == 0x09 && value >= 0x0e && value <= 0x72)
+      } else if (msb == 0x01 && lsb == 0x09 && value >= 0x0e && value <= 0x72) {
 	_settings->set_param(PatchParam::VibratoDepth, value, _id);
-      else if (msb == 0x01 && lsb == 0x0a && value >= 0x0e && value <= 0x72)
+      } else if (msb == 0x01 && lsb == 0x0a && value >= 0x0e && value <= 0x72) {
 	_settings->set_param(PatchParam::VibratoDelay, value, _id);
-      else if (msb == 0x01 && lsb == 0x20 && value >= 0x0e && value <= 0x72)
+      } else if (msb == 0x01 && lsb == 0x20 && value >= 0x0e && value <= 0x72) {
 	_settings->set_param(PatchParam::TVFCutoffFreq, value, _id);
-      else if (msb == 0x01 && lsb == 0x21 && value >= 0x0e && value <= 0x72)
+      } else if (msb == 0x01 && lsb == 0x21 && value >= 0x0e && value <= 0x72) {
 	_settings->set_param(PatchParam::TVFResonance, value, _id);
-      else if (msb == 0x01 && lsb == 0x63 && value >= 0x0e && value <= 0x72)
+      } else if (msb == 0x01 && lsb == 0x63 && value >= 0x0e && value <= 0x72) {
 	_settings->set_param(PatchParam::TVFAEnvAttack, value, _id);
-      else if (msb == 0x01 && lsb == 0x64 && value >= 0x0e && value <= 0x72)
+      } else if (msb == 0x01 && lsb == 0x64 && value >= 0x0e && value <= 0x72) {
 	_settings->set_param(PatchParam::TVFAEnvDecay, value, _id);
-      else if (msb == 0x01 && lsb == 0x66 && value >= 0x0e && value <= 0x72)
+      } else if (msb == 0x01 && lsb == 0x66 && value >= 0x0e && value <= 0x72) {
 	_settings->set_param(PatchParam::TVFAEnvRelease, value, _id);
-      else if (msb == 0x18)
-	std::cout << "Pitch coarse (drums) not implemented yet" << std::endl;
-      else if (msb == 0x1a)
-	std::cout << "TVA level (drums) not implemented yet" << std::endl;
-      else if (msb == 0x1c)
-	std::cout << "Panpot (drums) not implemented yet" << std::endl;
-      else if (msb == 0x1d)
-	std::cout << "Reverb (drums) not implemented yet" << std::endl;
-    // SC-88 adds Chorus and Delay
+      } else if (msb == 0x18) {
+	int map = _settings->get_param(PatchParam::UseForRhythm, _id) - 1;
+	if (map == 0 || map == 1)
+	  _settings->set_param(DrumParam::PlayKeyNumber, map, lsb, value);
+      } else if (msb == 0x1a) {
+	int map = _settings->get_param(PatchParam::UseForRhythm, _id) - 1;
+	if (map == 0 || map == 1)
+	  _settings->set_param(DrumParam::Level, map, lsb, value);
+      } else if (msb == 0x1c) {
+	int map = _settings->get_param(PatchParam::UseForRhythm, _id) - 1;
+	if (map == 0 || map == 1)
+	  _settings->set_param(DrumParam::Panpot, map, lsb, value);
+      } else if (msb == 0x1d) {
+	int map = _settings->get_param(PatchParam::UseForRhythm, _id) - 1;
+	if (map == 0 || map == 1)
+	  _settings->set_param(DrumParam::ReverbDepth, map, lsb, value);
+      }
+    // TODO: SC-88 adds Chorus and Delay
 
   } else if (msgId == 7) {                             // Volume
     if (_settings->get_param(PatchParam::RxVolume, _id)) {
@@ -480,18 +490,23 @@ void Part::reset(void)
 
 // [index, bank] is the [x,y] coordinate in the variation table
 // For drum sets, index is the program number in the drum set bank
-int Part::set_program(uint8_t index)
+int Part::set_program(uint8_t index, int8_t bank, bool ignRxFlags)
 {
-  if (!_settings->get_param(PatchParam::RxProgramChange, _id))
+  if (!ignRxFlags && (!_settings->get_param(PatchParam::RxProgramChange, _id) ||
+		      !_settings->get_param(SystemParam::RxInstrumentChange)))
     return -1;
+
+  if (bank < 0)
+    bank = _settings->get_param(PatchParam::ToneNumber, _id);
+  else
+    _settings->set_param(PatchParam::ToneNumber, bank, _id);
 
   _settings->set_param(PatchParam::ToneNumber2, index, _id);
 
-  uint8_t bank = _settings->get_param(PatchParam::ToneNumber, _id);
-
   // Finds correct instrument variation from variations table
   // Implemented according to SC-55 Owner's Manual page 42-45
-  if (_settings->get_param(PatchParam::UseForRhythm, _id) == mode_Norm) {
+  int rhythm = _settings->get_param(PatchParam::UseForRhythm, _id);
+  if (rhythm == mode_Norm) {
     uint16_t instrument = _ctrlRom.variation(bank)[index];
     if (bank < 63 && index < 120) {
       while (instrument == 0xffff)
@@ -502,19 +517,10 @@ int Part::set_program(uint8_t index)
 
   // If part is used for drums, select correct drum set
   } else {
-    const std::vector<int> &drumSetBank = _ctrlRom.drum_set_bank();
-    std::vector<int>::const_iterator it = std::find(drumSetBank.begin(),
-						    drumSetBank.end(),
-						    (int) index);
-    if (it != drumSetBank.end()) {
-      _settings->set_param(PatchParam::ToneNumber,
-			   (uint8_t) std::distance(drumSetBank.begin(), it),
-			   _id);
-    } else {
-      std::cerr << "EmuSC: Illegal program for drum set (" << (int) index << ")"
-		<< std::endl;
-      return 0;
-    }
+    if (!_settings->update_drum_set(rhythm - 1, index))
+      std::cerr << "libEmuSC: Illegal program for drum set ("
+		<< (int) index << ")" << std::endl;
+    return 0;
   }
 
   return 1;

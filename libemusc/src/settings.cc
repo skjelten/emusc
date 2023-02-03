@@ -23,15 +23,19 @@
 #include <cmath>
 #include <iostream>
 
-
+#include <vector>
+#include <algorithm>
+#include <iterator>
 namespace EmuSC {
 
 
-Settings::Settings()
+Settings::Settings(ControlRom &ctrlRom)
+  : _ctrlRom(ctrlRom)
 {
   // TODO: Add SC-55/88 to master settings
   _initialize_system_params();
   _initialize_patch_params();
+  _initialize_drumSet_params();
 
   // TODO: Find a proper way to handle calculated controller values
   for (int i = 0; i < 16; i ++)
@@ -141,6 +145,18 @@ uint8_t Settings::get_patch_param(uint16_t address, int8_t part)
 }
 
 
+uint8_t Settings::get_param(enum DrumParam dp, uint8_t map, uint8_t key)
+{
+  return (uint8_t) _drumParams[(int) dp | (map << 12) | key];
+}
+
+
+int8_t* Settings::get_param_ptr(enum DrumParam dp, uint8_t map)
+{
+  return (int8_t *) &_drumParams[(int) dp | (map << 12)];
+}
+
+
 void Settings::set_param(enum SystemParam sp, uint8_t value)
 {
   _systemParams[(int) sp] = value;
@@ -179,11 +195,11 @@ void Settings::set_param_32nib(enum SystemParam sp, uint16_t value)
     _systemParams[(int) sp + 2] = ((value >> 0) & 0xf0) >> 4;
     _systemParams[(int) sp + 3] = ((value >> 0) & 0x0f) >> 0;
     
-  } else { // TODO: Verify!
-    _systemParams[(int) sp + 3] = (value >> 8) & 0xf0 >> 4;
-    _systemParams[(int) sp + 2] = (value >> 8) & 0x0f >> 0;
-    _systemParams[(int) sp + 1] = (value >> 0) & 0xf0 >> 4;
-    _systemParams[(int) sp + 0] = (value >> 0) & 0x0f >> 0;
+  } else {
+    _systemParams[(int) sp + 3] = ((value >> 8) & 0xf0) >> 4;
+    _systemParams[(int) sp + 2] = ((value >> 8) & 0x0f) >> 0;
+    _systemParams[(int) sp + 1] = ((value >> 0) & 0xf0) >> 4;
+    _systemParams[(int) sp + 0] = ((value >> 0) & 0x0f) >> 0;
   }
 }
 
@@ -270,6 +286,38 @@ void Settings::set_patch_param(uint16_t address, uint8_t value, int8_t part)
     _patchParams[address] = value;
 
   _patchParams[(address | (rolandPart << 8))] = value;
+}
+
+
+void Settings::set_param(enum DrumParam dp, uint8_t map, uint8_t key, uint8_t value)
+{
+  if (map > 1 || key > 127)
+    return;
+
+  _drumParams[(int) dp | (map << 12) | key] = value;
+}
+
+
+void Settings::set_param(enum DrumParam dp, uint8_t map, uint8_t *data,
+			 uint8_t length)
+{
+  if (map > 1)
+    return;
+
+  length = (length > 12) ? 12 : length;
+
+  for (int i = 0; i < length; i++)
+    _drumParams[(int) DrumParam::DrumsMapName + i | (map << 12)] = data[i];
+}
+
+
+void Settings::set_drum_param(uint16_t address, uint8_t *data, uint8_t size)
+{
+  if (address + size > _drumParams.size())
+    return;
+
+  for (int i = 0; i < size; i++)
+    _drumParams[address + i] = data[i];
 }
 
 
@@ -521,27 +569,35 @@ void Settings::_initialize_patch_params(enum Mode m)
     _patchParams[(int) PatchParam::CC2_LFO2TVADepth    |(partAddr << 8)] = 0x00;
 
     // Controller values
-    _patchParams[(int) PatchParam::PitchBend       |(partAddr << 8)] = 0x20;
-    _patchParams[(int) PatchParam::PitchBend + 1   |(partAddr << 8)] = 0x00;
-    _patchParams[(int) PatchParam::Modulation      |(partAddr << 8)] = 0x00;
-    _patchParams[(int) PatchParam::CC1Controller   |(partAddr << 8)] = 0x00;
-    _patchParams[(int) PatchParam::CC2Controller   |(partAddr << 8)] = 0x00;
-    _patchParams[(int) PatchParam::ChannelPressure |(partAddr << 8)] = 0x00;
-    _patchParams[(int) PatchParam::PolyKeyPressure |(partAddr << 8)] = 0x00;
-    _patchParams[(int) PatchParam::Hold1           |(partAddr << 8)] = 0x00;
-    _patchParams[(int) PatchParam::Sostenuto       |(partAddr << 8)] = 0x00;
-    _patchParams[(int) PatchParam::Soft            |(partAddr << 8)] = 0x00;
-    _patchParams[(int) PatchParam::Expression      |(partAddr << 8)] = 0x7f;
-    _patchParams[(int) PatchParam::Portamento      |(partAddr << 8)] = 0x00;
-    _patchParams[(int) PatchParam::PortamentoTime  |(partAddr << 8)] = 0x00;
+    _patchParams[(int) PatchParam::PitchBend       | (partAddr << 8)] = 0x20;
+    _patchParams[(int) PatchParam::PitchBend + 1   | (partAddr << 8)] = 0x00;
+    _patchParams[(int) PatchParam::Modulation      | (partAddr << 8)] = 0x00;
+    _patchParams[(int) PatchParam::CC1Controller   | (partAddr << 8)] = 0x00;
+    _patchParams[(int) PatchParam::CC2Controller   | (partAddr << 8)] = 0x00;
+    _patchParams[(int) PatchParam::ChannelPressure | (partAddr << 8)] = 0x00;
+    _patchParams[(int) PatchParam::PolyKeyPressure | (partAddr << 8)] = 0x00;
+    _patchParams[(int) PatchParam::Hold1           | (partAddr << 8)] = 0x00;
+    _patchParams[(int) PatchParam::Sostenuto       | (partAddr << 8)] = 0x00;
+    _patchParams[(int) PatchParam::Soft            | (partAddr << 8)] = 0x00;
+    _patchParams[(int) PatchParam::Expression      | (partAddr << 8)] = 0x7f;
+    _patchParams[(int) PatchParam::Portamento      | (partAddr << 8)] = 0x00;
+    _patchParams[(int) PatchParam::PortamentoTime  | (partAddr << 8)] = 0x00;
 
-    _patchParams[(int) PatchParam::RPN_LSB         |(partAddr << 8)] = 0x7f;
-    _patchParams[(int) PatchParam::RPN_MSB         |(partAddr << 8)] = 0x7f;
-    _patchParams[(int) PatchParam::NRPN_LSB        |(partAddr << 8)] = 0x7f;
-    _patchParams[(int) PatchParam::NRPN_MSB        |(partAddr << 8)] = 0x7f;
+    _patchParams[(int) PatchParam::RPN_LSB         | (partAddr << 8)] = 0x7f;
+    _patchParams[(int) PatchParam::RPN_MSB         | (partAddr << 8)] = 0x7f;
+    _patchParams[(int) PatchParam::NRPN_LSB        | (partAddr << 8)] = 0x7f;
+    _patchParams[(int) PatchParam::NRPN_MSB        | (partAddr << 8)] = 0x7f;
 
-    _patchParams[(int) PatchParam::PitchCoarseTune |(partAddr << 8)] = 0x40;
+    _patchParams[(int) PatchParam::PitchCoarseTune | (partAddr << 8)] = 0x40;
   }
+}
+
+
+void Settings::_initialize_drumSet_params(void)
+{
+  // Both MAP0 & MAP1 to Standard drum set (0)
+  update_drum_set(0, 0);
+  update_drum_set(1, 0);
 }
 
 
@@ -616,6 +672,54 @@ void Settings::set_map_mt32(void)
   _patchParams[(int) PatchParam::ToneNumber + 1  | (partAddr << 8)] = 0x7f;
   _patchParams[(int) PatchParam::PartPanpot      | (partAddr << 8)] = 0x40;
   _patchParams[(int) PatchParam::ReverbSendLevel | (partAddr << 8)] = 0x40;
+
+  update_drum_set(0, 127);
+}
+
+
+bool Settings::update_drum_set(uint8_t map, uint8_t bank)
+{std::cout << "UPDATING MAP" << (int) map << " to bank=" << (int) bank << std::endl;
+  if (map > 1 || bank > 127)
+    return 0;
+
+  // Find index for drum set in given bank
+  const std::vector<int> &drumSetBank = _ctrlRom.drum_set_bank();
+  std::vector<int>::const_iterator it = std::find(drumSetBank.begin(),
+						  drumSetBank.end(),
+						  (int) bank);
+  if (it == drumSetBank.end())
+    return 0;
+
+  int index = std::distance(drumSetBank.begin(), it);
+
+  for (int i = 0; i < 12; i ++) {
+    if (i < _ctrlRom.drumSet(index).name.length())
+      _drumParams[(int) DrumParam::DrumsMapName + i |(map << 12)] =
+	_ctrlRom.drumSet(index).name[i];
+    else
+      _drumParams[(int) DrumParam::DrumsMapName + i |(map << 12)] = ' ';
+  }
+
+  for (int r = 0; r < 128; r++) {
+    _drumParams[(int) DrumParam::PlayKeyNumber     | (map << 12) | r] =
+      _ctrlRom.drumSet(index).key[r];
+    _drumParams[(int) DrumParam::Level             | (map << 12) | r] =
+      _ctrlRom.drumSet(index).volume[r];
+    _drumParams[(int) DrumParam::AssignGroupNumber | (map << 12) | r] =
+      _ctrlRom.drumSet(index).assignGroup[r];
+    _drumParams[(int) DrumParam::Panpot            | (map << 12) | r] =
+      _ctrlRom.drumSet(index).panpot[r];
+    _drumParams[(int) DrumParam::ReverbDepth       | (map << 12) | r] =
+      _ctrlRom.drumSet(index).reverb[r];
+    _drumParams[(int) DrumParam::ChorusDepth       | (map << 12) | r] =
+      _ctrlRom.drumSet(index).chorus[r];
+    _drumParams[(int) DrumParam::RxNoteOff         | (map << 12) | r] =
+      _ctrlRom.drumSet(index).flags[r] & 0x01;
+    _drumParams[(int) DrumParam::RxNoteOn          | (map << 12) | r] =
+      _ctrlRom.drumSet(index).flags[r] & 0x10;
+  }
+
+  return 1;
 }
 
 
@@ -634,6 +738,7 @@ void Settings::reset(void)
 {
   _initialize_system_params();
   _initialize_patch_params();
+  _initialize_drumSet_params();
 }
 
 
