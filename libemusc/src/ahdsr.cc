@@ -119,9 +119,12 @@ double AHDSR::get_next_value(void)
     if (_phaseSampleIndex > _phaseSampleLen)
       _init_new_phase(ahdsr_Sustain);
 
-  } else if (_phase == ahdsr_Sustain) {           // Sustain can last forever
-    if (_phaseSampleIndex > _phaseSampleLen && _phaseValue[ahdsr_Sustain] == 0)
-      _init_new_phase(ahdsr_Release);
+  } else if (_phase == ahdsr_Sustain) {
+    if (_phaseSampleIndex > _phaseSampleLen)
+      if (_phaseValue[ahdsr_Sustain] == 0)
+	_init_new_phase(ahdsr_Release);
+      else
+	return _currentValue;                  // Sustain can last forever
 
   } else if (_phase == ahdsr_Release) {
     if (_phaseSampleIndex > _phaseSampleLen) {
