@@ -237,7 +237,7 @@ bool Partial::get_next_sample(float *noteSample)
     _index -= pitchAdj;
 
     // Check for sample position passing sample boundary
-    if (_index < _ctrlSample->sampleLen - _ctrlSample->loopLen) { // l. in.-1) {
+    if (_index < _ctrlSample->sampleLen - _ctrlSample->loopLen - 1) {
 
       // Keep track of correct position switching position
       float remaining = _ctrlSample->sampleLen - _ctrlSample->loopLen -1-_index;
@@ -257,7 +257,7 @@ bool Partial::get_next_sample(float *noteSample)
   double sample[2] = {0, 0};
 
   // Calculate linear interpolation of PCM sample
-  double fractionNext;
+  /*  double fractionNext;
   double fractionPrev;
   if (_direction) {                                 // Moving forward in sample
     fractionNext = _index - ((int) _index);
@@ -268,6 +268,8 @@ bool Partial::get_next_sample(float *noteSample)
   }
   sample[0] = fractionPrev * _pcmSamples->at((int) _index) +
               fractionNext * _pcmSamples->at(nextIndex);
+  */
+  sample[0] = _pcmSamples->at((int) _index);
 
   // Calculate volume correction from sample definition (7f - 0)
   double sampleVol = _convert_volume(_ctrlSample->volume +
