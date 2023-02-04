@@ -79,7 +79,7 @@ public:
   void set_param(enum DrumParam dp, uint8_t map, uint8_t *data, uint8_t length);
   void set_drum_param(uint16_t address, uint8_t *data, uint8_t size = 1);
 
-  bool update_drum_set(uint8_t map, uint8_t bank);
+  int update_drum_set(uint8_t map, uint8_t bank);
 
   // Store settings paramters to file (aka battery backup)
   bool load(std::string filePath);

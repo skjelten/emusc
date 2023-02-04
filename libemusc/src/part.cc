@@ -517,10 +517,15 @@ int Part::set_program(uint8_t index, int8_t bank, bool ignRxFlags)
 
   // If part is used for drums, select correct drum set
   } else {
-    if (!_settings->update_drum_set(rhythm - 1, index))
+    int dsIndex = _settings->update_drum_set(rhythm - 1, index);
+    if (dsIndex < 0) {
       std::cerr << "libEmuSC: Illegal program for drum set ("
 		<< (int) index << ")" << std::endl;
-    return 0;
+      return 0;
+    }
+
+    // Note: ToneNumber (bank) is used as drumSet index for rhythm parts
+    _settings->set_param(PatchParam::ToneNumber, dsIndex, _id);
   }
 
   return 1;

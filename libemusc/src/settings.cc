@@ -667,20 +667,19 @@ void Settings::set_map_mt32(void)
   _patchParams[(int) PatchParam::PartPanpot      | (partAddr << 8)] = 0x7f;
   _patchParams[(int) PatchParam::ReverbSendLevel | (partAddr << 8)] = 0x40;
 
+  int dsIndex = update_drum_set(0, 127);
   partAddr = convert_to_roland_part_id(9);
-  _patchParams[(int) PatchParam::ToneNumber      | (partAddr << 8)] = 0x7f;
+  _patchParams[(int) PatchParam::ToneNumber      | (partAddr << 8)] = dsIndex;
   _patchParams[(int) PatchParam::ToneNumber + 1  | (partAddr << 8)] = 0x7f;
   _patchParams[(int) PatchParam::PartPanpot      | (partAddr << 8)] = 0x40;
   _patchParams[(int) PatchParam::ReverbSendLevel | (partAddr << 8)] = 0x40;
-
-  update_drum_set(0, 127);
 }
 
 
-bool Settings::update_drum_set(uint8_t map, uint8_t bank)
-{std::cout << "UPDATING MAP" << (int) map << " to bank=" << (int) bank << std::endl;
+int Settings::update_drum_set(uint8_t map, uint8_t bank)
+{
   if (map > 1 || bank > 127)
-    return 0;
+    return -2;
 
   // Find index for drum set in given bank
   const std::vector<int> &drumSetBank = _ctrlRom.drum_set_bank();
@@ -688,7 +687,7 @@ bool Settings::update_drum_set(uint8_t map, uint8_t bank)
 						  drumSetBank.end(),
 						  (int) bank);
   if (it == drumSetBank.end())
-    return 0;
+    return -1;
 
   int index = std::distance(drumSetBank.begin(), it);
 
@@ -719,7 +718,7 @@ bool Settings::update_drum_set(uint8_t map, uint8_t bank)
       _ctrlRom.drumSet(index).flags[r] & 0x10;
   }
 
-  return 1;
+  return index;
 }
 
 

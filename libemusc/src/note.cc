@@ -35,7 +35,7 @@ Note::Note(uint8_t key, uint8_t velocity, ControlRom &ctrlRom, PcmRom &pcmRom,
   _partial[0] = _partial[1] = NULL;
 
   // 1. Find correct instrument index for note
-  // Note: toneBank is used for drum set number for rhythm parts
+  // Note: toneBank is used as drumSet index for rhythm parts
   uint8_t toneBank = settings->get_param(PatchParam::ToneNumber, partId);
   uint8_t toneIndex = settings->get_param(PatchParam::ToneNumber2, partId);
   uint16_t instrumentIndex;
@@ -53,8 +53,8 @@ Note::Note(uint8_t key, uint8_t velocity, ControlRom &ctrlRom, PcmRom &pcmRom,
     if (pIndex == 0xffff)        // Partial 1 always used, but not 2. partial
       break;
 
-    _partial[i] = new Partial(key, i, instrumentIndex, ctrlRom,
-			      pcmRom, settings, partId);
+    _partial[i] = new Partial(key, i, instrumentIndex, ctrlRom, pcmRom,
+			      settings, partId);
   }
 }
 
