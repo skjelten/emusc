@@ -49,10 +49,10 @@ private:
   uint32_t _sampleRate;
 
   Wavetable _LFO;
-  float _LFODepth;
+  int _LFODepth;
 
   AHDSR *_ahdsr;
-  
+
   ControlRom::InstPartial *_instPartial;
 
   uint32_t _delay;
@@ -60,11 +60,14 @@ private:
   float _fadeInStep;
   float _fade;
 
+  float _vibratoBaseFreq;
+
   Settings *_settings;
   int8_t _partId;
 
   // Since LFO pitch rate is not found in control ROM (yet) all capital
   // instruments have been measured on an SC-55mkII. Numbers in Hz.
+  // All variations, except 127 (MT32 assignement) follows catital tone.
   // Note: Last ~10 instruments where hard to measure precisely
   float lfoRateTable[128] = {
     5.2, 5.2, 5.2, 5.2, 5.2, 5.2, 5.2, 5.2,
@@ -84,15 +87,9 @@ private:
     4.2, 4.2, 4.2, 4.2, 4.2, 4.2, 4.2, 4.2,
     5.6, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 4.2};
 
-  /* All instruments in variation bank 8 seems to follow LFO pitch rate of
-     capital tone:
-v8: 5.2, 5.2, 5.2, 5.2, 7.8, 7.8, 6.0, 6.0,  // 8
-    6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0,  //16
-    6.0, 6.0, 6.0, 5.2, 5.2, 5.2, 6.0, 6.0,  //24
-    0.0, 0.0, 0.0, 0.0, 4.2
-
-     MT32 instruments in variation bank 127 seems to follow completely
-     differtent LFO pitch rates though.
+  /* MT32 instruments in variation bank 127 seems to follow completely
+     differtent LFO pitch rates.
+     TODO: Create a separate table for variation 127.
 v127: 5.2 // 0
       2.0 // 8
       4,5 // 16

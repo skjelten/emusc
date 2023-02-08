@@ -16,12 +16,28 @@
  *  along with libEmuSC. If not, see <http://www.gnu.org/licenses/>.
  */
 
+// NOTES:
+// Study of the output from a SC-55mkII shows that vibrato rate patch parameter
+// modifies the LFO rate with 1/10 Hz, so that e.g. +10 increases LFO with 1 Hz.
+// This is linear up to at least 9Hz before it becomes an exponential increase.
+
+// Vibrato delay is hard to accurately measure. Seems to suppress the LFO
+// following an exponential function, and then fade in from 0 to full depth
+// over a period of 4 LFO frequency periods.
+
+// Vibrato depth seems to be a linear function of vibrato depth in partial
+// definition + vibrato depth in patch parameters up to the sum of 55.
+//   Pitch adj(vibrato depth) = 0.0011 * (VD partial + VD patch param)
+// When accumulated sum of vibrato depth exceeds 55, it seems to start following
+// an exponential function.
+
 
 #include "tvp.h"
 
 #include <cmath>
 #include <iostream>
 #include <string.h>
+
 
 namespace EmuSC {
 
@@ -61,25 +77,19 @@ TVP::TVP(ControlRom::InstPartial &instPartial, Settings *settings,int8_t partId)
 //  _ahdsr = new AHDSR(phasePitch, phaseDuration, phaseShape, sampleRate);
 //  _ahdsr->start();
 
-  // TODO: Add calculations for Vibrato rate, depth and delay
-  // -> partSettings[(int) SysExPart::vibratoRate] - 0x40)
-  // -> partSettings[(int) SysExPart::vibratoDepth] - 0x40)
-  // -> partSettings[(int) SysExPart::vibratoDelay] - 0x40)
-
   // TODO: Figure out how the sine wave for pitch modulation is found on the
-  //       Sound Canvas. In the meantime utilize a simple wavetable with 6Hz.
-  _LFO.set_frequency(6);
+  //       Sound Canvas. In the meantime utilize a simple wavetable.
+  _vibratoBaseFreq = lfoRateTable[settings->get_param(PatchParam::ToneNumber2,
+						      partId)];
 
-  // TODO: Find LUT or formula for using Pitch LFO Depth. For now just using a
-  //       static approximation.
-  _LFODepth = (instPartial.TVPLFODepth & 0x7f) * 0.0009;
+  _LFODepth = (instPartial.TVPLFODepth & 0x7f);       // LFOPartDepth
 
-  // TODO: Figure out where the control data for controlling vibrato delay and
-  //       fade-in. In the meantime use static no delay and 1s for fade-in.
+  // TODO:
   _delay = 0;//sampleRate / 2;
-  _fadeIn = _sampleRate;
-  _fadeInStep = 1.0 / _fadeIn;
 
+  // Fade in is measured on SC-55nmkII to be approx ~4 LFO periods in length
+  _fadeIn = (4 / _vibratoBaseFreq) * _sampleRate;
+  _fadeInStep = 1.0 / _fadeIn;
 }
 
 
@@ -100,35 +110,48 @@ double TVP::_convert_time_to_sec(uint8_t time)
 
 double TVP::get_pitch()
 {
-  // LFO hack
-  // TODO: Figure out how the LFOs are implemented and used on the Sound Canvas
-  //       3 LFOs, one for TVP/F/A? 6 LFOs due to individual partials?
-  //       Sound tests indicates that individual notes even on the same MIDI
-  //       channel are out of phase -> unlimited number of LFOs? And how does
-  //       this relate to LFO1 & LFO2 as referred to in the SysEx implementation
-  //       chart?
+  // LFO rate: Linear between 0 and 9 Hz.
+  // TODO: Find a function or LUT to also correctly handle higher frequencies
+  float freq = _vibratoBaseFreq + (_settings->get_param(PatchParam::VibratoRate,
+							_partId) - 0x40) * 0.1;
+  if (freq > 0)
+    _LFO.set_frequency(freq);
+  else
+    _LFO.set_frequency(0);
 
-  // For now just use a simple sine wavetable class; one instance per tvp/f/a
-  // per partial.
-
+  // TODO: Properly handle ModWheel with all paramters from
+  //       "Modulation Controller #1"
   float modWheelPitch = 0;
   uint8_t modWheel = _settings->get_param(PatchParam::Modulation, _partId);
   if (modWheel)
     modWheelPitch = 0.001;
 
-      double vibrato;
+  // TODO: Move recalculation of vibrato depth to separate function when values
+  // change
+  double vibrato;
   if (_delay > 0) {                                         // Delay
     _delay--;
     vibrato = 1;
 
-  } else if (_fadeIn > 0) {                                 // Fade in
-    _fadeIn--;
-    _fade += _fadeInStep;
-    vibrato = 1 + (_LFO.next_sample() * ((_LFODepth * _fade) + modWheelPitch));
+  } else {
 
-  } else {                                                  // Full vibrato
-    vibrato = 1 + (_LFO.next_sample() * (_LFODepth + modWheelPitch));
+    int lfoDepth2 = _LFODepth +
+      _settings->get_param(PatchParam::VibratoDepth, _partId) - 0x40;
+    float lfoDepth3 = 0.0011 * lfoDepth2;
+    if (lfoDepth3 < 0) lfoDepth3 = 0;
+
+    if (_fadeIn > 0) {                                 // Fade in
+      _fadeIn--;
+      _fade += _fadeInStep;
+      vibrato = 1 + (_LFO.next_sample() * _fade * lfoDepth3);
+
+    } else {                                                  // Full vibrato
+      vibrato = 1 + (_LFO.next_sample() * lfoDepth3); // + modWheelPitch));
+    }
   }
+
+  // TODO: Delay function -> seconds
+  // sec = 0.5 * exp(_LFODelay * log(10.23 / 0.5) / 50)
 
   // TODO: Implement pitch envelope
   //  double e = _ahdsr->get_next_value();

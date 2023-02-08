@@ -35,9 +35,10 @@ public:
   ~Wavetable();
 
   void set_frequency(float frequency) { _frequency = frequency; }
+  float frequency(void) { return _frequency; }
 
   double next_sample();
-  
+
 private:
   Wavetable();
 
