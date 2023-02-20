@@ -94,7 +94,7 @@ Partial::Partial(uint8_t key, int partialId, uint16_t instrumentIndex,
   _pcmSamples = &pcmRom.samples(sampleIndex).samplesF;
   _ctrlSample = &ctrlRom.sample(sampleIndex);
 
-  // 4. Find actual key difference and calculate static pitch corrections
+  // 4. Find actual difference in key between NoteOn and sample
   if (_isDrum) {
     _drumMap = settings->get_param(PatchParam::UseForRhythm, partId) - 1;
     _keyDiff = keyShift + settings->get_param(DrumParam::PlayKeyNumber,
@@ -104,21 +104,16 @@ Partial::Partial(uint8_t key, int partialId, uint16_t instrumentIndex,
     _keyDiff = key + keyShift - _ctrlSample->rootKey;
   }
 
-  // 5. TODO: Find correct formula for pitch key follow
-  // PitchKeyFollow = 1 => Regular 2x pitch per ocatve
+  // 5. Calculate pitch key follow
   float pitchKeyFollow = 1;
-  if (_instPartial.pitchKeyFlw - 0x40 != 10) {
-//    pitchKeyFollow = 1 + ((float) _instPartial.pitchKeyFlw - 0x4a) / 10.0;
-//    std::cout << "PitchKeyFollow=" << _instPartial.pitchKeyFlw - 0x40 << "->"
-//	      <<  pitchKeyFollow  << std::endl;
-  }
+  if (_instPartial.pitchKeyFlw - 0x40 != 10)
+    pitchKeyFollow += ((float) _instPartial.pitchKeyFlw - 0x4a) / 10.0;
 
   _staticPitchTune =
-    (exp(((_instPartial.coarsePitch - 0x40 + _keyDiff) * 100 +  // semitones
+    (exp(((_instPartial.coarsePitch - 0x40 + _keyDiff * pitchKeyFollow) * 100 +
 	  _instPartial.finePitch - 0x40 +                       // cent
 	  (_ctrlSample->pitch - 1024) / 16)                     // ?
 	 * log(2) / 1200))
-//    * pitchKeyFollow
     * 32000.0 / settings->get_param_uint32(SystemParam::SampleRate);
 
   // 1. Pitch: Vibrato & TVP envelope
