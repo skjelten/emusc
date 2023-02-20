@@ -92,6 +92,7 @@ AudioConfigDialog::AudioConfigDialog(QWidget *parent)
   connect(buttonBox, SIGNAL(rejected()), this, SLOT(reject()));
 
   vboxLayout->addLayout(gridLayout);
+  vboxLayout->addStretch(0);
   vboxLayout->addWidget(buttonBox);
 
   setLayout(vboxLayout);
@@ -100,6 +101,9 @@ AudioConfigDialog::AudioConfigDialog(QWidget *parent)
 
 #ifdef __ALSA_AUDIO__
   _audioSystemBox->addItem("ALSA");
+#endif
+#ifdef __JACK_AUDIO__
+  _audioSystemBox->addItem("JACK");
 #endif
 #ifdef __PULSE_AUDIO__
   _audioSystemBox->addItem("Pulse");
@@ -172,14 +176,48 @@ void AudioConfigDialog::system_changed(int index)
       _audioDeviceBox->addItem(d);
 #endif
 
+    _bufferTimeLabel->show();
+    _periodTimeLabel->show();
+    _defaultBufferTimeLabel->show();
+    _defaultPeriodTimeLabel->show();
+    _sampleRateLabel->show();
+    _defaultSampleRateLabel->show();
+    _sampleRateLE->show();
+    _audioBufferTimeLE->show();
+    _audioPeriodTimeLE->show();
+
 //  } else if (!_audioSystemBox->currentText().compare("Qt", Qt::CaseInsensitive)) {
 //    const auto deviceInfos = QAudioDeviceInfo::availableDevices(QAudio::AudioOutput);
 //    for (const QAudioDeviceInfo &deviceInfo : deviceInfos)
 //      _audioDeviceBox->addItem(deviceInfo.deviceName());
 
+  } else if (!_audioSystemBox->currentText().compare("jack",
+						     Qt::CaseInsensitive)) {
+    _audioDeviceBox->addItem("default");
+
+    _bufferTimeLabel->hide();
+    _periodTimeLabel->hide();
+    _defaultBufferTimeLabel->hide();
+    _defaultPeriodTimeLabel->hide();
+    _sampleRateLabel->hide();
+    _defaultSampleRateLabel->hide();
+    _sampleRateLE->hide();
+    _audioBufferTimeLE->hide();
+    _audioPeriodTimeLE->hide();
+
   } else if (!_audioSystemBox->currentText().compare("pulse",
 						     Qt::CaseInsensitive)) {
     _audioDeviceBox->addItem("default");
+
+    _bufferTimeLabel->hide();
+    _periodTimeLabel->hide();
+    _defaultBufferTimeLabel->hide();
+    _defaultPeriodTimeLabel->hide();
+    _sampleRateLabel->hide();
+    _defaultSampleRateLabel->hide();
+    _sampleRateLE->hide();
+    _audioBufferTimeLE->hide();
+    _audioPeriodTimeLE->hide();
 
   } else if (!_audioSystemBox->currentText().compare("win32",
 						     Qt::CaseInsensitive)) {
@@ -198,8 +236,22 @@ void AudioConfigDialog::system_changed(int index)
     for (auto d : devices)
       _audioDeviceBox->addItem(d);
 #endif
+
+  } else if (!_audioSystemBox->currentText().compare("null",
+						     Qt::CaseInsensitive)) {
+
+    _bufferTimeLabel->hide();
+    _periodTimeLabel->hide();
+    _defaultBufferTimeLabel->hide();
+    _defaultPeriodTimeLabel->hide();
+    _sampleRateLabel->hide();
+    _defaultSampleRateLabel->hide();
+    _sampleRateLE->hide();
+    _audioBufferTimeLE->hide();
+    _audioPeriodTimeLE->hide();
   }
 
   QSettings settings;
   _audioDeviceBox->setCurrentText(settings.value("audio/device").toString());
+  adjustSize();
 }

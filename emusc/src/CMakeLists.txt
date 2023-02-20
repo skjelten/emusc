@@ -23,6 +23,8 @@ add_executable(emusc-client
   audio_output_alsa.h
   audio_output_core.cc
   audio_output_core.h
+  audio_output_jack.cc
+  audio_output_jack.h
   audio_output_null.cc
   audio_output_null.h
   audio_output_pulse.cc

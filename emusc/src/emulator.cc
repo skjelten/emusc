@@ -27,6 +27,7 @@
 #include <QSettings>
 
 #include "audio_output_alsa.h"
+#include "audio_output_jack.h"
 #include "audio_output_pulse.h"
 #include "audio_output_win32.h"
 #include "audio_output_core.h"
@@ -227,6 +228,13 @@ void Emulator::_start_audio_subsystem(void)
       _audioOutput = new AudioOutputAlsa(_emuscSynth);
 #else
       throw(QString("'Alsa' audio ouput is missing in this build"));
+#endif
+
+    } else if (!audioSystem.compare("jack", Qt::CaseInsensitive)) {
+#ifdef __JACK_AUDIO__
+      _audioOutput = new AudioOutputJack(_emuscSynth);
+#else
+      throw(QString("'JACK' audio ouput is missing in this build"));
 #endif
 
     } else if (!audioSystem.compare("pulse", Qt::CaseInsensitive)) {
