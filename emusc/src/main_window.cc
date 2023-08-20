@@ -257,7 +257,7 @@ void MainWindow::_display_rom_dialog()
 
 void MainWindow::_display_synth_dialog()
 {
-  _synthDialog = new SynthDialog(_emulator, this);
+  _synthDialog = new SynthDialog(_emulator, _scene, this);
   _synthDialog->setModal(false);
   _synthDialog->show();
 }

@@ -130,6 +130,8 @@ public slots:
   void select_prev_part();
   void select_next_instrument();
   void select_prev_instrument();
+  void select_next_instrument_variant();
+  void select_prev_instrument_variant();
   void select_next_level();
   void select_prev_level();
   void select_next_pan();

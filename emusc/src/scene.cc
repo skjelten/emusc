@@ -340,38 +340,24 @@ Scene::Scene(Emulator *emulator, QWidget *parent)
   QGraphicsProxyWidget *partRBtnProxy = addWidget(_partRButton);
 
   // Add instrument L/R buttons
-  _instrumentLButton = new QPushButton();
+  _instrumentLButton = new SynthButton(); // QPushButton();
   _instrumentLButton->setGeometry(QRect(945, 13, 70, 28));
-  _instrumentLButton->setStyleSheet("color: #aaa;"	       \
-			    "border: 2px solid #555; " \
-			    "border-radius: 5px;"     \
-			    "border-style: outset;"    \
-			      "background: black;"     \
-			    "padding: 5px");
-  _instrumentLButton->setAttribute(Qt::WA_TranslucentBackground);
   _instrumentLButton->setText("◀");
-  _instrumentLButton->setAutoRepeat(true);
-  _instrumentLButton->setAutoRepeatDelay(500);
-  _instrumentLButton->setAutoRepeatInterval(120);
 
-  connect(_instrumentLButton, SIGNAL(clicked()), emulator, SLOT(select_prev_instrument()));
+  connect(_instrumentLButton, SIGNAL(clicked()),
+	  emulator, SLOT(select_prev_instrument()));
+  connect(_instrumentLButton, SIGNAL(rightClicked()),
+	  emulator, SLOT(select_prev_instrument_variant()));
   QGraphicsProxyWidget *instLBtnProxy = addWidget(_instrumentLButton);
 
-  _instrumentRButton = new QPushButton();
+  _instrumentRButton = new SynthButton(); //QPushButton();
   _instrumentRButton->setGeometry(QRect(1018, 13, 70, 28));
-  _instrumentRButton->setStyleSheet("color: #aaa;"	       \
-			    "border: 2px solid #555; " \
-			    "border-radius: 5px;"     \
-			    "border-style: outset;"    \
-			    "background: black;"     \
-			    "padding: 5px");
-  _instrumentRButton->setAttribute(Qt::WA_TranslucentBackground);
   _instrumentRButton->setText("▶");
-  _instrumentRButton->setAutoRepeat(true);
-  _instrumentRButton->setAutoRepeatDelay(500);
-  _instrumentRButton->setAutoRepeatInterval(120);
 
- connect(_instrumentRButton, SIGNAL(clicked()), emulator, SLOT(select_next_instrument()));
+  connect(_instrumentRButton, SIGNAL(clicked()),
+	  emulator, SLOT(select_next_instrument()));
+  connect(_instrumentRButton, SIGNAL(rightClicked()),
+	  emulator, SLOT(select_next_instrument_variant()));
   QGraphicsProxyWidget *instRBtnProxy = addWidget(_instrumentRButton);
 
   // Add pan L/R buttons
@@ -817,6 +803,10 @@ void Scene::update_lcd_midich_text(QString text)
 
 void Scene::keyPressEvent(QKeyEvent *keyEvent)
 {
+  // Ignore repeating key events generated from keys being held down
+  if (keyEvent->isAutoRepeat())
+    return;
+
   if (keyEvent->key() == Qt::Key_Plus) {
     int volume = _volumeDial->value();
     int newVolume = (volume <= 95) ? volume + 5 : 100;
@@ -860,6 +850,10 @@ void Scene::keyPressEvent(QKeyEvent *keyEvent)
 
 void Scene::keyReleaseEvent(QKeyEvent *keyEvent)
 {
+  // Ignore repeating key events generated from keys being held down
+  if (keyEvent->isAutoRepeat())
+    return;
+
   if (keyEvent->key() == Qt::Key_Z) {
     _emulator->play_note(60, 0);
   } else if (keyEvent->key() == Qt::Key_S) {
@@ -885,4 +879,35 @@ void Scene::keyReleaseEvent(QKeyEvent *keyEvent)
   } else if (keyEvent->key() == Qt::Key_M) {
     _emulator->play_note(71, 0);
   }
+}
+
+
+
+SynthButton::SynthButton(QWidget *parent)
+  : QPushButton(parent)
+{
+  setStyleSheet("color: #aaa;"     \
+				    "border: 2px solid #555; "	\
+				    "border-radius: 5px;"	\
+				    "border-style: outset;"	\
+				    "background: black;"	\
+				    "padding: 5px");
+  setAttribute(Qt::WA_TranslucentBackground);
+  setAutoRepeat(true);
+  setAutoRepeatDelay(500);
+  setAutoRepeatInterval(120);
+
+}
+
+SynthButton::~SynthButton()
+{
+
+}
+
+void SynthButton::mousePressEvent(QMouseEvent *event)
+{
+  if(event->button() == Qt::RightButton)
+    emit rightClicked();
+  else
+    QPushButton::mousePressEvent(event);
 }

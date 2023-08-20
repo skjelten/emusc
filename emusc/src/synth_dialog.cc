@@ -29,11 +29,12 @@
 #include <QHBoxLayout>
 #include <QVBoxLayout>
 #include <QGridLayout>
+#include <QApplication>
 
-
-SynthDialog::SynthDialog(Emulator *emulator, QWidget *parent)
+SynthDialog::SynthDialog(Emulator *emulator, Scene *scene, QWidget *parent)
   : QDialog{parent},
-    _emulator(emulator)
+    _emulator(emulator),
+    _scene(scene)
 {  
   _masterSettings = new MasterSettings(emulator);
   _reverbSettings = new ReverbSettings(emulator);
@@ -126,6 +127,20 @@ SynthDialog::SynthDialog(Emulator *emulator, QWidget *parent)
 
 SynthDialog::~SynthDialog()
 {
+}
+
+
+void SynthDialog::keyPressEvent(QKeyEvent *keyEvent)
+{
+  if (keyEvent->key() != Qt::Key_Space)
+    QApplication::sendEvent(_scene, keyEvent);
+}
+
+
+void SynthDialog::keyReleaseEvent(QKeyEvent *keyEvent)
+{
+  if (keyEvent->key() != Qt::Key_Space)
+    QApplication::sendEvent(_scene, keyEvent);
 }
 
 

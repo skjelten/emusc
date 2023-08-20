@@ -71,7 +71,7 @@ private:
 
   QPushButton *_partLButton;
   QPushButton *_partRButton;
-  QPushButton *_instrumentLButton;
+  class SynthButton *_instrumentLButton;
   QPushButton *_instrumentRButton;
   QPushButton *_panRButton;
   QPushButton *_panLButton;
@@ -115,6 +115,22 @@ public slots:
 
   void update_all_button(bool status);
   void update_mute_button(bool status);
+};
+
+
+class SynthButton : public QPushButton
+{
+  Q_OBJECT
+
+public:
+  SynthButton(QWidget *parent = nullptr);
+  virtual ~SynthButton();
+
+  protected:
+    void mousePressEvent(QMouseEvent *event) override;
+
+  signals:
+    void rightClicked();
 };
 
 

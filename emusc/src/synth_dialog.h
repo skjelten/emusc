@@ -22,6 +22,7 @@
 
 
 #include "emulator.h"
+#include "scene.h"
 
 #include <QDialog>
 #include <QLineEdit>
@@ -32,6 +33,7 @@
 #include <QComboBox>
 #include <QListWidget>
 #include <QStackedWidget>
+#include <QKeyEvent>
 
 
 class SynthDialog : public QDialog
@@ -53,10 +55,14 @@ private:
   QListWidget *_menuList;
   
   Emulator *_emulator;
+  Scene *_scene;
   int8_t _partId;
 
+  void keyPressEvent(QKeyEvent *keyEvent);
+  void keyReleaseEvent(QKeyEvent *keyEvent);
+
 public:
-  explicit SynthDialog(Emulator *emulator, QWidget *parent = nullptr);
+  explicit SynthDialog(Emulator *emulator, Scene *s, QWidget *parent = nullptr);
   ~SynthDialog();
 
 private slots:

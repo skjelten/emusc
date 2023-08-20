@@ -779,20 +779,17 @@ void Emulator::set_part(uint8_t value)
 
 void Emulator::select_prev_instrument()
 {
-  if (_emuscSynth == NULL || _allMode)
+  if (!_emuscSynth || _allMode)
     return;
 
   uint8_t *toneNumber =
     _emuscSynth->get_param_ptr(EmuSC::PatchParam::ToneNumber, _selectedPart);
   uint8_t bank = toneNumber[0];
   uint8_t index = toneNumber[1];
-
   set_instrument(index, bank, false);
 
-  uint8_t rhythm = _emuscSynth->get_param(EmuSC::PatchParam::UseForRhythm,
-					  _selectedPart);
   // Instrument
-  if (!rhythm) {
+  if (!_emuscSynth->get_param(EmuSC::PatchParam::UseForRhythm, _selectedPart)) {
     const std::array<uint16_t, 128> &var = _emuscControlRom->variation(bank);
     for (int i = index - 1; i >= 0; i--) {
       if (var[i] != 0xffff) {
@@ -826,7 +823,7 @@ void Emulator::select_next_instrument()
   set_instrument(index, bank, false);
 
   // Instrument
-  if (_emuscSynth->get_param(EmuSC::PatchParam::UseForRhythm,_selectedPart)==0){
+  if (!_emuscSynth->get_param(EmuSC::PatchParam::UseForRhythm, _selectedPart)) {
     const std::array<uint16_t, 128> &var = _emuscControlRom->variation(bank);
     for (int i = index + 1; i < var.size(); i++) {
       if (var[i] != 0xffff) {
@@ -846,6 +843,53 @@ void Emulator::select_next_instrument()
 		     0, true);
   }
 }
+
+
+void Emulator::select_next_instrument_variant()
+{
+  if (!_emuscSynth || _allMode)
+    return;
+
+  uint8_t *toneNumber =
+    _emuscSynth->get_param_ptr(EmuSC::PatchParam::ToneNumber, _selectedPart);
+  uint8_t bank = toneNumber[0];
+  uint8_t index = toneNumber[1];
+
+  // Only relevant for instrument, not drums
+  if (!_emuscSynth->get_param(EmuSC::PatchParam::UseForRhythm, _selectedPart)) {
+    for (int i = bank + 1; i < 128; i++) {
+      const std::array<uint16_t, 128> &var = _emuscControlRom->variation(i);
+      if (var[index] != 0xffff) {
+	set_instrument(index, i, true);
+	break;
+      }
+    }
+  }
+}
+
+
+void Emulator::select_prev_instrument_variant()
+{
+  if (!_emuscSynth || _allMode)
+    return;
+
+  uint8_t *toneNumber =
+    _emuscSynth->get_param_ptr(EmuSC::PatchParam::ToneNumber, _selectedPart);
+  uint8_t bank = toneNumber[0];
+  uint8_t index = toneNumber[1];
+
+  // Only relevant for instrument, not drums
+  if (!_emuscSynth->get_param(EmuSC::PatchParam::UseForRhythm, _selectedPart)) {
+    for (int i = bank - 1; i >= 0; i--) {
+      const std::array<uint16_t, 128> &var = _emuscControlRom->variation(i);
+      if (var[index] != 0xffff) {
+	set_instrument(index, i, true);
+	break;
+      }
+    }
+  }
+}
+
 
 void Emulator::set_instrument(uint8_t index, uint8_t bank, bool update)
 {
