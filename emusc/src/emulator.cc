@@ -269,6 +269,9 @@ void Emulator::_start_audio_subsystem(void)
       _audioOutput = new AudioOutputNull(_emuscSynth);
     }
 
+    if (_audioOutput == NULL)
+      throw(QString("Unknown audio system"));
+
   } catch (QString errorMsg) {
     // Delete? stop()?
     throw(QString("Failed to initialize audio system (%1)\nError message: %2")
