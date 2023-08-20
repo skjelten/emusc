@@ -95,11 +95,12 @@ public:
     uint8_t TVFLvlP2;
     uint8_t TVFLvlP3;
     uint8_t TVFLvlP4;
+    uint8_t TVFLvlP5;
     uint8_t TVFDurP1;
     uint8_t TVFDurP2;
     uint8_t TVFDurP3;
     uint8_t TVFDurP4;
-    uint8_t TVFDurRel;
+    uint8_t TVFDurP5;
 
 
     uint8_t TVALFODepth;   // TVA LFO Depth

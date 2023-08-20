@@ -40,7 +40,48 @@ AHDSR::AHDSR(double value[5], double duration[5], bool shape[5], uint32_t sample
   }
 
   if (0)
-    std::cout << "\nNew AHDSR envelope:" << std::endl << std::dec
+    std::cout << "\nNew TVA AHDSR envelope:" << std::endl << std::dec
+	      << " Attack:  -> V=" << (double) _phaseValue[0]
+	      << " T=" << (float) _phaseDuration[0]
+	      << " S=" << _phaseShape[0]
+	      << std::endl
+	      << " Hold:    -> V=" << (double) _phaseValue[1]
+	      << " T=" << (float) _phaseDuration[1]
+	      << " S=" << _phaseShape[1]
+	      << std::endl
+	      << " Decay:   -> V=" << (double) _phaseValue[2]
+	      << " T=" << (float) _phaseDuration[2]
+	      << " S=" << _phaseShape[2]
+	      << std::endl
+	      << " Sustain: -> V=" << (double) _phaseValue[3]
+	      << " T=" << (float) _phaseDuration[3]
+	      << " S=" << _phaseShape[3]
+	      << std::endl
+	      << " Release: -> V=" << (double) _phaseValue[4]
+	      << " T=" << (float) _phaseDuration[4]
+	      << " S=" << _phaseShape[4]
+	      << std::endl;
+
+  // Debug output for plotting in Octave
+  // _sampleNum = 0; _ofs.open("/tmp/TVA.txt", std::ios_base::trunc);
+}
+
+
+AHDSR::AHDSR(double value[5], double duration[5], uint32_t sampleRate)
+  : _sampleRate(sampleRate),
+    _phase(ahdsr_Off),
+    _terminalPhase(ahdsr_Release),
+    _currentValue(0),
+    _finished(false)
+{
+  for (int i = 0; i < 5; i++) {
+    _phaseValue[i] = value[i];
+    _phaseDuration[i] = duration[i];
+    _phaseShape[i] = 0;
+  }
+
+  if (0)
+    std::cout << "\nNew TVF/TVP AHDSR envelope:" << std::endl << std::dec
 	      << " Attack:  -> V=" << (double) _phaseValue[0]
 	      << " T=" << (float) _phaseDuration[0]
 	      << " S=" << _phaseShape[0]
@@ -63,7 +104,7 @@ AHDSR::AHDSR(double value[5], double duration[5], bool shape[5], uint32_t sample
 	      << std::endl;
 
 //  _sampleNum = 0;
-//  _ofs.open("/tmp/TVA.txt", std::ios_base::trunc);
+//  _ofs.open("/tmp/TVFP.txt", std::ios_base::trunc);
 }
 
 
@@ -144,8 +185,10 @@ double AHDSR::get_next_value(void)
       (_phaseValue[_phase] - _phaseInitValue) *
       (log(10.0 * _phaseSampleIndex / _phaseSampleLen + 1) / log(10.0 + 1));
 
-  /*  // Write volume envelope to file for plotting / debuging in Octave
+  /*
+  // Debug output to file for plotting in Octave
   char number[24];
+  setlocale(LC_ALL, "POSIX");
   snprintf(number, 24, "%f ", (float) _sampleNum/_sampleRate);
   _ofs.write(&number[0], strlen(number));
   snprintf(number, 24, "%f", (float) (_currentValue));

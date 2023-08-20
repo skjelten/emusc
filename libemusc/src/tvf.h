@@ -49,14 +49,18 @@ public:
 private:
   uint32_t _sampleRate;
 
+  Settings *_settings;
+  int8_t _partId;
+
   AHDSR *_ahdsr;
   LowPassFilter *_lpFilter;
 
   uint32_t _lpBaseFrequency;
   float _lpResonance;
 
-  ControlRom::InstPartial *_instPartial;
-  
+  ControlRom::InstPartial _instPartial;
+  int _tempi;
+  float _tempf;
   TVF();
 
   double _convert_time_to_sec(uint8_t time);

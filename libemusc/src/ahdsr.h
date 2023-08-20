@@ -31,6 +31,7 @@ class AHDSR
 {
 public:
   AHDSR(double value[5], double duration[5], bool shape[5],uint32_t sampleRate);
+  AHDSR(double value[5], double duration[5], uint32_t sampleRate);
   ~AHDSR();
 
   void start(void);
@@ -70,7 +71,7 @@ private:
 
   void _init_new_phase(enum Phase newPhase);
 
-  uint32_t _sampleNum;
+//  uint32_t _sampleNum;
 //  std::ofstream _ofs;
 
 };
