@@ -90,7 +90,7 @@ TVF::TVF(ControlRom::InstPartial &instPartial, uint8_t key, Settings *settings,
   phaseDuration[3] = _convert_time_to_sec(instPartial.TVFDurP4 & 0x7F);
   phaseDuration[4] = _convert_time_to_sec(instPartial.TVFDurP5 & 0x7F);
 
-  _ahdsr = new AHDSR(phaseLevel, phaseDuration, _sampleRate);
+  _ahdsr = new AHDSR(phaseLevelInit, phaseLevel, phaseDuration, _sampleRate);
   _ahdsr->start();
 
   // TODO: Add envelope adjustments TVF attack, decay and release

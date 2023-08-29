@@ -273,7 +273,7 @@ int ControlRom::_read_instruments(std::ifstream &romFile)
       i.partials[p].pitchDurP2  = data[20];
       i.partials[p].pitchDurP3  = data[21];
       i.partials[p].pitchDurP4  = data[22];
-      i.partials[p].pitchDurRel = data[23];
+      i.partials[p].pitchDurP5  = data[23];
       i.partials[p].TVFBaseFlt  = data[33];
       i.partials[p].TVFResonance= data[34];
       i.partials[p].LowVelClear = data[35];

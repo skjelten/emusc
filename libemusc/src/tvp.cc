@@ -50,33 +50,6 @@ TVP::TVP(ControlRom::InstPartial &instPartial, Settings *settings,int8_t partId)
     _ahdsr(NULL),
     _fade(0)
 {
-  /*
-  double phasePitch[5];         // Phase volume for phase 1-5
-  double phaseDuration[5];      // Phase duration for phase 1-5
-  bool   phaseShape[5];         // Phase shape for phase 1-5
-
-  // Set adjusted values for volume (0-127) and time (seconds)
-  phasePitch[0] = instPartial.pitchLvlP1;
-  phasePitch[1] = instPartial.pitchLvlP2;
-  phasePitch[2] = instPartial.pitchLvlP3;
-  phasePitch[3] = instPartial.pitchLvlP4;
-  phasePitch[4] = 0;
-
-  phaseDuration[0] = _convert_time_to_sec(instPartial.pitchDurP1 & 0x7F);
-  phaseDuration[1] = _convert_time_to_sec(instPartial.pitchDurP2 & 0x7F);
-  phaseDuration[2] = _convert_time_to_sec(instPartial.pitchDurP3 & 0x7F);
-  phaseDuration[3] = _convert_time_to_sec(instPartial.pitchDurP4 & 0x7F);
-  phaseDuration[4] = _convert_time_to_sec(instPartial.pitchDurRel & 0x7F);
-
-  phaseShape[0] = (instPartial.pitchDurP1 & 0x80) ? 0 : 1;
-  phaseShape[1] = (instPartial.pitchDurP2 & 0x80) ? 0 : 1;
-  phaseShape[2] = (instPartial.pitchDurP3 & 0x80) ? 0 : 1;
-  phaseShape[3] = (instPartial.pitchDurP4 & 0x80) ? 0 : 1;
-  phaseShape[4] = (instPartial.pitchDurRel & 0x80) ? 0 : 1;
-*/
-//  _ahdsr = new AHDSR(phasePitch, phaseDuration, phaseShape, sampleRate);
-//  _ahdsr->start();
-
   // TODO: Figure out how the sine wave for pitch modulation is found on the
   //       Sound Canvas. In the meantime utilize a simple wavetable.
   _vibratoBaseFreq = lfoRateTable[settings->get_param(PatchParam::ToneNumber2,
@@ -90,6 +63,32 @@ TVP::TVP(ControlRom::InstPartial &instPartial, Settings *settings,int8_t partId)
   // Fade in is measured on SC-55nmkII to be approx ~4 LFO periods in length
   _fadeIn = (4 / _vibratoBaseFreq) * _sampleRate;
   _fadeInStep = 1.0 / _fadeIn;
+
+  // If TVP envelope phase durations are all 0 we only have a static filter
+  // TODO: Verify that this is correct - what to do when P1-5 value != 0?
+  if ((instPartial.pitchDurP1 + instPartial.pitchDurP2 + instPartial.pitchDurP3+
+       instPartial.pitchDurP4 + instPartial.pitchDurP5) == 0)
+    return;
+
+  double phasePitchInit;        // Initial pitch for phase 1
+  double phasePitch[5];         // Target phase pitch for phase 1-5
+  double phaseDuration[5];      // Phase duration for phase 1-5
+
+  phasePitchInit = instPartial.pitchLvlP0 - 0x40;
+  phasePitch[0] = instPartial.pitchLvlP1 - 0x40;
+  phasePitch[1] = instPartial.pitchLvlP2 - 0x40;
+  phasePitch[2] = instPartial.pitchLvlP3 - 0x40;
+  phasePitch[3] = instPartial.pitchLvlP4 - 0x40;
+  phasePitch[4] = 0;
+
+  phaseDuration[0] = _convert_time_to_sec(instPartial.pitchDurP1 & 0x7F);
+  phaseDuration[1] = _convert_time_to_sec(instPartial.pitchDurP2 & 0x7F);
+  phaseDuration[2] = _convert_time_to_sec(instPartial.pitchDurP3 & 0x7F);
+  phaseDuration[3] = _convert_time_to_sec(instPartial.pitchDurP4 & 0x7F);
+  phaseDuration[4] = _convert_time_to_sec(instPartial.pitchDurP5 & 0x7F);
+
+  _ahdsr = new AHDSR(phasePitchInit, phasePitch, phaseDuration, _sampleRate);
+  _ahdsr->start();
 }
 
 
@@ -153,20 +152,24 @@ double TVP::get_pitch()
   // TODO: Delay function -> seconds
   // sec = 0.5 * exp(_LFODelay * log(10.23 / 0.5) / 50)
 
-  // TODO: Implement pitch envelope
-  //  double e = _ahdsr->get_next_value();
+  // Pitch envelope
+  // Envelope pitch values in ROM seems to be in percent.
+  double pEnv = 1;
+  if (_ahdsr)
+    pEnv += _ahdsr->get_next_value() * 0.01;
 
   if (0)
     std::cout << "v=" << vibrato << ", mw=" << modWheel
 	      << " depth=" << _LFODepth <<  std::endl;
 
-  return vibrato;
+  return vibrato * pEnv;
 }
 
 
 void TVP::note_off()
 {
-  _ahdsr->release();
+  if (_ahdsr)
+    _ahdsr->release();
 }
 
 }

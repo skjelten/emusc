@@ -67,11 +67,11 @@ AHDSR::AHDSR(double value[5], double duration[5], bool shape[5], uint32_t sample
 }
 
 
-AHDSR::AHDSR(double value[5], double duration[5], uint32_t sampleRate)
+AHDSR::AHDSR(double init, double value[5], double duration[5], uint32_t sampleRate)
   : _sampleRate(sampleRate),
     _phase(ahdsr_Off),
     _terminalPhase(ahdsr_Release),
-    _currentValue(0),
+    _currentValue(init),
     _finished(false)
 {
   for (int i = 0; i < 5; i++) {
@@ -82,23 +82,23 @@ AHDSR::AHDSR(double value[5], double duration[5], uint32_t sampleRate)
 
   if (0)
     std::cout << "\nNew TVF/TVP AHDSR envelope:" << std::endl << std::dec
-	      << " Attack:  -> V=" << (double) _phaseValue[0]
+	      << " Attack:  -> F/P=" << (double) _phaseValue[0]
 	      << " T=" << (float) _phaseDuration[0]
 	      << " S=" << _phaseShape[0]
 	      << std::endl
-	      << " Hold:    -> V=" << (double) _phaseValue[1]
+	      << " Hold:    -> F/P=" << (double) _phaseValue[1]
 	      << " T=" << (float) _phaseDuration[1]
 	      << " S=" << _phaseShape[1]
 	      << std::endl
-	      << " Decay:   -> V=" << (double) _phaseValue[2]
+	      << " Decay:   -> F/P=" << (double) _phaseValue[2]
 	      << " T=" << (float) _phaseDuration[2]
 	      << " S=" << _phaseShape[2]
 	      << std::endl
-	      << " Sustain: -> V=" << (double) _phaseValue[3]
+	      << " Sustain: -> F/P=" << (double) _phaseValue[3]
 	      << " T=" << (float) _phaseDuration[3]
 	      << " S=" << _phaseShape[3]
 	      << std::endl
-	      << " Release: -> V=" << (double) _phaseValue[4]
+	      << " Release: -> F/P=" << (double) _phaseValue[4]
 	      << " T=" << (float) _phaseDuration[4]
 	      << " S=" << _phaseShape[4]
 	      << std::endl;

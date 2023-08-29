@@ -83,7 +83,7 @@ public:
     uint8_t pitchDurP2;
     uint8_t pitchDurP3;
     uint8_t pitchDurP4;
-    uint8_t pitchDurRel;
+    uint8_t pitchDurP5;
 
     int8_t TVFBaseFlt;
     int8_t TVFResonance;

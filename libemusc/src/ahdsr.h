@@ -31,7 +31,7 @@ class AHDSR
 {
 public:
   AHDSR(double value[5], double duration[5], bool shape[5],uint32_t sampleRate);
-  AHDSR(double value[5], double duration[5], uint32_t sampleRate);
+  AHDSR(double init, double value[5], double duration[5], uint32_t sampleRate);
   ~AHDSR();
 
   void start(void);
