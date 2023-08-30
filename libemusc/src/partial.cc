@@ -58,7 +58,10 @@ Partial::Partial(uint8_t key, int partialId, uint16_t instrumentIndex,
     _settings(settings),
     _partId(partId),
     _keyFreq(440 * exp(log(2) * (key - 69) / 12)),
-    _expFactor(log(2) / 12000)
+    _expFactor(log(2) / 12000),
+    _tvp(NULL),
+    _tvf(NULL),
+    _tva(NULL)
 {
   _isDrum = settings->get_param(PatchParam::UseForRhythm, partId);
 
@@ -111,8 +114,9 @@ Partial::Partial(uint8_t key, int partialId, uint16_t instrumentIndex,
 
   _staticPitchTune =
     (exp(((_instPartial.coarsePitch - 0x40 + _keyDiff * pitchKeyFollow) * 100 +
-	  _instPartial.finePitch - 0x40 +                       // cent
-	  (_ctrlSample->pitch - 1024) / 16)                     // ?
+	  _instPartial.finePitch - 0x40 +
+	  (_ctrlSample->pitch - 1024) / 16
+	  - 50)                 // FIXME: Why do we need -50 cents to match hw?
 	 * log(2) / 1200))
     * 32000.0 / settings->get_param_uint32(SystemParam::SampleRate);
 
@@ -144,8 +148,12 @@ double Partial::_convert_volume(uint8_t volume)
 void Partial::stop(void)
 {
   // Ignore note off for uninterruptible drums (set by drum set flag)
-  if (!(_isDrum && !(_settings->get_param(DrumParam::RxNoteOff,_drumMap,_key))))
-    _tva->note_off();
+  if (!(_isDrum &&
+	!(_settings->get_param(DrumParam::RxNoteOff,_drumMap,_key)))) {
+    if (_tvp) _tvp->note_off();
+    if (_tvf) _tvf->note_off();
+    if (_tva) _tva->note_off();
+  }
 }
 
 

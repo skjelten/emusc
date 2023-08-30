@@ -66,8 +66,8 @@ public:
   struct InstPartial {    // 92 bytes in total
     uint16_t partialIndex;// Partial table index, 0xFFFF for unused
     int8_t panpot;        // [-64, 64]. Default 0x40 (0-127)
-    int8_t coarsePitch;   // Default 0x40
-    int8_t finePitch;     // Default 0x40
+    int8_t coarsePitch;   // Shifts pitch in semitones. Default 0x40
+    int8_t finePitch;     // Shifts pitch in cents. Default 0x40
     int8_t randPitch;
     int8_t volume;        // Volume attenuation (7f - 0)
     int8_t pitchKeyFlw;

@@ -170,7 +170,8 @@ double TVF::apply(double input)
 
 void TVF::note_off()
 {
-  _ahdsr->release();
+  if (_ahdsr)
+    _ahdsr->release();
 }
 
 }
