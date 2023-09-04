@@ -65,8 +65,9 @@ include_directories(${EXTERNAL_INCLUDE_FILES})
 
 target_link_libraries(emusc-client emusc)
 
-target_link_libraries(emusc-client Qt5::Widgets)
-target_link_libraries(emusc-client Qt5::Gui)
+target_link_libraries(emusc-client Qt${QT_VERSION_MAJOR}::Core)
+target_link_libraries(emusc-client Qt${QT_VERSION_MAJOR}::Widgets)
+target_link_libraries(emusc-client Qt${QT_VERSION_MAJOR}::Gui)
 
 target_link_libraries (emusc-client ${EXTERNAL_LIBRARIES})
 

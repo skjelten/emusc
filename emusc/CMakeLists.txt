@@ -17,7 +17,8 @@ set(ALSA_MIDI  "no")
 set(CORE_MIDI  "no")
 set(WIN32_MIDI "no")
 
-find_package(Qt5 REQUIRED COMPONENTS Core Widgets Gui)
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Widgets Gui)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Widgets Gui)
 
 # TODO: Find libemusc with option to look for system or local
 
@@ -115,6 +116,9 @@ elseif(WIN32)
 else()
   message(STATUS "Platform: unkown")  
 endif()
+
+message(STATUS "")
+message(STATUS "Qt version: Qt${QT_VERSION_MAJOR}")
 
 message(STATUS "")
 message(STATUS "Audio APIs:")

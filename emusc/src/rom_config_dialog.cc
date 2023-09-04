@@ -223,9 +223,9 @@ PcmTab::PcmTab(Emulator *emulator, QWidget *parent)
 
   // Update path fields from settings file
   QSettings settings;
-  QFileInfo pcm1Info = settings.value("rom/pcm1").toString();
-  QFileInfo pcm2Info = settings.value("rom/pcm2").toString();
-  QFileInfo pcm3Info = settings.value("rom/pcm3").toString();
+  QFileInfo pcm1Info(settings.value("rom/pcm1").toString());
+  QFileInfo pcm2Info(settings.value("rom/pcm2").toString());
+  QFileInfo pcm3Info(settings.value("rom/pcm3").toString());
 
   if (pcm1Info.isFile())
     _pathPcmRom1Edit->setText(pcm1Info.absoluteFilePath());

@@ -31,6 +31,7 @@
 
 #include <QApplication>
 #include <QAction>
+#include <QActionGroup>
 #include <QMenu>
 #include <QMenuBar>
 #include <QStatusBar>

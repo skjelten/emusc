@@ -30,9 +30,12 @@
 #include <QVBoxLayout>
 #include <QGridLayout>
 #include <QApplication>
+#include <QRegularExpressionValidator>
+
 
 SynthDialog::SynthDialog(Emulator *emulator, Scene *scene, QWidget *parent)
   : QDialog{parent},
+    _partId(0),
     _emulator(emulator),
     _scene(scene)
 {  
@@ -2501,8 +2504,7 @@ DrumSettings::DrumSettings(Emulator *emulator, QWidget *parent)
   hboxLayout->addWidget(new QLabel("Name:"));
   _nameLE = new QLineEdit();
   _nameLE->setMaxLength(12);
-  _nameLE->setValidator(new QRegExpValidator(QRegExp("[A-Za-z0-9_]{0,255}"),
-					     this ));
+  _nameLE->setValidator(new QRegularExpressionValidator(QRegularExpression("^[a-zA-Z0-9 ]{0,12}$"), this));
   hboxLayout->addWidget(_nameLE);
   hboxLayout->addStretch(1);
   vboxLayout->addLayout(hboxLayout);
@@ -2708,7 +2710,7 @@ void DrumSettings::_map_changed(int value)
 void DrumSettings::_name_changed(const QString &name)
 {
   _emulator->set_param(EmuSC::DrumParam::DrumsMapName, _map,
-		       (uint8_t*) name.toStdString().c_str(), name.length());
+		       (uint8_t*) name.leftJustified(12, ' ').toStdString().c_str(), 12);
 }
 
 
