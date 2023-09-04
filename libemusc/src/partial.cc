@@ -115,8 +115,8 @@ Partial::Partial(uint8_t key, int partialId, uint16_t instrumentIndex,
   _staticPitchTune =
     (exp(((_instPartial.coarsePitch - 0x40 + _keyDiff * pitchKeyFollow) * 100 +
 	  _instPartial.finePitch - 0x40 +
-	  (_ctrlSample->pitch - 1024) / 16
-	  - 50)                 // FIXME: Why do we need -50 cents to match hw?
+	  ((_ctrlSample->pitch - 1024) / 16)
+	  - 120)                // FIXME: Why do we need -120 cents to match hw?
 	 * log(2) / 1200))
     * 32000.0 / settings->get_param_uint32(SystemParam::SampleRate);
 
