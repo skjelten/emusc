@@ -27,28 +27,6 @@
 
 namespace EmuSC {
 
-
-class Wavetable
-{
-public:
-  Wavetable(uint32_t sampleRate, bool interpolate = true);
-  ~Wavetable();
-
-  void set_frequency(float frequency) { _frequency = frequency; }
-  float frequency(void) { return _frequency; }
-
-  double next_sample();
-
-private:
-  Wavetable();
-
-  float _sampleFactor;
-
-  float _index;
-  float _frequency;
-
-  bool _interpolate;               // Linear interpolation
-
   static constexpr std::array<float, 256> _sineTable = {
     0, 0.0245412, 0.0490677, 0.0735646, 0.0980171, 0.122411, 0.14673,
     0.170962, 0.19509, 0.219101, 0.24298, 0.266713, 0.290285, 0.313682, 0.33689,
@@ -82,6 +60,28 @@ private:
     -0.55557, -0.534998, -0.514103, -0.492898, -0.471397, -0.449612, -0.427555, -0.405241,
     -0.382683, -0.359895, -0.33689, -0.313682, -0.290285, -0.266713, -0.24298, -0.219101,
     -0.19509, -0.170962, -0.14673, -0.122411, -0.0980172, -0.0735646, -0.0490676, -0.0245411 };
+
+
+class Wavetable
+{
+public:
+  Wavetable(uint32_t sampleRate, bool interpolate = true);
+  ~Wavetable();
+
+  void set_frequency(float frequency) { _frequency = frequency; }
+  float frequency(void) { return _frequency; }
+
+  double next_sample();
+
+private:
+  Wavetable();
+
+  float _sampleFactor;
+
+  float _index;
+  float _frequency;
+
+  bool _interpolate;               // Linear interpolation
 
 };
 
