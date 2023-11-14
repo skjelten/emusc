@@ -21,7 +21,6 @@
 
 
 #include "pcm_rom.h"
-#include "riaa_filter.h"
 
 #include <cmath>
 #include <fstream>
@@ -138,9 +137,6 @@ uint32_t PcmRom::_find_samples_rom_address(uint32_t address)
 
 int PcmRom::_read_samples(std::vector<char> &romData, struct ControlRom::Sample &ctrlSample)
 {
-  RiaaFilter rf1(32000, 15); // Gain 28 seems right, but becomes too much later
-  RiaaFilter rf2(32000, 15);
-
   uint32_t romAddress = _find_samples_rom_address(ctrlSample.address);
 
   struct Samples s;
@@ -154,10 +150,8 @@ int PcmRom::_read_samples(std::vector<char> &romData, struct ControlRom::Sample 
     uint8_t sNibble = (sAddress & 0x10) ? (sByte >> 4 ) : (sByte & 0x0F);
     int32_t final = ((data << sNibble) << 14);
 
-    // Move to float and apply 2x RIAA deemphasis filters
+    // Convert to float
     float ffinal = (float) final / (1 << 31);
-    ffinal = rf1.apply(ffinal);
-    ffinal = rf2.apply(ffinal);
 
     s.samplesF.push_back(ffinal);
   }

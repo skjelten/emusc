@@ -22,6 +22,7 @@
 
 
 #include "control_rom.h"
+#include "riaa_filter.h"
 #include "pcm_rom.h"
 #include "settings.h"
 #include "tva.h"
@@ -47,12 +48,13 @@ private:
 
   std::vector<float> *_pcmSamples;
 
+  unsigned int _lastPos;  // Last read sample position
   float _index;           // Sample position in number of samples from start
   bool _direction;        // Sample read direction: 0 = backward & 1 = foreward
 
   float _expFactor;       // log(2) / 12000
 
-  float  _staticPitchTune;
+  float _staticPitchTune;
 
   Settings *_settings;
   int8_t _partId;
@@ -64,6 +66,12 @@ private:
   TVF *_tvf;
   TVA *_tva;
 
+  RiaaFilter _rf1;
+  RiaaFilter _rf2;
+
+  double _sample;
+
+  bool _next_sample_from_rom(float pitchAdj);
   double _convert_volume(uint8_t volume);
 
 public:

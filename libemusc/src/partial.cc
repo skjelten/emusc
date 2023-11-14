@@ -55,10 +55,14 @@ Partial::Partial(uint8_t key, int partialId, uint16_t instrumentIndex,
     _instPartial(ctrlRom.instrument(instrumentIndex).partials[partialId]),
     _index(0),
     _direction(1),
+    _sample(0),
     _settings(settings),
     _partId(partId),
     _keyFreq(440 * exp(log(2) * (key - 69) / 12)),
     _expFactor(log(2) / 12000),
+    _lastPos(0),
+    _rf1(32000, 15),
+    _rf2(32000, 15),
     _tvp(NULL),
     _tvf(NULL),
     _tva(NULL)
@@ -139,12 +143,6 @@ Partial::~Partial()
 }
 
 
-double Partial::_convert_volume(uint8_t volume)
-{
-  return (0.1 * pow(2.0, (double)(volume) / 36.7111) - 0.1);
-}
-
-
 void Partial::stop(void)
 {
   // Ignore note off for uninterruptible drums (set by drum set flag)
@@ -161,8 +159,6 @@ void Partial::stop(void)
 // Pitch < 0 => fixed pitch (e.g. for drums)
 bool Partial::get_next_sample(float *noteSample)
 {
-  int nextIndex;
-
   // Terminate this partial if its TVA envelope is finished
   if  (_tva->finished())
     return 1;
@@ -183,96 +179,11 @@ bool Partial::get_next_sample(float *noteSample)
                    _staticPitchTune *
                    _tvp->get_pitch();
 
-  // Update sample position going in forward direction
-  if (_direction == 1) {
-    if (0)
-      std::cout << "-> FW " << std::dec << "pos=" << (int)_index
-		<< " PitchAdj=" << pitchAdj
-		<< " newPos=" << _index + pitchAdj
-		<< " sLength=" << (int) _ctrlSample->sampleLen
-		<< " lpMode=" << (int) _ctrlSample->loopMode
-		<< " lpLength=" << _ctrlSample->loopLen
-		<< std::endl;
+  if (_next_sample_from_rom(pitchAdj))
+    return 1;
 
-    // Update partial sample position based on pitch input
-    // FIXME: Should drumsets be modified by pitch bend messages?
-    _index += pitchAdj;
-
-    // Check for sample position passing sample boundary
-    if (_index > _ctrlSample->sampleLen - 1) {      // -1 due to lin. interpol.
-      // Keep track of correct sample index when switching sample direction
-      float remaining = abs(_ctrlSample->sampleLen - _index);
-
-      // loopMode == 0 => Forward only w/loop (jump back "loopLen + 1")
-      if (_ctrlSample->loopMode == 0) {
-	_index = _ctrlSample->sampleLen - _ctrlSample->loopLen - 1 + remaining;
-
-      // loopMode == 1 => Forward-backward (start moving backwards)
-      } else if (_ctrlSample->loopMode == 1) {
-	_index = _ctrlSample->sampleLen - remaining - 1;
-	_direction = 0;
-
-      // loopMode == 2 => Forward-stop (end playback)
-      } else if (_ctrlSample->loopMode == 2) {
-	return 1;                                 // Terminate this partial
-      }
-    }
-
-    // Find next index for linear interpolation and adjust if at end of sample
-    nextIndex = (int) _index + 1;
-    if (nextIndex >= _ctrlSample->sampleLen) {
-      if (_ctrlSample->loopMode == 0)
-	nextIndex = _ctrlSample->sampleLen - _ctrlSample->loopLen - 1;
-      else if (_ctrlSample->loopMode == 1)
-	nextIndex = _ctrlSample->sampleLen - 1;
-      else if (_ctrlSample->loopMode == 2)
-	nextIndex = _ctrlSample->sampleLen;
-    }
-
-  // Update sample position going in backward direction
-  } else {   // => _direction == 0
-    if (0)
-      std::cout << "<- BW " << std::dec << "pos=" << (int) _index
-		<< " length=" << (int) _ctrlSample->sampleLen
-		<< std::endl;
-
-    // Update partial sample position based on pitch input
-    _index -= pitchAdj;
-
-    // Check for sample position passing sample boundary
-    if (_index < _ctrlSample->sampleLen - _ctrlSample->loopLen - 1) {
-
-      // Keep track of correct position switching position
-      float remaining = _ctrlSample->sampleLen - _ctrlSample->loopLen -1-_index;
-
-      // Start moving forward
-      _index = _ctrlSample->sampleLen - _ctrlSample->loopLen - 1 + remaining;
-      _direction = 1;
-    }
-
-    // Find next index for linear interpolation and adjust if at start of sample
-    nextIndex = (int) _index - 1;
-    if (nextIndex < _ctrlSample->sampleLen - _ctrlSample->loopLen - 1)
-      nextIndex = _ctrlSample->sampleLen - _ctrlSample->loopLen - 1;
-  }
-
-  // Temporary samples for LEFT, RIGHT channel
   double sample[2] = {0, 0};
-
-  // Calculate linear interpolation of PCM sample
-  /*  double fractionNext;
-  double fractionPrev;
-  if (_direction) {                                 // Moving forward in sample
-    fractionNext = _index - ((int) _index);
-    fractionPrev = 1.0 - fractionNext;
-  } else {                                          // Moving backwards
-    fractionPrev = _index - ((int) _index);
-    fractionNext = 1.0 - fractionPrev;
-  }
-  sample[0] = fractionPrev * _pcmSamples->at((int) _index) +
-              fractionNext * _pcmSamples->at(nextIndex);
-  */
-  sample[0] = _pcmSamples->at((int) _index);
+  sample[0] = _sample;
 
   // Calculate volume correction from sample definition (7f - 0)
   double sampleVol = _convert_volume(_ctrlSample->volume +
@@ -291,7 +202,8 @@ bool Partial::get_next_sample(float *noteSample)
   sample[0] *= sampleVol * partialVol * drumVol;
 
   // Apply TVF
-  sample[0] = _tvf->apply(sample[0]);
+// NOTE: TEMPORARILY DISABLED
+//  sample[0] = _tvf->apply(sample[0]);
 
   // Apply TVA
   sample[0] *= _tva->get_amplification();
@@ -316,6 +228,111 @@ bool Partial::get_next_sample(float *noteSample)
   noteSample[1] += sample[1];
 
   return 0;
+}
+
+
+bool Partial::_next_sample_from_rom(float pitchAdj)
+{
+  if (_direction == 1) {   // Update sample position going in forward direction
+    if (0)
+      std::cout << "-> FW " << std::dec << "pos=" << (int) _index
+		<< " pa=" << pitchAdj
+		<< " np=" << _index + pitchAdj
+		<< " sl=" << (int) _ctrlSample->sampleLen
+		<< " lm=" << (int) _ctrlSample->loopMode
+		<< " ll=" << _ctrlSample->loopLen
+		<< " lp=" << _lastPos
+		<< std::endl;
+
+    _index += pitchAdj;
+
+    while (roundf(_index) > _lastPos && _lastPos < _ctrlSample->sampleLen - 1) {
+      _sample = _rf1.apply(_pcmSamples->at(_lastPos++));
+      _sample = _rf2.apply(_sample);
+    }
+
+    // Check for sample position passing sample boundary
+    if (_index > _ctrlSample->sampleLen - 1) {      // -1 due to lin. interpol.
+      // Keep track of correct sample index when switching sample direction
+      float remaining = abs(_ctrlSample->sampleLen - _index);
+
+      // loopMode == 0 => Forward only w/loop (jump back "loopLen + 1")
+      if (_ctrlSample->loopMode == 0) {
+	_index = _ctrlSample->sampleLen - _ctrlSample->loopLen - 1 + remaining;
+	_lastPos = _ctrlSample->sampleLen - _ctrlSample->loopLen - 1;
+
+	// Filter any remainging samples
+	while (roundf(_index) > _lastPos) {
+	  _sample = _rf1.apply(_pcmSamples->at(_lastPos++));
+	  _sample = _rf2.apply(_sample);
+	}
+
+      // loopMode == 1 => Forward-backward (start moving backwards)
+      } else if (_ctrlSample->loopMode == 1) {
+	_index = _ctrlSample->sampleLen - remaining - 1;
+	_direction = 0;
+
+	// Filter any remainging samples
+	while (roundf(_index) < _lastPos) {
+	  _sample = _rf1.apply(_pcmSamples->at(_lastPos--));
+	  _sample = _rf2.apply(_sample);
+	}
+
+      // loopMode == 2 => Forward-stop (end playback)
+      } else if (_ctrlSample->loopMode == 2) {
+	return 1;                                 // Terminate this partial
+      }
+    }
+
+  } else {              // Update sample position going in backward direction
+    if (0)
+      std::cout << "<- BW " << std::dec << "pos=" << (int) _index
+		<< " sl=" << (int) _ctrlSample->sampleLen
+		<< " ll=" << _ctrlSample->loopLen
+		<< " lp=" << _lastPos
+		<< std::endl;
+
+    // Update partial sample position based on pitch input
+    _index -= pitchAdj;
+
+    while (roundf(_index) < _lastPos &&
+	   _lastPos > _ctrlSample->sampleLen - _ctrlSample->loopLen) {
+      _sample = _rf1.apply(_pcmSamples->at(_lastPos--));
+      _sample = _rf2.apply(_sample);
+    }
+
+    // Check for sample position passing sample boundary
+    if (_index < _ctrlSample->sampleLen - _ctrlSample->loopLen - 1) {
+
+      // Filter any remainging samples backward
+      while (_lastPos > _ctrlSample->sampleLen - _ctrlSample->loopLen - 1) {
+	_sample = _rf1.apply(_pcmSamples->at(_lastPos--));
+	_sample = _rf2.apply(_sample);
+      }
+
+      // Keep track of correct position switching position
+      float remaining = _ctrlSample->sampleLen - _ctrlSample->loopLen - _index;
+
+      // Start moving forward
+      _index = _ctrlSample->sampleLen - _ctrlSample->loopLen + remaining;
+      _direction = 1;
+
+      // Filter any remainging samples forward
+      _lastPos = _ctrlSample->sampleLen - _ctrlSample->loopLen;
+      while (roundf(_index) < _lastPos) {
+	_sample = _rf1.apply(_pcmSamples->at(_lastPos++));
+	_sample = _rf2.apply(_sample);
+      }
+    }
+  }
+
+  return 0;
+}
+
+
+double Partial::_convert_volume(uint8_t volume)
+{
+  return (0.1 * pow(2.0, (double)(volume) / 36.7111) - 0.1);
 }
 
 }
