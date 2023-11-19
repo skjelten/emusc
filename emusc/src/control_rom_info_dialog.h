@@ -23,6 +23,10 @@
 #include "emulator.h"
 
 #include <QDialog>
+#include <QStandardItemModel>
+#include <QString>
+#include <QTableView>
+#include <QTabWidget>
 
 
 class ControlRomInfoDialog : public QDialog
@@ -35,6 +39,16 @@ public:
 
 private:
   Emulator *_emulator;
+
+  class InstrumentsTab *_instrumentsTab;
+  class PartialsTab *_partialsTab;
+  class SamplesTab *_samplesTab;
+  class VariationsTab *_variationsTab;
+  class DrumSetsTab *_drumSetsTab;
+  QTabWidget *_tabWidget;
+
+public slots:
+  void setTabIndex(QString index);
 };
 
 
@@ -43,10 +57,21 @@ class InstrumentsTab : public QWidget
   Q_OBJECT
 
 private:
+  QTableView *_table;
+  QStandardItemModel *_model;
+
+private slots:
+  void search(QString searchStr);
+  void select_partial(const QModelIndex index);
 
 public:
   explicit InstrumentsTab(Emulator *emulator, QWidget *parent = nullptr);
   virtual ~InstrumentsTab();
+
+  void set_active_row(int row);
+
+signals:
+  void change_tab(QString index);
 };
 
 class PartialsTab : public QWidget
@@ -54,10 +79,19 @@ class PartialsTab : public QWidget
   Q_OBJECT
 
 private:
+  QTableView *_table;
+
+private slots:
+  void select_partial(const QModelIndex index);
 
 public:
   explicit PartialsTab(Emulator *emulator, QWidget *parent = nullptr);
   virtual ~PartialsTab();
+
+  void set_active_row(int row);
+
+signals:
+  void change_tab(QString index);
 };
 
 
@@ -66,10 +100,13 @@ class SamplesTab : public QWidget
   Q_OBJECT
 
 private:
+  QTableView *_table;
 
 public:
   explicit SamplesTab(Emulator *emulator, QWidget *parent = nullptr);
   virtual ~SamplesTab();
+
+  void set_active_row(int row);
 };
 
 
@@ -80,9 +117,15 @@ class VariationsTab : public QWidget
 
 private:
 
+private slots:
+  void select_partial(const QModelIndex index);
+
 public:
   explicit VariationsTab(Emulator *emulator, QWidget *parent = nullptr);
   virtual ~VariationsTab();
+
+signals:
+  void change_tab(QString index);
 };
 
 

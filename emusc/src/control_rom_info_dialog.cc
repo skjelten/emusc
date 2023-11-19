@@ -27,34 +27,32 @@
 #include <QVBoxLayout>
 #include <QGridLayout>
 #include <QLabel>
+#include <QLineEdit>
 #include <QComboBox>
 #include <QPushButton>
-#include <QTabWidget>
-#include <QTableView>
-#include <QStandardItemModel>
 
 
 ControlRomInfoDialog::ControlRomInfoDialog(Emulator *emulator, QWidget *parent)
   : QDialog{parent}
 {
-  InstrumentsTab *instrumentsTab = new InstrumentsTab(emulator);
-  PartialsTab *partialsTab = new PartialsTab(emulator);
-  SamplesTab *samplesTab = new SamplesTab(emulator);
-  VariationsTab *variationsTab = new VariationsTab(emulator);
-  DrumSetsTab *drumSetsTab = new DrumSetsTab(emulator);
+  _instrumentsTab = new InstrumentsTab(emulator, this);
+  _partialsTab = new PartialsTab(emulator, this);
+  _samplesTab = new SamplesTab(emulator, this);
+  _variationsTab = new VariationsTab(emulator, this);
+  _drumSetsTab = new DrumSetsTab(emulator, this);
 
-  QTabWidget *tabWidget = new QTabWidget;
-  tabWidget->addTab(instrumentsTab, tr("Instruments"));
-  tabWidget->addTab(partialsTab, tr("Partials"));
-  tabWidget->addTab(samplesTab, tr("Samples"));
-  tabWidget->addTab(variationsTab, tr("Variations"));
-  tabWidget->addTab(drumSetsTab, tr("Drum Sets"));
+  _tabWidget = new QTabWidget();
+  _tabWidget->addTab(_instrumentsTab, tr("Instruments"));
+  _tabWidget->addTab(_partialsTab, tr("Partials"));
+  _tabWidget->addTab(_samplesTab, tr("Samples"));
+  _tabWidget->addTab(_variationsTab, tr("Variations"));
+  _tabWidget->addTab(_drumSetsTab, tr("Drum Sets"));
 
   QDialogButtonBox *buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok);
   connect(buttonBox, &QDialogButtonBox::accepted, this, &QDialog::accept);
 
   QVBoxLayout *mainLayout = new QVBoxLayout;
-  mainLayout->addWidget(tabWidget);
+  mainLayout->addWidget(_tabWidget);
   mainLayout->addWidget(buttonBox);
 
   setLayout(mainLayout);
@@ -69,21 +67,53 @@ ControlRomInfoDialog::~ControlRomInfoDialog()
 {}
 
 
+void ControlRomInfoDialog::setTabIndex(QString index)
+{
+  QStringList tokens = index.split (",");
+  if (tokens.count () == 2) {
+    int tab = tokens.at(0).toInt();
+    int row = tokens.at(1).toInt();
+
+    _tabWidget->setCurrentIndex(tab);
+    if (tab == 0)
+      _instrumentsTab->set_active_row(row);
+    else if (tab == 1)
+      _partialsTab->set_active_row(row);
+    else if (tab == 2)
+      _samplesTab->set_active_row(row);
+  }
+}
+
+
 InstrumentsTab::InstrumentsTab(Emulator *emulator, QWidget *parent)
-    : QWidget(parent)
+  : QWidget(parent)
 {
   QVBoxLayout *vboxLayout = new QVBoxLayout();
-  QTableView *table = new QTableView();;
-  QStandardItemModel *model = emulator->get_instruments_list();
+  _table = new QTableView();
+  _model = emulator->get_instruments_list();
+
+  QHBoxLayout *hboxLayout = new QHBoxLayout();
+  hboxLayout->addWidget(new QLabel("Search instruments:"));
+
+  QLineEdit *searchLE = new QLineEdit();
+  searchLE->setClearButtonEnabled(true);
+  hboxLayout->addWidget(searchLE);
+  connect(searchLE, SIGNAL(textChanged(QString)), this, SLOT(search(QString)));
 
   // Hack to make y axis count from 0
-  for (int i = 0; i < model->rowCount(); i++)
-    model->setHeaderData(i, Qt::Vertical, i);
+  for (int i = 0; i < _model->rowCount(); i++)
+    _model->setHeaderData(i, Qt::Vertical, i);
 
-  table->setModel(model);
-  table->setEditTriggers(QAbstractItemView::NoEditTriggers);
-  
-  vboxLayout->addWidget(table);
+  _table->setModel(_model);
+  _table->setEditTriggers(QAbstractItemView::NoEditTriggers);
+
+  connect(_table, SIGNAL(doubleClicked(QModelIndex)),
+	  this, SLOT(select_partial(QModelIndex)));
+  connect(this, SIGNAL(change_tab(QString)),
+	  parent, SLOT(setTabIndex(QString)));
+
+  vboxLayout->addLayout(hboxLayout);
+  vboxLayout->addWidget(_table);
   setLayout(vboxLayout);
 }
 
@@ -92,22 +122,67 @@ InstrumentsTab::~InstrumentsTab()
 {}
 
 
+void InstrumentsTab::search(const QString searchStr)
+{
+  QString searchTerm = searchStr.trimmed();
+
+  for (int row = 0; row < _model->rowCount(); ++row) {
+    QModelIndex index = _model->index(row, 0);
+    QVariant data = _model->data(index);
+
+    if (data.toString().contains(searchTerm, Qt::CaseInsensitive)) {
+      QModelIndex selection = _model->index(row, 0);
+      QItemSelectionModel *selectionModel = _table->selectionModel();
+      selectionModel->clearSelection();
+      selectionModel->select(selection, QItemSelectionModel::Select);
+      _table->scrollTo(selection);
+
+      return; // Stop searching once the item is found
+    }
+  }
+
+  // If the search term is not found, clear the selection
+  _table->selectionModel()->clearSelection();
+}
+
+
+void InstrumentsTab::select_partial(const QModelIndex index)
+{
+  if (index.column() != 0 && index.data().toString() != "-") {
+    QString newIndex = "1,";
+    newIndex.append(index.data().toString());
+    emit change_tab(newIndex);
+  }
+}
+
+
+void InstrumentsTab::set_active_row(int row)
+{
+  _table->selectRow(row);
+}
+
+
 PartialsTab::PartialsTab(Emulator *emulator, QWidget *parent)
     : QWidget(parent)
 {
   QVBoxLayout *vboxLayout = new QVBoxLayout();
-  QTableView *table = new QTableView();;
+  _table = new QTableView();
   QStandardItemModel *model = emulator->get_partials_list();
 
   // Hack to make y axis count from 0
   for (int i = 0; i < model->rowCount(); i++)
     model->setHeaderData(i, Qt::Vertical, i);
 
-  table->setModel(model);
-  table->setEditTriggers(QAbstractItemView::NoEditTriggers);
-  table->resizeColumnsToContents();
- 
-  vboxLayout->addWidget(table);
+  _table->setModel(model);
+  _table->setEditTriggers(QAbstractItemView::NoEditTriggers);
+  _table->resizeColumnsToContents();
+
+  connect(_table, SIGNAL(doubleClicked(QModelIndex)),
+	  this, SLOT(select_partial(QModelIndex)));
+  connect(this, SIGNAL(change_tab(QString)),
+	  parent, SLOT(setTabIndex(QString)));
+
+  vboxLayout->addWidget(_table);
   setLayout(vboxLayout);
 }
 
@@ -116,22 +191,38 @@ PartialsTab::~PartialsTab()
 {}
 
 
+void PartialsTab::set_active_row(int row)
+{
+  _table->selectRow(row);
+}
+
+
+void PartialsTab::select_partial(const QModelIndex index)
+{
+  if (index.column() > 16 && index.data().toString() != "-") {
+    QString newIndex = "2,";
+    newIndex.append(index.data().toString());
+    emit change_tab(newIndex);
+  }
+}
+
+
 SamplesTab::SamplesTab(Emulator *emulator, QWidget *parent)
     : QWidget(parent)
 {
   QVBoxLayout *vboxLayout = new QVBoxLayout();
-  QTableView *table = new QTableView();;
+  _table = new QTableView();
   QStandardItemModel *model = emulator->get_samples_list();
 
   // Hack to make y axis count from 0
   for (int i = 0; i < model->rowCount(); i++)
     model->setHeaderData(i, Qt::Vertical, i);
 
-  table->setModel(model);
-  table->setEditTriggers(QAbstractItemView::NoEditTriggers);
-  table->resizeColumnsToContents();
+  _table->setModel(model);
+  _table->setEditTriggers(QAbstractItemView::NoEditTriggers);
+  _table->resizeColumnsToContents();
  
-  vboxLayout->addWidget(table);
+  vboxLayout->addWidget(_table);
   setLayout(vboxLayout);
 }
 
@@ -139,11 +230,17 @@ SamplesTab::~SamplesTab()
 {}
 
 
+void SamplesTab::set_active_row(int row)
+{
+  _table->selectRow(row);
+}
+
+
 VariationsTab::VariationsTab(Emulator *emulator, QWidget *parent)
   : QWidget(parent)
 {
   QVBoxLayout *vboxLayout = new QVBoxLayout();
-  QTableView *table = new QTableView();;
+  QTableView *table = new QTableView();
   QStandardItemModel *model = emulator->get_variations_list();
 
   // Hack to make y axis count from 0
@@ -154,6 +251,11 @@ VariationsTab::VariationsTab(Emulator *emulator, QWidget *parent)
   table->setEditTriggers(QAbstractItemView::NoEditTriggers);
   table->resizeColumnsToContents();
   
+  connect(table, SIGNAL(doubleClicked(QModelIndex)),
+	  this, SLOT(select_partial(QModelIndex)));
+  connect(this, SIGNAL(change_tab(QString)),
+	  parent, SLOT(setTabIndex(QString)));
+
   vboxLayout->addWidget(table);
   setLayout(vboxLayout);
 }
@@ -162,11 +264,21 @@ VariationsTab::~VariationsTab()
 {}
 
 
+void VariationsTab::select_partial(const QModelIndex index)
+{
+  if (index.data().toString() != "") {
+    QString newIndex = "0,";
+    newIndex.append(index.data().toString());
+    emit change_tab(newIndex);
+  }
+}
+
+
 DrumSetsTab::DrumSetsTab(Emulator *emulator, QWidget *parent)
   : QWidget(parent)
 {
   QVBoxLayout *vboxLayout = new QVBoxLayout();
-  QTableView *table = new QTableView();;
+  QTableView *table = new QTableView();
   QStandardItemModel *model = emulator->get_drum_sets_list();
 
   // Hack to make y axis count from 0
@@ -175,7 +287,7 @@ DrumSetsTab::DrumSetsTab(Emulator *emulator, QWidget *parent)
 
   table->setModel(model);
   table->setEditTriggers(QAbstractItemView::NoEditTriggers);
- 
+
   vboxLayout->addWidget(table);
   setLayout(vboxLayout);
 }
