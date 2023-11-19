@@ -91,7 +91,9 @@ private:
   QColor _lcdOnActiveColor;
   QColor _lcdOnInactiveColor;
   QColor _lcdOffFontColor;
- 
+
+  int _keyNoteOctave;
+
   void keyPressEvent(QKeyEvent *keyEvent);
   void keyReleaseEvent(QKeyEvent *keyEvent);
 

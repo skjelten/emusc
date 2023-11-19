@@ -45,7 +45,8 @@ Scene::Scene(Emulator *emulator, QWidget *parent)
     _lcdBackgroundOffColor(140, 160, 140),
     _lcdOnActiveColor(94, 37, 28),
     _lcdOnInactiveColor(215, 135, 10),
-    _lcdOffFontColor(80, 80, 80)
+    _lcdOffFontColor(80, 80, 80),
+    _keyNoteOctave(3)
 {
   setParent(parent);
 
@@ -820,30 +821,37 @@ void Scene::keyPressEvent(QKeyEvent *keyEvent)
   } else if (keyEvent->key() == Qt::Key_Space) {
     _powerButton->click();
 
+  } else if (keyEvent->key() == Qt::Key_Q) {
+    if (_keyNoteOctave < 10)
+      _keyNoteOctave++;
+  } else if (keyEvent->key() == Qt::Key_A) {
+    if (_keyNoteOctave > 0)
+      _keyNoteOctave--;
+
   } else if (keyEvent->key() == Qt::Key_Z) {
-    _emulator->play_note(60, 120);
+    _emulator->play_note(_keyNoteOctave * 12 + 0, 120);
   } else if (keyEvent->key() == Qt::Key_S) {
-    _emulator->play_note(61, 120);
+    _emulator->play_note(_keyNoteOctave * 12 + 1, 120);
   } else if (keyEvent->key() == Qt::Key_X) {
-    _emulator->play_note(62, 120);
+    _emulator->play_note(_keyNoteOctave * 12 + 2, 120);
   } else if (keyEvent->key() == Qt::Key_D) {
-    _emulator->play_note(63, 120);
+    _emulator->play_note(_keyNoteOctave * 12 + 3, 120);
   } else if (keyEvent->key() == Qt::Key_C) {
-    _emulator->play_note(64, 120);
+    _emulator->play_note(_keyNoteOctave * 12 + 4, 120);
   } else if (keyEvent->key() == Qt::Key_V) {
-    _emulator->play_note(65, 120);
+    _emulator->play_note(_keyNoteOctave * 12 + 5, 120);
   } else if (keyEvent->key() == Qt::Key_G) {
-    _emulator->play_note(66, 120);
+    _emulator->play_note(_keyNoteOctave * 12 + 6, 120);
   } else if (keyEvent->key() == Qt::Key_B) {
-    _emulator->play_note(67, 120);
+    _emulator->play_note(_keyNoteOctave * 12 + 7, 120);
   } else if (keyEvent->key() == Qt::Key_H) {
-    _emulator->play_note(68, 120);
+    _emulator->play_note(_keyNoteOctave * 12 + 8, 120);
   } else if (keyEvent->key() == Qt::Key_N) {
-    _emulator->play_note(69, 120);
+    _emulator->play_note(_keyNoteOctave * 12 + 9, 120);
   } else if (keyEvent->key() == Qt::Key_J) {
-    _emulator->play_note(70, 120);
+    _emulator->play_note(_keyNoteOctave * 12 + 10, 120);
   } else if (keyEvent->key() == Qt::Key_M) {
-    _emulator->play_note(71, 120);
+    _emulator->play_note(_keyNoteOctave * 12 + 11, 120);
   }
 }
 
@@ -855,29 +863,29 @@ void Scene::keyReleaseEvent(QKeyEvent *keyEvent)
     return;
 
   if (keyEvent->key() == Qt::Key_Z) {
-    _emulator->play_note(60, 0);
+    _emulator->play_note(_keyNoteOctave * 12 + 0, 0);
   } else if (keyEvent->key() == Qt::Key_S) {
-    _emulator->play_note(61, 0);
+    _emulator->play_note(_keyNoteOctave * 12 + 1, 0);
   } else if (keyEvent->key() == Qt::Key_X) {
-    _emulator->play_note(62, 0);
+    _emulator->play_note(_keyNoteOctave * 12 + 2, 0);
   } else if (keyEvent->key() == Qt::Key_D) {
-    _emulator->play_note(63, 0);
+    _emulator->play_note(_keyNoteOctave * 12 + 3, 0);
   } else if (keyEvent->key() == Qt::Key_C) {
-    _emulator->play_note(64, 0);
+    _emulator->play_note(_keyNoteOctave * 12 + 4, 0);
   } else if (keyEvent->key() == Qt::Key_V) {
-    _emulator->play_note(65, 0);
+    _emulator->play_note(_keyNoteOctave * 12 + 5, 0);
   } else if (keyEvent->key() == Qt::Key_G) {
-    _emulator->play_note(66, 0);
+    _emulator->play_note(_keyNoteOctave * 12 + 6, 0);
   } else if (keyEvent->key() == Qt::Key_B) {
-    _emulator->play_note(67, 0);
+    _emulator->play_note(_keyNoteOctave * 12 + 7, 0);
   } else if (keyEvent->key() == Qt::Key_H) {
-    _emulator->play_note(68, 0);
+    _emulator->play_note(_keyNoteOctave * 12 + 8, 0);
   } else if (keyEvent->key() == Qt::Key_N) {
-    _emulator->play_note(69, 0);
+    _emulator->play_note(_keyNoteOctave * 12 + 9, 0);
   } else if (keyEvent->key() == Qt::Key_J) {
-    _emulator->play_note(70, 0);
+    _emulator->play_note(_keyNoteOctave * 12 + 10, 0);
   } else if (keyEvent->key() == Qt::Key_M) {
-    _emulator->play_note(71, 0);
+    _emulator->play_note(_keyNoteOctave * 12 + 11, 0);
   }
 }
 
