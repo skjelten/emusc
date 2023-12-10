@@ -116,6 +116,10 @@ private:
   uint16_t _to_native_endian_uint16(uint8_t *ptr);
   uint32_t _to_native_endian_uint32(uint8_t *ptr);
 
+  // Macros for certain settings
+  void _run_macro_chorus(uint8_t value);
+  void _run_macro_reverb(uint8_t value);
+
   // Temporary storage for pitchbend
   float _PBController[16];
 };

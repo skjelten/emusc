@@ -130,19 +130,19 @@ private:
   QSlider *_timeS;
   QSlider *_feedbackS;
 //  QSlider *_delayS;
-  QSlider *_sendChoS;
 
   QLabel *_levelL;
   QLabel *_filterL;
   QLabel *_timeL;
   QLabel *_feedbackL;
 //  QLabel *_delayL;
-  QLabel *_sendChoL;
 
   Emulator *_emulator;
 
 public:
   explicit ReverbSettings(Emulator *emulator, QWidget *parent = nullptr);
+
+  void update_all_widgets(void);
 
 private slots:
   void _preset_changed(int value);
@@ -152,7 +152,6 @@ private slots:
   void _filter_changed(int value);
   void _time_changed(int value);
   void _feedback_changed(int value);
-  void _sendCho_changed(int value);
 };
 
 
@@ -185,6 +184,8 @@ private:
 
 public:
   explicit ChorusSettings(Emulator *emulator, QWidget *parent = nullptr);
+
+  void update_all_widgets(void);
 
 private slots:
   void _preset_changed(int value);

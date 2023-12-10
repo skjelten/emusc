@@ -498,12 +498,10 @@ ReverbSettings::ReverbSettings(Emulator *emulator, QWidget *parent)
   _presetC = new QComboBox();
   _presetC->addItems({ "Room 1", "Room 2", "Room 3", "Hall 1", "Hall 2",
                        "Plate", "Delay", "Panning Delay" });
-  _presetC->setCurrentIndex(_emulator->get_param(EmuSC::PatchParam::ReverbMacro));
   gridLayout1->addWidget(_presetC, 0, 1);
   _characterC = new QComboBox();
   _characterC->addItems({ "Room 1", "Room 2", "Room 3", "Hall 1", "Hall 2",
                           "Plate", "Delay", "Panning Delay" });
-  _characterC->setCurrentIndex(_emulator->get_param(EmuSC::PatchParam::ReverbCharacter));
   gridLayout1->addWidget(_characterC, 1, 1);
   gridLayout1->addWidget(new QLabel(""), 0, 2);
   gridLayout1->setColumnStretch(2, 1);
@@ -517,21 +515,18 @@ ReverbSettings::ReverbSettings(Emulator *emulator, QWidget *parent)
   gridLayout->addWidget(new QLabel("Pre-LP filter"),     2, 0);
   gridLayout->addWidget(new QLabel("Reverb Time"),       3, 0);
   gridLayout->addWidget(new QLabel("Delay Feedback"),    4, 0);
-  gridLayout->addWidget(new QLabel("Sent Level Chorus"), 5, 0);
 //  gridLayout->addWidget(new QLabel("Pre-delay time"),       6, 0);
 
   _levelL = new QLabel(": ");
   _filterL = new QLabel(": ");
   _timeL = new QLabel(": ");
   _feedbackL = new QLabel(": ");
-  _sendChoL = new QLabel(": ");
 //  _delayL = new QLabel(": ");
 
   gridLayout->addWidget(_levelL,    0, 1);
   gridLayout->addWidget(_filterL,   2, 1);
   gridLayout->addWidget(_timeL,     3, 1);
   gridLayout->addWidget(_feedbackL, 4, 1);
-  gridLayout->addWidget(_sendChoL,  5, 1);
 //  gridLayout->addWidget(_delayL,    6, 1);
   
   // Set static width for slider value labels
@@ -543,31 +538,21 @@ ReverbSettings::ReverbSettings(Emulator *emulator, QWidget *parent)
   _levelS->setRange(0, 127);
   _levelS->setTickPosition(QSlider::TicksBelow);
   _levelS->setTickInterval(64);
-  _levelS->setValue(_emulator->get_param(EmuSC::PatchParam::ReverbLevel));
 
   _filterS = new QSlider(Qt::Horizontal);
   _filterS->setRange(0, 7);
   _filterS->setTickPosition(QSlider::TicksBelow);
   _filterS->setTickInterval(1);
-  _filterS->setValue(_emulator->get_param(EmuSC::PatchParam::ReverbPreLPF));
 
   _timeS = new QSlider(Qt::Horizontal);
   _timeS->setRange(0, 127);
   _timeS->setTickPosition(QSlider::TicksBelow);
   _timeS->setTickInterval(64);
-  _timeS->setValue(_emulator->get_param(EmuSC::PatchParam::ReverbTime));
 
   _feedbackS = new QSlider(Qt::Horizontal);
   _feedbackS->setRange(0, 127);
   _feedbackS->setTickPosition(QSlider::TicksBelow);
   _feedbackS->setTickInterval(64);
-  _feedbackS->setValue(_emulator->get_param(EmuSC::PatchParam::ReverbDelayFeedback));
-
-  _sendChoS = new QSlider(Qt::Horizontal);
-  _sendChoS->setRange(0, 127);
-  _sendChoS->setTickPosition(QSlider::TicksBelow);
-  _sendChoS->setTickInterval(64);
-  _sendChoS->setValue(_emulator->get_param(EmuSC::PatchParam::ReverbSendToChorus));
 
 // SC-88
 //  _delayS = new QSlider(Qt::Horizontal);
@@ -579,32 +564,24 @@ ReverbSettings::ReverbSettings(Emulator *emulator, QWidget *parent)
   gridLayout->addWidget(_filterS,   2, 2);
   gridLayout->addWidget(_timeS,     3, 2);
   gridLayout->addWidget(_feedbackS, 4, 2);
-  gridLayout->addWidget(_sendChoS,  5, 2);
 //  gridLayout->addWidget(_delayS,    6, 2);
 
-  _levelL->setText(": " + QString::number(_levelS->value()));
-  _filterL->setText(": " + QString::number(_filterS->value()));
-  _timeL->setText(": " + QString::number(_timeS->value()));
-  _feedbackL->setText(": " + QString::number(_feedbackS->value()));
-  _sendChoL->setText(": " + QString::number(_sendChoS->value()));
+  update_all_widgets();
 
   connect(_presetC, SIGNAL(currentIndexChanged(int)),
 	  this, SLOT(_preset_changed(int)));
   connect(_characterC, SIGNAL(currentIndexChanged(int)),
 	  this, SLOT(_character_changed(int)));
-
-  connect(_levelS, SIGNAL(valueChanged(int)), this,
-	  SLOT(_level_changed(int)));
-  connect(_filterS, SIGNAL(valueChanged(int)), this,
-	  SLOT(_filter_changed(int)));
-  connect(_timeS, SIGNAL(valueChanged(int)), this,
-	  SLOT(_time_changed(int)));
-  connect(_feedbackS, SIGNAL(valueChanged(int)), this,
-	  SLOT(_feedback_changed(int)));
-  connect(_sendChoS, SIGNAL(valueChanged(int)), this,
-	  SLOT(_sendCho_changed(int)));
+  connect(_levelS, SIGNAL(valueChanged(int)),
+	  this, SLOT(_level_changed(int)));
+  connect(_filterS, SIGNAL(valueChanged(int)),
+	  this, SLOT(_filter_changed(int)));
+  connect(_timeS, SIGNAL(valueChanged(int)),
+	  this, SLOT(_time_changed(int)));
+  connect(_feedbackS, SIGNAL(valueChanged(int)),
+	  this, SLOT(_feedback_changed(int)));
 // connect(_delayS, SIGNAL(valueChanged(int)), this, SLOT(_delay_changed(int)));
-    
+
   vboxLayout->addLayout(gridLayout1);
   vboxLayout->addLayout(gridLayout);
   vboxLayout->addStretch(0);
@@ -615,9 +592,26 @@ ReverbSettings::ReverbSettings(Emulator *emulator, QWidget *parent)
 }
 
 
+void ReverbSettings::update_all_widgets(void)
+{
+  _presetC->setCurrentIndex(_emulator->get_param(EmuSC::PatchParam::ReverbMacro));
+  _characterC->setCurrentIndex(_emulator->get_param(EmuSC::PatchParam::ReverbCharacter));
+  _levelS->setValue(_emulator->get_param(EmuSC::PatchParam::ReverbLevel));
+  _filterS->setValue(_emulator->get_param(EmuSC::PatchParam::ReverbPreLPF));
+  _timeS->setValue(_emulator->get_param(EmuSC::PatchParam::ReverbTime));
+  _feedbackS->setValue(_emulator->get_param(EmuSC::PatchParam::ReverbDelayFeedback));
+
+  _levelL->setText(": " + QString::number(_levelS->value()));
+  _filterL->setText(": " + QString::number(_filterS->value()));
+  _timeL->setText(": " + QString::number(_timeS->value()));
+  _feedbackL->setText(": " + QString::number(_feedbackS->value()));
+}
+
+
 void ReverbSettings::_preset_changed(int value)
 {
   _emulator->set_param(EmuSC::PatchParam::ReverbMacro, (uint8_t) value);
+  update_all_widgets();
 }
 
 
@@ -656,13 +650,6 @@ void ReverbSettings::_feedback_changed(int value)
 }
 
 
-void ReverbSettings::_sendCho_changed(int value)
-{
-  _sendChoL->setText(": " + QString::number(value));
-  _emulator->set_param(EmuSC::PatchParam::ReverbSendToChorus, (uint8_t) value);
-}
-
-
 // SC-88
 //void ReverbSettings::_delay_changed(int value)
 //{
@@ -687,7 +674,6 @@ ChorusSettings::ChorusSettings(Emulator *emulator, QWidget *parent)
   _presetC->addItems({ "Chorus 1", "Chorus 2", "Chorus 3", "Chorus 4",
                        "Feedback Chorus", "Flanger", "Short Delay",
                        "Short Delay (FB)" });
-  _presetC->setCurrentIndex(_emulator->get_param(EmuSC::PatchParam::ChorusMacro));
   gridLayout1->addWidget(_presetC, 0, 1);
   gridLayout1->setColumnStretch(2, 1);
 
@@ -732,43 +718,36 @@ ChorusSettings::ChorusSettings(Emulator *emulator, QWidget *parent)
   _levelS->setRange(0, 127);
   _levelS->setTickPosition(QSlider::TicksBelow);
   _levelS->setTickInterval(64);
-  _levelS->setValue(_emulator->get_param(EmuSC::PatchParam::ChorusLevel));
 
   _filterS = new QSlider(Qt::Horizontal);
   _filterS->setRange(0, 7);
   _filterS->setTickPosition(QSlider::TicksBelow);
   _filterS->setTickInterval(1);
-  _filterS->setValue(_emulator->get_param(EmuSC::PatchParam::ChorusPreLPF));
 
   _feedbackS = new QSlider(Qt::Horizontal);
   _feedbackS->setRange(0, 127);
   _feedbackS->setTickPosition(QSlider::TicksBelow);
   _feedbackS->setTickInterval(64);
-  _feedbackS->setValue(_emulator->get_param(EmuSC::PatchParam::ChorusFeedback));
 
   _delayS = new QSlider(Qt::Horizontal);
   _delayS->setRange(0, 127);
   _delayS->setTickPosition(QSlider::TicksBelow);
   _delayS->setTickInterval(64);
-  _delayS->setValue(_emulator->get_param(EmuSC::PatchParam::ChorusDelay));
 
   _rateS = new QSlider(Qt::Horizontal);
   _rateS->setRange(0, 127);
   _rateS->setTickPosition(QSlider::TicksBelow);
   _rateS->setTickInterval(64);
-  _rateS->setValue(_emulator->get_param(EmuSC::PatchParam::ChorusRate));
 
   _depthS = new QSlider(Qt::Horizontal);
   _depthS->setRange(0, 127);
   _depthS->setTickPosition(QSlider::TicksBelow);
   _depthS->setTickInterval(64);
-  _depthS->setValue(_emulator->get_param(EmuSC::PatchParam::ChorusDepth));
 
   _sendRevS = new QSlider(Qt::Horizontal);
   _sendRevS->setRange(0, 127);
   _sendRevS->setTickPosition(QSlider::TicksBelow);
   _sendRevS->setTickInterval(64);
-  _sendRevS->setValue(_emulator->get_param(EmuSC::PatchParam::ChorusSendToReverb));
 
 // TODO: Only for SC-88+
 //  _sendDlyS = new QSlider(Qt::Horizontal);
@@ -785,31 +764,25 @@ ChorusSettings::ChorusSettings(Emulator *emulator, QWidget *parent)
   gridLayout->addWidget(_sendRevS,  7, 2);
 //  gridLayout->addWidget(_sendDlyS, 8, 2);
 
-  _levelL->setText(": " + QString::number(_levelS->value()));
-  _filterL->setText(": " + QString::number(_filterS->value()));
-  _feedbackL->setText(": " + QString::number(_feedbackS->value()));
-  _delayL->setText(": " + QString::number(_delayS->value()));
-  _rateL->setText(": " + QString::number(_rateS->value()));
-  _depthL->setText(": " + QString::number(_depthS->value()));
-  _sendRevL->setText(": " + QString::number(_sendRevS->value()));
+  update_all_widgets();
 
   connect(_presetC, SIGNAL(currentIndexChanged(int)),
 	  this, SLOT(_preset_changed(int)));
 
-  connect(_levelS, SIGNAL(valueChanged(int)), this,
-	  SLOT(_level_changed(int)));
-  connect(_filterS, SIGNAL(valueChanged(int)), this,
-	  SLOT(_filter_changed(int)));
-  connect(_feedbackS, SIGNAL(valueChanged(int)), this,
-	  SLOT(_feedback_changed(int)));
-  connect(_delayS, SIGNAL(valueChanged(int)), this,
-	  SLOT(_delay_changed(int)));
-  connect(_rateS, SIGNAL(valueChanged(int)), this,
-	  SLOT(_rate_changed(int)));
-  connect(_depthS, SIGNAL(valueChanged(int)), this,
-	  SLOT(_depth_changed(int)));
-  connect(_sendRevS, SIGNAL(valueChanged(int)), this,
-	  SLOT(_sendRev_changed(int)));
+  connect(_levelS, SIGNAL(valueChanged(int)),
+	  this, SLOT(_level_changed(int)));
+  connect(_filterS, SIGNAL(valueChanged(int)),
+	  this, SLOT(_filter_changed(int)));
+  connect(_feedbackS, SIGNAL(valueChanged(int)),
+	  this, SLOT(_feedback_changed(int)));
+  connect(_delayS, SIGNAL(valueChanged(int)),
+	  this, SLOT(_delay_changed(int)));
+  connect(_rateS, SIGNAL(valueChanged(int)),
+	  this, SLOT(_rate_changed(int)));
+  connect(_depthS, SIGNAL(valueChanged(int)),
+	  this, SLOT(_depth_changed(int)));
+  connect(_sendRevS, SIGNAL(valueChanged(int)),
+	  this, SLOT(_sendRev_changed(int)));
 
   vboxLayout->addLayout(gridLayout1);
   vboxLayout->addLayout(gridLayout);
@@ -821,9 +794,32 @@ ChorusSettings::ChorusSettings(Emulator *emulator, QWidget *parent)
 }
 
 
+void ChorusSettings::update_all_widgets(void)
+{
+  _presetC->setCurrentIndex(_emulator->get_param(EmuSC::PatchParam::ChorusMacro));
+
+  _levelS->setValue(_emulator->get_param(EmuSC::PatchParam::ChorusLevel));
+  _filterS->setValue(_emulator->get_param(EmuSC::PatchParam::ChorusPreLPF));
+  _feedbackS->setValue(_emulator->get_param(EmuSC::PatchParam::ChorusFeedback));
+  _delayS->setValue(_emulator->get_param(EmuSC::PatchParam::ChorusDelay));
+  _rateS->setValue(_emulator->get_param(EmuSC::PatchParam::ChorusRate));
+  _depthS->setValue(_emulator->get_param(EmuSC::PatchParam::ChorusDepth));
+  _sendRevS->setValue(_emulator->get_param(EmuSC::PatchParam::ChorusSendToReverb));
+
+  _levelL->setText(": " + QString::number(_levelS->value()));
+  _filterL->setText(": " + QString::number(_filterS->value()));
+  _feedbackL->setText(": " + QString::number(_feedbackS->value()));
+  _delayL->setText(": " + QString::number(_delayS->value()));
+  _rateL->setText(": " + QString::number(_rateS->value()));
+  _depthL->setText(": " + QString::number(_depthS->value()));
+  _sendRevL->setText(": " + QString::number(_sendRevS->value()));
+}
+
+
 void ChorusSettings::_preset_changed(int value)
 {
   _emulator->set_param(EmuSC::PatchParam::ChorusMacro, (uint8_t) value);
+  update_all_widgets();
 }
 
 

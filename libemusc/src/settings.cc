@@ -219,6 +219,12 @@ void Settings::set_param(enum PatchParam pp, uint8_t value, int8_t part)
     _patchParams[(int) pp] = value;
   else
     _patchParams[(((int) pp) | (rolandPart << 8))] = value;
+
+  if (pp == EmuSC::PatchParam::ChorusMacro) {
+    _run_macro_chorus(value);
+  } else if (pp == EmuSC::PatchParam::ReverbMacro) {
+    _run_macro_reverb(value);
+  }
 }
 
 
@@ -275,6 +281,12 @@ void Settings::set_patch_param(uint16_t address, uint8_t *data, uint8_t size)
 {
   for (int i = 0; i < size; i++)
     _patchParams[address + i] = data[i];
+
+  if (address == 0x138 && size >= 1) {
+    _run_macro_chorus(data[0]);
+  } else if (address == 0x130 && size >= 1) {
+    _run_macro_reverb(data[0]);
+  }
 }
 
 
@@ -408,7 +420,6 @@ void Settings::_initialize_patch_params(enum Mode m)
   _patchParams[(int) PatchParam::ReverbLevel] =         0x40;
   _patchParams[(int) PatchParam::ReverbTime] =          0x40;
   _patchParams[(int) PatchParam::ReverbDelayFeedback] = 0x00;
-  _patchParams[(int) PatchParam::ReverbSendToChorus] =  0x00;
 
   _patchParams[(int) PatchParam::ChorusMacro] =         0x02;
   _patchParams[(int) PatchParam::ChorusPreLPF] =        0x00;
@@ -774,6 +785,142 @@ uint32_t Settings::_to_native_endian_uint32(uint8_t *ptr)
     return (ptr[0] << 24 | ptr[1] << 16 | ptr [2] << 8 | ptr[3]);
 
   return (ptr[3] << 24 | ptr[2] << 16 | ptr[1] << 8 | ptr[0]);
+}
+
+
+// Macro based on table from SC-8820 owner's manual and verified on SC-55MkII
+void Settings::_run_macro_chorus(uint8_t value)
+{
+  switch(value)
+    {
+    case 0: // Chorus 1
+      _patchParams[(int) PatchParam::ChorusFeedback] = 0x00;
+      _patchParams[(int) PatchParam::ChorusDelay] =    0x70;
+      _patchParams[(int) PatchParam::ChorusRate] =     0x03;
+      _patchParams[(int) PatchParam::ChorusDepth] =    0x06;
+      break;
+
+    case 1: // Chorus 2
+      _patchParams[(int) PatchParam::ChorusFeedback] = 0x08;
+      _patchParams[(int) PatchParam::ChorusDelay] =    0x50;
+      _patchParams[(int) PatchParam::ChorusRate] =     0x09;
+      _patchParams[(int) PatchParam::ChorusDepth] =    0x13;
+      break;
+
+    case 2: // Chorus 3
+      _patchParams[(int) PatchParam::ChorusFeedback] = 0x08;
+      _patchParams[(int) PatchParam::ChorusDelay] =    0x50;
+      _patchParams[(int) PatchParam::ChorusRate] =     0x03;
+      _patchParams[(int) PatchParam::ChorusDepth] =    0x13;
+      break;
+
+    case 3: // Chorus 4
+      _patchParams[(int) PatchParam::ChorusFeedback] = 0x08;
+      _patchParams[(int) PatchParam::ChorusDelay] =    0x40;
+      _patchParams[(int) PatchParam::ChorusRate] =     0x09;
+      _patchParams[(int) PatchParam::ChorusDepth] =    0x10;
+      break;
+
+    case 4: // Feedback Chorus
+      _patchParams[(int) PatchParam::ChorusFeedback] = 0x40;
+      _patchParams[(int) PatchParam::ChorusDelay] =    0x7f;
+      _patchParams[(int) PatchParam::ChorusRate] =     0x02;
+      _patchParams[(int) PatchParam::ChorusDepth] =    0x18;
+      break;
+
+    case 5: // Flanger
+      _patchParams[(int) PatchParam::ChorusFeedback] = 0x70;
+      _patchParams[(int) PatchParam::ChorusDelay] =    0x7f;
+      _patchParams[(int) PatchParam::ChorusRate] =     0x01;
+      _patchParams[(int) PatchParam::ChorusDepth] =    0x05;
+      break;
+
+    case 6: // Short Delay
+      _patchParams[(int) PatchParam::ChorusFeedback] = 0x00;
+      _patchParams[(int) PatchParam::ChorusDelay] =    0x7f;
+      _patchParams[(int) PatchParam::ChorusRate] =     0x00;
+      _patchParams[(int) PatchParam::ChorusDepth] =    0x7f;
+      break;
+
+    case 7: // Short Delay (FB)
+      _patchParams[(int) PatchParam::ChorusFeedback] = 0x50;
+      _patchParams[(int) PatchParam::ChorusDelay] =    0x7f;
+      _patchParams[(int) PatchParam::ChorusRate] =     0x00;
+      _patchParams[(int) PatchParam::ChorusDepth] =    0x7f;
+      break;
+    }
+
+  // These params are equal for all macro values
+  _patchParams[(int) PatchParam::ChorusLevel] =        0x40;
+  _patchParams[(int) PatchParam::ChorusPreLPF] =       0x00;
+  _patchParams[(int) PatchParam::ChorusSendToReverb] = 0x00;
+}
+
+
+// Macro based on table from SC-8820 owner's manual and verified on SC-55MkII
+void Settings::_run_macro_reverb(uint8_t value)
+{
+  switch(value)
+    {
+    case 0: // Room 1
+      _patchParams[(int) PatchParam::ReverbCharacter] =     0x00;
+      _patchParams[(int) PatchParam::ReverbPreLPF] =        0x03;
+      _patchParams[(int) PatchParam::ReverbTime] =          0x50;
+      _patchParams[(int) PatchParam::ReverbDelayFeedback] = 0x00;
+      break;
+
+    case 1: // Room 2
+      _patchParams[(int) PatchParam::ReverbCharacter] =     0x01;
+      _patchParams[(int) PatchParam::ReverbPreLPF] =        0x04;
+      _patchParams[(int) PatchParam::ReverbTime] =          0x38;
+      _patchParams[(int) PatchParam::ReverbDelayFeedback] = 0x00;
+      break;
+
+    case 2: // Room 3
+      _patchParams[(int) PatchParam::ReverbCharacter] =     0x02;
+      _patchParams[(int) PatchParam::ReverbPreLPF] =        0x00;
+      _patchParams[(int) PatchParam::ReverbTime] =          0x40;
+      _patchParams[(int) PatchParam::ReverbDelayFeedback] = 0x00;
+      break;
+
+    case 3: // Hall 1
+      _patchParams[(int) PatchParam::ReverbCharacter] =     0x03;
+      _patchParams[(int) PatchParam::ReverbPreLPF] =        0x04;
+      _patchParams[(int) PatchParam::ReverbTime] =          0x48;
+      _patchParams[(int) PatchParam::ReverbDelayFeedback] = 0x00;
+      break;
+
+    case 4: // Hall 2
+      _patchParams[(int) PatchParam::ReverbCharacter] =     0x04;
+      _patchParams[(int) PatchParam::ReverbPreLPF] =        0x00;
+      _patchParams[(int) PatchParam::ReverbTime] =          0x40;
+      _patchParams[(int) PatchParam::ReverbDelayFeedback] = 0x00;
+      break;
+
+    case 5: // Plate
+      _patchParams[(int) PatchParam::ReverbCharacter] =     0x05;
+      _patchParams[(int) PatchParam::ReverbPreLPF] =        0x00;
+      _patchParams[(int) PatchParam::ReverbTime] =          0x58;
+      _patchParams[(int) PatchParam::ReverbDelayFeedback] = 0x00;
+      break;
+
+    case 6: // Delay
+      _patchParams[(int) PatchParam::ReverbCharacter] =     0x06;
+      _patchParams[(int) PatchParam::ReverbPreLPF] =        0x00;
+      _patchParams[(int) PatchParam::ReverbTime] =          0x20;
+      _patchParams[(int) PatchParam::ReverbDelayFeedback] = 0x28;
+      break;
+
+    case 7: // Panning Delay
+      _patchParams[(int) PatchParam::ReverbCharacter] =     0x07;
+      _patchParams[(int) PatchParam::ReverbPreLPF] =        0x00;
+      _patchParams[(int) PatchParam::ReverbTime] =          0x40;
+      _patchParams[(int) PatchParam::ReverbDelayFeedback] = 0x20;
+      break;
+    }
+
+  // These params are equal for all macro values
+  _patchParams[(int) PatchParam::ReverbLevel] =         0x40;
 }
 
 }
