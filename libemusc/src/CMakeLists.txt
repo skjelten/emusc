@@ -7,6 +7,8 @@ add_library(emusc
   ahdsr.h
   biquad_filter.cc
   biquad_filter.h
+  chorus.cc
+  chorus.h
   control_rom.cc
   control_rom.h
   lowpass_filter.cc

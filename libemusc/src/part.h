@@ -21,6 +21,7 @@
 #define __PART_H__
 
 
+#include "chorus.h"
 #include "control_rom.h"
 #include "pcm_rom.h"
 #include "note.h"
@@ -42,7 +43,7 @@ public:
   Part(uint8_t id, Settings *settings, ControlRom &cRom, PcmRom &pRom);
   ~Part();
 
-  int get_next_sample(float *sampleOut);
+  int get_next_sample(float *sampleOut, float *sysEffect);
   float get_last_peak_sample(void);
   int get_num_partials(void);
 
@@ -95,6 +96,8 @@ private:
 
   ControlRom &_ctrlRom;
   PcmRom &_pcmRom;
+
+  Chorus *_chorus;
 
   // Calculated controller values (minimize number of calculations)
   // TODO: Figure out how to do this properly. Only relevant for pitchBend?

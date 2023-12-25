@@ -41,14 +41,12 @@ namespace EmuSC {
 Synth::Synth(ControlRom &controlRom, PcmRom &pcmRom, SoundMap map)
   : _sampleRate(0),
     _channels(0),
-    _ctrlRom(controlRom)
+    _ctrlRom(controlRom),
+    _pcmRom(pcmRom)
 {
   _settings = new Settings(controlRom);
 
-  // Initialize all parts
   _parts.reserve(16);
-  for (int i = 0; i < 16; i++)
-    _parts.emplace_back(i, _settings, controlRom, pcmRom);
 
   if (map == SoundMap::GS) {
     std::cout << "libEmuSC: GS sound map initialized" << std::endl;
@@ -66,6 +64,13 @@ Synth::~Synth()
 {
   _parts.clear();
   delete _settings;
+}
+
+
+void Synth::_init_parts(void)
+{
+  for (int i = 0; i < 16; i++)
+    _parts.emplace_back(i, _settings, _ctrlRom, _pcmRom);
 }
 
 
@@ -305,7 +310,9 @@ void Synth::midi_input_sysex(uint8_t *data, uint16_t length)
 int Synth::get_next_sample(int16_t *sampleOut)
 {
   float partSample[2];
+  float partSysEffect[2];
   float accumulatedSample[2] = { 0, 0 };
+  float accumulatedSysEffect[2] = { 0, 0 };
 
   // Write silence
   for (int i = 0; i < _channels; i++) {
@@ -317,17 +324,22 @@ int Synth::get_next_sample(int16_t *sampleOut)
   // Iterate all parts and ask for next sample
   for (auto &p : _parts) {
     partSample[0] = partSample[1] = 0;
-    p.get_next_sample(partSample);
+    partSysEffect[0] = partSysEffect[1] = 0;
+    p.get_next_sample(partSample, partSysEffect);
 
     accumulatedSample[0] += partSample[0];
     accumulatedSample[1] += partSample[1];
+
+    accumulatedSysEffect[0] += partSysEffect[0];
+    accumulatedSysEffect[1] += partSysEffect[1];
   }
 
   // Finished working MIDI data
   midiMutex.unlock();
 
-
   // Apply sample effects that applies to "system" level (all parts & notes)
+  accumulatedSample[0] += accumulatedSysEffect[0];
+  accumulatedSample[1] += accumulatedSysEffect[1];
 
   // Apply pan
   uint8_t pan = _settings->get_param(SystemParam::Pan);
@@ -378,6 +390,8 @@ void Synth::set_audio_format(uint32_t sampleRate, uint8_t channels)
 
   _sampleRate = sampleRate;
   _channels = channels;
+
+  _init_parts();
 }
 
 

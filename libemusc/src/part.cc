@@ -33,13 +33,16 @@ Part::Part(uint8_t id, Settings *settings, ControlRom &ctrlRom, PcmRom &pcmRom)
     _pcmRom(pcmRom),
     _7bScale(1/127.0),
     _lastPeakSample(0),
-    _lastPitchBendRange(2)
+    _lastPitchBendRange(2),
+    _chorus(NULL)
 {
   // TODO: Rename mode => synthMode and set proper defaults for MT32 mode
   _notesMutex = new std::mutex();
 
   _partialReserve = 2;           // TODO: Add this to settings with propoer val
   _mute = false;                 // TODO: Also move to settings
+
+  _chorus = new Chorus(settings);
 }
 
 
@@ -47,66 +50,83 @@ Part::~Part()
 {
   delete_all_notes();
   delete _notesMutex;
+
+  delete _chorus;
 }
 
 
 // Parts always produce 2 channel & 32kHz (native) output. Other channel
 // numbers and sample rates are handled by the calling Synth class.
-int Part::get_next_sample(float *sampleOut)
+int Part::get_next_sample(float *sampleOut, float *sysEffect)
 {
-  // Return immediately if we have no notes to play
-  if (_notes.size() == 0)
-    return 0;
-
-  // TODO: Figure out a proper way to efficiently calculate new controller
-  //       values when needed. Is PitchBend the only one that needs this?
-  uint8_t pbRng = _settings->get_param(PatchParam::PB_PitchControl, _id) - 0x40;
-  if (pbRng != _lastPitchBendRange) {
-    _lastPitchBendRange = pbRng;
-    _settings->update_pitchBend_factor(_id);
-  }
-
   float partSample[2] = { 0, 0 };
-  float accSample = 0;
 
-  _notesMutex->lock();
+  // Only process notes if we have any
+  if (_notes.size() > 0) {
 
-  // Get next sample from active notes, delete those which are finished
-  std::list<Note*>::iterator itr = _notes.begin();
-  while (itr != _notes.end()) {
-    bool finished = (*itr)->get_next_sample(partSample);
-
-    if (finished) {
-//      std::cout << "Both partials have finished -> delete note" << std::endl;
-      delete *itr;
-      itr = _notes.erase(itr);
-    } else {
-      ++itr;
+    // TODO: Figure out a proper way to efficiently calculate new controller
+    //       values when needed. Is PitchBend the only one that needs this?
+    uint8_t pbRng = _settings->get_param(PatchParam::PB_PitchControl, _id) - 0x40;
+    if (pbRng != _lastPitchBendRange) {
+      _lastPitchBendRange = pbRng;
+      _settings->update_pitchBend_factor(_id);
     }
+
+    float accSample = 0;
+
+    _notesMutex->lock();
+
+    // Get next sample from active notes, delete those which are finished
+    std::list<Note*>::iterator itr = _notes.begin();
+    while (itr != _notes.end()) {
+      bool finished = (*itr)->get_next_sample(partSample);
+
+      if (finished) {
+//      std::cout << "Both partials have finished -> delete note" << std::endl;
+	delete *itr;
+	itr = _notes.erase(itr);
+      } else {
+	++itr;
+      }
+    }
+
+    _notesMutex->unlock();
+
+    // Apply volume from part (MIDI channel) and expression (CM11)
+    uint8_t expression = _settings->get_param(PatchParam::Expression, _id);
+    partSample[0] *= _settings->get_param(PatchParam::PartLevel, _id) *
+      _7bScale * (expression * _7bScale);
+    partSample[1] *= _settings->get_param(PatchParam::PartLevel, _id) *
+      _7bScale * (expression * _7bScale);
+
+    // Store last (highest) value for future queries (typically for bar display)
+    _lastPeakSample =
+      (_lastPeakSample >= partSample[0]) ? _lastPeakSample : partSample[0];
+  
+    // Apply pan from part (MIDI Channel)
+    uint8_t panpot = _settings->get_param(PatchParam::PartPanpot, _id);
+    if (panpot > 64)
+      partSample[0] *= 1.0 - (panpot - 64) / 63.0;
+    else if (panpot < 64)
+      partSample[1] *= (panpot - 1) / 64.0;
+
+    sampleOut[0] += partSample[0];
+    sampleOut[1] += partSample[1];
   }
 
-  _notesMutex->unlock();
+  // Add system effects: Chorus and Reverb
 
-  // Apply volume from part (MIDI channel) and expression (CM11)
-  uint8_t expression = _settings->get_param(PatchParam::Expression, _id);
-  partSample[0] *= _settings->get_param(PatchParam::PartLevel, _id) *
-    _7bScale * (expression * _7bScale);
-  partSample[1] *= _settings->get_param(PatchParam::PartLevel, _id) *
-    _7bScale * (expression * _7bScale);
+  // Chorus effect (if both global & part chorus levels != 0)
+  if (_settings->get_param(PatchParam::ChorusSendLevel, _id) &&
+      _settings->get_param(PatchParam::ChorusLevel, _id)) {
+    float cLevel = _settings->get_param(PatchParam::ChorusSendLevel, _id)/127.0;
+    float cSample[2] = { 0, 0 };
+    float cInput = ((partSample[0] + partSample[1]) / 2) * cLevel;
+    _chorus->process_sample(cInput, cSample);
 
-  // Store last (highest) value for future queries (typically for bar display)
-  _lastPeakSample =
-    (_lastPeakSample >= partSample[0]) ? _lastPeakSample : partSample[0];
-  
-  // Apply pan from part (MIDI Channel)
-  uint8_t panpot = _settings->get_param(PatchParam::PartPanpot, _id);
-  if (panpot > 64)
-    partSample[0] *= 1.0 - (panpot - 64) / 63.0;
-  else if (panpot < 64)
-    partSample[1] *= (panpot - 1) / 64.0;
-
-  sampleOut[0] += partSample[0];
-  sampleOut[1] += partSample[1];
+    sysEffect[0] += cSample[0] * _settings->get_param(PatchParam::ChorusLevel) / 127.0;
+    sysEffect[1] += cSample[1] * _settings->get_param(PatchParam::ChorusLevel) / 127.0;
+  }
 
   return 0;
 }
@@ -137,7 +157,7 @@ int Part::get_num_partials(void)
 }
 
 
-// Should mute => not accept key - or play silently in the background?
+// Note: Mute cancels all active keys in part, and all new keys are ignored
 int Part::add_note(uint8_t key, uint8_t keyVelocity)
 {
   // 1. Check if part is muted or rxNoteMessage is disabled

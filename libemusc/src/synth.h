@@ -148,6 +148,7 @@ private:
   std::vector<std::function<void(const int)>> _partMidiModCallbacks;
 
   ControlRom &_ctrlRom;
+  PcmRom &_pcmRom;
 
   // MIDI message types
   static const uint8_t midi_NoteOff         = 0x80;
@@ -158,6 +159,7 @@ private:
   static const uint8_t midi_ChPressure      = 0xd0;
   static const uint8_t midi_PitchBend       = 0xe0;
 
+  void _init_parts(void);
 // int _export_sample_24(std::vector<int32_t> &sampleSet, std::string filename);
   void _add_note(uint8_t midiChannel, uint8_t key, uint8_t velocity);
 
