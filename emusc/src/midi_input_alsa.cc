@@ -55,10 +55,12 @@ void MidiInputAlsa::start(EmuSC::Synth *synth, QString device)
 
   snd_seq_set_client_name(_seqHandle, "EmuSC");
 
-  _seqPort = snd_seq_create_simple_port(_seqHandle, "EmuSC",
+  _seqPort = snd_seq_create_simple_port(_seqHandle, "EmuSC Midi Input",
 					SND_SEQ_PORT_CAP_SUBS_WRITE |
 					SND_SEQ_PORT_CAP_WRITE,
+					SND_SEQ_PORT_TYPE_MIDI_GENERIC |
 					SND_SEQ_PORT_TYPE_MIDI_GS |
+					SND_SEQ_PORT_TYPE_SOFTWARE |
 					SND_SEQ_PORT_TYPE_SYNTHESIZER);
   if (_seqPort < 0)
     throw(QString("Error creating ALSA sequencer port"));
