@@ -63,7 +63,6 @@ private:
   float _tempf;
   TVF();
 
-  double _convert_time_to_sec(uint8_t time);
 };
 
 }

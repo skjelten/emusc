@@ -42,9 +42,9 @@ TVA::TVA(ControlRom::InstPartial &instPartial, uint8_t key, Settings *settings,
   _LFODepth = (instPartial.TVALFODepth & 0x7f) / 128.0;
 
   // TVA (volume) envelope
-  double phaseVolume[5];        // Phase volume for phase 1-5
-  double phaseDuration[5];      // Phase duration for phase 1-5
-  bool   phaseShape[5];         // Phase shape for phase 1-5
+  double  phaseVolume[5];        // Phase volume for phase 1-5
+  uint8_t phaseDuration[5];      // Phase duration for phase 1-5
+  bool    phaseShape[5];         // Phase shape for phase 1-5
 
   // Set adjusted values for volume (0-127) and time (seconds)
   phaseVolume[0] = _convert_volume(instPartial.TVAVolP1);
@@ -53,11 +53,11 @@ TVA::TVA(ControlRom::InstPartial &instPartial, uint8_t key, Settings *settings,
   phaseVolume[3] = _convert_volume(instPartial.TVAVolP4);
   phaseVolume[4] = 0;
 
-  phaseDuration[0] = _convert_time_to_sec(instPartial.TVALenP1 & 0x7F);
-  phaseDuration[1] = _convert_time_to_sec(instPartial.TVALenP2 & 0x7F, key);
-  phaseDuration[2] = _convert_time_to_sec(instPartial.TVALenP3 & 0x7F, key);
-  phaseDuration[3] = _convert_time_to_sec(instPartial.TVALenP4 & 0x7F, key);
-  phaseDuration[4] = _convert_time_to_sec(instPartial.TVALenP5 & 0x7F, key);
+  phaseDuration[0] = instPartial.TVALenP1 & 0x7F;
+  phaseDuration[1] = instPartial.TVALenP2 & 0x7F;
+  phaseDuration[2] = instPartial.TVALenP3 & 0x7F;
+  phaseDuration[3] = instPartial.TVALenP4 & 0x7F;
+  phaseDuration[4] = instPartial.TVALenP5 & 0x7F;
   phaseDuration[4] *= (instPartial.TVALenP5 & 0x80) ? 2 : 1;
 
   phaseShape[0] = (instPartial.TVALenP1 & 0x80) ? 0 : 1;
@@ -66,13 +66,10 @@ TVA::TVA(ControlRom::InstPartial &instPartial, uint8_t key, Settings *settings,
   phaseShape[3] = (instPartial.TVALenP4 & 0x80) ? 0 : 1;
   phaseShape[4] = (instPartial.TVALenP5 & 0x80) ? 0 : 1;
 
-  _ahdsr = new AHDSR(phaseVolume, phaseDuration, phaseShape, _sampleRate);
-  _ahdsr->start();
+  std::string id = "TVA (" + std::to_string(instPartial.partialIndex) + ")";
 
-  // TODO: Add envelope adjustments TVF attack, decay and release
-  // -> partSettings[(int) SysExPart::TVFAenvAttack]  - 0x40)
-  // -> partSettings[(int) SysExPart::TVFAenvDecay]   - 0x40)
-  // -> partSettings[(int) SysExPart::TVFAenvRelease] - 0x40)
+  _ahdsr = new AHDSR(phaseVolume, phaseDuration, phaseShape, key, settings, partId, id);
+  _ahdsr->start();
 }
 
 
@@ -92,15 +89,6 @@ double TVA::_convert_volume(uint8_t volume)
     res = 0;
 
   return res;
-}
-
-
-double TVA::_convert_time_to_sec(uint8_t time, uint8_t key)
-{
-  if (time == 0)
-    return 0;
-
-  return (pow(2.0, (double)(time) / 18.0) / 5.45 - 0.183) * (1 - (key / 128.0));
 }
 
 

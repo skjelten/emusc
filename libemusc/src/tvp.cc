@@ -72,7 +72,7 @@ TVP::TVP(ControlRom::InstPartial &instPartial, Settings *settings,int8_t partId)
 
   double phasePitchInit;        // Initial pitch for phase 1
   double phasePitch[5];         // Target phase pitch for phase 1-5
-  double phaseDuration[5];      // Phase duration for phase 1-5
+  uint8_t phaseDuration[5];     // Phase duration for phase 1-5
 
   phasePitchInit = instPartial.pitchLvlP0 - 0x40;
   phasePitch[0] = instPartial.pitchLvlP1 - 0x40;
@@ -81,13 +81,15 @@ TVP::TVP(ControlRom::InstPartial &instPartial, Settings *settings,int8_t partId)
   phasePitch[3] = instPartial.pitchLvlP4 - 0x40;
   phasePitch[4] = 0;
 
-  phaseDuration[0] = _convert_time_to_sec(instPartial.pitchDurP1 & 0x7F);
-  phaseDuration[1] = _convert_time_to_sec(instPartial.pitchDurP2 & 0x7F);
-  phaseDuration[2] = _convert_time_to_sec(instPartial.pitchDurP3 & 0x7F);
-  phaseDuration[3] = _convert_time_to_sec(instPartial.pitchDurP4 & 0x7F);
-  phaseDuration[4] = _convert_time_to_sec(instPartial.pitchDurP5 & 0x7F);
+  phaseDuration[0] = instPartial.pitchDurP1 & 0x7F;
+  phaseDuration[1] = instPartial.pitchDurP2 & 0x7F;
+  phaseDuration[2] = instPartial.pitchDurP3 & 0x7F;
+  phaseDuration[3] = instPartial.pitchDurP4 & 0x7F;
+  phaseDuration[4] = instPartial.pitchDurP5 & 0x7F;
 
-  _ahdsr = new AHDSR(phasePitchInit, phasePitch, phaseDuration, _sampleRate);
+  std::string id = "TVP (" + std::to_string(instPartial.partialIndex) + ")";
+
+  _ahdsr = new AHDSR(phasePitchInit, phasePitch, phaseDuration, settings, partId, id);
   _ahdsr->start();
 }
 
@@ -95,15 +97,6 @@ TVP::TVP(ControlRom::InstPartial &instPartial, Settings *settings,int8_t partId)
 TVP::~TVP()
 {
   delete _ahdsr;
-}
-
-
-double TVP::_convert_time_to_sec(uint8_t time)
-{
-  if (time == 0)
-    return 0;
-
-  return (pow(2.0, (double)(time) / 18.0) / 5.45 - 0.183);
 }
 
 

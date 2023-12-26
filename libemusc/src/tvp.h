@@ -110,8 +110,6 @@ v127: 5.2 // 0
 
   TVP();
 
-  double _convert_time_to_sec(uint8_t time);
-
 };
 
 }

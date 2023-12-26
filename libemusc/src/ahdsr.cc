@@ -23,11 +23,16 @@
 #include <iostream>
 #include <string.h>
 
+
 namespace EmuSC {
 
 
-AHDSR::AHDSR(double value[5], double duration[5], bool shape[5], uint32_t sampleRate)
-  : _sampleRate(sampleRate),
+AHDSR::AHDSR(double value[5], uint8_t duration[5], bool shape[5], int key, Settings *settings, int8_t partId, std::string id)
+  : _id(id),
+    _sampleRate(settings->get_param_uint32(SystemParam::SampleRate)),
+    _key(key),
+    _settings(settings),
+    _partId(partId),
     _phase(ahdsr_Off),
     _terminalPhase(ahdsr_Release),
     _currentValue(0),
@@ -40,7 +45,7 @@ AHDSR::AHDSR(double value[5], double duration[5], bool shape[5], uint32_t sample
   }
 
   if (0)
-    std::cout << "\nNew TVA AHDSR envelope:" << std::endl << std::dec
+    std::cout << "\nNew AHDSR envelope: " << _id << std::endl << std::dec
 	      << " Attack:  -> V=" << (double) _phaseValue[0]
 	      << " T=" << (float) _phaseDuration[0]
 	      << " S=" << _phaseShape[0]
@@ -60,15 +65,20 @@ AHDSR::AHDSR(double value[5], double duration[5], bool shape[5], uint32_t sample
 	      << " Release: -> V=" << (double) _phaseValue[4]
 	      << " T=" << (float) _phaseDuration[4]
 	      << " S=" << _phaseShape[4]
-	      << std::endl;
+	      << std::endl
+	      << " Key=" << key << std::endl;
 
   // Debug output for plotting in Octave
   // _sampleNum = 0; _ofs.open("/tmp/TVA.txt", std::ios_base::trunc);
 }
 
 
-AHDSR::AHDSR(double init, double value[5], double duration[5], uint32_t sampleRate)
-  : _sampleRate(sampleRate),
+AHDSR::AHDSR(double init, double value[5], uint8_t duration[5], Settings *settings, int8_t partId, std::string id)
+  : _id(id),
+    _sampleRate(settings->get_param_uint32(SystemParam::SampleRate)),
+    _key(-1),
+    _settings(settings),
+    _partId(partId),
     _phase(ahdsr_Off),
     _terminalPhase(ahdsr_Release),
     _currentValue(init),
@@ -81,7 +91,8 @@ AHDSR::AHDSR(double init, double value[5], double duration[5], uint32_t sampleRa
   }
 
   if (0)
-    std::cout << "\nNew TVF/TVP AHDSR envelope:" << std::endl << std::dec
+    std::cout << "\nNew AHDSR envelope: " << _id << std::endl << std::dec
+	      << " Init:    -> F/P=" << init << std::endl
 	      << " Attack:  -> F/P=" << (double) _phaseValue[0]
 	      << " T=" << (float) _phaseDuration[0]
 	      << " S=" << _phaseShape[0]
@@ -120,7 +131,7 @@ void AHDSR::start(void)
 }
 
   
-  void AHDSR::_init_new_phase(enum Phase newPhase)
+void AHDSR::_init_new_phase(enum Phase newPhase)
 {
   if (newPhase == ahdsr_Off) {
     std::cerr << "libEmuSC: Internal error, envelope in illegal state"
@@ -129,15 +140,49 @@ void AHDSR::start(void)
   }
 
   _phaseInitValue = _currentValue;
-  _phaseSampleLen = round(_phaseDuration[newPhase] * _sampleRate);
+
+  int durationTotal = _phaseDuration[newPhase];
+  if (newPhase == ahdsr_Attack) {
+    durationTotal += _settings->get_param(PatchParam::TVFAEnvAttack, _partId)
+                     - 0x40;
+
+  } else if (newPhase == ahdsr_Decay) {
+    durationTotal += _settings->get_param(PatchParam::TVFAEnvDecay, _partId)
+                     - 0x40;
+
+  } else if (newPhase == ahdsr_Release) {
+    durationTotal += _settings->get_param(PatchParam::TVFAEnvRelease, _partId)
+                     - 0x40;
+  }
+
+  // Make sure synth settings does not go outside valid values
+  if (durationTotal < 0) durationTotal = 0;
+  if (durationTotal > 127) durationTotal = 127;
+
+  double phaseDurationSec = _convert_time_to_sec((int8_t) durationTotal, _key);
+  _phaseSampleLen = round(phaseDurationSec * _sampleRate);
+
   _phaseSampleIndex = 0;
   _phase = newPhase;
   
   if (0)
-    std::cout << "New envelope phase [" << _phase
-	      << "]: numSamples=" << (int) _phaseSampleLen
-	      << " value " << _phaseInitValue
-	      << " -> " << _phaseValue[_phase] << std::endl;
+    std::cout << "New " << _id << " envelope phase: -> " << _phase
+	      << " (" << _phaseName[_phase] << ")"
+	      << ": len = " << phaseDurationSec << "s"
+	      << " (" << _phaseSampleLen << " samples)"
+	      << " val = " << _phaseInitValue << " -> " << _phaseValue[_phase]
+	      << std::endl;
+}
+
+
+// TODO: Change this to use the LUT found in the control ROM
+// The function used instead is a good approximation proposed by Kitrinx
+double AHDSR::_convert_time_to_sec(uint8_t time, int key)
+{
+  if (key < 0)
+    return (pow(2.0, (double)(time) / 18.0) / 5.45 - 0.183);
+
+  return (pow(2.0, (double)(time) / 18.0) / 5.45 - 0.183) * (1 - (key / 128.0));
 }
 
 

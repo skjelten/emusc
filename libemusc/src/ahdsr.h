@@ -21,7 +21,11 @@
 #define __AHDSR_H__
 
 
+#include "settings.h"
+
 #include <stdint.h>
+
+#include <string>
 
 
 namespace EmuSC {
@@ -30,8 +34,8 @@ namespace EmuSC {
 class AHDSR
 {
 public:
-  AHDSR(double value[5], double duration[5], bool shape[5],uint32_t sampleRate);
-  AHDSR(double init, double value[5], double duration[5], uint32_t sampleRate);
+  AHDSR(double value[5], uint8_t duration[5], bool shape[5], int key, Settings *settings, int8_t partId, std::string id);
+  AHDSR(double init, double value[5], uint8_t duration[5], Settings *settings, int8_t partId, std::string id);
   ~AHDSR();
 
   void start(void);
@@ -41,9 +45,9 @@ public:
   inline bool finished(void) { return _finished; }
 
 private:
-  double _phaseValue[5];
-  double _phaseDuration[5];
-  bool   _phaseShape[5];        // Phase 0 = linear, 1 = logarithmic
+  double  _phaseValue[5];
+  uint8_t _phaseDuration[5];
+  bool    _phaseShape[5];        // Phase 0 = linear, 1 = logarithmic
 
   bool _finished;               // Flag indicating whether enveolope is finished
 
@@ -67,9 +71,19 @@ private:
   enum Phase _phase;
   enum Phase _terminalPhase;
 
+  int _key;
+
+  Settings *_settings;
+  int8_t _partId;
+
+  std::string _id;
+  const char *_phaseName[5] = { "Attack", "Hold", "Decay",
+				"Sustain", "Release" };
+
   AHDSR();
 
   void _init_new_phase(enum Phase newPhase);
+  double _convert_time_to_sec(uint8_t time, int key = -1);
 
 //  uint32_t _sampleNum;
 //  std::ofstream _ofs;

@@ -74,7 +74,7 @@ TVF::TVF(ControlRom::InstPartial &instPartial, uint8_t key, Settings *settings,
   // Create filter envelope
   double phaseLevelInit;     // Initial level (frequency) before phase 1
   double phaseLevel[5];      // Phase level for phase 1-5
-  double phaseDuration[5];   // Phase duration for phase 1-5
+  uint8_t phaseDuration[5];   // Phase duration for phase 1-5
 
   // Set adjusted values for frequencies (0-127) and time (seconds)
   phaseLevelInit =instPartial.TVFLvlInit;
@@ -84,19 +84,16 @@ TVF::TVF(ControlRom::InstPartial &instPartial, uint8_t key, Settings *settings,
   phaseLevel[3] = instPartial.TVFLvlP4;
   phaseLevel[4] = instPartial.TVFLvlP5;
 
-  phaseDuration[0] = _convert_time_to_sec(instPartial.TVFDurP1 & 0x7F);
-  phaseDuration[1] = _convert_time_to_sec(instPartial.TVFDurP2 & 0x7F);
-  phaseDuration[2] = _convert_time_to_sec(instPartial.TVFDurP3 & 0x7F);
-  phaseDuration[3] = _convert_time_to_sec(instPartial.TVFDurP4 & 0x7F);
-  phaseDuration[4] = _convert_time_to_sec(instPartial.TVFDurP5 & 0x7F);
+  phaseDuration[0] = instPartial.TVFDurP1 & 0x7F;
+  phaseDuration[1] = instPartial.TVFDurP2 & 0x7F;
+  phaseDuration[2] = instPartial.TVFDurP3 & 0x7F;
+  phaseDuration[3] = instPartial.TVFDurP4 & 0x7F;
+  phaseDuration[4] = instPartial.TVFDurP5 & 0x7F;
 
-  _ahdsr = new AHDSR(phaseLevelInit, phaseLevel, phaseDuration, _sampleRate);
+  std::string id = "TVF (" + std::to_string(instPartial.partialIndex) + ")";
+
+  _ahdsr = new AHDSR(phaseLevelInit, phaseLevel, phaseDuration, settings, partId, id);
   _ahdsr->start();
-
-  // TODO: Add envelope adjustments TVF attack, decay and release
-  // -> partSettings[(int) SysExPart::TVFAenvAttack]  - 0x40)
-  // -> partSettings[(int) SysExPart::TVFAenvDecay]   - 0x40)
-  // -> partSettings[(int) SysExPart::TVFAenvRelease] - 0x40)
 
   if (0)
     std::cout << "TVF (" << (int) key << "): freq=" << _lpBaseFrequency
@@ -111,15 +108,6 @@ TVF::~TVF()
 
   if (_lpFilter)
     delete _lpFilter;
-}
-
-
-double TVF::_convert_time_to_sec(uint8_t time)
-{
-  if (time == 0)
-    return 0;
-
-  return (pow(2.0, (double)(time) / 18.0) / 5.45 - 0.183);
 }
 
 
