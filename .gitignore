@@ -19,3 +19,5 @@ libemusc/src/config.h
 libemusc/src/libemusc.so
 libemusc/src/libemusc.dll
 libemusc/src/libemusc.dynlib
+
+.qt/
