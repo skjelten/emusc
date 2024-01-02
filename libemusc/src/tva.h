@@ -50,12 +50,17 @@ private:
   uint32_t _sampleRate;
 
   Wavetable _LFO;
-  float _LFODepth;
+  float _LFODepthPartial;
 
   AHDSR *_ahdsr;
   bool _finished;
   
   ControlRom::InstPartial *_instPartial;
+
+  int _tremoloBaseFreq;
+
+  Settings *_settings;
+  int8_t _partId;
 
   TVA();
 

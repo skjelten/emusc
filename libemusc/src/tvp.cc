@@ -55,7 +55,7 @@ TVP::TVP(ControlRom::InstPartial &instPartial, Settings *settings,int8_t partId)
   _vibratoBaseFreq = lfoRateTable[settings->get_param(PatchParam::ToneNumber2,
 						      partId)];
 
-  _LFODepth = (instPartial.TVPLFODepth & 0x7f);       // LFOPartDepth
+  _LFODepthPartial = (instPartial.TVPLFODepth & 0x7f);
 
   // TODO:
   _delay = 0;//sampleRate / 2;
@@ -102,21 +102,16 @@ TVP::~TVP()
 
 double TVP::get_pitch()
 {
+  // TODO: Implement support for a separate LFO2
   // LFO rate: Linear between 0 and 9 Hz.
   // TODO: Find a function or LUT to also correctly handle higher frequencies
-  float freq = _vibratoBaseFreq + (_settings->get_param(PatchParam::VibratoRate,
-							_partId) - 0x40) * 0.1;
+  float freq = _vibratoBaseFreq +
+    ((_settings->get_param(PatchParam::VibratoRate, _partId) - 0x80 +
+      _settings->get_param(PatchParam::Acc_LFO1RateControl, _partId)) * 0.1);
   if (freq > 0)
     _LFO.set_frequency(freq);
   else
     _LFO.set_frequency(0);
-
-  // TODO: Properly handle ModWheel with all paramters from
-  //       "Modulation Controller #1"
-  float modWheelPitch = 0;
-  uint8_t modWheel = _settings->get_param(PatchParam::Modulation, _partId);
-  if (modWheel)
-    modWheelPitch = 0.001;
 
   // TODO: Move recalculation of vibrato depth to separate function when values
   // change
@@ -126,19 +121,19 @@ double TVP::get_pitch()
     vibrato = 1;
 
   } else {
-
-    int lfoDepth2 = _LFODepth +
-      _settings->get_param(PatchParam::VibratoDepth, _partId) - 0x40;
-    float lfoDepth3 = 0.0011 * lfoDepth2;
-    if (lfoDepth3 < 0) lfoDepth3 = 0;
+    int lfoDepthParam = _LFODepthPartial +
+      _settings->get_param(PatchParam::VibratoDepth, _partId) - 0x40 +
+      _settings->get_param(PatchParam::Acc_LFO1PitchDepth, _partId);
+    float lfoDepth = lfoDepthParam * 0.0011;
+    if (lfoDepth < 0) lfoDepth = 0;
 
     if (_fadeIn > 0) {                                 // Fade in
       _fadeIn--;
       _fade += _fadeInStep;
-      vibrato = 1 + (_LFO.next_sample() * _fade * lfoDepth3);
+      vibrato = 1 + (_LFO.next_sample() * _fade * lfoDepth);
 
     } else {                                                  // Full vibrato
-      vibrato = 1 + (_LFO.next_sample() * lfoDepth3); // + modWheelPitch));
+      vibrato = 1 + (_LFO.next_sample() * lfoDepth);
     }
   }
 
@@ -150,10 +145,6 @@ double TVP::get_pitch()
   double pEnv = 1;
   if (_ahdsr)
     pEnv += _ahdsr->get_next_value() * 0.01;
-
-  if (0)
-    std::cout << "v=" << vibrato << ", mw=" << modWheel
-	      << " depth=" << _LFODepth <<  std::endl;
 
   return vibrato * pEnv;
 }

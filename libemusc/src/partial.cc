@@ -185,6 +185,7 @@ bool Partial::get_next_sample(float *noteSample)
   double sample[2] = {0, 0};
   sample[0] = _sample;
 
+  // TODO: Move all static volume calculations to constructor
   // Calculate volume correction from sample definition (7f - 0)
   double sampleVol = _convert_volume(_ctrlSample->volume +
 				     ((_ctrlSample->fineVolume- 1024) /1000.0));
@@ -198,8 +199,10 @@ bool Partial::get_next_sample(float *noteSample)
     drumVol = _convert_volume(_settings->get_param(DrumParam::Level, _drumMap,
 						   _key));
 
+  float ctrlVol = _settings->get_param(PatchParam::Acc_AmplitudeControl, _partId) / 64.0;
+
   // Apply volume changes
-  sample[0] *= sampleVol * partialVol * drumVol;
+  sample[0] *= sampleVol * partialVol * drumVol * ctrlVol;
 
   // Apply TVF
 // NOTE: TEMPORARILY DISABLED

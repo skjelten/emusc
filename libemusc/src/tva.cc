@@ -28,18 +28,20 @@ namespace EmuSC {
 
 TVA::TVA(ControlRom::InstPartial &instPartial, uint8_t key, Settings *settings,
 	 int8_t partId)
-  : _sampleRate(settings->get_param_uint32(SystemParam::SampleRate)),
+  : _settings(settings),
+    _partId(partId),
+    _sampleRate(settings->get_param_uint32(SystemParam::SampleRate)),
     _LFO(_sampleRate),
     _finished(false),
     _ahdsr(NULL)
 {
   // TODO: Figure out how the sine wave for amplitude modulation is found on the
   //       Sound Canvas. In the meantime utilize a simple wavetable with 5Hz.
-  _LFO.set_frequency(5);
+  _tremoloBaseFreq = 5;
 
   // TODO: Find LUT or formula for using amplitude LFO Depth. For now just
   //       using a static approximation.
-  _LFODepth = (instPartial.TVALFODepth & 0x7f) / 128.0;
+  _LFODepthPartial = (instPartial.TVALFODepth & 0x7f) / 128.0;
 
   // TVA (volume) envelope
   double  phaseVolume[5];        // Phase volume for phase 1-5
@@ -94,20 +96,23 @@ double TVA::_convert_volume(uint8_t volume)
 
 double TVA::get_amplification(void)
 {
-  // LFO / tremolo hack
-  // TODO: Figure out how the LFOs are implemented and used on the Sound Canvas
-  //       3 LFOs, one for TVP/F/A? 6 LFOs due to individual partials?
-  //       Sound tests indicates that individual notes even on the same MIDI
-  //       channel are out of phase.. unlimited number of LFOs? And how does
-  //       this relate to LFO1 & LFO2 as referred to in the SysEx implementation
-  //       chart?
+  float freq = _tremoloBaseFreq +
+    (_settings->get_param(PatchParam::Acc_LFO1RateControl, _partId)-0x40) * 0.1;
+  if (freq > 0)
+    _LFO.set_frequency(freq);
+  else
+    _LFO.set_frequency(0);
 
-  // For now just use a simple sine wavetable class for tremolo; one instance
-  // per tvp/f/a per partial.
-  double tremolo = (double) _LFO.next_sample() * _LFODepth;
+  int lfoDepthParam = _LFODepthPartial +
+    _settings->get_param(PatchParam::Acc_LFO1TVADepth, _partId);
+  float lfoDepth = lfoDepthParam * 0.005;           // TODO: Find correct factor
+  if (lfoDepth < 0) lfoDepth = 0;
+
+  double tremolo = (double) _LFO.next_sample() * lfoDepth;
 
   if (0)
-    std::cout << "Tremolo = " << tremolo << "  depth = " << (int) _LFODepth
+    std::cout << "Tremolo = " << tremolo
+	      << " freq=" << freq << " depth = " << lfoDepth
 	      << std::endl;
 
   // Volume envelope

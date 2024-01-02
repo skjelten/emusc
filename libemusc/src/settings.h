@@ -120,6 +120,12 @@ private:
   void _run_macro_chorus(uint8_t value);
   void _run_macro_reverb(uint8_t value);
 
+  // Update accumulated controller inputs
+  void _update_controller_input(enum PatchParam pp, uint8_t value, int8_t part);
+  void _update_controller_input_acc(enum PatchParam pp, int8_t part);
+  void _accumulate_controller_values(enum PatchParam ctm, enum PatchParam acc,
+				     int8_t partm, int min, int max, bool center);
+
   // Temporary storage for pitchbend
   float _PBController[16];
 };

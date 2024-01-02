@@ -661,6 +661,13 @@ void Synth::_midi_input_sysex_DT1(uint8_t model, uint8_t *data, uint16_t length)
 	return;
       }
 
+      // Verify that entire address is actually valid
+      if (data[2] > 0x5a) {
+	std::cerr << "libemusc: Roland SysEx message has invalid address! "
+		  << "Message discarded." << std::endl;
+	return;
+      }
+
       uint16_t address = data[2] | (data[1] << 8);
       _settings->set_patch_param(address, &data[3], 1);
 

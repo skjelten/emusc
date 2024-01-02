@@ -56,6 +56,7 @@ enum class SystemParam : int {
 enum class PatchParam : int {
 
   // Part 1: Settings defined by SysEx chart
+  // =======================================
   // These settings can be both requested and modified by SysEx messages
 
   PatchName           = 0x0100,
@@ -152,6 +153,8 @@ enum class PatchParam : int {
   ScaleTuningB        = 0x104b,    // [0x00 - 0x7f : 0x40], -63 - 63 cent
 
   // Controller setttings (0x41 0x2P 0xXX)
+  // These settings contains the current value for each controller parameter.
+
   // Modulator
   MOD_PitchControl    = 0x2000,    // [0x20 - 0x58 : 0x40], -24 - +24 semitones
   MOD_TVFCutoffControl= 0x2001,    // [0x00 - 0x7f : 0x40], -9600 - 9600 cent
@@ -170,7 +173,7 @@ enum class PatchParam : int {
   PB_TVFCutoffControl = 0x2011,    // [0x00 - 0x7f : 0x40], -9600 - 9600 cent
   PB_AmplitudeControl = 0x2012,    // [0x00 - 0x7f : 0x40], -100.0 - 100.0 %
   PB_LFO1RateControl  = 0x2013,    // [0x00 - 0x7f : 0x40], -10.0 - 10.0 Hz
-  PB_LFO1PitchDepth   = 0x2014,    // [0x00 - 0x7f : 0x0a], 0 - 600 cent
+  PB_LFO1PitchDepth   = 0x2014,    // [0x00 - 0x7f : 0x00], 0 - 600 cent
   PB_LFO1TVFDepth     = 0x2015,    // [0x00 - 0x7f : 0x00], 0 - 2400 cent
   PB_LFO1TVADepth     = 0x2016,    // [0x00 - 0x7f : 0x00], 0 - 100.0 %
   PB_LFO2RateControl  = 0x2017,    // [0x00 - 0x7f : 0x40], -10.0 - 10.0 Hz
@@ -183,7 +186,7 @@ enum class PatchParam : int {
   CAf_TVFCutoffControl= 0x2021,    // [0x00 - 0x7f : 0x40], -9600 - 9600 cent
   CAf_AmplitudeControl= 0x2022,    // [0x00 - 0x7f : 0x40], -100.0 - 100.0 %
   CAf_LFO1RateControl = 0x2023,    // [0x00 - 0x7f : 0x40], -10.0 - 10.0 Hz
-  CAf_LFO1PitchDepth  = 0x2024,    // [0x00 - 0x7f : 0x0a], 0 - 600 cent
+  CAf_LFO1PitchDepth  = 0x2024,    // [0x00 - 0x7f : 0x00], 0 - 600 cent
   CAf_LFO1TVFDepth    = 0x2025,    // [0x00 - 0x7f : 0x00], 0 - 2400 cent
   CAf_LFO1TVADepth    = 0x2026,    // [0x00 - 0x7f : 0x00], 0 - 100.0 %
   CAf_LFO2RateControl = 0x2027,    // [0x00 - 0x7f : 0x40], -10.0 - 10.0 Hz
@@ -196,7 +199,7 @@ enum class PatchParam : int {
   PAf_TVFCutoffControl= 0x2031,    // [0x00 - 0x7f : 0x40], -9600 - 9600 cent
   PAf_AmplitudeControl= 0x2032,    // [0x00 - 0x7f : 0x40], -100.0 - 100.0 %
   PAf_LFO1RateControl = 0x2033,    // [0x00 - 0x7f : 0x40], -10.0 - 10.0 Hz
-  PAf_LFO1PitchDepth  = 0x2034,    // [0x00 - 0x7f : 0x0a], 0 - 600 cent
+  PAf_LFO1PitchDepth  = 0x2034,    // [0x00 - 0x7f : 0x00], 0 - 600 cent
   PAf_LFO1TVFDepth    = 0x2035,    // [0x00 - 0x7f : 0x00], 0 - 2400 cent
   PAf_LFO1TVADepth    = 0x2036,    // [0x00 - 0x7f : 0x00], 0 - 100.0 %
   PAf_LFO2RateControl = 0x2037,    // [0x00 - 0x7f : 0x40], -10.0 - 10.0 Hz
@@ -209,7 +212,7 @@ enum class PatchParam : int {
   CC1_TVFCutoffControl= 0x2041,    // [0x00 - 0x7f : 0x40], -9600 - 9600 cent
   CC1_AmplitudeControl= 0x2042,    // [0x00 - 0x7f : 0x40], -100.0 - 100.0 %
   CC1_LFO1RateControl = 0x2043,    // [0x00 - 0x7f : 0x40], -10.0 - 10.0 Hz
-  CC1_LFO1PitchDepth  = 0x2044,    // [0x00 - 0x7f : 0x0a], 0 - 600 cent
+  CC1_LFO1PitchDepth  = 0x2044,    // [0x00 - 0x7f : 0x00], 0 - 600 cent
   CC1_LFO1TVFDepth    = 0x2045,    // [0x00 - 0x7f : 0x00], 0 - 2400 cent
   CC1_LFO1TVADepth    = 0x2046,    // [0x00 - 0x7f : 0x00], 0 - 100.0 %
   CC1_LFO2RateControl = 0x2047,    // [0x00 - 0x7f : 0x40], -10.0 - 10.0 Hz
@@ -222,7 +225,7 @@ enum class PatchParam : int {
   CC2_TVFCutoffControl= 0x2051,    // [0x00 - 0x7f : 0x40], -9600 - 9600 cent
   CC2_AmplitudeControl= 0x2052,    // [0x00 - 0x7f : 0x40], -100.0 - 100.0 %
   CC2_LFO1RateControl = 0x2053,    // [0x00 - 0x7f : 0x40], -10.0 - 10.0 Hz
-  CC2_LFO1PitchDepth  = 0x2054,    // [0x00 - 0x7f : 0x0a], 0 - 600 cent
+  CC2_LFO1PitchDepth  = 0x2054,    // [0x00 - 0x7f : 0x00], 0 - 600 cent
   CC2_LFO1TVFDepth    = 0x2055,    // [0x00 - 0x7f : 0x00], 0 - 2400 cent
   CC2_LFO1TVADepth    = 0x2056,    // [0x00 - 0x7f : 0x00], 0 - 100.0 %
   CC2_LFO2RateControl = 0x2057,    // [0x00 - 0x7f : 0x40], -10.0 - 10.0 Hz
@@ -237,15 +240,114 @@ enum class PatchParam : int {
 //  OutputAssign        = 0x4021,     // [SC-88Pro]
 //  PartEfxAssign       = 0x4022,     // [SC-88Pro]
 
-  // Part 2: Settings outside SysEx chart
 
-  // Status controller inputs
-  PitchBend           = 0x1080,    // 2B [0x00 - 0x4000 : 0x2000]
-  Modulation          = 0x1082,    // [0x00 - 0x7f]
-  CC1Controller       = 0x1083,    // [0x00 - 0x7f : 0]
-  CC2Controller       = 0x1084,    // [0x00 - 0x7f : 0]
-  ChannelPressure     = 0x1085,    // [0x00 - 0x7f : 0]
-  PolyKeyPressure     = 0x1086,    // [0x00 - 0x7f : 0] pr. key. Need an array?
+  // Part 2: Settings outside SysEx chart
+  // ====================================
+  // The following settings contains the latest controller inputs. These
+  // values are controller parameter states multiplied with controller value.
+  // The values of these controller inputs are updated whenever a controller
+  // changes value.
+
+  // Modulator
+  CtM_PitchControl    = 0x2060,    // [0x20 - 0x58 : 0x40], -24 - +24 semitones
+  CtM_TVFCutoffControl= 0x2061,    // [0x00 - 0x7f : 0x40], -9600 - 9600 cent
+  CtM_AmplitudeControl= 0x2062,    // [0x00 - 0x7f : 0x40], -100.0 - 100.0 %
+  CtM_LFO1RateControl = 0x2063,    // [0x00 - 0x7f : 0x40], -10.0 - 10.0 Hz
+  CtM_LFO1PitchDepth  = 0x2064,    // [0x00 - 0x7f : 0x0a], 0 - 600 cent
+  CtM_LFO1TVFDepth    = 0x2065,    // [0x00 - 0x7f : 0x00], 0 - 2400 cent
+  CtM_LFO1TVADepth    = 0x2066,    // [0x00 - 0x7f : 0x00], 0 - 100.0 %
+  CtM_LFO2RateControl = 0x2067,    // [0x00 - 0x7f : 0x40], -10.0 - 10.0 Hz
+  CtM_LFO2PitchDepth  = 0x2068,    // [0x00 - 0x7f : 0x00], 0 - 600 cent
+  CtM_LFO2TVFDepth    = 0x2069,    // [0x00 - 0x7f : 0x00], 0 - 2400 cent
+  CtM_LFO2TVADepth    = 0x206a,    // [0x00 - 0x7f : 0x00], 0 - 100.0 %
+
+  // Pitch Bend
+  CtB_PitchControl    = 0x2070,    // [0x40 - 0x58 : 0x40], 0 - +24 semitones 2B
+  CtB_TVFCutoffControl= 0x2071,    // [0x00 - 0x7f : 0x40], -9600 - 9600 cent
+  CtB_AmplitudeControl= 0x2072,    // [0x00 - 0x7f : 0x40], -100.0 - 100.0 %
+  CtB_LFO1RateControl = 0x2073,    // [0x00 - 0x7f : 0x40], -10.0 - 10.0 Hz
+  CtB_LFO1PitchDepth  = 0x2074,    // [0x00 - 0x7f : 0x00], 0 - 600 cent
+  CtB_LFO1TVFDepth    = 0x2075,    // [0x00 - 0x7f : 0x00], 0 - 2400 cent
+  CtB_LFO1TVADepth    = 0x2076,    // [0x00 - 0x7f : 0x00], 0 - 100.0 %
+  CtB_LFO2RateControl = 0x2077,    // [0x00 - 0x7f : 0x40], -10.0 - 10.0 Hz
+  CtB_LFO2PitchDepth  = 0x2078,    // [0x00 - 0x7f : 0x00], 0 - 600 cent
+  CtB_LFO2TVFDepth    = 0x2079,    // [0x00 - 0x7f : 0x00], 0 - 2400 cent
+  CtB_LFO2TVADepth    = 0x207a,    // [0x00 - 0x7f : 0x00], 0 - 100.0 %
+
+  // Channel Aftertouch
+  CtC_PitchControl    = 0x2080,    // [0x20 - 0x58 : 0x40], -24 - +24 semitones
+  CtC_TVFCutoffControl= 0x2081,    // [0x00 - 0x7f : 0x40], -9600 - 9600 cent
+  CtC_AmplitudeControl= 0x2082,    // [0x00 - 0x7f : 0x40], -100.0 - 100.0 %
+  CtC_LFO1RateControl = 0x2083,    // [0x00 - 0x7f : 0x40], -10.0 - 10.0 Hz
+  CtC_LFO1PitchDepth  = 0x2084,    // [0x00 - 0x7f : 0x00], 0 - 600 cent
+  CtC_LFO1TVFDepth    = 0x2085,    // [0x00 - 0x7f : 0x00], 0 - 2400 cent
+  CtC_LFO1TVADepth    = 0x2086,    // [0x00 - 0x7f : 0x00], 0 - 100.0 %
+  CtC_LFO2RateControl = 0x2087,    // [0x00 - 0x7f : 0x40], -10.0 - 10.0 Hz
+  CtC_LFO2PitchDepth  = 0x2088,    // [0x00 - 0x7f : 0x00], 0 - 600 cent
+  CtC_LFO2TVFDepth    = 0x2089,    // [0x00 - 0x7f : 0x00], 0 - 2400 cent
+  CtC_LFO2TVADepth    = 0x208a,    // [0x00 - 0x7f : 0x00], 0 - 100.0 %
+
+  // Poly Aftertouch
+  CtP_PitchControl    = 0x2090,    // [0x20 - 0x58 : 0x40], -24 - +24 semitones
+  CtP_TVFCutoffControl= 0x2091,    // [0x00 - 0x7f : 0x40], -9600 - 9600 cent
+  CtP_AmplitudeControl= 0x2092,    // [0x00 - 0x7f : 0x40], -100.0 - 100.0 %
+  CtP_LFO1RateControl = 0x2093,    // [0x00 - 0x7f : 0x40], -10.0 - 10.0 Hz
+  CtP_LFO1PitchDepth  = 0x2094,    // [0x00 - 0x7f : 0x00], 0 - 600 cent
+  CtP_LFO1TVFDepth    = 0x2095,    // [0x00 - 0x7f : 0x00], 0 - 2400 cent
+  CtP_LFO1TVADepth    = 0x2096,    // [0x00 - 0x7f : 0x00], 0 - 100.0 %
+  CtP_LFO2RateControl = 0x2097,    // [0x00 - 0x7f : 0x40], -10.0 - 10.0 Hz
+  CtP_LFO2PitchDepth  = 0x2098,    // [0x00 - 0x7f : 0x00], 0 - 600 cent
+  CtP_LFO2TVFDepth    = 0x2099,    // [0x00 - 0x7f : 0x00], 0 - 2400 cent
+  CtP_LFO2TVADepth    = 0x209a,    // [0x00 - 0x7f : 0x00], 0 - 100.0 %
+
+  // CC#1
+  Ct1_PitchControl    = 0x20a0,    // [0x20 - 0x58 : 0x40], -24 - +24 semitones
+  Ct1_TVFCutoffControl= 0x20a1,    // [0x00 - 0x7f : 0x40], -9600 - 9600 cent
+  Ct1_AmplitudeControl= 0x20a2,    // [0x00 - 0x7f : 0x40], -100.0 - 100.0 %
+  Ct1_LFO1RateControl = 0x20a3,    // [0x00 - 0x7f : 0x40], -10.0 - 10.0 Hz
+  Ct1_LFO1PitchDepth  = 0x20a4,    // [0x00 - 0x7f : 0x00], 0 - 600 cent
+  Ct1_LFO1TVFDepth    = 0x20a5,    // [0x00 - 0x7f : 0x00], 0 - 2400 cent
+  Ct1_LFO1TVADepth    = 0x20a6,    // [0x00 - 0x7f : 0x00], 0 - 100.0 %
+  Ct1_LFO2RateControl = 0x20a7,    // [0x00 - 0x7f : 0x40], -10.0 - 10.0 Hz
+  Ct1_LFO2PitchDepth  = 0x20a8,    // [0x00 - 0x7f : 0x00], 0 - 600 cent
+  Ct1_LFO2TVFDepth    = 0x20a9,    // [0x00 - 0x7f : 0x00], 0 - 2400 cent
+  Ct1_LFO2TVADepth    = 0x20aa,    // [0x00 - 0x7f : 0x00], 0 - 100.0 %
+
+  // CC#2
+  Ct2_PitchControl    = 0x20b0,    // [0x20 - 0x58 : 0x40], -24 - 24 semitones
+  Ct2_TVFCutoffControl= 0x20b1,    // [0x00 - 0x7f : 0x40], -9600 - 9600 cent
+  Ct2_AmplitudeControl= 0x20b2,    // [0x00 - 0x7f : 0x40], -100.0 - 100.0 %
+  Ct2_LFO1RateControl = 0x20b3,    // [0x00 - 0x7f : 0x40], -10.0 - 10.0 Hz
+  Ct2_LFO1PitchDepth  = 0x20b4,    // [0x00 - 0x7f : 0x00], 0 - 600 cent
+  Ct2_LFO1TVFDepth    = 0x20b5,    // [0x00 - 0x7f : 0x00], 0 - 2400 cent
+  Ct2_LFO1TVADepth    = 0x20b6,    // [0x00 - 0x7f : 0x00], 0 - 100.0 %
+  Ct2_LFO2RateControl = 0x20b7,    // [0x00 - 0x7f : 0x40], -10.0 - 10.0 Hz
+  Ct2_LFO2PitchDepth  = 0x20b8,    // [0x00 - 0x7f : 0x00], 0 - 600 cent
+  Ct2_LFO2TVFDepth    = 0x20b9,    // [0x00 - 0x7f : 0x00], 0 - 2400 cent
+  Ct2_LFO2TVADepth    = 0x20ba,    // [0x00 - 0x7f : 0x00], 0 - 100.0 %
+
+  // And finally a list of controller parameters that contains accumulated
+  // values from all 6 controllers. Updated at the same time as the controller
+  // inputs above, i.e. whenever a controller changes value.
+  Acc_PitchControl    = 0x20f0,    // [0x0000 - 0x7f7f : 0x4000], Note: 2 Bytes
+  Acc_TVFCutoffControl= 0x20f2,    // [0x00 - 0x7f : 0x40]
+  Acc_AmplitudeControl= 0x20f3,    // [0x00 - 0x7f : 0x40]
+  Acc_LFO1RateControl = 0x20f4,    // [0x00 - 0x7f : 0x40]
+  Acc_LFO1PitchDepth  = 0x20f5,    // [0x00 - 0x7f : 0x00]
+  Acc_LFO1TVFDepth    = 0x20f6,    // [0x00 - 0x7f : 0x00]
+  Acc_LFO1TVADepth    = 0x20f7,    // [0x00 - 0x7f : 0x00]
+  Acc_LFO2RateControl = 0x20f8,    // [0x00 - 0x7f : 0x40]
+  Acc_LFO2PitchDepth  = 0x20f9,    // [0x00 - 0x7f : 0x00]
+  Acc_LFO2TVFDepth    = 0x20fa,    // [0x00 - 0x7f : 0x00]
+  Acc_LFO2TVADepth    = 0x20fb,    // [0x00 - 0x7f : 0x00]
+
+  // Controller state values
+  Modulation          = 0x1080,    // [0x00 - 0x7f]
+  PitchBend           = 0x1081,    // [0x00 - 0x4000 : 0x2000] Note: 2 Bytes!
+  ChannelPressure     = 0x1083,    // [0x00 - 0x7f : 0]
+  PolyKeyPressure     = 0x1084,    // [0x00 - 0x7f : 0] pr. key. Need an array?
+  CC1Controller       = 0x1085,    // [0x00 - 0x7f : 0]
+  CC2Controller       = 0x1086,    // [0x00 - 0x7f : 0]
   Hold1               = 0x1087,    // [0x00 - 0x7f : 0] 0-63: OFF, 64-127: ON
   Sostenuto           = 0x1088,    // [0x00 - 0x7f : 0] 0-63: OFF, 64-127: ON
   Soft                = 0x1089,    // [0x00 - 0x7f : 0] 0-63: OFF, 64-127: ON
