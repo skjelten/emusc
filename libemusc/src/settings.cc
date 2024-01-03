@@ -1106,7 +1106,7 @@ void Settings::_update_controller_input_acc(enum PatchParam pp, int8_t part)
 				part, 0, 127, false);
   _accumulate_controller_values(PatchParam::CtM_LFO2RateControl,
 				PatchParam::Acc_LFO2RateControl,
-				part, -64, 63, true);
+				part, 0, 127, true);
   _accumulate_controller_values(PatchParam::CtM_LFO2PitchDepth,
 				PatchParam::Acc_LFO2PitchDepth,
 				part, 0, 127, false);

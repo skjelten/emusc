@@ -46,7 +46,8 @@ TVP::TVP(ControlRom::InstPartial &instPartial, Settings *settings,int8_t partId)
   : _settings(settings),
     _partId(partId),
     _sampleRate(settings->get_param_uint32(SystemParam::SampleRate)),
-    _LFO(_sampleRate),
+    _LFO1(_sampleRate),
+    _LFO2(_sampleRate),
     _ahdsr(NULL),
     _fade(0)
 {
@@ -55,7 +56,7 @@ TVP::TVP(ControlRom::InstPartial &instPartial, Settings *settings,int8_t partId)
   _vibratoBaseFreq = lfoRateTable[settings->get_param(PatchParam::ToneNumber2,
 						      partId)];
 
-  _LFODepthPartial = (instPartial.TVPLFODepth & 0x7f);
+  _LFO1DepthPartial = (instPartial.TVPLFODepth & 0x7f);
 
   // TODO:
   _delay = 0;//sampleRate / 2;
@@ -102,38 +103,49 @@ TVP::~TVP()
 
 double TVP::get_pitch()
 {
-  // TODO: Implement support for a separate LFO2
-  // LFO rate: Linear between 0 and 9 Hz.
-  // TODO: Find a function or LUT to also correctly handle higher frequencies
+  // LFO1
   float freq = _vibratoBaseFreq +
     ((_settings->get_param(PatchParam::VibratoRate, _partId) - 0x80 +
       _settings->get_param(PatchParam::Acc_LFO1RateControl, _partId)) * 0.1);
   if (freq > 0)
-    _LFO.set_frequency(freq);
+    _LFO1.set_frequency(freq);
   else
-    _LFO.set_frequency(0);
+    _LFO1.set_frequency(0);
+  int lfo1DepthParam = _LFO1DepthPartial +
+    _settings->get_param(PatchParam::VibratoDepth, _partId) - 0x40 +
+    _settings->get_param(PatchParam::Acc_LFO1PitchDepth, _partId);
+  float lfo1Depth = lfo1DepthParam * 0.0011;
+  if (lfo1Depth < 0) lfo1Depth = 0;
 
-  // TODO: Move recalculation of vibrato depth to separate function when values
-  // change
+  // LFO2
+  freq = 0 +                // FIXME: Add default frequency for LFO2
+    (_settings->get_param(PatchParam::Acc_LFO2RateControl, _partId)-0x40) * 0.1;
+  if (freq > 0)
+    _LFO2.set_frequency(freq);
+  else
+    _LFO2.set_frequency(0);
+  int lfo2DepthParam = _settings->get_param(PatchParam::Acc_LFO2PitchDepth,
+					    _partId);
+  float lfo2Depth = lfo2DepthParam * 0.0011;
+  if (lfo2Depth < 0) lfo2Depth = 0;
+
+  // TODO: Rewrite delay to a number of 32kHz samples
+  // TODO: Does the LFO2 have a different delay / fade in period?
   double vibrato;
-  if (_delay > 0) {                                         // Delay
+  if (_delay > 0) {                                           // Delay
     _delay--;
     vibrato = 1;
 
   } else {
-    int lfoDepthParam = _LFODepthPartial +
-      _settings->get_param(PatchParam::VibratoDepth, _partId) - 0x40 +
-      _settings->get_param(PatchParam::Acc_LFO1PitchDepth, _partId);
-    float lfoDepth = lfoDepthParam * 0.0011;
-    if (lfoDepth < 0) lfoDepth = 0;
-
-    if (_fadeIn > 0) {                                 // Fade in
+    if (_fadeIn > 0) {                                        // Fade in
       _fadeIn--;
       _fade += _fadeInStep;
-      vibrato = 1 + (_LFO.next_sample() * _fade * lfoDepth);
+      vibrato = (1 + (_LFO1.next_sample() * _fade * lfo1Depth)) *
+	(1 + (_LFO2.next_sample() * _fade * lfo2Depth));
 
     } else {                                                  // Full vibrato
-      vibrato = 1 + (_LFO.next_sample() * lfoDepth);
+      vibrato = (1 + (_LFO1.next_sample() * lfo1Depth)) *
+	(1 + (_LFO2.next_sample() * lfo2Depth));
     }
   }
 

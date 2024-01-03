@@ -48,8 +48,9 @@ public:
 private:
   uint32_t _sampleRate;
 
-  Wavetable _LFO;
-  int _LFODepthPartial;
+  Wavetable _LFO1;
+  Wavetable _LFO2;
+  int _LFO1DepthPartial;
 
   AHDSR *_ahdsr;
 
