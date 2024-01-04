@@ -25,6 +25,7 @@
 #include "lowpass_filter.h"
 #include "ahdsr.h"
 #include "settings.h"
+#include "wavetable.h"
 
 #include <stdint.h>
 
@@ -49,11 +50,17 @@ public:
 private:
   uint32_t _sampleRate;
 
+  Wavetable _LFO1;
+  Wavetable _LFO2;
+  int _LFO1DepthPartial;
+
   Settings *_settings;
   int8_t _partId;
 
   AHDSR *_ahdsr;
   LowPassFilter *_lpFilter;
+
+  float _filterBaseFreq;
 
   uint32_t _lpBaseFrequency;
   float _lpResonance;
