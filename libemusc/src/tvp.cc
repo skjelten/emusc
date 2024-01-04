@@ -53,8 +53,8 @@ TVP::TVP(ControlRom::InstPartial &instPartial, Settings *settings,int8_t partId)
 {
   // TODO: Figure out how the sine wave for pitch modulation is found on the
   //       Sound Canvas. In the meantime utilize a simple wavetable.
-  _vibratoBaseFreq = lfoRateTable[settings->get_param(PatchParam::ToneNumber2,
-						      partId)];
+  _vibratoBaseFreq = lfo1RateTable[settings->get_param(PatchParam::ToneNumber2,
+						       partId)];
 
   _LFO1DepthPartial = (instPartial.TVPLFODepth & 0x7f);
 

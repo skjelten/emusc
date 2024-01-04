@@ -65,6 +65,9 @@ TVF::TVF(ControlRom::InstPartial &instPartial, uint8_t key, Settings *settings,
   if (instPartial.TVFBaseFlt == 0)
     return;
 
+  _filterBaseLFOFreq =lfo1RateTable[settings->get_param(PatchParam::ToneNumber2,
+							partId)];
+
   _LFO1DepthPartial = (instPartial.TVFLFODepth & 0x7f);
 
   _lpFilter = new LowPassFilter(_sampleRate);
@@ -122,7 +125,7 @@ double TVF::apply(double input)
     return input;
 
   // LFO1
-  float freq = + //_filterBaseFreq +
+  float freq = _filterBaseLFOFreq +
     (_settings->get_param(PatchParam::Acc_LFO1RateControl, _partId) - 0x40)*0.1;
   if (freq > 0)
     _LFO1.set_frequency(freq);

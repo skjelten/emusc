@@ -36,9 +36,8 @@ TVA::TVA(ControlRom::InstPartial &instPartial, uint8_t key, Settings *settings,
     _finished(false),
     _ahdsr(NULL)
 {
-  // TODO: Figure out how the sine wave for amplitude modulation is found on the
-  //       Sound Canvas. In the meantime utilize a simple wavetable with 5Hz.
-  _tremoloBaseFreq = 5;
+  _tremoloBaseFreq = lfo1RateTable[settings->get_param(PatchParam::ToneNumber2,
+						       partId)];
 
   // TODO: Find LUT or formula for using amplitude LFO Depth. For now just
   //       using a static approximation.

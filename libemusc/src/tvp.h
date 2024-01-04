@@ -69,11 +69,10 @@ private:
   // Since LFO pitch rate is not found in control ROM (yet) all capital
   // instruments have been measured on an SC-55mkII. Numbers in Hz.
   // All variations, except 127 (MT32 assignement) follows catital tone.
-  // Note: Last ~10 instruments where hard to measure precisely
-  float lfoRateTable[128] = {
+  float lfo1RateTable[128] = {
     5.2, 5.2, 5.2, 5.2, 5.2, 5.2, 5.2, 5.2,
     5.2, 5.2, 5.2, 5.2, 5.2, 5.2, 5.2, 5.2,
-    7.8, 7.8, 7.8, 6.0, 6.0, 6.0, 5.3, 6.0,
+    7.8, 7.8, 7.8, 6.0, 6.0, 6.0, 5.4, 6.0,
     6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0,
     6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0,
     6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0,
@@ -86,7 +85,7 @@ private:
     5.6, 5.6, 5.6, 5.6, 5.6, 5.6, 5.6, 5.6,
     6.0, 6.0, 6.0, 6.0, 6.0, 5.8, 6.0, 5.8,
     4.2, 4.2, 4.2, 4.2, 4.2, 4.2, 4.2, 4.2,
-    5.6, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 4.2};
+    4.2, 6.0, 4.2, 4.2, 4.2, 6.0, 4.2, 4.2};
 
   /* MT32 instruments in variation bank 127 seems to follow completely
      differtent LFO pitch rates.
