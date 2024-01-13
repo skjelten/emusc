@@ -28,6 +28,7 @@
 #include "tva.h"
 #include "tvf.h"
 #include "tvp.h"
+#include "wave_generator.h"
 
 #include <stdint.h>
 
@@ -37,6 +38,15 @@ namespace EmuSC {
 
 class Partial
 {
+public:
+  Partial(uint8_t key, int partialId, uint16_t instrumentIndex,
+	  ControlRom &controlRom, PcmRom &pcmRom, WaveGenerator *LFO[2],
+	  Settings *settings, int8_t partId);
+  ~Partial();
+
+  void stop(void);
+  bool get_next_sample(float *sampleOut);
+
 private:
   uint8_t _key;           // MIDI key number for note on
   float _keyFreq;         // Frequency of current MIDI key
@@ -73,15 +83,6 @@ private:
 
   bool _next_sample_from_rom(float pitchAdj);
   double _convert_volume(uint8_t volume);
-
-public:
-  Partial(uint8_t key, int partialId, uint16_t instrumentIndex,
-	  ControlRom &controlRom, PcmRom &pcmRom, Settings *settings,
-	  int8_t partId);
-  ~Partial();
-
-  void stop(void);
-  bool get_next_sample(float *sampleOut);
 
 };
 

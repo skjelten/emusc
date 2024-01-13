@@ -241,14 +241,19 @@ int ControlRom::_read_instruments(std::ifstream &romFile)
     struct Instrument i;
 
     // First 12 bytes are the instrument name
-    romFile.read(data, 12);
+    romFile.read(data, 32);
 
     // Skip empty slots in the ROM file that have no instrument name
     if (data[0] == '\0')
       continue;
 
-    i.name.assign(data , 12);
+    i.name.assign(data, 12);
     i.name.erase(i.name.find_last_not_of(' ') + 1);
+
+    // Note: only 3 out of 20 bytes have been identified
+    i.LFO1Rate  = data[15];
+    i.LFO1Delay = data[16];
+    i.LFO1Fade  = data[17];
 
     // We have 2 partial parameters sets; starting in bank position 34 & 126
     for (int p = 0; p < 2; p++) {

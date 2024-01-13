@@ -25,8 +25,13 @@
 
 #include <iomanip>
 
+#ifndef M_PI
+    #define M_PI 3.14159265358979323846
+#endif
+
 
 namespace EmuSC {
+
 
 Chorus::Chorus(Settings *settings)
   : _settings(settings),

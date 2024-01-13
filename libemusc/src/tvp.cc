@@ -42,28 +42,17 @@
 namespace EmuSC {
 
 
-TVP::TVP(ControlRom::InstPartial &instPartial, Settings *settings,int8_t partId)
+TVP::TVP(ControlRom::InstPartial &instPartial, WaveGenerator *LFO[2],
+	 Settings *settings,int8_t partId)
   : _settings(settings),
     _partId(partId),
     _sampleRate(settings->get_param_uint32(SystemParam::SampleRate)),
-    _LFO1(_sampleRate),
-    _LFO2(_sampleRate),
-    _ahdsr(NULL),
-    _fade(0)
+    _ahdsr(NULL)
 {
-  // TODO: Figure out how the sine wave for pitch modulation is found on the
-  //       Sound Canvas. In the meantime utilize a simple wavetable.
-  _vibratoBaseFreq = lfo1RateTable[settings->get_param(PatchParam::ToneNumber2,
-						       partId)];
+  _LFO1 = LFO[0];
+  _LFO2 = LFO[1];
 
   _LFO1DepthPartial = (instPartial.TVPLFODepth & 0x7f);
-
-  // TODO:
-  _delay = 0;//sampleRate / 2;
-
-  // Fade in is measured on SC-55nmkII to be approx ~4 LFO periods in length
-  _fadeIn = (4 / _vibratoBaseFreq) * _sampleRate;
-  _fadeInStep = 1.0 / _fadeIn;
 
   // If TVP envelope phase durations are all 0 we only have a static filter
   // TODO: Verify that this is correct - what to do when P1-5 value != 0?
@@ -104,13 +93,6 @@ TVP::~TVP()
 double TVP::get_pitch()
 {
   // LFO1
-  float freq = _vibratoBaseFreq +
-    ((_settings->get_param(PatchParam::VibratoRate, _partId) - 0x80 +
-      _settings->get_param(PatchParam::Acc_LFO1RateControl, _partId)) * 0.1);
-  if (freq > 0)
-    _LFO1.set_frequency(freq);
-  else
-    _LFO1.set_frequency(0);
   int lfo1DepthParam = _LFO1DepthPartial +
     _settings->get_param(PatchParam::VibratoDepth, _partId) - 0x40 +
     _settings->get_param(PatchParam::Acc_LFO1PitchDepth, _partId);
@@ -118,36 +100,13 @@ double TVP::get_pitch()
   if (lfo1Depth < 0) lfo1Depth = 0;
 
   // LFO2
-  freq = 0 +                // FIXME: Add default frequency for LFO2
-    (_settings->get_param(PatchParam::Acc_LFO2RateControl, _partId)-0x40) * 0.1;
-  if (freq > 0)
-    _LFO2.set_frequency(freq);
-  else
-    _LFO2.set_frequency(0);
   int lfo2DepthParam = _settings->get_param(PatchParam::Acc_LFO2PitchDepth,
 					    _partId);
   float lfo2Depth = lfo2DepthParam * 0.0011;
   if (lfo2Depth < 0) lfo2Depth = 0;
 
-  // TODO: Rewrite delay to a number of 32kHz samples
-  // TODO: Does the LFO2 have a different delay / fade in period?
-  double vibrato;
-  if (_delay > 0) {                                           // Delay
-    _delay--;
-    vibrato = 1;
-
-  } else {
-    if (_fadeIn > 0) {                                        // Fade in
-      _fadeIn--;
-      _fade += _fadeInStep;
-      vibrato = (1 + (_LFO1.next_sample() * _fade * lfo1Depth)) *
-	(1 + (_LFO2.next_sample() * _fade * lfo2Depth));
-
-    } else {                                                  // Full vibrato
-      vibrato = (1 + (_LFO1.next_sample() * lfo1Depth)) *
-	(1 + (_LFO2.next_sample() * lfo2Depth));
-    }
-  }
+  double vibrato = (1 + (_LFO1->value() * lfo1Depth)) *
+                   (1 + (_LFO2->value() * lfo2Depth));
 
   // TODO: Delay function -> seconds
   // sec = 0.5 * exp(_LFODelay * log(10.23 / 0.5) / 50)

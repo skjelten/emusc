@@ -34,8 +34,8 @@ add_library(emusc
   tvf.h
   tvp.cc
   tvp.h
-  wavetable.cc
-  wavetable.h)
+  wave_generator.cc
+  wave_generator.h)
 
 
 target_compile_features(emusc PUBLIC cxx_std_11)

@@ -23,21 +23,20 @@
 #include <iostream>
 #include <string.h>
 
+
 namespace EmuSC {
 
 
-TVA::TVA(ControlRom::InstPartial &instPartial, uint8_t key, Settings *settings,
-	 int8_t partId)
+TVA::TVA(ControlRom::InstPartial &instPartial, uint8_t key,
+	 WaveGenerator *LFO[2], Settings *settings, int8_t partId)
   : _settings(settings),
     _partId(partId),
     _sampleRate(settings->get_param_uint32(SystemParam::SampleRate)),
-    _LFO1(_sampleRate),
-    _LFO2(_sampleRate),
     _finished(false),
     _ahdsr(NULL)
 {
-  _tremoloBaseFreq = lfo1RateTable[settings->get_param(PatchParam::ToneNumber2,
-						       partId)];
+  _LFO1 = LFO[0];
+  _LFO2 = LFO[1];
 
   // TODO: Find LUT or formula for using amplitude LFO Depth. For now just
   //       using a static approximation.
@@ -97,32 +96,19 @@ double TVA::_convert_volume(uint8_t volume)
 double TVA::get_amplification(void)
 {
   // LFO1
-  float freq = _tremoloBaseFreq +
-    (_settings->get_param(PatchParam::Acc_LFO1RateControl, _partId)-0x40) * 0.1;
-  if (freq > 0)
-    _LFO1.set_frequency(freq);
-  else
-    _LFO1.set_frequency(0);
   int LFO1DepthParam = _LFO1DepthPartial +
     _settings->get_param(PatchParam::Acc_LFO1TVADepth, _partId);
   float lfo1Depth = LFO1DepthParam * 0.005;         // TODO: Find correct factor
   if (lfo1Depth < 0) lfo1Depth = 0;
 
   // LFO2
-  freq =
-    (_settings->get_param(PatchParam::Acc_LFO2RateControl, _partId)-0x40) * 0.1;
-  if (freq > 0)
-    _LFO2.set_frequency(freq);
-  else
-    _LFO2.set_frequency(0);
   int LFO2DepthParam = _settings->get_param(PatchParam::Acc_LFO2TVADepth,
 					    _partId);
   float lfo2Depth = LFO2DepthParam * 0.005;         // TODO: Find correct factor
   if (lfo2Depth < 0) lfo2Depth = 0;
 
   // Tremolo
-  double tremolo = (_LFO1.next_sample() * lfo1Depth) +
-    (_LFO2.next_sample() * lfo2Depth);
+  double tremolo = (_LFO1->value() * lfo1Depth) + (_LFO2->value() * lfo2Depth);
 
   // Volume envelope
   double volEnvelope = 0;

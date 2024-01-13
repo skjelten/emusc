@@ -28,6 +28,8 @@ Note::Note(uint8_t key, uint8_t velocity, ControlRom &ctrlRom, PcmRom &pcmRom,
 	   Settings *settings, int8_t partId)
   : _key(key),
     _velocity(velocity),
+    _settings(settings),
+    _partId(partId),
     _sustain(false),
     _stopped(false),
     _7bScale(1/127.0)
@@ -47,13 +49,25 @@ Note::Note(uint8_t key, uint8_t velocity, ControlRom &ctrlRom, PcmRom &pcmRom,
   if (instrumentIndex == 0xffff)        // Ignore undefined instruments / drums
     return;
 
+  // 2. Setup LFOs
+  int sampleRate = settings->get_param_uint32(SystemParam::SampleRate);
+  _LFO[0] = new WaveGenerator(WaveGenerator::Waveform::sine, sampleRate,
+			      ctrlRom.instrument(instrumentIndex).LFO1Rate);
+  _LFO[1] = new WaveGenerator(WaveGenerator::Waveform::sine, sampleRate);
+
+  // LFO delay and fade time are set only upon note start
+  _LFO[0]->set_delay(ctrlRom.instrument(instrumentIndex).LFO1Delay +
+		     settings->get_param(PatchParam::VibratoDelay,
+					 _partId) - 0x40);
+  _LFO[0]->set_fade(ctrlRom.instrument(instrumentIndex).LFO1Fade);
+
   // Every Sound Canvas uses either 1 or 2 partials for each instrument
   for (int i = 0; i < 2; i ++) {
     uint16_t pIndex = ctrlRom.instrument(instrumentIndex).partials[i].partialIndex;
     if (pIndex == 0xffff)        // Partial 1 always used, but not 2. partial
       break;
 
-    _partial[i] = new Partial(key, i, instrumentIndex, ctrlRom, pcmRom,
+    _partial[i] = new Partial(key, i, instrumentIndex, ctrlRom, pcmRom, _LFO,
 			      settings, partId);
   }
 }
@@ -63,6 +77,9 @@ Note::~Note()
 {
   delete _partial[0];
   delete _partial[1];
+
+  delete _LFO[0];
+  delete _LFO[1];
 }
 
 
@@ -108,6 +125,16 @@ void Note::sustain(bool state)
 bool Note::get_next_sample(float *partSample)
 {
   bool finished[2] = {0, 0};
+
+  // Iterate both LFOs
+  _LFO[0]->update_frequency(_settings->get_param(PatchParam::Acc_LFO1RateControl,
+						_partId) - 0x40 +
+			   _settings->get_param(PatchParam::VibratoRate,
+						_partId) - 0x40);
+  _LFO[1]->update_frequency(_settings->get_param(PatchParam::Acc_LFO2RateControl,
+						_partId) - 0x40);
+  _LFO[0]->next();
+  _LFO[1]->next();
 
   // Temporary samples for LEFT and RIGHT channel
   float sample[2] = {0, 0};

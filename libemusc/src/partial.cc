@@ -49,8 +49,8 @@ namespace EmuSC {
 
 
 Partial::Partial(uint8_t key, int partialId, uint16_t instrumentIndex,
-		 ControlRom &ctrlRom, PcmRom &pcmRom, Settings *settings,
-		 int8_t partId)
+		 ControlRom &ctrlRom, PcmRom &pcmRom, WaveGenerator *LFO[2],
+		 Settings *settings, int8_t partId)
   : _key(key),
     _instPartial(ctrlRom.instrument(instrumentIndex).partials[partialId]),
     _index(0),
@@ -125,13 +125,13 @@ Partial::Partial(uint8_t key, int partialId, uint16_t instrumentIndex,
     * 32000.0 / settings->get_param_uint32(SystemParam::SampleRate);
 
   // 1. Pitch: Vibrato & TVP envelope
-  _tvp = new TVP(_instPartial, settings, partId);
+  _tvp = new TVP(_instPartial, LFO, settings, partId);
 
   // 2. Filter: ?wah? & TVF envelope
-  _tvf = new TVF(_instPartial, key, settings, partId);
+  _tvf = new TVF(_instPartial, key, LFO, settings, partId);
 
   // 3. Volume: Tremolo & TVA envelope
-  _tva = new TVA(_instPartial, key, settings, partId);
+  _tva = new TVA(_instPartial, key, LFO, settings, partId);
 }
 
 

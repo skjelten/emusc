@@ -25,6 +25,7 @@
 #include "pcm_rom.h"
 #include "partial.h"
 #include "settings.h"
+#include "wave_generator.h"
 
 #include <stdint.h>
 
@@ -56,7 +57,12 @@ private:
 
   const double _7bScale;     // Constant: 1 / 127
 
+  WaveGenerator *_LFO[2];
+
   struct Partial *_partial[2];
+
+  Settings *_settings;
+  int8_t _partId;
 };
 
 }

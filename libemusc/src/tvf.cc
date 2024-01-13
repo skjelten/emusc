@@ -36,7 +36,6 @@
 // to be specified as note numbers.
 
 // TODO:
-// Add support for LFO input
 // Fix resonance calculation
 // A lot of fine tuning++
 
@@ -50,25 +49,23 @@
 namespace EmuSC {
 
 
-TVF::TVF(ControlRom::InstPartial &instPartial, uint8_t key, Settings *settings,
-	 int8_t partId)
+TVF::TVF(ControlRom::InstPartial &instPartial, uint8_t key,
+	 WaveGenerator *LFO[2], Settings *settings, int8_t partId)
   : _settings(settings),
     _partId(partId),
     _sampleRate(settings->get_param_uint32(SystemParam::SampleRate)),
-    _LFO1(_sampleRate),
-    _LFO2(_sampleRate),
     _lpFilter(NULL),
     _ahdsr(NULL),
     _instPartial(instPartial)
 {
+  _LFO1 = LFO[0];
+  _LFO2 = LFO[1];
+
   // If TVF base filter frequency is set to 0 in ROM, TVF is completely disabled
   if (instPartial.TVFBaseFlt == 0)
     return;
 
-  _filterBaseLFOFreq =lfo1RateTable[settings->get_param(PatchParam::ToneNumber2,
-							partId)];
-
-  _LFO1DepthPartial = (instPartial.TVFLFODepth & 0x7f);
+  _LFO1DepthPartial = instPartial.TVFLFODepth & 0x7f;
 
   _lpFilter = new LowPassFilter(_sampleRate);
 
@@ -125,29 +122,16 @@ double TVF::apply(double input)
     return input;
 
   // LFO1
-  float freq = _filterBaseLFOFreq +
-    (_settings->get_param(PatchParam::Acc_LFO1RateControl, _partId) - 0x40)*0.1;
-  if (freq > 0)
-    _LFO1.set_frequency(freq);
-  else
-    _LFO1.set_frequency(0);
   int lfo1DepthParam = _LFO1DepthPartial +
     _settings->get_param(PatchParam::Acc_LFO1TVFDepth, _partId);
   float lfo1Depth = lfo1DepthParam * 0.26;
   if (lfo1Depth < 0) lfo1Depth = 0;
 
   // LFO2
-  freq = 0 +                // FIXME: Add default frequency for LFO2
-    (_settings->get_param(PatchParam::Acc_LFO2RateControl, _partId)-0x40) * 0.1;
-  if (freq > 0)
-    _LFO2.set_frequency(freq);
-  else
-    _LFO2.set_frequency(0);
   int lfo2DepthParam = _settings->get_param(PatchParam::Acc_LFO2TVFDepth,
 					    _partId);
   float lfo2Depth = lfo2DepthParam * 0.26;
   if (lfo2Depth < 0) lfo2Depth = 0;
-
 
   int coFreq = _settings->get_param(PatchParam::TVFCutoffFreq, _partId) - 0x40;
   int tvfRes = _settings->get_param(PatchParam::TVFResonance, _partId) - 0x40;
@@ -162,8 +146,8 @@ double TVF::apply(double input)
     noteFreq = _instPartial.TVFBaseFlt + coFreq;
 
   filterFreq = 440.0 * (double) exp((((float) noteFreq - 69) +
-				     (_LFO1.next_sample() * lfo1Depth) +
-				     (_LFO2.next_sample() * lfo2Depth)) / 12);
+				     (_LFO1->value() * lfo1Depth) +
+				     (_LFO2->value() * lfo2Depth)) / 12);
 
   // Resonance. NEEDS FIXING
   // resonance = _lpResonance + sRes * 0.02;

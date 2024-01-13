@@ -17,17 +17,77 @@
  */
 
 
-#ifndef __WAVETABLE_H__
-#define __WAVETABLE_H__
+#ifndef __WAVE_GENERATOR_H__
+#define __WAVE_GENERATOR_H__
 
 
 #include <array>
 
 #include <stdint.h>
 
+
 namespace EmuSC {
 
-  static constexpr std::array<float, 256> _sineTable = {
+
+class WaveGenerator
+{
+public:
+  enum class Waveform {
+    sine,
+    triangle
+  };
+
+  WaveGenerator(enum Waveform waveForm, uint32_t sampleRate, uint8_t baseFreq=0,
+		bool lut = true, bool interpolate = true);
+  ~WaveGenerator();
+
+  void set_delay(int delay);
+  void set_fade(int fade);
+
+  void update_frequency(int changeRate);
+
+  void next(void);
+  inline double value() { return _currentValue; }
+
+private:
+  WaveGenerator();
+
+  enum Waveform _waveForm;
+  uint32_t _sampleRate;
+  float _sampleFactor;
+
+  uint8_t _baseFrequency;          // LFO base frequency for instrument (ROM)
+  float _frequency;                // LFO frequency in Hz
+  int _delay;                      // Delay time in number of samples
+  int _fade;                       // Fade time in number of samples
+  int _fadeMax;
+
+  double _currentValue;
+
+  bool _useLUT;
+  float _index;
+  bool _interpolate;               // Linear interpolation
+
+  // LFO delay times measured on an SC-55mkII
+  static constexpr std::array<float, 128> _delayTable = {
+    0.30, 0.33, 0.36, 0.39, 0.42, 0.45, 0.48, 0.51,
+    0.54, 0.57, 0.60, 0.63, 0.66, 0.70, 0.74, 0.78,
+    0.82, 0.86, 0.90, 0.94, 0.98, 1.02, 1.06, 1.10,
+    1.15, 1.20, 1.27, 1.34, 1.41, 1.50, 1.60, 1.72,
+    1.87, 2.05, 2.26, 2.50, 2.77, 3.08, 3.43, 3.81,
+    4.20, 4.70, 5.50, 7.00, 9.00, 10.0, 10.0, 10.0,
+    10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0,
+    10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0,
+    10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0,
+    10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0,
+    10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0,
+    10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0,
+    10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0,
+    10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0,
+    10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0,
+    10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0 };
+
+    static constexpr std::array<float, 256> _sineTable = {
     0, 0.0245412, 0.0490677, 0.0735646, 0.0980171, 0.122411, 0.14673,
     0.170962, 0.19509, 0.219101, 0.24298, 0.266713, 0.290285, 0.313682, 0.33689,
     0.359895, 0.382683, 0.405241, 0.427555, 0.449611, 0.471397, 0.492898, 0.514103,
@@ -61,30 +121,8 @@ namespace EmuSC {
     -0.382683, -0.359895, -0.33689, -0.313682, -0.290285, -0.266713, -0.24298, -0.219101,
     -0.19509, -0.170962, -0.14673, -0.122411, -0.0980172, -0.0735646, -0.0490676, -0.0245411 };
 
-
-class Wavetable
-{
-public:
-  Wavetable(uint32_t sampleRate, bool interpolate = true);
-  ~Wavetable();
-
-  void set_frequency(float frequency) { _frequency = frequency; }
-  float frequency(void) { return _frequency; }
-
-  double next_sample();
-
-private:
-  Wavetable();
-
-  float _sampleFactor;
-
-  float _index;
-  float _frequency;
-
-  bool _interpolate;               // Linear interpolation
-
 };
 
 }
 
-#endif  // __WAVETABLE_H__
+#endif  // __WAVE_GENERATOR_H__

@@ -24,7 +24,7 @@
 #include "ahdsr.h"
 #include "control_rom.h"
 #include "settings.h"
-#include "wavetable.h"
+#include "wave_generator.h"
 
 #include <stdint.h>
 
@@ -37,8 +37,8 @@ namespace EmuSC {
 class TVA
 {
 public:
-  TVA(ControlRom::InstPartial &instPartial, uint8_t key, Settings *settings,
-      int8_t partId);
+  TVA(ControlRom::InstPartial &instPartial, uint8_t key, WaveGenerator *LFO[2],
+      Settings *settings, int8_t partId);
   ~TVA();
 
   double get_amplification();
@@ -49,8 +49,8 @@ public:
 private:
   uint32_t _sampleRate;
 
-  Wavetable _LFO1;
-  Wavetable _LFO2;
+  WaveGenerator *_LFO1;
+  WaveGenerator *_LFO2;
   float _LFO1DepthPartial;
 
   AHDSR *_ahdsr;
@@ -58,32 +58,8 @@ private:
   
   ControlRom::InstPartial *_instPartial;
 
-  int _tremoloBaseFreq;
-
   Settings *_settings;
   int8_t _partId;
-
-  // Since LFO pitch rate is not found in control ROM (yet) all capital
-  // instruments have been measured on an SC-55mkII. Numbers in Hz.
-  // All variations, except 127 (MT32 assignement) follows catital tone.
-  float lfo1RateTable[128] = {
-    5.2, 5.2, 5.2, 5.2, 5.2, 5.2, 5.2, 5.2,
-    5.2, 5.2, 5.2, 5.2, 5.2, 5.2, 5.2, 5.2,
-    7.8, 7.8, 7.8, 6.0, 6.0, 6.0, 5.4, 6.0,
-    6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0,
-    6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0,
-    6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0,
-    6.0, 6.0, 6.0, 6.0, 4.3, 4.3, 4.3, 6.0,
-    5.2, 5.2, 5.2, 5.2, 5.2, 5.2, 5.2, 5.2,
-    5.4, 5.4, 5.4, 5.4, 5.8, 5.8, 5.8, 5.8,
-    6.0, 6.0, 6.0, 6.0, 5.6, 5.6, 5.6, 5.6,
-    6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0,
-    5.6, 5.6, 5.6, 5.6, 5.6, 5.6, 5.6, 5.6,
-    5.6, 5.6, 5.6, 5.6, 5.6, 5.6, 5.6, 5.6,
-    6.0, 6.0, 6.0, 6.0, 6.0, 5.8, 6.0, 5.8,
-    4.2, 4.2, 4.2, 4.2, 4.2, 4.2, 4.2, 4.2,
-    4.2, 6.0, 4.2, 4.2, 4.2, 6.0, 4.2, 4.2};
-
 
   TVA();
 
