@@ -86,6 +86,18 @@ AudioConfigDialog::AudioConfigDialog(QWidget *parent)
   _audioBufferTimeLE->setValidator(validator);
   _audioPeriodTimeLE->setValidator(validator);
 
+  _filePathLabel = new QLabel("File path");
+  gridLayout->addWidget(_filePathLabel, 5, 0);
+
+  _filePathLE = new QLineEdit(this);
+  gridLayout->addWidget(_filePathLE, 5, 1);
+
+  _fileDialogPB = new QPushButton("...");
+  gridLayout->addWidget(_fileDialogPB, 5, 2);
+
+  connect(_fileDialogPB, SIGNAL(clicked()),
+	  this, SLOT(open_file_path_dialog()));
+
   QDialogButtonBox *buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok |
 						     QDialogButtonBox::Cancel);
   connect(buttonBox, SIGNAL(accepted()), this, SLOT(accept()));
@@ -107,6 +119,9 @@ AudioConfigDialog::AudioConfigDialog(QWidget *parent)
 #endif
 #ifdef __PULSE_AUDIO__
   _audioSystemBox->addItem("Pulse");
+#endif
+#ifdef __WAV_AUDIO__
+  _audioSystemBox->addItem("WAV");
 #endif
 #ifdef __WIN32_AUDIO__
   _audioSystemBox->addItem("Win32");
@@ -135,6 +150,7 @@ AudioConfigDialog::AudioConfigDialog(QWidget *parent)
   _audioBufferTimeLE->setText(QString::number(bufferTime));
   _audioPeriodTimeLE->setText(QString::number(periodTime));
   _sampleRateLE->setText(QString::number(sampleRate));
+  _filePathLE->setText(settings.value("audio/file_path").toString());
 
   // Trigger an update of the dialog widgets including the _audioDeviceBox
   system_changed(0);
@@ -154,6 +170,8 @@ void AudioConfigDialog::accept()
   settings.setValue("audio/buffer_time", _audioBufferTimeLE->text());
   settings.setValue("audio/period_time", _audioPeriodTimeLE->text());
   settings.setValue("audio/sample_rate", _sampleRateLE->text());
+
+  settings.setValue("audio/file_path", _filePathLE->text());
 
   delete this;
 }
@@ -176,15 +194,21 @@ void AudioConfigDialog::system_changed(int index)
       _audioDeviceBox->addItem(d);
 #endif
 
+    _audioDeviceLabel->show();
+    _audioDeviceBox->show();
     _bufferTimeLabel->show();
     _periodTimeLabel->show();
     _defaultBufferTimeLabel->show();
     _defaultPeriodTimeLabel->show();
     _sampleRateLabel->show();
     _defaultSampleRateLabel->show();
+    _sampleRateLE->setEnabled(true);
     _sampleRateLE->show();
     _audioBufferTimeLE->show();
     _audioPeriodTimeLE->show();
+    _filePathLabel->hide();
+    _filePathLE->hide();
+    _fileDialogPB->hide();
 
 //  } else if (!_audioSystemBox->currentText().compare("Qt", Qt::CaseInsensitive)) {
 //    const auto deviceInfos = QAudioDeviceInfo::availableDevices(QAudio::AudioOutput);
@@ -193,8 +217,8 @@ void AudioConfigDialog::system_changed(int index)
 
   } else if (!_audioSystemBox->currentText().compare("jack",
 						     Qt::CaseInsensitive)) {
-    _audioDeviceBox->addItem("default");
-
+    _audioDeviceLabel->hide();
+    _audioDeviceBox->hide();
     _bufferTimeLabel->hide();
     _periodTimeLabel->hide();
     _defaultBufferTimeLabel->hide();
@@ -204,11 +228,14 @@ void AudioConfigDialog::system_changed(int index)
     _sampleRateLE->hide();
     _audioBufferTimeLE->hide();
     _audioPeriodTimeLE->hide();
+    _filePathLabel->hide();
+    _filePathLE->hide();
+    _fileDialogPB->hide();
 
   } else if (!_audioSystemBox->currentText().compare("pulse",
 						     Qt::CaseInsensitive)) {
-    _audioDeviceBox->addItem("default");
-
+    _audioDeviceLabel->hide();
+    _audioDeviceBox->hide();
     _bufferTimeLabel->hide();
     _periodTimeLabel->hide();
     _defaultBufferTimeLabel->hide();
@@ -218,9 +245,33 @@ void AudioConfigDialog::system_changed(int index)
     _sampleRateLE->hide();
     _audioBufferTimeLE->hide();
     _audioPeriodTimeLE->hide();
+    _filePathLabel->hide();
+    _filePathLE->hide();
+    _fileDialogPB->hide();
 
   } else if (!_audioSystemBox->currentText().compare("win32",
 						     Qt::CaseInsensitive)) {
+
+#ifdef __WAV_AUDIO__
+  } else if (!_audioSystemBox->currentText().compare("wav",
+						     Qt::CaseInsensitive)) {
+    _audioDeviceLabel->hide();
+    _audioDeviceBox->hide();
+    _bufferTimeLabel->hide();
+    _periodTimeLabel->hide();
+    _defaultBufferTimeLabel->hide();
+    _defaultPeriodTimeLabel->hide();
+    _sampleRateLabel->show();
+    _defaultSampleRateLabel->hide();
+    _sampleRateLE->setText("44100");
+    _sampleRateLE->setEnabled(false);
+    _sampleRateLE->show();
+    _audioBufferTimeLE->hide();
+    _audioPeriodTimeLE->hide();
+    _filePathLabel->show();
+    _filePathLE->show();
+    _fileDialogPB->show();
+#endif
 
 #ifdef __WIN32_AUDIO__
     QStringList devices = AudioOutputWin32::get_available_devices();
@@ -239,7 +290,7 @@ void AudioConfigDialog::system_changed(int index)
 
   } else if (!_audioSystemBox->currentText().compare("null",
 						     Qt::CaseInsensitive)) {
-
+    _audioDeviceBox->hide();
     _bufferTimeLabel->hide();
     _periodTimeLabel->hide();
     _defaultBufferTimeLabel->hide();
@@ -249,9 +300,25 @@ void AudioConfigDialog::system_changed(int index)
     _sampleRateLE->hide();
     _audioBufferTimeLE->hide();
     _audioPeriodTimeLE->hide();
+    _filePathLabel->hide();
+    _filePathLE->hide();
+    _fileDialogPB->hide();
   }
 
   QSettings settings;
   _audioDeviceBox->setCurrentText(settings.value("audio/device").toString());
   adjustSize();
+}
+
+
+void AudioConfigDialog::open_file_path_dialog(void)
+{
+  QFileDialog dialog(this, "Select file name and location for WAV recording");
+  dialog.setFileMode(QFileDialog::AnyFile);
+
+  QStringList fileNames;
+  if (dialog.exec())
+    fileNames = dialog.selectedFiles();
+
+  _filePathLE->setText(fileNames[0]);
 }

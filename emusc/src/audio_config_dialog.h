@@ -45,6 +45,11 @@ private:
   QLabel *_sampleRateLabel;
   QLabel *_defaultSampleRateLabel;
 
+  // Only used for writing WAV to disk
+  QLabel *_filePathLabel;
+  QLineEdit *_filePathLE;
+  QPushButton *_fileDialogPB;
+
 public:
   explicit AudioConfigDialog(QWidget *parent = nullptr);
   virtual ~AudioConfigDialog();
@@ -54,6 +59,7 @@ private slots:
   void reject();
 
   void system_changed(int index);
+  void open_file_path_dialog(void);
 
 };
 

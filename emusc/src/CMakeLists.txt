@@ -31,6 +31,8 @@ add_executable(emusc-client
   audio_output_pulse.h
   audio_output_qt.cc
   audio_output_qt.h
+  audio_output_wav.cc
+  audio_output_wav.h
   audio_output_win32.cc
   audio_output_win32.h
   emulator.cc

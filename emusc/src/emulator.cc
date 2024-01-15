@@ -29,6 +29,7 @@
 #include "audio_output_alsa.h"
 #include "audio_output_jack.h"
 #include "audio_output_pulse.h"
+#include "audio_output_wav.h"
 #include "audio_output_win32.h"
 #include "audio_output_core.h"
 #include "audio_output_qt.h"
@@ -249,6 +250,13 @@ void Emulator::_start_audio_subsystem(void)
       _audioOutput = new AudioOutputWin32(_emuscSynth);
 #else
       throw(QString("'Win32' audio ouput is missing in this build"));
+#endif
+
+    } else if (!audioSystem.compare("wav", Qt::CaseInsensitive)) {
+#ifdef __WAV_AUDIO__
+      _audioOutput = new AudioOutputWav(_emuscSynth);
+#else
+      throw(QString("'WAV' audio ouput is missing in this build"));
 #endif
 
     } else if (!audioSystem.compare("core", Qt::CaseInsensitive)) {

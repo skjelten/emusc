@@ -11,6 +11,7 @@ set(CORE_AUDIO  "no")
 set(JACK_AUDIO  "no")
 set(PULSE_AUDIO "no")
 set(QT_AUDIO    "no")
+set(WAV_AUDIO   "no")
 set(WIN32_AUDIO "no")
 
 set(ALSA_MIDI  "no")
@@ -96,6 +97,10 @@ elseif(WIN32)
   set_target_properties(emusc-client PROPERTIES WIN32_EXECUTABLE ${BUILD_WIN32_EXECUTABLE})
 endif()
 
+# Currently all targets are expected to support WAV output
+set(WAV_AUDIO "yes")
+target_compile_definitions(emusc-client PUBLIC __WAV_AUDIO__)
+
 install(TARGETS emusc-client DESTINATION ${CMAKE_INSTALL_BINDIR})
 install(FILES AUTHORS ChangeLog COPYING NEWS README.md
   DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/doc/emusc)
@@ -128,6 +133,7 @@ message(STATUS " * Jack  : ${JACK_AUDIO}")
 message(STATUS " * Null  : yes")
 message(STATUS " * Pulse : ${PULSE_AUDIO}")
 message(STATUS " * Qt    : ${QT_AUDIO}")
+message(STATUS " * WAV   : ${WAV_AUDIO}")
 message(STATUS " * Win32 : ${WIN32_AUDIO}")
 message(STATUS "")
 message(STATUS "MIDI APIs:")
