@@ -27,6 +27,7 @@
 
 #include "audio_output_wav.h"
 
+#include <QDataStream>
 #include <QFile>
 #include <QSettings>
 #include <QString>
