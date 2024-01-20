@@ -71,6 +71,10 @@ target_link_libraries(emusc-client Qt${QT_VERSION_MAJOR}::Core)
 target_link_libraries(emusc-client Qt${QT_VERSION_MAJOR}::Widgets)
 target_link_libraries(emusc-client Qt${QT_VERSION_MAJOR}::Gui)
 
+if (Qt${QT_VERSION_MAJOR}Multimedia_FOUND)
+  target_link_libraries(emusc-client Qt${QT_VERSION_MAJOR}::Multimedia)
+endif()
+
 target_link_libraries (emusc-client ${EXTERNAL_LIBRARIES})
 
 target_compile_features(emusc-client PUBLIC cxx_std_11)

@@ -21,6 +21,7 @@
 #include "audio_output_alsa.h"
 #include "audio_output_core.h"
 #include "audio_output_pulse.h"
+#include "audio_output_qt.h"
 #include "audio_output_win32.h"
 
 #include <iostream>
@@ -120,6 +121,9 @@ AudioConfigDialog::AudioConfigDialog(QWidget *parent)
 #ifdef __PULSE_AUDIO__
   _audioSystemBox->addItem("Pulse");
 #endif
+#ifdef __QT_AUDIO__
+  _audioSystemBox->addItem("Qt");
+#endif
 #ifdef __WAV_AUDIO__
   _audioSystemBox->addItem("WAV");
 #endif
@@ -130,7 +134,6 @@ AudioConfigDialog::AudioConfigDialog(QWidget *parent)
   _audioSystemBox->addItem("Core");
 #endif
   _audioSystemBox->addItem("Null");
-//  _audioSystemBox->addItem("Qt");
 
   connect(_audioSystemBox,QOverload<int>::of(&QComboBox::currentIndexChanged),
 	  this, &AudioConfigDialog::system_changed);
@@ -210,10 +213,28 @@ void AudioConfigDialog::system_changed(int index)
     _filePathLE->hide();
     _fileDialogPB->hide();
 
-//  } else if (!_audioSystemBox->currentText().compare("Qt", Qt::CaseInsensitive)) {
-//    const auto deviceInfos = QAudioDeviceInfo::availableDevices(QAudio::AudioOutput);
-//    for (const QAudioDeviceInfo &deviceInfo : deviceInfos)
-//      _audioDeviceBox->addItem(deviceInfo.deviceName());
+  } else if (!_audioSystemBox->currentText().compare("Qt", Qt::CaseInsensitive)) {
+#ifdef __QT_AUDIO__
+    QStringList devices = AudioOutputQt::get_available_devices();
+    for (auto d : devices)
+      _audioDeviceBox->addItem(d);
+#endif
+
+    _audioDeviceLabel->show();
+    _audioDeviceBox->show();
+    _bufferTimeLabel->show();
+    _periodTimeLabel->hide();
+    _defaultBufferTimeLabel->show();
+    _defaultPeriodTimeLabel->hide();
+    _sampleRateLabel->show();
+    _defaultSampleRateLabel->show();
+    _sampleRateLE->setEnabled(true);
+    _sampleRateLE->show();
+    _audioBufferTimeLE->show();
+    _audioPeriodTimeLE->hide();
+    _filePathLabel->hide();
+    _filePathLE->hide();
+    _fileDialogPB->hide();
 
   } else if (!_audioSystemBox->currentText().compare("jack",
 						     Qt::CaseInsensitive)) {

@@ -245,6 +245,13 @@ void Emulator::_start_audio_subsystem(void)
       throw(QString("'Pulse' audio ouput is missing in this build"));
 #endif
 
+    } else if (!audioSystem.compare("qt", Qt::CaseInsensitive)) {
+#ifdef __QT_AUDIO__
+      _audioOutput = new AudioOutputQt(_emuscSynth);
+#else
+      throw(QString("'Qt' audio ouput is missing in this build"));
+#endif
+
     } else if (!audioSystem.compare("win32", Qt::CaseInsensitive)) {
 #ifdef __WIN32_AUDIO__
       _audioOutput = new AudioOutputWin32(_emuscSynth);

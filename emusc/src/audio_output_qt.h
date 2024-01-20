@@ -16,7 +16,9 @@
  *  along with EmuSC. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifdef _NOT_USED_
+
+#ifdef __QT_AUDIO__
+
 
 #ifndef AUDIO_OUTPUT_QT_H
 #define AUDIO_OUTPUT_QT_H
@@ -26,58 +28,74 @@
 
 #include "emusc/synth.h"
 
-#include <string>
-#include <QString>
-
-#include <QtMultimedia/QAudioOutput>
+#include <QtGlobal>
 #include <QIODevice>
-
-#include <QtCore/QObject>
 #include <QObject>
-#include <QWidget>
+#include <QStringList>
+
+#if QT_VERSION < QT_VERSION_CHECK(6,0,0)
+#include <QAudioDeviceInfo>
+#include <QAudioOutput>
+#else
+#include <QAudioDevice>
+#include <QAudioSink>
+#include <QMediaDevices>
+#endif
 
 
-// NOTE: Class is not finished and not in a working order!
-// *******************************************************
-class AudioOutputQt: public QObject,AudioOutput
+class SynthGen;
+
+class AudioOutputQt: public QObject, public AudioOutput
 {
   Q_OBJECT
-
-private:
-  QAudioDeviceInfo _deviceInfo;
-  QAudioOutput*    _output;
-
-  QAudioFormat _format;  
-  QIODevice*   _auIObuffer;           // IODevice to connect to m_AudioOutput  
-  signed short _aubuffer[BufferSize]; // Audio circular buffer  
-
-  int  readpointer;
-  int  writepointer;
-
-  EmuSC::Synth *_synth;
-
-  int _channels;
-  unsigned int _sampleRate;
-
-  unsigned int _bufferTime;       // Ring buffer length in us
-  unsigned int _periodTime;       // Period time in us
-
-  std::string _deviceName;
-
-//  AudioOutputQt();
 
 public:
   AudioOutputQt(EmuSC::Synth *synth);
   virtual ~AudioOutputQt();
 
-  virtual void run(void);
+  void start(void);
+  void stop(void);
 
-private slots:
-  void fill_buffer();
+  static QStringList get_available_devices(void);
 
+private:
+#if QT_VERSION < QT_VERSION_CHECK(6,0,0)
+  QScopedPointer<QAudioOutput> _audioOutput;
+  QScopedPointer<SynthGen> _synthGen;
+#else
+  QScopedPointer<SynthGen> _synthGen;
+  QScopedPointer<QAudioSink> _audioOutput;
+#endif
+
+
+  AudioOutputQt();
+
+};
+
+
+class SynthGen : public QIODevice
+{
+  Q_OBJECT
+
+public:
+  SynthGen(const QAudioFormat &format, EmuSC::Synth *synth);
+
+  void start();
+  void stop();
+
+  qint64 readData(char *data, qint64 maxlen) override;
+  qint64 writeData(const char *data, qint64 len) override;
+
+private:
+  int _sampleRate;
+  int _channels;
+
+  EmuSC::Synth *_synth;
+
+  SynthGen();
 };
 
 
 #endif  // AUDIO_OUTPUT_QT_H
 
-#endif //_NOT_USED_ 
+#endif // __QT_AUDIO__
