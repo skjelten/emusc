@@ -19,9 +19,6 @@
 
 #include "main_window.h"
 #include "preferences_dialog.h"
-#include "rom_config_dialog.h"
-#include "audio_config_dialog.h"
-#include "midi_config_dialog.h"
 #include "control_rom_info_dialog.h"
 #include "scene.h"
 #include "synth_dialog.h"
@@ -160,22 +157,7 @@ void MainWindow::_create_actions(void)
   connect(_panicAct, &QAction::triggered,
 	  this, &MainWindow::_panic);
 
-  _audioAct = new QAction("&Audio Configuration...", this);
-  _audioAct->setShortcut(tr("CTRL+A"));
-  connect(_audioAct, &QAction::triggered,
-	  this, &MainWindow::_display_audio_dialog);
-
-  _midiAct = new QAction("&MIDI Configuration...", this);
-  _midiAct->setShortcut(tr("CTRL+M"));
-  connect(_midiAct, &QAction::triggered,
-	  this, &MainWindow::_display_midi_dialog);
-
-  _romAct = new QAction("&ROM Configuration...", this);
-  _romAct->setShortcut(tr("CTRL+R"));
-  connect(_romAct, &QAction::triggered,
-	  this, &MainWindow::_display_rom_dialog);
-
-  _preferencesAct = new QAction("&Preferences...", this);
+  _preferencesAct = new QAction("P&references...", this);
   _preferencesAct->setShortcut(tr("CTRL+R"));
   connect(_preferencesAct, &QAction::triggered,
 	  this, &MainWindow::_display_preferences_dialog);
@@ -190,6 +172,9 @@ void MainWindow::_create_menus(void)
 {
   _fileMenu = menuBar()->addMenu("&File");
   _fileMenu->addAction(_quitAct);
+
+  _editMenu = menuBar()->addMenu("&Edit");
+  _editMenu->addAction(_preferencesAct);
 
   _toolsMenu = menuBar()->addMenu("&Tools");
   _toolsMenu->addAction(_dumpSongsAct);
@@ -208,44 +193,8 @@ void MainWindow::_create_menus(void)
   _synthMenu->addSeparator();
   _synthMenu->addAction(_panicAct);
 
-  _optionsMenu = menuBar()->addMenu("&Options");
-  _optionsMenu->addAction(_audioAct);
-  _optionsMenu->addAction(_midiAct);
-  _optionsMenu->addAction(_romAct);
-  _optionsMenu->addAction(_preferencesAct);
-
   _helpMenu = menuBar()->addMenu("&Help");
   _helpMenu->addAction(_aboutAct);
-}
-
-
-void MainWindow::_display_audio_dialog()
-{
-  AudioConfigDialog *audioDialog = new AudioConfigDialog();
-  audioDialog->show();
-}
-
-
-void MainWindow::_display_midi_dialog()
-{
-  MidiConfigDialog *midiDialog = new MidiConfigDialog();
-  midiDialog->show();
-}
-
-
-void MainWindow::_display_rom_dialog()
-{
-  RomConfigDialog *romDialog = new RomConfigDialog(_emulator);
-  romDialog->exec();
-
-  _viewCtrlRomDataAct->setEnabled(_emulator->has_valid_control_rom());
-  _synthModeMenu->setEnabled(_emulator->has_valid_control_rom());
-
-  if (_emulator->has_valid_control_rom() &&
-      _emulator->get_synth_generation() > EmuSC::ControlRom::SynthGen::SC55)
-    _GMmodeAct->setVisible(true);
-  else
-    _GMmodeAct->setVisible(false);
 }
 
 
@@ -253,6 +202,13 @@ void MainWindow::_display_preferences_dialog()
 {
   PreferencesDialog *preferencesDialog = new PreferencesDialog(_emulator, _scene, this);
   preferencesDialog->exec();
+
+
+  if (_emulator->has_valid_control_rom() &&
+      _emulator->get_synth_generation() > EmuSC::ControlRom::SynthGen::SC55)
+    _GMmodeAct->setVisible(true);
+  else
+    _GMmodeAct->setVisible(false);
 }
 
 
@@ -298,9 +254,6 @@ void MainWindow::power_switch(int newPowerState)
 
     _panicAct->setDisabled(false);
     _synthSettingsAct->setDisabled(false);
-    _audioAct->setDisabled(true);
-    _midiAct->setDisabled(true);
-    _romAct->setDisabled(true);
 
     _powerState = 1;
 
@@ -314,9 +267,6 @@ void MainWindow::power_switch(int newPowerState)
 
     _panicAct->setDisabled(true);
     _synthSettingsAct->setDisabled(true);
-    _audioAct->setDisabled(false);
-    _midiAct->setDisabled(false);
-    _romAct->setDisabled(false);
   }
 }
 

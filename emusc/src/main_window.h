@@ -37,14 +37,15 @@ class MainWindow : public QMainWindow
 
 private:
   QMenu *_fileMenu;
+  QMenu *_editMenu;
   QMenu *_toolsMenu;
   QMenu *_synthMenu;
   QMenu *_synthModeMenu;
-  QMenu *_optionsMenu;
   QMenu *_helpMenu;
 
   QActionGroup *_modeGroup;
   QAction *_quitAct;
+  QAction *_preferencesAct;
   QAction *_dumpSongsAct;
   QAction *_viewCtrlRomDataAct;
   QAction *_synthSettingsAct;
@@ -52,10 +53,6 @@ private:
   QAction *_GMmodeAct;
   QAction *_MT32modeAct;
   QAction *_panicAct;
-  QAction *_audioAct;
-  QAction *_midiAct;
-  QAction *_romAct;
-  QAction *_preferencesAct;
   QAction *_aboutAct;
 
   QPointer<SynthDialog> _synthDialog;
@@ -78,9 +75,6 @@ public slots:
 private slots:
   void cleanUp(void);
 
-  void _display_audio_dialog(void);
-  void _display_midi_dialog(void);
-  void _display_rom_dialog(void);
   void _display_preferences_dialog(void);
   void _display_synth_dialog(void);
   void _display_about_dialog(void);
