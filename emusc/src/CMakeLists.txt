@@ -15,8 +15,6 @@ configure_file(config.h.in config.h)
 link_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../libemusc/src)
 
 add_executable(emusc-client
-  audio_config_dialog.cc
-  audio_config_dialog.h
   audio_output.cc
   audio_output.h
   audio_output_alsa.cc
@@ -42,8 +40,6 @@ add_executable(emusc-client
   control_rom_info_dialog.h
   main_window.cc
   main_window.h
-  midi_config_dialog.cc
-  midi_config_dialog.h
   midi_input.cc
   midi_input.h
   midi_input_alsa.cc
@@ -54,8 +50,6 @@ add_executable(emusc-client
   midi_input_win32.h
   preferences_dialog.cc
   preferences_dialog.h
-  rom_config_dialog.cc
-  rom_config_dialog.h
   rom_info.cc
   rom_info.h
   scene.cc
