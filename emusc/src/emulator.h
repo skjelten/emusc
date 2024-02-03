@@ -46,7 +46,7 @@ public:
   virtual ~Emulator();
 
   void load_control_rom(QString romPath);
-  void load_pcm_rom(QVector<QString> romPaths);
+  void load_pcm_rom(QStringList romPaths);
 
   bool has_valid_control_rom(void);
   bool has_valid_pcm_rom(void);
@@ -74,6 +74,7 @@ public:
 
   QVector<bool> get_part_amplitude_vector(void);
 
+  void set_update_rom_state(bool state) { _updateROMs = state; }
   enum EmuSC::ControlRom::SynthGen get_synth_generation(void);
 
   // libEmuSC Synth API for get & set paramters
@@ -175,7 +176,7 @@ private:
   AudioOutput *_audioOutput;
   MidiInput   *_midiInput;
 
-  bool _ctrlRomUpdated;
+  bool _updateROMs;
 
   uint8_t _selectedPart;
 

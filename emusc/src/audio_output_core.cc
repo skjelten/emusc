@@ -36,10 +36,10 @@ AudioOutputCore::AudioOutputCore(EmuSC::Synth *synth)
     _sampleRate(44100)
 {
   QSettings settings;
-  QString audioDevice = settings.value("audio/device").toString();
-//  _bufferTime = settings.value("audio/buffer_time").toInt();
-//  _periodTime = settings.value("audio/period_time").toInt();
-  _sampleRate = settings.value("audio/sample_rate").toInt();
+  QString audioDevice = settings.value("Audio/device").toString();
+//  _bufferTime = settings.value("Audio/buffer_time").toInt();
+//  _periodTime = settings.value("Audio/period_time").toInt();
+  _sampleRate = settings.value("Audio/sample_rate").toInt();
 
   if (audioDevice.compare(CoreDefaultDevice))
     throw (QString("Only '" + CoreDefaultDevice +

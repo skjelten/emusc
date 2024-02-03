@@ -52,8 +52,12 @@ add_executable(emusc-client
   midi_input_core.h
   midi_input_win32.cc
   midi_input_win32.h
+  preferences_dialog.cc
+  preferences_dialog.h
   rom_config_dialog.cc
   rom_config_dialog.h
+  rom_info.cc
+  rom_info.h
   scene.cc
   scene.h
   synth_dialog.cc

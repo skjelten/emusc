@@ -31,9 +31,9 @@
 AudioOutputQt::AudioOutputQt(EmuSC::Synth *synth)
 {
   QSettings settings;
-  QString deviceName = settings.value("audio/device").toString();
-  int sampleRate = settings.value("audio/sample_rate").toInt();
-  int bufferTime = settings.value("audio/buffer_time").toInt();
+  QString deviceName = settings.value("Audio/device").toString();
+  int sampleRate = settings.value("Audio/sample_rate").toInt();
+  int bufferTime = settings.value("Audio/buffer_time").toInt();
   int channels = 2;
 
   QAudioFormat format;
@@ -46,7 +46,7 @@ AudioOutputQt::AudioOutputQt(EmuSC::Synth *synth)
   for (const QAudioDeviceInfo &deviceInfo : deviceInfos) {
     if (deviceInfo.deviceName() == deviceName) {
       format.setSampleSize(16);
-      format.setCodec("audio/pcm");
+      format.setCodec("Audio/pcm");
       format.setSampleType(QAudioFormat::SignedInt);
 
       if (!deviceInfo.isFormatSupported(format))

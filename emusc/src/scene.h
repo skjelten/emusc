@@ -35,7 +35,7 @@
 #include <QBrush>
 #include <QKeyEvent>
 
-
+#include <iostream>
 class Scene : public QGraphicsScene
 {
   Q_OBJECT
@@ -86,12 +86,17 @@ private:
   QPushButton *_keyshiftRButton;
   QPushButton *_keyshiftLButton;
 
-  QColor _lcdBackgroundOnColor;
-  QColor _lcdBackgroundOffColor;
+  QColor _lcdOnBackgroundColor;
+  QColor _lcdOffBackgroundColor;
   QColor _lcdOnActiveColor;
   QColor _lcdOnInactiveColor;
   QColor _lcdOffFontColor;
 
+  QColor _lcdOnBackgroundColorReset;
+  QColor _lcdOnActiveColorReset;
+  QColor _lcdOnInactiveColorReset;
+
+  bool _midiKbdInput;
   int _keyNoteOctave;
 
   void keyPressEvent(QKeyEvent *keyEvent);
@@ -100,6 +105,20 @@ private:
 public:
   Scene(Emulator *emulator, QWidget *parent = nullptr);
   virtual ~Scene();
+
+  QColor get_lcd_bkg_on_color(void) { return _lcdOnBackgroundColor; }
+  QColor get_lcd_active_on_color(void) { return _lcdOnActiveColor; }
+  QColor get_lcd_inactive_on_color(void) { return _lcdOnInactiveColor; }
+
+  QColor get_lcd_bkg_on_color_reset(void) {return _lcdOnBackgroundColorReset; }
+  QColor get_lcd_active_on_color_reset(void) { return _lcdOnActiveColorReset; }
+  QColor get_lcd_inactive_on_color_reset(void) { return _lcdOnInactiveColorReset; }
+
+  void set_lcd_bkg_on_color(QColor color);
+  void set_lcd_active_on_color(QColor color);
+  void set_lcd_inactive_on_color(QColor color);
+
+  void set_midi_kbd_enable(bool state) { _midiKbdInput = state; }
 
 public slots:
   void display_on(void);

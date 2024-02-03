@@ -41,14 +41,33 @@
 
 Scene::Scene(Emulator *emulator, QWidget *parent)
   : _emulator(emulator),
-    _lcdBackgroundOnColor(225, 145, 15),
-    _lcdBackgroundOffColor(140, 160, 140),
-    _lcdOnActiveColor(94, 37, 28),
-    _lcdOnInactiveColor(215, 135, 10),
+    _lcdOnBackgroundColorReset(225, 145, 15),
+    _lcdOnActiveColorReset(94, 37, 28),
+    _lcdOnInactiveColorReset(215, 135, 10),
+    _lcdOffBackgroundColor(140, 160, 140),
     _lcdOffFontColor(80, 80, 80),
     _keyNoteOctave(3)
 {
   setParent(parent);
+
+  // Update elements according to stored settings
+  QSettings settings;
+  if (settings.contains("Synth/lcd_bkg_color"))
+    _lcdOnBackgroundColor = settings.value("Synth/lcd_bkg_color").value<QColor>();
+  else
+    _lcdOnBackgroundColor = _lcdOnBackgroundColorReset;
+
+  if (settings.contains("Synth/lcd_active_color"))
+    _lcdOnActiveColor = settings.value("Synth/lcd_active_color").value<QColor>();
+  else
+    _lcdOnActiveColor = _lcdOnActiveColorReset;
+
+  if (settings.contains("Synth/lcd_inactive_color"))
+    _lcdOnInactiveColor = settings.value("Synth/lcd_inactive_color").value<QColor>();
+  else
+    _lcdOnInactiveColor = _lcdOnInactiveColorReset;
+
+  _midiKbdInput = settings.value("Midi/kbd_input").toBool();
 
   // Connect all signals for the emulator
   connect(_emulator, SIGNAL(emulator_started()), this, SLOT(display_on()));
@@ -63,7 +82,7 @@ Scene::Scene(Emulator *emulator, QWidget *parent)
 
   // Set LCD display background
   _lcdBackground = new QGraphicsRectItem(0, 0, 500, 175);
-  _lcdBackground->setBrush(_lcdBackgroundOffColor);
+  _lcdBackground->setBrush(_lcdOffBackgroundColor);
   _lcdBackground->setPen(QColor(0, 0, 0, 0));
   _lcdBackground->setPos(QPointF(100, 0));
   addItem(_lcdBackground);
@@ -216,6 +235,7 @@ Scene::Scene(Emulator *emulator, QWidget *parent)
   _volumeDial->setGeometry(QRect(-2, 73, 75, 75));
   _volumeDial->setStyleSheet("background-color: #3c3c3c;");
   _volumeDial->setRange(0,100);
+  _volumeDial->setValue(settings.value("Audio/volume", 80).toInt());
   connect(_volumeDial, SIGNAL(valueChanged(int)), emulator, SLOT(change_volume(int)));
 
   QHBoxLayout *layout = new QHBoxLayout(_volumeDial);
@@ -642,23 +662,19 @@ Scene::Scene(Emulator *emulator, QWidget *parent)
 	  this, SLOT(update_lcd_kshift_text(QString)));
   connect(emulator, SIGNAL(display_midi_channel_updated(QString)),
 	  this, SLOT(update_lcd_midich_text(QString)));
-
-  // Update elements according to stored settings
-  QSettings settings;
-  _volumeDial->setValue(settings.value("audio/volume", 80).toInt());
 }
 
 
 Scene::~Scene()
 {
   QSettings settings;
-  settings.setValue("audio/volume", _volumeDial->value());
+  settings.setValue("Audio/volume", _volumeDial->value());
  }
 
 
 void Scene::display_on(void)
 {
-  _lcdBackground->setBrush(_lcdBackgroundOnColor);
+  _lcdBackground->setBrush(_lcdOnBackgroundColor);
 
   // Set all static text in LCD to correct color
   QVectorIterator<QGraphicsTextItem*> it(_partNumText);
@@ -722,7 +738,7 @@ void Scene::display_off(void)
   update_lcd_midich_text("");
 
   // Finally turn off backlight
-  _lcdBackground->setBrush(_lcdBackgroundOffColor);
+  _lcdBackground->setBrush(_lcdOffBackgroundColor);
 
   // And turn off buttons
   _allButton->setDown(false);
@@ -802,6 +818,50 @@ void Scene::update_lcd_midich_text(QString text)
 }
 
 
+void Scene::set_lcd_bkg_on_color(QColor color)
+{
+  _lcdOnBackgroundColor = color;
+  _lcdBackground->setBrush(color);
+  _lcdBackground->update();
+}
+
+
+void Scene::set_lcd_active_on_color(QColor color)
+{
+  _lcdOnActiveColor = color;
+
+  _lcdInstrumentText->setDefaultTextColor(color);
+  _lcdPartText->setDefaultTextColor(color);
+  _lcdLevelText->setDefaultTextColor(color);
+  _lcdPanText->setDefaultTextColor(color);
+  _lcdReverbText->setDefaultTextColor(color);
+  _lcdChorusText->setDefaultTextColor(color);
+  _lcdKshiftText->setDefaultTextColor(color);
+  _lcdMidichText->setDefaultTextColor(color);
+
+  _lcdLevelHeaderText->setDefaultTextColor(color);
+  _lcdPanHeaderText->setDefaultTextColor(color);
+  _lcdReverbHeaderText->setDefaultTextColor(color);
+  _lcdChorusHeaderText->setDefaultTextColor(color);
+  _lcdKshiftHeaderText->setDefaultTextColor(color);
+  _lcdMidichHeaderText->setDefaultTextColor(color);
+
+  QVectorIterator<QGraphicsEllipseItem*> ic(_volumeCircles);
+  while (ic.hasNext())
+    ic.next()->setBrush(QBrush(color));
+
+  QVectorIterator<QGraphicsTextItem*> it(_partNumText);
+  while (it.hasNext())
+    it.next()->setDefaultTextColor(color);
+}
+
+
+void Scene::set_lcd_inactive_on_color(QColor color)
+{
+  _lcdOnInactiveColor = color;
+}
+
+
 void Scene::keyPressEvent(QKeyEvent *keyEvent)
 {
   // Ignore repeating key events generated from keys being held down
@@ -820,8 +880,13 @@ void Scene::keyPressEvent(QKeyEvent *keyEvent)
 
   } else if (keyEvent->key() == Qt::Key_Space) {
     _powerButton->click();
+  }
 
-  } else if (keyEvent->key() == Qt::Key_Q) {
+  // The remaining keys are only used of keyboard MIDI input is enabled
+  if (!_midiKbdInput)
+    return;
+
+  if (keyEvent->key() == Qt::Key_Q) {
     if (_keyNoteOctave < 10)
       _keyNoteOctave++;
   } else if (keyEvent->key() == Qt::Key_A) {
@@ -858,6 +923,9 @@ void Scene::keyPressEvent(QKeyEvent *keyEvent)
 
 void Scene::keyReleaseEvent(QKeyEvent *keyEvent)
 {
+  if (!_midiKbdInput)
+    return;
+
   // Ignore repeating key events generated from keys being held down
   if (keyEvent->isAutoRepeat())
     return;
@@ -888,7 +956,6 @@ void Scene::keyReleaseEvent(QKeyEvent *keyEvent)
     _emulator->play_note(_keyNoteOctave * 12 + 11, 0);
   }
 }
-
 
 
 SynthButton::SynthButton(QWidget *parent)

@@ -18,6 +18,7 @@
 
 
 #include "main_window.h"
+#include "preferences_dialog.h"
 #include "rom_config_dialog.h"
 #include "audio_config_dialog.h"
 #include "midi_config_dialog.h"
@@ -75,24 +76,6 @@ MainWindow::MainWindow(QWidget *parent)
   _scene->setSceneRect(0, -10, 1100, 200);
 //    gView->fitInView(_scene->sceneRect(), Qt::KeepAspectRatio);
 
-  QSettings settings;
-  QString ctrlRomPath = settings.value("rom/control").toString();
-  QString pcm1RomPath = settings.value("rom/pcm1").toString();
-  QString pcm2RomPath = settings.value("rom/pcm2").toString();
-  QString pcm3RomPath = settings.value("rom/pcm3").toString();
-
-  QVector<QString> pcmRomPaths;
-  pcmRomPaths.push_back(pcm1RomPath);
-  if (!pcm2RomPath.isEmpty()) pcmRomPaths.push_back(pcm2RomPath);
-  if (!pcm3RomPath.isEmpty()) pcmRomPaths.push_back(pcm3RomPath);
-
-  if (!ctrlRomPath.isEmpty()) {
-    try {
-      _emulator->load_control_rom(ctrlRomPath);
-      _emulator->load_pcm_rom(pcmRomPaths);
-    } catch (QString errorMsg) { std::cout << "Do nothing" << std::endl; }
-  }
-
   _viewCtrlRomDataAct->setEnabled(_emulator->has_valid_control_rom());
   _synthModeMenu->setEnabled(_emulator->has_valid_control_rom());
 
@@ -102,11 +85,15 @@ MainWindow::MainWindow(QWidget *parent)
   else
     _GMmodeAct->setVisible(false);
 
+  QSettings settings;
   statusBar()->hide();
+  if (settings.value("Synth/show_statusbar").toBool())
+    show_statusbar(1);
 
   setCentralWidget(gView);
 
-  if (QCoreApplication::arguments().contains("-p") ||
+  if (settings.value("Synth/auto_power_on").toBool() ||
+      QCoreApplication::arguments().contains("-p") ||
       QCoreApplication::arguments().contains("--power-on"))
     power_switch(true);
 }
@@ -188,6 +175,11 @@ void MainWindow::_create_actions(void)
   connect(_romAct, &QAction::triggered,
 	  this, &MainWindow::_display_rom_dialog);
 
+  _preferencesAct = new QAction("&Preferences...", this);
+  _preferencesAct->setShortcut(tr("CTRL+R"));
+  connect(_preferencesAct, &QAction::triggered,
+	  this, &MainWindow::_display_preferences_dialog);
+
   _aboutAct = new QAction("&About", this);
   connect(_aboutAct, &QAction::triggered,
 	  this, &MainWindow::_display_about_dialog);
@@ -220,6 +212,7 @@ void MainWindow::_create_menus(void)
   _optionsMenu->addAction(_audioAct);
   _optionsMenu->addAction(_midiAct);
   _optionsMenu->addAction(_romAct);
+  _optionsMenu->addAction(_preferencesAct);
 
   _helpMenu = menuBar()->addMenu("&Help");
   _helpMenu->addAction(_aboutAct);
@@ -256,6 +249,13 @@ void MainWindow::_display_rom_dialog()
 }
 
 
+void MainWindow::_display_preferences_dialog()
+{
+  PreferencesDialog *preferencesDialog = new PreferencesDialog(_emulator, _scene, this);
+  preferencesDialog->exec();
+}
+
+
 void MainWindow::_display_synth_dialog()
 {
   _synthDialog = new SynthDialog(_emulator, _scene, this);
@@ -286,8 +286,6 @@ void MainWindow::power_switch(int newPowerState)
 {
   if ((newPowerState > 0 && _powerState == 0) ||
       (newPowerState < 0 && _powerState == 0)) {
-    qDebug() << "POWER ON";
-
     try {
       _emulator->start();
     } catch (QString errorMsg) {
@@ -308,7 +306,6 @@ void MainWindow::power_switch(int newPowerState)
 
   } else if ((newPowerState == 0 && _powerState == 1) ||
 	     (newPowerState < 0 && _powerState == 1)) {
-    qDebug() << "POWER OFF";
     _powerState = 0;
 
     _emulator->stop();
@@ -377,4 +374,17 @@ void MainWindow::_set_mt32_map(void)
 {
   if (_emulator)
     _emulator->set_mt32_map();
+}
+
+
+void MainWindow::show_statusbar(bool state)
+{
+  // TODO: Find a better way to compensate for changes in MainWindow size
+  if (state) {
+    resize(size().width(), size().height() + statusBar()->height());
+    statusBar()->show();
+  } else {
+    resize(size().width(), size().height() - statusBar()->height());
+    statusBar()->hide();
+  }
 }

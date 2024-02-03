@@ -47,7 +47,7 @@ AudioOutputWav::AudioOutputWav(EmuSC::Synth *synth)
     _channels(2)
 {
   QSettings settings;
-  QString filePath = settings.value("audio/file_path").toString();
+  QString filePath = settings.value("Audio/file_path").toString();
 
   QFile wavFile(filePath);
   if (!wavFile.open(QIODevice::WriteOnly))
@@ -97,7 +97,7 @@ void AudioOutputWav::start(void)
 void AudioOutputWav::run(void)
 {
   QSettings settings;
-  QString filePath = settings.value("audio/file_path").toString();
+  QString filePath = settings.value("Audio/file_path").toString();
 
   QFile wavFile(filePath);
   if (!wavFile.open(QIODevice::WriteOnly))

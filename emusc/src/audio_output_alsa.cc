@@ -37,10 +37,10 @@ AudioOutputAlsa::AudioOutputAlsa(EmuSC::Synth *synth)
     _channels(2)
 {
   QSettings settings;
-  QString audioDevice = settings.value("audio/device").toString();
-  _bufferTime = settings.value("audio/buffer_time").toInt();
-  _periodTime = settings.value("audio/period_time").toInt();
-  _sampleRate = settings.value("audio/sample_rate").toInt();
+  QString audioDevice = settings.value("Audio/device").toString();
+  _bufferTime = settings.value("Audio/buffer_time").toInt();
+  _periodTime = settings.value("Audio/period_time").toInt();
+  _sampleRate = settings.value("Audio/sample_rate").toInt();
 
   // First find the correct device name from our description
   QString deviceName = "default";

@@ -4,6 +4,10 @@
     </qresource>
 
     <qresource prefix="/icons">
+        <file>gear.png</file>
+        <file>speaker.png</file>
+        <file>midi.png</file>
+        <file>rom.png</file>
         <file>master.png</file>
 	<file>reverb.png</file>
 	<file>chorus.png</file>

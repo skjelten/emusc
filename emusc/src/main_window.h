@@ -55,6 +55,7 @@ private:
   QAction *_audioAct;
   QAction *_midiAct;
   QAction *_romAct;
+  QAction *_preferencesAct;
   QAction *_aboutAct;
 
   QPointer<SynthDialog> _synthDialog;
@@ -71,12 +72,16 @@ public:
   MainWindow(QWidget *parent = nullptr);
   ~MainWindow();
 
+public slots:
+  void show_statusbar(bool state);
+
 private slots:
   void cleanUp(void);
 
   void _display_audio_dialog(void);
   void _display_midi_dialog(void);
   void _display_rom_dialog(void);
+  void _display_preferences_dialog(void);
   void _display_synth_dialog(void);
   void _display_about_dialog(void);
 

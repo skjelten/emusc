@@ -46,7 +46,7 @@ Emulator::Emulator(void)
     _emuscSynth(NULL),
     _audioOutput(NULL),
     _midiInput(NULL),
-    _ctrlRomUpdated(false),
+    _updateROMs(false),
     _selectedPart(0),
     _lcdBarDisplayHistVect(16, {0,-1,0}),
     _introFrameIndex(0),
@@ -78,11 +78,11 @@ void Emulator::load_control_rom(QString romPath)
   _ctrlRomModel = _emuscControlRom->model().c_str();
   _ctrlRomVersion = _emuscControlRom->version().c_str();
   _ctrlRomDate = _emuscControlRom->date().c_str();
-  _ctrlRomUpdated = true;
+//  _ctrlRomUpdated = true;
 }
 
 
-void Emulator::load_pcm_rom(QVector<QString> romPaths)
+void Emulator::load_pcm_rom(QStringList romPaths)
 {
   // We depend on a valid control ROM before loading the PCM ROM
   if (!_emuscControlRom)
@@ -93,10 +93,10 @@ void Emulator::load_pcm_rom(QVector<QString> romPaths)
     delete _emuscPcmRom, _emuscPcmRom = NULL;
 
   std::vector<std::string> romPathsStdVect;
-  QVectorIterator<QString> i(romPaths);
-  while (i.hasNext())
-    romPathsStdVect.push_back(i.next().toStdString());
-
+  for (auto &filePath : romPaths) {
+    if (!filePath.isEmpty())
+      romPathsStdVect.push_back(filePath.toStdString());
+  }
   try {
     _emuscPcmRom = new EmuSC::PcmRom(romPathsStdVect, *_emuscControlRom);
   } catch (std::string errorMsg) {
@@ -111,6 +111,21 @@ void Emulator::load_pcm_rom(QVector<QString> romPaths)
 
 void Emulator::start(void)
 {
+  if (_updateROMs || !_emuscControlRom || !_emuscPcmRom) {
+    _updateROMs = true;
+    QSettings settings;
+    load_control_rom(settings.value("Rom/control").toString());
+
+    QStringList pcmRomFilePaths;
+    pcmRomFilePaths << settings.value("Rom/pcm1").toString()
+		    << settings.value("Rom/pcm2").toString()
+		    << settings.value("Rom/pcm3").toString()
+		    << settings.value("Rom/pcm4").toString();
+
+    load_pcm_rom(pcmRomFilePaths);
+//    _updateROMs == false;
+  }
+
   if (!_emuscControlRom)
     throw(QString("Invalid control ROM selected"));
 
@@ -182,8 +197,8 @@ void Emulator::part_mod_callback(const int partId)
 void Emulator::_start_midi_subsystem()
 {
   QSettings settings;
-  QString midiSystem = settings.value("midi/system").toString();
-  QString midiDevice = settings.value("midi/device").toString();
+  QString midiSystem = settings.value("Midi/system").toString();
+  QString midiDevice = settings.value("Midi/device").toString();
 
   try {	    
     if (!midiSystem.compare("alsa", Qt::CaseInsensitive)) {
@@ -221,7 +236,13 @@ void Emulator::_start_midi_subsystem()
 void Emulator::_start_audio_subsystem(void)
 {
   QSettings settings;
-  QString audioSystem = settings.value("audio/system").toString();
+
+  if (!settings.contains("Audio/system"))
+    throw(QString("Audio system not configured. Please open the Preferences "
+		  "dialog and configure the preferred audio setup."));
+
+  QString audioSystem = settings.value("Audio/system").toString();
+
 
   try {
     if (!audioSystem.compare("alsa", Qt::CaseInsensitive)) {
@@ -568,8 +589,8 @@ QVector<uint8_t> Emulator::get_intro_anim(void)
 
 bool Emulator::control_rom_changed(void)
 {
-  if (_ctrlRomUpdated) {
-    _ctrlRomUpdated = false;
+  if (_updateROMs) {
+    _updateROMs = false;
     return true;
   }
 

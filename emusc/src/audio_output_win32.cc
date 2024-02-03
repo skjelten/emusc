@@ -34,10 +34,10 @@ AudioOutputWin32::AudioOutputWin32(EmuSC::Synth *synth)
     _channels(2)
 {
   QSettings settings;
-  QString device = settings.value("audio/device").toString();
-  int bufferTime = settings.value("audio/buffer_time").toInt();
-  int periodTime = settings.value("audio/period_time").toInt();
-  _sampleRate = settings.value("audio/sample_rate").toInt();
+  QString device = settings.value("Audio/device").toString();
+  int bufferTime = settings.value("Audio/buffer_time").toInt();
+  int periodTime = settings.value("Audio/period_time").toInt();
+  _sampleRate = settings.value("Audio/sample_rate").toInt();
 
   WAVEFORMATEX pwfx;
   pwfx.wFormatTag = WAVE_FORMAT_PCM;
