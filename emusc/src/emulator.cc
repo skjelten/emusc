@@ -24,6 +24,7 @@
 #include <string>
 #include <vector>
 
+#include <QFile>
 #include <QSettings>
 
 #include "audio_output_alsa.h"
@@ -49,7 +50,8 @@ Emulator::Emulator(void)
     _updateROMs(false),
     _selectedPart(0),
     _lcdBarDisplayHistVect(16, {0,-1,0}),
-    _introFrameIndex(0),
+    _animIndex(2),
+    _animFrameIndex(0),
     _allMode(false)
 {
   // Start fixed timer for LCD updates & set bar display
@@ -111,9 +113,10 @@ void Emulator::load_pcm_rom(QStringList romPaths)
 
 void Emulator::start(void)
 {
+  QSettings settings;
+
   if (_updateROMs || !_emuscControlRom || !_emuscPcmRom) {
     _updateROMs = true;
-    QSettings settings;
     load_control_rom(settings.value("Rom/control").toString());
 
     QStringList pcmRomFilePaths;
@@ -157,27 +160,55 @@ void Emulator::start(void)
   // Set initial state of volume bar view
   // Play intro animation only at first run and only if ROM contains animation
   if (control_rom_changed()) {
-    _introAnimData = get_intro_anim();
 
-    if (_introAnimData.isEmpty()) {
-      connect(_lcdDisplayTimer, SIGNAL(timeout()),
-	      this, SLOT(generate_bar_display()));
-      set_part(_selectedPart = 0);
-      _emuscSynth->add_part_midi_mod_callback(std::bind(&Emulator::part_mod_callback,
-							this,
-							std::placeholders::_1));
+    if (settings.value("Synth/startup_animations").toString() != "none") {
+      // Update part display before showing intro animation
+      if (_ctrlRomModel == "SC-55mkII") {
+        emit display_part_updated(" **");
+        emit display_instrument_updated(" SOUND CANVAS **");
+        emit display_level_updated("SC-");
+        emit display_pan_updated("55 ");
+        emit display_chorus_updated("mk$");
+      }
 
-    } else {
-      connect(_lcdDisplayTimer, SIGNAL(timeout()),
-	      this, SLOT(play_intro_anim_bar_display()));
+      // Play model anim from ROM
+      _introModelAnim = get_intro_anim();
+      _animIndex = 1;
     }
+
+    if (settings.value("Synth/startup_animations").toString() == "all") {
+      QFile f(":/animations/emusc.anm");
+      if (f.open(QIODevice::ReadOnly)) {
+        _introEmuscAnim.resize(f.size());
+        QDataStream fileStream(&f);
+        fileStream.readRawData((char *) &_introEmuscAnim[0], f.size());
+        f.close();
+        _animIndex = 0;
+      }
+
+      if (_introModelAnim.isEmpty()) {     // Prefer anim from ROM if it exists
+	if (_ctrlRomModel == "SC-55") {
+	  QFile f(":/animations/sc-55.anm");
+	  if (f.open(QIODevice::ReadOnly)) {
+	    _introModelAnim.resize(f.size());
+	    QDataStream fileStream(&f);
+	    fileStream.readRawData((char *) &_introModelAnim[0], f.size());
+	    f.close();
+	  }
+	}
+      }
+    }
+
+    connect(_lcdDisplayTimer, SIGNAL(timeout()),
+            this, SLOT(play_anim_bar_display()));
+
   } else {
     connect(_lcdDisplayTimer, SIGNAL(timeout()),
-	    this, SLOT(generate_bar_display()));
+            this, SLOT(generate_bar_display()));
     set_part(_selectedPart = 0);
     _emuscSynth->add_part_midi_mod_callback(std::bind(&Emulator::part_mod_callback,
-						      this,
-						      std::placeholders::_1));
+                                                      this,
+                                                      std::placeholders::_1));
   }
 
   // Start LCD update timer at ~16,67 FPS
@@ -325,7 +356,7 @@ void Emulator::stop(void)
 
   emit emulator_stopped();
   _lcdDisplayTimer->stop();
-  _introFrameIndex = 0;
+  _animFrameIndex = 0;
 
   if (_midiInput)
     delete _midiInput, _midiInput = NULL;
@@ -652,16 +683,33 @@ void Emulator::generate_bar_display(void)
 }
 
 
-void Emulator::play_intro_anim_bar_display(void)
+void Emulator::play_anim_bar_display(void)
 {
-  // Update part display before showing intro animation
-  if (_introFrameIndex == 0) {
-    if (_ctrlRomModel == "SC-55mkII") {
-      emit display_part_updated(" **");
-      emit display_instrument_updated(" SOUND CANVAS **");
-      emit display_level_updated("SC-");
-      emit display_pan_updated("55 ");
-      emit display_chorus_updated("mk$");
+  if (_animFrameIndex == 0) {
+    if (_animIndex == 0) {
+      if (!_introEmuscAnim.isEmpty())
+        _introAnimPtr = &_introEmuscAnim;
+      else
+        _animIndex += 1;
+    }
+
+    if (_animIndex == 1) {
+      if (!_introModelAnim.isEmpty())
+        _introAnimPtr = &_introModelAnim;
+      else
+        _animIndex += 1;
+    }
+
+    if (_animIndex > 1) {
+      disconnect(_lcdDisplayTimer, SIGNAL(timeout()),
+                 this, SLOT(play_anim_bar_display()));
+      connect(_lcdDisplayTimer, SIGNAL(timeout()),
+              this, SLOT(generate_bar_display()));
+      set_part(_selectedPart = 0);
+      _emuscSynth->add_part_midi_mod_callback(std::bind(&Emulator::part_mod_callback,
+                                                        this,
+                                                        std::placeholders::_1));
+      return;
     }
   }
 
@@ -671,7 +719,7 @@ void Emulator::play_intro_anim_bar_display(void)
 
     // First 5 parts
     for (int x = 0; x < 5; x++) {
-      if (_introAnimData[_introFrameIndex + y] & (1 << x))
+      if (_introAnimPtr->at(_animFrameIndex + y) & (1 << x))
 	_barDisplay[16 * 4 - x * 16 + 15 - y] = true;
       else
 	_barDisplay[16 * 4 - x * 16 + 15 - y] = false;
@@ -679,7 +727,7 @@ void Emulator::play_intro_anim_bar_display(void)
 
     // Parts 5-10
     for (int x = 0; x < 5; x++) {
-      if (_introAnimData[_introFrameIndex + y + 16] & (1 << x))
+      if (_introAnimPtr->at(_animFrameIndex + y + 16) & (1 << x))
 	_barDisplay[16 * 9 - x * 16 + 15 - y] = true;
       else
 	_barDisplay[16 * 9 - x * 16 + 15 - y] = false;
@@ -687,14 +735,14 @@ void Emulator::play_intro_anim_bar_display(void)
 
     // Parts 10-15
     for (int x = 0; x < 5; x++) {
-      if (_introAnimData[_introFrameIndex + y + 32] & (1 << x))
+      if (_introAnimPtr->at(_animFrameIndex + y + 32) & (1 << x))
 	_barDisplay[16 * 14 - x * 16 + 15 - y] = true;
       else
 	_barDisplay[16 * 14 - x * 16 + 15 - y] = false;
     }
 
     // Part 16
-    if (_introAnimData[_introFrameIndex + y + 48])
+    if (_introAnimPtr->at(_animFrameIndex + y + 48))
       _barDisplay[16 * 15 + 15 - y] = true;
     else
       _barDisplay[16 * 15 + 15 - y] = false;
@@ -703,17 +751,11 @@ void Emulator::play_intro_anim_bar_display(void)
   emit new_bar_display(&_barDisplay);
 
   // Each frame is 64 bytes (even though there is only 32 bytes of image data)
-  _introFrameIndex += 64;
+  _animFrameIndex += 64;
 
-  if (_introFrameIndex >= _introAnimData.size()) {
-    disconnect(_lcdDisplayTimer, SIGNAL(timeout()),
-	       this, SLOT(play_intro_anim_bar_display()));
-    connect(_lcdDisplayTimer, SIGNAL(timeout()),
-	    this, SLOT(generate_bar_display()));
-    set_part(_selectedPart = 0);
-    _emuscSynth->add_part_midi_mod_callback(std::bind(&Emulator::part_mod_callback,
-						      this,
-						      std::placeholders::_1));
+  if (_animFrameIndex >= _introAnimPtr->size()) {
+    _animIndex ++;
+    _animFrameIndex = 0;
   }
 }
 

@@ -149,7 +149,7 @@ public slots:
   void change_volume(int volume);
 
   void generate_bar_display(void);
-  void play_intro_anim_bar_display(void);
+  void play_anim_bar_display(void);
 
   void play_note(uint8_t key, uint8_t velocity);
 
@@ -191,8 +191,11 @@ private:
 
   QTimer *_lcdDisplayTimer;
 
-  int _introFrameIndex;
-  QVector<uint8_t> _introAnimData;
+  unsigned int _animIndex;
+  unsigned int _animFrameIndex;
+  QVector<uint8_t> *_introAnimPtr;
+  QVector<uint8_t> _introEmuscAnim;
+  QVector<uint8_t> _introModelAnim;
 
   bool _allMode;
 

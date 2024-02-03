@@ -182,7 +182,7 @@ GeneralSettings::GeneralSettings(MainWindow *mainWindow, Scene *scene, QWidget *
   if (!settings.contains("Synth/auto_power_on")) {
     settings.setValue("Synth/auto_power_on", true);
     settings.setValue("Synth/show_statusbar", false);
-    settings.setValue("Synth/startup_animations", "all_animations");
+    settings.setValue("Synth/startup_animations", "all");
 
     QColor bkgColor = _scene->get_lcd_bkg_on_color_reset();
     QColor activeColor = _scene->get_lcd_active_on_color_reset();
@@ -196,9 +196,9 @@ GeneralSettings::GeneralSettings(MainWindow *mainWindow, Scene *scene, QWidget *
   _showStatusBar->setChecked(settings.value("Synth/show_statusbar").toBool());
 
   QString animSetting = settings.value("Synth/startup_animations").toString();
-  if (animSetting == "only_rom_animations")
+  if (animSetting == "only_rom")
     _romAnim->setChecked(true);
-  else if (animSetting == "no_animations")
+  else if (animSetting == "none")
     _noAnim->setChecked(true);
   else
     _emuscAnim->setChecked(true);
@@ -259,7 +259,7 @@ void GeneralSettings::reset(void)
   QSettings settings;
   settings.setValue("Synth/auto_power_on", true);
   settings.setValue("Synth/show_statusbar", false);
-  settings.setValue("Synth/startup_animations", "all_animations");
+  settings.setValue("Synth/startup_animations", "all");
   settings.setValue("Synth/lcd_bkg_color", bkgColor.name());
   settings.setValue("Synth/lcd_active_color", activeColor.name());
   settings.setValue("Synth/lcd_inactive_color", inactiveColor.name());  
@@ -339,7 +339,7 @@ void GeneralSettings::_emuscAnim_toggled(bool checked)
 {
   if (checked) {
     QSettings settings;
-    settings.setValue("Synth/startup_animations", "all_animations");
+    settings.setValue("Synth/startup_animations", "all");
   }
 }
 
@@ -348,7 +348,7 @@ void GeneralSettings::_romAnim_toggled(bool checked)
 {
   if (checked) {
     QSettings settings;
-    settings.setValue("Synth/startup_animations", "only_rom_animations");
+    settings.setValue("Synth/startup_animations", "only_rom");
   }
 }
 
@@ -357,7 +357,7 @@ void GeneralSettings::_noAnim_toggled(bool checked)
 {
   if (checked) {
     QSettings settings;
-    settings.setValue("Synth/startup_animations", "no_animations");
+    settings.setValue("Synth/startup_animations", "none");
   }
 }
 

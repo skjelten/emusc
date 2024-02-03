@@ -3,6 +3,11 @@
         <file>retro_synth.ttf</file>
     </qresource>
 
+    <qresource prefix="/animations">
+        <file>emusc.anm</file>
+        <file>sc-55.anm</file>
+    </qresource>
+
     <qresource prefix="/icons">
         <file>gear.png</file>
         <file>speaker.png</file>
