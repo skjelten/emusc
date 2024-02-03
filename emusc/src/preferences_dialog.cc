@@ -639,7 +639,8 @@ void AudioSettings::_system_box_changed(int index)
       _deviceBox->addItem(d);
 #endif
 
-  } else if (!_systemBox->currentText().compare("core", Qt::CaseInsensitive)) {
+  } else if (!_systemBox->currentText().compare("core audio",
+						Qt::CaseInsensitive)) {
 
 #ifdef __CORE_AUDIO__
     QStringList devices = AudioOutputCore::get_available_devices();

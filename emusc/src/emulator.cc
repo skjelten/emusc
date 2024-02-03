@@ -239,7 +239,7 @@ void Emulator::_start_midi_subsystem()
       throw(QString("Alsa MIDI system is missing in this build"));
 #endif
 
-    } else if (!midiSystem.compare("core", Qt::CaseInsensitive)) {
+    } else if (!midiSystem.compare("core midi", Qt::CaseInsensitive)) {
 #ifdef __CORE_MIDI__
       _midiInput = new MidiInputCore();
 #else
@@ -318,11 +318,11 @@ void Emulator::_start_audio_subsystem(void)
       throw(QString("'WAV' audio ouput is missing in this build"));
 #endif
 
-    } else if (!audioSystem.compare("core", Qt::CaseInsensitive)) {
+    } else if (!audioSystem.compare("core audio", Qt::CaseInsensitive)) {
 #ifdef __CORE_AUDIO__
       _audioOutput = new AudioOutputCore(_emuscSynth);
 #else
-      throw(QString("'Core' audio ouput is missing in this build"));
+      throw(QString("'Core Audio' audio ouput is missing in this build"));
 #endif
 
     } else if (!audioSystem.compare("qt", Qt::CaseInsensitive)) {

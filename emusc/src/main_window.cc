@@ -127,6 +127,7 @@ void MainWindow::_create_actions(void)
 
   _synthSettingsAct = new QAction("&Settings...", this);
   _synthSettingsAct->setShortcut(tr("CTRL+S"));
+  _synthSettingsAct->setMenuRole(QAction::NoRole);
   _synthSettingsAct->setEnabled(false);
   connect(_synthSettingsAct, &QAction::triggered,
 	  this, &MainWindow::_display_synth_dialog);
@@ -159,6 +160,7 @@ void MainWindow::_create_actions(void)
 
   _preferencesAct = new QAction("P&references...", this);
   _preferencesAct->setShortcut(tr("CTRL+R"));
+  _preferencesAct->setMenuRole(QAction::PreferencesRole);
   connect(_preferencesAct, &QAction::triggered,
 	  this, &MainWindow::_display_preferences_dialog);
 
@@ -173,8 +175,12 @@ void MainWindow::_create_menus(void)
   _fileMenu = menuBar()->addMenu("&File");
   _fileMenu->addAction(_quitAct);
 
+#ifdef Q_OS_MACOS                              // Hide empty Edit menu on MacOS
+  _fileMenu->addAction(_preferencesAct);
+#else
   _editMenu = menuBar()->addMenu("&Edit");
   _editMenu->addAction(_preferencesAct);
+#endif
 
   _toolsMenu = menuBar()->addMenu("&Tools");
   _toolsMenu->addAction(_dumpSongsAct);
