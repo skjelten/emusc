@@ -158,14 +158,10 @@ GeneralSettings::GeneralSettings(MainWindow *mainWindow, Scene *scene, QWidget *
   _lcdBkgColorPickB = new QPushButton();
   _lcdActiveColorPickB = new QPushButton();
   _lcdInactiveColorPickB = new QPushButton();
-  
-  QPalette pal = palette();
-  pal.setBrush(QPalette::Button, _scene->get_lcd_bkg_on_color());
-  _lcdBkgColorPickB->setPalette(pal);
-  pal.setBrush(QPalette::Button, _scene->get_lcd_active_on_color());
-  _lcdActiveColorPickB->setPalette(pal);
-  pal.setBrush(QPalette::Button, _scene->get_lcd_inactive_on_color());
-  _lcdInactiveColorPickB->setPalette(pal);
+
+  _set_button_color(_lcdBkgColorPickB, _scene->get_lcd_bkg_on_color());
+  _set_button_color(_lcdActiveColorPickB, _scene->get_lcd_active_on_color());
+  _set_button_color(_lcdInactiveColorPickB,_scene->get_lcd_inactive_on_color());
 
   QGridLayout *lcdGridLayout = new QGridLayout();
   lcdGridLayout->addWidget(new QLabel("Background "), 0, 0);
@@ -248,13 +244,9 @@ void GeneralSettings::reset(void)
   _scene->set_lcd_inactive_on_color(inactiveColor);
 
   // FIXME: Handle cases where synth is off
-  QPalette pal = palette();
-  pal.setBrush(QPalette::Button, bkgColor);
-  _lcdBkgColorPickB->setPalette(pal);
-  pal.setBrush(QPalette::Button, activeColor);
-  _lcdActiveColorPickB->setPalette(pal);
-  pal.setBrush(QPalette::Button, inactiveColor);
-  _lcdInactiveColorPickB->setPalette(pal);
+  _set_button_color(_lcdBkgColorPickB, bkgColor);
+  _set_button_color(_lcdActiveColorPickB, activeColor);
+  _set_button_color(_lcdInactiveColorPickB, inactiveColor);
 
   QSettings settings;
   settings.setValue("Synth/auto_power_on", true);
@@ -287,10 +279,7 @@ void GeneralSettings::_lcd_bkg_colorpick_clicked(void)
 					      "Select background color");
 
   if (color.isValid()) {
-    QPalette pal = palette();
-    pal.setBrush(QPalette::Button, color);
-    _lcdBkgColorPickB->setPalette(pal);
-
+    _set_button_color(_lcdBkgColorPickB, color);
     _scene->set_lcd_bkg_on_color(color);
 
     QSettings settings;
@@ -305,10 +294,7 @@ void GeneralSettings::_lcd_active_colorpick_clicked(void)
 					      "Select active color");
 
   if (color.isValid()) {
-    QPalette pal = palette();
-    pal.setBrush(QPalette::Button, color);
-    _lcdActiveColorPickB->setPalette(pal);
-
+    _set_button_color(_lcdActiveColorPickB, color);
     _scene->set_lcd_active_on_color(color);
 
     QSettings settings;
@@ -323,10 +309,7 @@ void GeneralSettings::_lcd_inactive_colorpick_clicked(void)
 					      "Select inactive color");
 
   if (color.isValid()) {
-    QPalette pal = palette();
-    pal.setBrush(QPalette::Button, color);
-    _lcdInactiveColorPickB->setPalette(pal);
-
+    _set_button_color(_lcdInactiveColorPickB, color);
     _scene->set_lcd_inactive_on_color(color);
 
     QSettings settings;
@@ -359,6 +342,19 @@ void GeneralSettings::_noAnim_toggled(bool checked)
     QSettings settings;
     settings.setValue("Synth/startup_animations", "none");
   }
+}
+
+
+void GeneralSettings::_set_button_color(QPushButton *button, QColor color)
+{
+  if (!button)
+    return;
+
+  button->setStyleSheet(QString("background-color: %1; "
+				"border: 1px; "
+				"border-radius: 3px; "
+				"border-color: #ababab; "
+				"border-style: solid;").arg(color.name()));
 }
 
 
@@ -521,7 +517,6 @@ AudioSettings::AudioSettings(Emulator *emulator, QWidget *parent)
 
 void AudioSettings::reset(void)
 {
-
   _bufferTimeSB->setValue(_defaultBufferTime);
   _periodTimeSB->setValue(_defaultPeriodTime);
   _sampleRateSB->setValue(_defaultSampleRate);
@@ -531,7 +526,6 @@ void AudioSettings::reset(void)
   settings.setValue("Audio/buffer_time", _defaultBufferTime);
   settings.setValue("Audio/period_time", _defaultPeriodTime);
   settings.setValue("Audio/sample_rate", _defaultSampleRate);
-
 }
 
 

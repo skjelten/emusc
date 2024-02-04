@@ -90,6 +90,8 @@ private:
   MainWindow *_mainWindow;
   Scene *_scene;
 
+  void _set_button_color(QPushButton *button, QColor color);
+
 public:
   explicit GeneralSettings(MainWindow *mainWindow, Scene *scene, QWidget *parent = nullptr);
 
