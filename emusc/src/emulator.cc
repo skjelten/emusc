@@ -52,7 +52,8 @@ Emulator::Emulator(void)
     _lcdBarDisplayHistVect(16, {0,-1,0}),
     _animIndex(2),
     _animFrameIndex(0),
-    _allMode(false)
+    _allMode(false),
+    _running(false)
 {
   // Start fixed timer for LCD updates & set bar display
   _lcdDisplayTimer = new QTimer(this);
@@ -153,6 +154,7 @@ void Emulator::start(void)
   }
 
   emit emulator_started();
+  _running = true;
 
   //  Disconnect any previously connected timer signal
   disconnect(_lcdDisplayTimer, SIGNAL(timeout()), NULL, NULL);
@@ -367,6 +369,8 @@ void Emulator::stop(void)
   if (_emuscSynth) {
     delete _emuscSynth, _emuscSynth = NULL;
   }
+
+  _running = false;
 }
 
 

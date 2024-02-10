@@ -25,6 +25,7 @@
 #include <stdint.h>
 
 #include <QString>
+#include <QStringList>
 
 
 // MIDI input base class. All MIDI systems must implement a callback (or
@@ -44,7 +45,11 @@ public:
   
   void send_midi_event(uint8_t status, uint8_t data1, uint8_t data2);
   void send_midi_event_sysex(uint8_t *data, uint16_t length);
-//  virtual static QStringList get_available_devices(void);
+
+  virtual bool connect_port(QString portName, bool state);
+  virtual QStringList list_subscribers(void);
+
+  //  virtual static QStringList get_available_devices(void);
 };
 
 

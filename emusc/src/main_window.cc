@@ -28,27 +28,21 @@
 #include <iostream>
 
 #include <QApplication>
-#include <QAction>
-#include <QActionGroup>
-#include <QMenu>
 #include <QMenuBar>
-#include <QStatusBar>
 #include <QMessageBox>
-
 #include <QVBoxLayout>
 #include <QGridLayout>
 #include <QDialog>
+#include <QDialogButtonBox>
 #include <QFileDialog>
 #include <QLabel>
+#include <QLineEdit>
 #include <QComboBox>
 #include <QPushButton>
-#include <QDialogButtonBox>
-#include <QLineEdit>
-
 #include <QGraphicsView>
-
 #include <QDebug>
 #include <QSettings>
+#include <QStatusBar>
 
 #include "config.h"
 

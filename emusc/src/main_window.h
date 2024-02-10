@@ -23,7 +23,9 @@
 
 #include <QMainWindow>
 #include <QAction>
+#include <QActionGroup>
 #include <QLineEdit>
+#include <QMenu>
 #include <QPointer>
 
 #include "scene.h"

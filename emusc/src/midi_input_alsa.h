@@ -49,8 +49,12 @@ public:
   virtual void stop(void);
 
   virtual void run();
-  
+
+  virtual bool connect_port(QString portName, bool status);
+  virtual QStringList list_subscribers(void);
+
   static QStringList get_available_devices(void);
+  static QStringList get_available_ports(void);
 
 };
 

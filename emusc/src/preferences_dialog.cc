@@ -22,6 +22,7 @@
 #include "audio_output_pulse.h"
 #include "audio_output_qt.h"
 #include "audio_output_win32.h"
+#include "midi_input.h"
 #include "midi_input_alsa.h"
 #include "midi_input_core.h"
 #include "midi_input_win32.h"
@@ -470,9 +471,25 @@ AudioSettings::AudioSettings(Emulator *emulator, QWidget *parent)
   _reverseStereo = new QCheckBox("Reverse Stereo");
   _reverseStereo->setEnabled(false);             // TODO: Not implemented yet
   vboxLayout->addWidget(_reverseStereo);
-
-  vboxLayout->addWidget(new QLabel("\nAudio settings take effect next time synth is started"));
   vboxLayout->addStretch(0);
+
+  if (_emulator->running()) {
+    QHBoxLayout *restartInfoLayout = new QHBoxLayout();
+    QLabel *infoTextL = new QLabel("Changes will take effect next time the "
+				   "synth is started");
+    QLabel *infoIconL = new QLabel();
+    QIcon icon = style()->standardIcon(QStyle::SP_MessageBoxWarning);
+    QPixmap pixmap = icon.pixmap(QSize(32, 32));
+    infoIconL->setPixmap(pixmap);
+
+    restartInfoLayout->addStretch(0);
+    restartInfoLayout->addWidget(infoIconL);
+    restartInfoLayout->addWidget(infoTextL);
+    restartInfoLayout->addStretch(0);
+
+    vboxLayout->addLayout(restartInfoLayout);
+    vboxLayout->addSpacing(15);
+  }
 
   // Finally read & update settings from config file
   QSettings settings;
@@ -716,6 +733,16 @@ MidiSettings::MidiSettings(Emulator *emulator, Scene *scene, QWidget *parent)
   _deviceCB = new QComboBox();
   gridLayout->addWidget(_deviceCB, 1, 1);
 
+  _portsListLW = new QListWidget();
+  _update_ports_list();
+  QVBoxLayout *portsLayout = new QVBoxLayout();
+  portsLayout->addWidget(_portsListLW);
+  QGroupBox *portsGroupBox = new QGroupBox("List of connected MIDI output ports");
+  portsGroupBox->setLayout(portsLayout);
+
+  if (!emulator->running())
+    portsGroupBox->setEnabled(false);
+
   _enableKbdMidi = new QCheckBox("Enable keyboard MIDI input", this);
   _enableKbdMidi->setChecked(settings.value("Midi/kbd_input").toBool());
 
@@ -723,6 +750,8 @@ MidiSettings::MidiSettings(Emulator *emulator, Scene *scene, QWidget *parent)
 	  this, SLOT(_systemCB_changed(int)));
   connect(_deviceCB, SIGNAL(currentIndexChanged(int)),
 	  this, SLOT(_deviceCB_changed(int)));
+  connect(_portsListLW, SIGNAL(itemChanged(QListWidgetItem*)),
+	  this, SLOT(_ports_list_changed(QListWidgetItem*)));
   connect(_enableKbdMidi, SIGNAL(toggled(bool)),
 	  this, SLOT(_enableKbdMidi_toggled(bool)));
 
@@ -759,6 +788,8 @@ MidiSettings::MidiSettings(Emulator *emulator, Scene *scene, QWidget *parent)
   gridLayout->setColumnStretch(2, 1);
   vboxLayout->addLayout(gridLayout);
   vboxLayout->addSpacing(15);
+  vboxLayout->addWidget(portsGroupBox);
+  vboxLayout->addSpacing(15);
   vboxLayout->addWidget(_enableKbdMidi);
   vboxLayout->addStretch(0);
   vboxLayout->insertSpacing(1, 15);
@@ -768,6 +799,55 @@ MidiSettings::MidiSettings(Emulator *emulator, Scene *scene, QWidget *parent)
 
 void MidiSettings::reset(void)
 {
+}
+
+
+void MidiSettings::_update_ports_list(void)
+{
+  // 1. Get a list of all ports from the active System / Device
+#ifdef __ALSA_MIDI__
+  QStringList ports = MidiInputAlsa::get_available_ports();
+  QStringList connections;
+
+  // Update port list with current connections if emulator is running
+  if (_emulator->running() && _emulator->get_midi_driver())
+    connections = _emulator->get_midi_driver()->list_subscribers();
+  qDebug() << connections;
+  for (const auto &p : ports) {
+    QListWidgetItem *item = new QListWidgetItem(p);
+    item->setFlags(item->flags() | Qt::ItemIsUserCheckable);
+    item->setCheckState(Qt::Unchecked);
+    _portsListLW->addItem(item);
+
+    if (!connections.isEmpty()) {
+      QString portNum = p.left(p.indexOf(":") + 2);
+
+      for (const auto &c : connections) {
+	if (portNum.trimmed() == c)
+	  item->setCheckState(Qt::Checked);
+      }
+    }
+  }
+#endif
+}
+
+
+void MidiSettings::_ports_list_changed(QListWidgetItem *item)
+{
+  if (!_emulator->running() || !_emulator->get_midi_driver())
+    return;
+
+  try {
+  // if ALSA etc
+    _emulator->get_midi_driver()->connect_port(item->text(),
+					       item->checkState());
+  } catch(QString errorMsg) {
+    QMessageBox::critical(this,
+			  "Connection failure",
+			  QString("Failed to connect or disconnect MIDI port.\n"
+				  "Error message: ") + errorMsg,
+			  QMessageBox::Close);
+  }
 }
 
 

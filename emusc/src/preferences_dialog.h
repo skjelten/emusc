@@ -27,12 +27,14 @@
 #include "scene.h"
 
 #include <QDialog>
-#include <QLineEdit>
 #include <QLabel>
+#include <QLineEdit>
+#include <QListWidget>
 #include <QString>
 #include <QCheckBox>
 #include <QComboBox>
 #include <QListWidget>
+#include <QListWidgetItem>
 #include <QRadioButton>
 #include <QStackedWidget>
 #include <QStandardItemModel>
@@ -162,6 +164,8 @@ private:
   QComboBox *_deviceCB;
   QCheckBox *_enableKbdMidi;
 
+  QListWidget *_portsListLW;
+
   Emulator *_emulator;
   Scene *_scene;
 
@@ -171,6 +175,9 @@ public:
   void reset(void);
 
 private slots:
+  void _update_ports_list(void);
+  void _ports_list_changed(QListWidgetItem *item);
+
   void _enableKbdMidi_toggled(bool checked);
   void _systemCB_changed(int index);
   void _deviceCB_changed(int index);

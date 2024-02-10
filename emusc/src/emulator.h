@@ -162,6 +162,9 @@ public slots:
   void set_gs_gm_map(void);
   void set_mt32_map(void);
 
+  bool running(void) { return _running; }
+  MidiInput *get_midi_driver(void) { return _midiInput; }
+
 private:
   EmuSC::ControlRom *_emuscControlRom;
   EmuSC::PcmRom *_emuscPcmRom;
@@ -198,6 +201,8 @@ private:
   QVector<uint8_t> _introModelAnim;
 
   bool _allMode;
+
+  bool _running;
 
   EmuSC::Synth::SoundMap _soundMap;
 

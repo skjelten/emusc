@@ -59,3 +59,16 @@ void MidiInput::send_midi_event_sysex(uint8_t *data, uint16_t length)
 
   _synth->midi_input_sysex(data, length);
 }
+
+
+bool MidiInput::connect_port(QString portName, bool state)
+{
+  return 0;
+}
+
+
+QStringList MidiInput::list_subscribers(void)
+{
+  QStringList list;
+  return list;
+}
