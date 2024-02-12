@@ -73,6 +73,7 @@ public:
 
 public slots:
   void show_statusbar(bool state);
+  void show_compact_view(bool state);
 
 private slots:
   void cleanUp(void);

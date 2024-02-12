@@ -61,11 +61,11 @@ MainWindow::MainWindow(QWidget *parent)
   _emulator = new Emulator();
   _scene = new Scene(_emulator, this);
 
-  auto *gView = new QGraphicsView(this);
-  gView->setScene(_scene);
+  QGraphicsView *_synthView = new QGraphicsView(this);
+  _synthView->setScene(_scene);
 
   _scene->setSceneRect(0, -10, 1100, 200);
-//    gView->fitInView(_scene->sceneRect(), Qt::KeepAspectRatio);
+//    _synthView->fitInView(_scene->sceneRect(), Qt::KeepAspectRatio);
 
   _viewCtrlRomDataAct->setEnabled(_emulator->has_valid_control_rom());
   _synthModeMenu->setEnabled(_emulator->has_valid_control_rom());
@@ -81,7 +81,10 @@ MainWindow::MainWindow(QWidget *parent)
   if (settings.value("Synth/show_statusbar").toBool())
     show_statusbar(1);
 
-  setCentralWidget(gView);
+  if (settings.value("Synth/use_compact_view").toBool())
+    show_compact_view(true);
+
+  setCentralWidget(_synthView);
 
   if (settings.value("Synth/auto_power_on").toBool() ||
       QCoreApplication::arguments().contains("-p") ||
@@ -336,5 +339,17 @@ void MainWindow::show_statusbar(bool state)
   } else {
     resize(size().width(), size().height() - statusBar()->height());
     statusBar()->hide();
+  }
+}
+
+
+void MainWindow::show_compact_view(bool state)
+{
+  if (state) {
+    _scene->setSceneRect(0, -10, 610, 200);
+    resize(660, 280);
+  } else {
+    _scene->setSceneRect(0, -10, 1100, 200);
+    resize(1150, 280);
   }
 }

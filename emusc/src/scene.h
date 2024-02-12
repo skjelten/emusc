@@ -28,14 +28,18 @@
 #include <QGraphicsRectItem>
 #include <QGraphicsTextItem>
 #include <QGraphicsEllipseItem>
+#include <QPaintEvent>
 #include <QPushButton>
 #include <QDial>
 #include <QVector>
 #include <QColor>
 #include <QBrush>
 #include <QKeyEvent>
+#include <QMouseEvent>
 
-#include <iostream>
+
+class VolumeDial;
+
 class Scene : public QGraphicsScene
 {
   Q_OBJECT
@@ -45,7 +49,7 @@ private:
 
   QGraphicsRectItem* _lcdBackground;
   QPushButton *_powerButton;
-  QDial *_volumeDial;
+  VolumeDial *_volumeDial;
   QVector<QGraphicsRectItem*> _volumeBars;
   QVector<QGraphicsEllipseItem*> _volumeCircles;
   QVector<QGraphicsTextItem*> _partNumText;
@@ -152,6 +156,29 @@ public:
 
   signals:
     void rightClicked();
+};
+
+
+class GrooveRect : public QGraphicsRectItem
+{
+public:
+  explicit GrooveRect(qreal x, qreal y, qreal w, qreal h,
+		      QGraphicsItem *parent = nullptr);
+
+  void paint(QPainter *painter, const QStyleOptionGraphicsItem *option,
+	     QWidget *widget);
+};
+
+
+class VolumeDial : public QDial
+{
+  Q_OBJECT
+
+public:
+  VolumeDial(QWidget *parent = nullptr);
+
+protected:
+  void paintEvent(QPaintEvent *event);
 };
 
 

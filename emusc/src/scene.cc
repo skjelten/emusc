@@ -17,21 +17,18 @@
  */
 
 
-#include <QGraphicsScene>
-#include <QGraphicsItem>
-
-#include <QGraphicsWidget>
-#include <QGraphicsProxyWidget>
-
 #include <QApplication>
-#include <QMessageBox>
-
-#include <QHBoxLayout>
-
-#include <QToolButton>
-#include <QSettings>
 #include <QFont>
 #include <QFontDatabase>
+#include <QGraphicsItem>
+#include <QGraphicsWidget>
+#include <QGraphicsPolygonItem>
+#include <QGraphicsProxyWidget>
+#include <QHBoxLayout>
+#include <QMessageBox>
+#include <QPainter>
+#include <QSettings>
+#include <QToolButton>
 
 #include "scene.h"
 
@@ -78,13 +75,37 @@ Scene::Scene(Emulator *emulator, QWidget *parent)
 	  this, SLOT(update_mute_button(bool)));
 
   // Set background color to grey (use bitmap for better look?)
-  setBackgroundBrush(QColor(60, 60, 60));
+  setBackgroundBrush(QBrush(QColor(60, 60, 60),QPixmap(":/icons/synth_bkg.png")));
+
+  // Add sunken frame to LCD display
+  QGraphicsRectItem *frameTop = new QGraphicsRectItem(0, 0, 510, 191);
+  frameTop->setBrush(QColor(40, 40, 40));
+  frameTop->setPen(QColor(0, 0, 0, 0));
+  frameTop->setPos(QPointF(94, -8));
+  addItem(frameTop);
+  QPolygonF frameBottomPoly;
+  frameBottomPoly.append(QPoint(94, 183));
+  frameBottomPoly.append(QPoint(102, 175));
+  frameBottomPoly.append(QPointF(596, 0));
+  frameBottomPoly.append(QPointF(604, -8));
+  frameBottomPoly.append(QPointF(604, 183));
+  QGraphicsPolygonItem* frameBottom = new QGraphicsPolygonItem(frameBottomPoly);
+  frameBottom->setBrush(QBrush(QColor(100, 100, 100, 255), Qt::SolidPattern));
+  frameBottom->setPen(QColor(90, 90, 90, 90));
+  addItem(frameBottom);
+
+  // Add sunken button rectangles
+  addItem(new GrooveRect(760, -10, 353, 35));
+  addItem(new GrooveRect(760, 45, 353, 35));
+  addItem(new GrooveRect(760, 100, 353, 35));
+  addItem(new GrooveRect(760, 155, 353, 35));
+  addItem(new GrooveRect(-15, 8, 100, 35));
 
   // Set LCD display background
-  _lcdBackground = new QGraphicsRectItem(0, 0, 500, 175);
+  _lcdBackground = new QGraphicsRectItem(0, 0, 494, 175);
   _lcdBackground->setBrush(_lcdOffBackgroundColor);
   _lcdBackground->setPen(QColor(0, 0, 0, 0));
-  _lcdBackground->setPos(QPointF(100, 0));
+  _lcdBackground->setPos(QPointF(102, 0));
   addItem(_lcdBackground);
 
   // Set black vertical bar background
@@ -101,22 +122,22 @@ Scene::Scene(Emulator *emulator, QWidget *parent)
 
   QGraphicsTextItem *partHeaderText = new QGraphicsTextItem;
   partHeaderText->setHtml("<html><head><body style=\" white-space: pre-wrap; font-family:Sans Serif; font-style:normal; text-decoration:none;\"><font style=\"font-size:10pt; font-weight:normal; color: #bbbbbb\">PART</font>");
-  partHeaderText->setPos(QPointF(110, -25));
+  partHeaderText->setPos(QPointF(110, -30));
   addItem(partHeaderText);
 
   QGraphicsTextItem *instrumentHeaderText = new QGraphicsTextItem;
   instrumentHeaderText->setHtml("<html><head><body style=\" white-space: pre-wrap; font-family:Sans Serif; font-style:normal; text-decoration:none;\"><font style=\"font-size:10pt; font-weight:normal; color: #bbbbbb\">INSTRUMENT</font>");
-  instrumentHeaderText->setPos(QPointF(192, -25));
+  instrumentHeaderText->setPos(QPointF(192, -30));
   addItem(instrumentHeaderText);
 
   QGraphicsTextItem *partBottomText = new QGraphicsTextItem;
   partBottomText->setHtml("<html><head><body style=\" white-space: pre-wrap; font-family:Sans Serif; font-style:normal; text-decoration:none;\"><font style=\"font-size:10pt; font-weight:normal; color: #bbbbbb\">PART</font>");
-  partBottomText->setPos(QPointF(370, 175));
+  partBottomText->setPos(QPointF(385, 180));
   addItem(partBottomText);
 
   QGraphicsTextItem *powerText = new QGraphicsTextItem;
   powerText->setHtml("<html><head><body style=\" white-space: pre-wrap; font-family:Sans Serif; font-style:normal; text-decoration:none;\"><font style=\"font-size:12pt; font-weight:normal; color: #bbbbbb\">POWER</font>");
-  powerText->setPos(QPointF(0, -10));
+  powerText->setPos(QPointF(0, -20));
   addItem(powerText);
 
   QGraphicsTextItem *volumeText = new QGraphicsTextItem;
@@ -221,7 +242,7 @@ Scene::Scene(Emulator *emulator, QWidget *parent)
   addItem(_lcdMidichText);
 
   _powerButton = new QPushButton();
-  _powerButton->setGeometry(QRect(-7, 13, 80, 20));
+  _powerButton->setGeometry(QRect(-5, 13, 78, 25));
   _powerButton->setStyleSheet("background-color: #111111; \
                              border-style: outset;	    \
                              border-width: 2px;		    \
@@ -231,11 +252,14 @@ Scene::Scene(Emulator *emulator, QWidget *parent)
   connect(_powerButton, SIGNAL(clicked()), parent, SLOT(power_switch()));
   QGraphicsProxyWidget *pwrProxy = addWidget(_powerButton);
 
-  _volumeDial = new QDial;
+  _volumeDial = new VolumeDial();
   _volumeDial->setGeometry(QRect(-2, 73, 75, 75));
-  _volumeDial->setStyleSheet("background-color: #3c3c3c;");
+  _volumeDial->setStyleSheet("background-color: #00000000;");
   _volumeDial->setRange(0,100);
+
+  // Default value
   _volumeDial->setValue(settings.value("Audio/volume", 80).toInt());
+
   connect(_volumeDial, SIGNAL(valueChanged(int)), emulator, SLOT(change_volume(int)));
 
   QHBoxLayout *layout = new QHBoxLayout(_volumeDial);
@@ -327,15 +351,16 @@ Scene::Scene(Emulator *emulator, QWidget *parent)
 
   // Add partL / mute buttons
   _partLButton = new QPushButton();
-  _partLButton->setGeometry(QRect(802, 13, 28, 28));
+  _partLButton->setGeometry(QRect(802, -5, 26, 26));
   _partLButton->setStyleSheet("color: #aaa;"	       \
 			    "border: 2px solid #555; " \
-			    "border-radius: 14px;"     \
+			    "border-radius: 13px;"     \
 			    "border-style: outset;"    \
 			      "background: black;"     \
 			    "padding: 5px");
   _partLButton->setAttribute(Qt::WA_TranslucentBackground);
-  _partLButton->setText("◀");
+  _partLButton->setIcon(QPixmap(":/icons/left_arrow.png"));
+  _partLButton->setIconSize(QSize(9, 9));
   _partLButton->setAutoRepeat(true);
   _partLButton->setAutoRepeatDelay(500);
   _partLButton->setAutoRepeatInterval(120);
@@ -344,15 +369,16 @@ Scene::Scene(Emulator *emulator, QWidget *parent)
   QGraphicsProxyWidget *partLBtnProxy = addWidget(_partLButton);
 
   _partRButton = new QPushButton();
-  _partRButton->setGeometry(QRect(874, 13, 28, 28));
+  _partRButton->setGeometry(QRect(874, -5, 26, 26));
   _partRButton->setStyleSheet("color: #aaa;"	       \
 			    "border: 2px solid #555; " \
-			    "border-radius: 14px;"     \
+			    "border-radius: 13px;"     \
 			    "border-style: outset;"    \
 			    "background: black;"     \
 			    "padding: 5px");
   _partRButton->setAttribute(Qt::WA_TranslucentBackground);
-  _partRButton->setText("▶");
+  _partRButton->setIcon(QPixmap(":/icons/right_arrow.png"));
+  _partRButton->setIconSize(QSize(9, 9));
   _partRButton->setAutoRepeat(true);
   _partRButton->setAutoRepeatDelay(500);
   _partRButton->setAutoRepeatInterval(120);
@@ -361,20 +387,18 @@ Scene::Scene(Emulator *emulator, QWidget *parent)
   QGraphicsProxyWidget *partRBtnProxy = addWidget(_partRButton);
 
   // Add instrument L/R buttons
-  _instrumentLButton = new SynthButton(); // QPushButton();
-  _instrumentLButton->setGeometry(QRect(945, 13, 70, 28));
-  _instrumentLButton->setText("◀");
-
+  _instrumentLButton = new SynthButton();
+  _instrumentLButton->setGeometry(QRect(945, -5, 70, 25));
+  _instrumentLButton->setIcon(QPixmap(":/icons/left_arrow.png"));
   connect(_instrumentLButton, SIGNAL(clicked()),
 	  emulator, SLOT(select_prev_instrument()));
   connect(_instrumentLButton, SIGNAL(rightClicked()),
 	  emulator, SLOT(select_prev_instrument_variant()));
   QGraphicsProxyWidget *instLBtnProxy = addWidget(_instrumentLButton);
 
-  _instrumentRButton = new SynthButton(); //QPushButton();
-  _instrumentRButton->setGeometry(QRect(1018, 13, 70, 28));
-  _instrumentRButton->setText("▶");
-
+  _instrumentRButton = new SynthButton();
+  _instrumentRButton->setGeometry(QRect(1018, -5, 70, 25));
+  _instrumentRButton->setIcon(QPixmap(":/icons/right_arrow.png"));
   connect(_instrumentRButton, SIGNAL(clicked()),
 	  emulator, SLOT(select_next_instrument()));
   connect(_instrumentRButton, SIGNAL(rightClicked()),
@@ -382,215 +406,82 @@ Scene::Scene(Emulator *emulator, QWidget *parent)
   QGraphicsProxyWidget *instRBtnProxy = addWidget(_instrumentRButton);
 
   // Add pan L/R buttons
-  _panLButton = new QPushButton();
-  _panLButton->setGeometry(QRect(945, 68, 70, 28));
-  _panLButton->setStyleSheet("color: #aaa;"	       \
-			    "border: 2px solid #555; " \
-			    "border-radius: 5px;"     \
-			    "border-style: outset;"    \
-			      "background: black;"     \
-			    "padding: 5px");
-  _panLButton->setAttribute(Qt::WA_TranslucentBackground);
-  _panLButton->setText("◀");
-  _panLButton->setAutoRepeat(true);
-  _panLButton->setAutoRepeatDelay(500);
-  _panLButton->setAutoRepeatInterval(120);
-
+  _panLButton = new SynthButton();
+  _panLButton->setGeometry(QRect(945, 50, 70, 25));
+  _panLButton->setIcon(QPixmap(":/icons/left_arrow.png"));
   connect(_panLButton, SIGNAL(clicked()), emulator, SLOT(select_prev_pan()));
   QGraphicsProxyWidget *panLBtnProxy = addWidget(_panLButton);
 
-  _panRButton = new QPushButton();
-  _panRButton->setGeometry(QRect(1018, 68, 70, 28));
-  _panRButton->setStyleSheet("color: #aaa;"	       \
-			    "border: 2px solid #555; " \
-			    "border-radius: 5px;"     \
-			    "border-style: outset;"    \
-			    "background: black;"     \
-			    "padding: 5px");
-  _panRButton->setAttribute(Qt::WA_TranslucentBackground);
-  _panRButton->setText("▶");
-  _panRButton->setAutoRepeat(true);
-  _panRButton->setAutoRepeatDelay(500);
-  _panRButton->setAutoRepeatInterval(120);
-
+  _panRButton = new SynthButton();
+  _panRButton->setGeometry(QRect(1018, 50, 70, 25));
+  _panRButton->setIcon(QPixmap(":/icons/right_arrow.png"));
   connect(_panRButton, SIGNAL(clicked()), emulator, SLOT(select_next_pan()));
   QGraphicsProxyWidget *panRBtnProxy = addWidget(_panRButton);
 
   // Add chorus L/R buttons
-  _chorusLButton = new QPushButton();
-  _chorusLButton->setGeometry(QRect(945, 123, 70, 28));
-  _chorusLButton->setStyleSheet("color: #aaa;"	       \
-			    "border: 2px solid #555; " \
-			    "border-radius: 5px;"     \
-			    "border-style: outset;"    \
-			      "background: black;"     \
-			    "padding: 5px");
-  _chorusLButton->setAttribute(Qt::WA_TranslucentBackground);
-  _chorusLButton->setText("◀");
-  _chorusLButton->setAutoRepeat(true);
-  _chorusLButton->setAutoRepeatDelay(500);
-  _chorusLButton->setAutoRepeatInterval(120);
-
+  _chorusLButton = new SynthButton();
+  _chorusLButton->setGeometry(QRect(945, 105, 70, 25));
+  _chorusLButton->setIcon(QPixmap(":/icons/left_arrow.png"));
   connect(_chorusLButton, SIGNAL(clicked()), emulator, SLOT(select_prev_chorus()));
   QGraphicsProxyWidget *chorusLBtnProxy = addWidget(_chorusLButton);
 
-  _chorusRButton = new QPushButton();
-  _chorusRButton->setGeometry(QRect(1018, 123, 70, 28));
-  _chorusRButton->setStyleSheet("color: #aaa;"	       \
-			    "border: 2px solid #555; " \
-			    "border-radius: 5px;"     \
-			    "border-style: outset;"    \
-			    "background: black;"     \
-			    "padding: 5px");
-  _chorusRButton->setAttribute(Qt::WA_TranslucentBackground);
-  _chorusRButton->setText("▶");
-  _chorusRButton->setAutoRepeat(true);
-  _chorusRButton->setAutoRepeatDelay(500);
-  _chorusRButton->setAutoRepeatInterval(120);
-
+  _chorusRButton = new SynthButton();
+  _chorusRButton->setGeometry(QRect(1018, 105, 70, 25));
+  _chorusRButton->setIcon(QPixmap(":/icons/right_arrow.png"));
   connect(_chorusRButton, SIGNAL(clicked()), emulator, SLOT(select_next_chorus()));
   QGraphicsProxyWidget *chorusRBtnProxy = addWidget(_chorusRButton);
 
   // Add midich L/R buttons
-  _midichLButton = new QPushButton();
-  _midichLButton->setGeometry(QRect(945, 178, 70, 28));
-  _midichLButton->setStyleSheet("color: #aaa;"	       \
-			    "border: 2px solid #555; " \
-			    "border-radius: 5px;"     \
-			    "border-style: outset;"    \
-			      "background: black;"     \
-			    "padding: 5px");
-  _midichLButton->setAttribute(Qt::WA_TranslucentBackground);
-  _midichLButton->setText("◀");
-  _midichLButton->setAutoRepeat(true);
-  _midichLButton->setAutoRepeatDelay(500);
-  _midichLButton->setAutoRepeatInterval(120);
-
+  _midichLButton = new SynthButton();
+  _midichLButton->setGeometry(QRect(945, 160, 70, 25));
+  _midichLButton->setIcon(QPixmap(":/icons/left_arrow.png"));
   connect(_midichLButton, SIGNAL(clicked()), emulator, SLOT(select_prev_midi_channel()));
   QGraphicsProxyWidget *midichLBtnProxy = addWidget(_midichLButton);
 
-  _midichRButton = new QPushButton();
-  _midichRButton->setGeometry(QRect(1018, 178, 70, 28));
-  _midichRButton->setStyleSheet("color: #aaa;"	       \
-			    "border: 2px solid #555; " \
-			    "border-radius: 5px;"     \
-			    "border-style: outset;"    \
-			    "background: black;"     \
-			    "padding: 5px");
-  _midichRButton->setAttribute(Qt::WA_TranslucentBackground);
-  _midichRButton->setText("▶");
-  _midichRButton->setAutoRepeat(true);
-  _midichRButton->setAutoRepeatDelay(500);
-  _midichRButton->setAutoRepeatInterval(120);
-
+  _midichRButton = new SynthButton();
+  _midichRButton->setGeometry(QRect(1018, 160, 70, 25));
+  _midichRButton->setIcon(QPixmap(":/icons/right_arrow.png"));
   connect(_midichRButton, SIGNAL(clicked()), emulator, SLOT(select_next_midi_channel()));
   QGraphicsProxyWidget *midichRBtnProxy = addWidget(_midichRButton);
 
   // Add level L/R buttons
-  _levelLButton = new QPushButton();
-  _levelLButton->setGeometry(QRect(780, 68, 70, 28));
-  _levelLButton->setStyleSheet("color: #aaa;"	       \
-			    "border: 2px solid #555; " \
-			    "border-radius: 5px;"     \
-			    "border-style: outset;"    \
-			      "background: black;"     \
-			    "padding: 5px");
-  _levelLButton->setAttribute(Qt::WA_TranslucentBackground);
-  _levelLButton->setText("◀");
-  _levelLButton->setAutoRepeat(true);
-  _levelLButton->setAutoRepeatDelay(500);
-  _levelLButton->setAutoRepeatInterval(120);
-
+  _levelLButton = new SynthButton();
+  _levelLButton->setGeometry(QRect(780, 50, 70, 25));
+  _levelLButton->setIcon(QPixmap(":/icons/left_arrow.png"));
   connect(_levelLButton, SIGNAL(clicked()), emulator,SLOT(select_prev_level()));
   QGraphicsProxyWidget *levelLBtnProxy = addWidget(_levelLButton);
 
-  _levelRButton = new QPushButton();
-  _levelRButton->setGeometry(QRect(853, 68, 70, 28));
-  _levelRButton->setStyleSheet("color: #aaa;"	       \
-			    "border: 2px solid #555; " \
-			    "border-radius: 5px;"     \
-			    "border-style: outset;"    \
-			    "background: black;"     \
-			    "padding: 5px");
-  _levelRButton->setAttribute(Qt::WA_TranslucentBackground);
-  _levelRButton->setText("▶");
-  _levelRButton->setAutoRepeat(true);
-  _levelRButton->setAutoRepeatDelay(500);
-  _levelRButton->setAutoRepeatInterval(120);
-
+  _levelRButton = new SynthButton();
+  _levelRButton->setGeometry(QRect(853, 50, 70, 25));
+  _levelRButton->setIcon(QPixmap(":/icons/right_arrow.png"));
   connect(_levelRButton, SIGNAL(clicked()), emulator,SLOT(select_next_level()));
   QGraphicsProxyWidget *levelRBtnProxy = addWidget(_levelRButton);
 
   // Add reverb L/R buttons
-  _reverbLButton = new QPushButton();
-  _reverbLButton->setGeometry(QRect(780, 123, 70, 28));
-  _reverbLButton->setStyleSheet("color: #aaa;"	       \
-			    "border: 2px solid #555; " \
-			    "border-radius: 5px;"     \
-			    "border-style: outset;"    \
-			      "background: black;"     \
-			    "padding: 5px");
-  _reverbLButton->setAttribute(Qt::WA_TranslucentBackground);
-  _reverbLButton->setText("◀");
-  _reverbLButton->setAutoRepeat(true);
-  _reverbLButton->setAutoRepeatDelay(500);
-  _reverbLButton->setAutoRepeatInterval(120);
-
+  _reverbLButton = new SynthButton();
+  _reverbLButton->setGeometry(QRect(780, 105, 70, 25));
+  _reverbLButton->setIcon(QPixmap(":/icons/left_arrow.png"));
   connect(_reverbLButton, SIGNAL(clicked()), emulator, SLOT(select_prev_reverb()));
   QGraphicsProxyWidget *reverbLBtnProxy = addWidget(_reverbLButton);
 
-  _reverbRButton = new QPushButton();
-  _reverbRButton->setGeometry(QRect(853, 123, 70, 28));
-  _reverbRButton->setStyleSheet("color: #aaa;"	       \
-			    "border: 2px solid #555; " \
-			    "border-radius: 5px;"     \
-			    "border-style: outset;"    \
-			    "background: black;"     \
-			    "padding: 5px");
-  _reverbRButton->setAttribute(Qt::WA_TranslucentBackground);
-  _reverbRButton->setText("▶");
-  _reverbRButton->setAutoRepeat(true);
-  _reverbRButton->setAutoRepeatDelay(500);
-  _reverbRButton->setAutoRepeatInterval(120);
-
+  _reverbRButton = new SynthButton();
+  _reverbRButton->setGeometry(QRect(853, 105, 70, 25));
+  _reverbRButton->setIcon(QPixmap(":/icons/right_arrow.png"));
   connect(_reverbRButton, SIGNAL(clicked()), emulator, SLOT(select_next_reverb()));
   QGraphicsProxyWidget *reverbRBtnProxy = addWidget(_reverbRButton);
 
   // Add keyshift L/R buttons
-  _keyshiftLButton = new QPushButton();
-  _keyshiftLButton->setGeometry(QRect(780, 178, 70, 28));
-  _keyshiftLButton->setStyleSheet("color: #aaa;"	       \
-			    "border: 2px solid #555; " \
-			    "border-radius: 5px;"     \
-			    "border-style: outset;"    \
-			      "background: black;"     \
-			    "padding: 5px");
-  _keyshiftLButton->setAttribute(Qt::WA_TranslucentBackground);
-  _keyshiftLButton->setText("◀");
-  _keyshiftLButton->setAutoRepeat(true);
-  _keyshiftLButton->setAutoRepeatDelay(500);
-  _keyshiftLButton->setAutoRepeatInterval(120);
-
+  _keyshiftLButton = new SynthButton();
+  _keyshiftLButton->setGeometry(QRect(780, 160, 70, 25));
+  _keyshiftLButton->setIcon(QPixmap(":/icons/left_arrow.png"));
   connect(_keyshiftLButton, SIGNAL(clicked()), emulator, SLOT(select_prev_key_shift()));
   QGraphicsProxyWidget *keyshiftLBtnProxy = addWidget(_keyshiftLButton);
 
-  _keyshiftRButton = new QPushButton();
-  _keyshiftRButton->setGeometry(QRect(853, 178, 70, 28));
-  _keyshiftRButton->setStyleSheet("color: #aaa;"	       \
-			    "border: 2px solid #555; " \
-			    "border-radius: 5px;"     \
-			    "border-style: outset;"    \
-			    "background: black;"     \
-			    "padding: 5px");
-  _keyshiftRButton->setAttribute(Qt::WA_TranslucentBackground);
-  _keyshiftRButton->setText("▶");
-  _keyshiftRButton->setAutoRepeat(true);
-  _keyshiftRButton->setAutoRepeatDelay(500);
-  _keyshiftRButton->setAutoRepeatInterval(120);
-
+  _keyshiftRButton = new SynthButton();
+  _keyshiftRButton->setGeometry(QRect(853, 160, 70, 25));
+  _keyshiftRButton->setIcon(QPixmap(":/icons/right_arrow.png"));
   connect(_keyshiftRButton, SIGNAL(clicked()), emulator, SLOT(select_next_key_shift()));
   QGraphicsProxyWidget *keyshiftRBtnProxy = addWidget(_keyshiftRButton);
-
 
   QGraphicsTextItem *allBtnText = new QGraphicsTextItem;
   allBtnText->setHtml("<html><head><body style=\" white-space: pre-wrap; font-family:Sans Serif; font-style:normal; text-decoration:none;\"><font style=\"font-size:10.5pt; font-weight: normal; color: #bbbbbb\">ALL</font>");
@@ -605,43 +496,52 @@ Scene::Scene(Emulator *emulator, QWidget *parent)
 
   QGraphicsTextItem *partBtnText = new QGraphicsTextItem;
   partBtnText->setHtml("<html><head><body style=\" white-space: pre-wrap; font-family:Sans Serif; font-style:normal; text-decoration:none;\"><font style=\"font-size:10.5pt; font-weight: normal; color: #bbbbbb\">PART</font>");
-  partBtnText->setPos(QPointF(855 - partBtnText->boundingRect().center().x(), -15));
+  partBtnText->setPos(QPointF(855 - partBtnText->boundingRect().center().x(), -33));
   addItem(partBtnText);
 
   QGraphicsTextItem *instrumentBtnText = new QGraphicsTextItem;
   instrumentBtnText->setHtml("<html><head><body style=\" white-space: pre-wrap; font-family:Sans Serif; font-style:normal; text-decoration:none;\"><font style=\"font-size:10.5pt; font-weight: normal; color: #bbbbbb\">INSTRUMENT</font>");
-  instrumentBtnText->setPos(QPointF(1015 - instrumentBtnText->boundingRect().center().x(), -15));
+  instrumentBtnText->setPos(QPointF(1015 - instrumentBtnText->boundingRect().center().x(), -33));
   addItem(instrumentBtnText);
 
   QGraphicsTextItem *levelBtnText = new QGraphicsTextItem;
   levelBtnText->setHtml("<html><head><body style=\" white-space: pre-wrap; font-family:Sans Serif; font-style:normal; text-decoration:none;\"><font style=\"font-size:10.5pt; font-weight: normal; color: #bbbbbb\">LEVEL</font>");
-  levelBtnText->setPos(QPointF(855 - levelBtnText->boundingRect().center().x(), 40));
+  levelBtnText->setPos(QPointF(855 - levelBtnText->boundingRect().center().x(), 22));
   addItem(levelBtnText);
 
   QGraphicsTextItem *panBtnText = new QGraphicsTextItem;
   panBtnText->setHtml("<html><head><body style=\" white-space: pre-wrap; font-family:Sans Serif; font-style:normal; text-decoration:none;\"><font style=\"font-size:10.5pt; font-weight: normal; color: #bbbbbb\">PAN</font>");
-  panBtnText->setPos(QPointF(1015 - panBtnText->boundingRect().center().x(), 40));
+  panBtnText->setPos(QPointF(1015 - panBtnText->boundingRect().center().x(), 22));
   addItem(panBtnText);
 
   QGraphicsTextItem *reverbBtnText = new QGraphicsTextItem;
   reverbBtnText->setHtml("<html><head><body style=\" white-space: pre-wrap; font-family:Sans Serif; font-style:normal; text-decoration:none;\"><font style=\"font-size:10.5pt; font-weight: normal; color: #bbbbbb\">REVERB</font>");
-  reverbBtnText->setPos(QPointF(855 - reverbBtnText->boundingRect().center().x(), 95));
+  reverbBtnText->setPos(QPointF(855 - reverbBtnText->boundingRect().center().x(), 77));
   addItem(reverbBtnText);
 
   QGraphicsTextItem *chorusBtnText = new QGraphicsTextItem;
   chorusBtnText->setHtml("<html><head><body style=\" white-space: pre-wrap; font-family:Sans Serif; font-style:normal; text-decoration:none;\"><font style=\"font-size:10.5pt; font-weight: normal; color: #bbbbbb\">CHORUS</font>");
-  chorusBtnText->setPos(QPointF(1015 - chorusBtnText->boundingRect().center().x(), 95));
+  chorusBtnText->setPos(QPointF(1015 - chorusBtnText->boundingRect().center().x(), 77));
   addItem(chorusBtnText);
 
     QGraphicsTextItem *keyshiftBtnText = new QGraphicsTextItem;
   keyshiftBtnText->setHtml("<html><head><body style=\" white-space: pre-wrap; font-family:Sans Serif; font-style:normal; text-decoration:none;\"><font style=\"font-size:10.5pt; font-weight: normal; color: #bbbbbb\">KEY SHIFT</font>");
-  keyshiftBtnText->setPos(QPointF(855 - keyshiftBtnText->boundingRect().center().x(), 155));
+  keyshiftBtnText->setPos(QPointF(855 - keyshiftBtnText->boundingRect().center().x(), 132));
   addItem(keyshiftBtnText);
 
   QGraphicsTextItem *midichBtnText = new QGraphicsTextItem;
   midichBtnText->setHtml("<html><head><body style=\" white-space: pre-wrap; font-family:Sans Serif; font-style:normal; text-decoration:none;\"><font style=\"font-size:10.5pt; font-weight: normal; color: #bbbbbb\">MIDI CH</font>");
-  midichBtnText->setPos(QPointF(1015 - midichBtnText->boundingRect().center().x(), 155));
+  midichBtnText->setPos(QPointF(1015 - midichBtnText->boundingRect().center().x(), 132));
   addItem(midichBtnText);
+
+  // TODO: Show GM / GS logo based on ROM version
+  QGraphicsPixmapItem *gmLogo = new QGraphicsPixmapItem(QPixmap(":/icons/gm_logo.png"));
+  gmLogo->setPos(645, 170);
+  addItem(gmLogo);
+
+  QGraphicsPixmapItem *gsLogo = new QGraphicsPixmapItem(QPixmap(":/icons/gs_logo.png"));
+  gsLogo->setPos(695, 170);
+  addItem(gsLogo);
 
   // Connect emulator's signals to our display's slots
   connect(emulator, SIGNAL(new_bar_display(QVector<bool>*)),
@@ -961,23 +861,23 @@ void Scene::keyReleaseEvent(QKeyEvent *keyEvent)
 SynthButton::SynthButton(QWidget *parent)
   : QPushButton(parent)
 {
-  setStyleSheet("color: #aaa;"     \
-				    "border: 2px solid #555; "	\
-				    "border-radius: 5px;"	\
-				    "border-style: outset;"	\
-				    "background: black;"	\
-				    "padding: 5px");
+  setStyleSheet("color: #aaa;"			\
+		"border: 2px solid #555; "	\
+		"border-radius: 5px;"		\
+		"border-style: outset;"		\
+		"background: black;"		\
+		"padding: 5px");
   setAttribute(Qt::WA_TranslucentBackground);
   setAutoRepeat(true);
   setAutoRepeatDelay(500);
   setAutoRepeatInterval(120);
-
+  setIconSize(QSize(9, 9));
 }
+
 
 SynthButton::~SynthButton()
-{
+{}
 
-}
 
 void SynthButton::mousePressEvent(QMouseEvent *event)
 {
@@ -985,4 +885,53 @@ void SynthButton::mousePressEvent(QMouseEvent *event)
     emit rightClicked();
   else
     QPushButton::mousePressEvent(event);
+}
+
+
+GrooveRect::GrooveRect(qreal x, qreal y, qreal w, qreal h,QGraphicsItem *parent)
+  : QGraphicsRectItem(x, y, w, h, parent)
+{}
+
+
+void GrooveRect::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget)
+{
+  QLinearGradient gradient(rect().x(), rect().y(), rect().x(), rect().y() + rect().height());
+  gradient.setColorAt(0, QColor(0x00, 0x00, 0x00, 0x3f));
+  gradient.setColorAt(1, QColor(0xff, 0xff, 0xff, 0x3f));
+  QBrush brush(gradient);
+  painter->setBrush(brush);
+  painter->setPen(QColor(0, 0, 0, 0));
+
+  painter->drawRoundedRect(rect(), 16, 16);
+}
+
+
+VolumeDial::VolumeDial(QWidget *parent)
+{}
+
+void VolumeDial::paintEvent(QPaintEvent *event)
+{
+  Q_UNUSED(event);
+
+  QPainter painter(this);
+  painter.setRenderHint(QPainter::Antialiasing);
+
+  // Max / min dots
+  painter.setBrush(QColor(0xbb, 0xbb, 0xbb));
+  painter.setPen(QColor(0, 0, 0, 0));
+  painter.drawEllipse(15, 70, 5, 5);
+  painter.drawEllipse(55, 70, 5, 5);
+
+  // Background
+  painter.setBrush(QColor(0x2b, 0x2b, 0x2b));
+  painter.drawEllipse(5, 5, 65, 65);
+
+  // Knob
+  QPointF center(width() / 2., height() / 2.);
+  painter.translate(center);
+  painter.rotate(-150 + 3 * value());
+  painter.setBrush(QColor(0, 0, 0));
+  painter.drawEllipse(-25, -25, 50, 50);
+  painter.setBrush(QColor(0xa9, 0xa9, 0x70));
+  painter.drawRect(-1, -25, 5, 12);
 }

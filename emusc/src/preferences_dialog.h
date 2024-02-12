@@ -80,6 +80,7 @@ class GeneralSettings : public QWidget
 private:
   QCheckBox *_autoPowerOn;
   QCheckBox *_showStatusBar;
+  QCheckBox *_useCompactView;
 
   QRadioButton *_emuscAnim;
   QRadioButton *_romAnim;
@@ -102,6 +103,7 @@ public:
 private slots:
   void _autoPowerOn_toggled(bool checked);
   void _showStatusBar_toggled(bool checked);
+  void _useCompactView_toggled(bool checked);
   void _lcd_bkg_colorpick_clicked(void);
   void _lcd_active_colorpick_clicked(void);
   void _lcd_inactive_colorpick_clicked(void);

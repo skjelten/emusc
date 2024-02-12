@@ -143,6 +143,7 @@ GeneralSettings::GeneralSettings(MainWindow *mainWindow, Scene *scene, QWidget *
 
   _autoPowerOn = new QCheckBox("Power on at startup", this);
   _showStatusBar = new QCheckBox("Show statusbar", this);
+  _useCompactView = new QCheckBox("Use compact view", this);
 
   QGroupBox *animGroupBox = new QGroupBox("LCD animations on startup");
   _emuscAnim = new QRadioButton("Show EmuSC and model animations", this);
@@ -191,6 +192,7 @@ GeneralSettings::GeneralSettings(MainWindow *mainWindow, Scene *scene, QWidget *
 
   _autoPowerOn->setChecked(settings.value("Synth/auto_power_on").toBool());
   _showStatusBar->setChecked(settings.value("Synth/show_statusbar").toBool());
+  _useCompactView->setChecked(settings.value("Synth/use_compact_view").toBool());
 
   QString animSetting = settings.value("Synth/startup_animations").toString();
   if (animSetting == "only_rom")
@@ -204,6 +206,8 @@ GeneralSettings::GeneralSettings(MainWindow *mainWindow, Scene *scene, QWidget *
 	  this, SLOT(_autoPowerOn_toggled(bool)));
   connect(_showStatusBar, SIGNAL(toggled(bool)),
 	  this, SLOT(_showStatusBar_toggled(bool)));
+  connect(_useCompactView, SIGNAL(toggled(bool)),
+	  this, SLOT(_useCompactView_toggled(bool)));
   connect(_lcdBkgColorPickB, SIGNAL(clicked(void)),
 	  this, SLOT(_lcd_bkg_colorpick_clicked(void)));
   connect(_lcdActiveColorPickB, SIGNAL(clicked(void)),
@@ -219,6 +223,7 @@ GeneralSettings::GeneralSettings(MainWindow *mainWindow, Scene *scene, QWidget *
 
   vboxLayout->addWidget(_autoPowerOn);
   vboxLayout->addWidget(_showStatusBar);
+  vboxLayout->addWidget(_useCompactView);
   vboxLayout->addSpacing(15);
   vboxLayout->addWidget(animGroupBox);
   vboxLayout->addSpacing(15);
@@ -271,6 +276,14 @@ void GeneralSettings::_showStatusBar_toggled(bool checked)
   QSettings settings;
   settings.setValue("Synth/show_statusbar", checked);
   _mainWindow->show_statusbar(checked);
+}
+
+
+void GeneralSettings::_useCompactView_toggled(bool checked)
+{
+  QSettings settings;
+  settings.setValue("Synth/use_compact_view", checked);
+  _mainWindow->show_compact_view(checked);
 }
 
 
@@ -812,7 +825,7 @@ void MidiSettings::_update_ports_list(void)
   // Update port list with current connections if emulator is running
   if (_emulator->running() && _emulator->get_midi_driver())
     connections = _emulator->get_midi_driver()->list_subscribers();
-  qDebug() << connections;
+
   for (const auto &p : ports) {
     QListWidgetItem *item = new QListWidgetItem(p);
     item->setFlags(item->flags() | Qt::ItemIsUserCheckable);

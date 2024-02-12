@@ -9,6 +9,11 @@
     </qresource>
 
     <qresource prefix="/icons">
+        <file>gm_logo.png</file>
+        <file>gs_logo.png</file>
+        <file>synth_bkg.png</file>
+        <file>left_arrow.png</file>
+        <file>right_arrow.png</file>
         <file>gear.png</file>
         <file>speaker.png</file>
         <file>midi.png</file>
