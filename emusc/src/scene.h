@@ -23,22 +23,25 @@
 
 #include "emulator.h"
 
+#include <QBrush>
+#include <QColor>
+#include <QDial>
 #include <QGraphicsScene>
-
 #include <QGraphicsRectItem>
 #include <QGraphicsTextItem>
 #include <QGraphicsEllipseItem>
-#include <QPaintEvent>
-#include <QPushButton>
-#include <QDial>
-#include <QVector>
-#include <QColor>
-#include <QBrush>
 #include <QKeyEvent>
 #include <QMouseEvent>
+#include <QPaintEvent>
+#include <QPushButton>
+#include <QRadialGradient>
+#include <QTimer>
+#include <QVector>
 
 
 class VolumeDial;
+class SynthButton;
+
 
 class Scene : public QGraphicsScene
 {
@@ -75,20 +78,25 @@ private:
 
   QPushButton *_partLButton;
   QPushButton *_partRButton;
-  class SynthButton *_instrumentLButton;
-  QPushButton *_instrumentRButton;
-  QPushButton *_panRButton;
-  QPushButton *_panLButton;
-  QPushButton *_chorusRButton;
-  QPushButton *_chorusLButton;
-  QPushButton *_midichRButton;
-  QPushButton *_midichLButton;
-  QPushButton *_levelRButton;
-  QPushButton *_levelLButton;
-  QPushButton *_reverbRButton;
-  QPushButton *_reverbLButton;
-  QPushButton *_keyshiftRButton;
-  QPushButton *_keyshiftLButton;
+  SynthButton *_instrumentLButton;
+  SynthButton *_instrumentRButton;
+  SynthButton *_panRButton;
+  SynthButton *_panLButton;
+  SynthButton *_chorusRButton;
+  SynthButton *_chorusLButton;
+  SynthButton *_midichRButton;
+  SynthButton *_midichLButton;
+  SynthButton *_levelRButton;
+  SynthButton *_levelLButton;
+  SynthButton *_reverbRButton;
+  SynthButton *_reverbLButton;
+  SynthButton *_keyshiftRButton;
+  SynthButton *_keyshiftLButton;
+
+  QGraphicsRectItem *_midiActLed;
+  QTimer *_midiActTimer;
+  QRadialGradient *_ledOnGradient;
+  QRadialGradient *_ledOffGradient;
 
   QColor _lcdOnBackgroundColor;
   QColor _lcdOffBackgroundColor;
@@ -140,6 +148,9 @@ public slots:
 
   void update_all_button(bool status);
   void update_mute_button(bool status);
+
+  void update_midi_activity_led(bool sysex, int length);
+  void update_midi_activity_timeout(void);
 };
 
 

@@ -543,6 +543,24 @@ Scene::Scene(Emulator *emulator, QWidget *parent)
   gsLogo->setPos(695, 170);
   addItem(gsLogo);
 
+  // Add LED button
+  _ledOnGradient = new QRadialGradient(35, 179, 20);
+  _ledOnGradient->setColorAt(.0, 0x2fafff);
+  _ledOnGradient->setColorAt(.6, 0x0000ff);
+
+  _ledOffGradient = new QRadialGradient(35, 179, 20);
+  _ledOffGradient->setColorAt(.0, 0x000090);
+  _ledOffGradient->setColorAt(.9, Qt::black);
+
+  _midiActLed = new QGraphicsRectItem(25, 175, 20, 8);
+  _midiActLed->setPen(QColor(40, 40, 40));
+  _midiActLed->setBrush(*_ledOffGradient);
+  addItem(_midiActLed);
+
+  _midiActTimer = new QTimer();
+  _midiActTimer->setSingleShot(true);
+  _midiActTimer->setTimerType(Qt::CoarseTimer);
+
   // Connect emulator's signals to our display's slots
   connect(emulator, SIGNAL(new_bar_display(QVector<bool>*)),
 	  this, SLOT(update_lcd_bar_display(QVector<bool>*)));
@@ -562,6 +580,8 @@ Scene::Scene(Emulator *emulator, QWidget *parent)
 	  this, SLOT(update_lcd_kshift_text(QString)));
   connect(emulator, SIGNAL(display_midi_channel_updated(QString)),
 	  this, SLOT(update_lcd_midich_text(QString)));
+  connect(_midiActTimer, SIGNAL(timeout()),
+	  this, SLOT(update_midi_activity_timeout()));
 }
 
 
@@ -717,6 +737,18 @@ void Scene::update_lcd_midich_text(QString text)
     _lcdMidichText->setHtml(QString("<html><head><body style=\" white-space: pre-wrap; letter-spacing: 4px; font-style:normal; text-decoration:none;\"><font style=\"font-size:27pt; font-weight:normal;\">") + text + QString("</font>"));
 }
 
+
+void Scene::update_midi_activity_led(bool sysex, int length)
+{
+  _midiActLed->setBrush(*_ledOnGradient);
+  _midiActTimer->start(300);
+}
+
+
+void Scene::update_midi_activity_timeout(void)
+{
+  _midiActLed->setBrush(*_ledOffGradient);
+}
 
 void Scene::set_lcd_bkg_on_color(QColor color)
 {

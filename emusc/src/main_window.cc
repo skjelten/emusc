@@ -258,6 +258,9 @@ void MainWindow::power_switch(int newPowerState)
     _panicAct->setDisabled(false);
     _synthSettingsAct->setDisabled(false);
 
+    connect(_emulator->get_midi_driver(), SIGNAL(new_midi_message(bool, int)),
+	    _scene, SLOT(update_midi_activity_led(bool, int)));
+
     _powerState = 1;
 
   } else if ((newPowerState == 0 && _powerState == 1) ||

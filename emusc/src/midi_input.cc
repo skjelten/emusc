@@ -48,6 +48,7 @@ void MidiInput::send_midi_event(uint8_t status, uint8_t data1, uint8_t data2)
 	      << " D2=0x" << (int) data2 << std::endl;
 
   _synth->midi_input(status, data1, data2);
+  emit new_midi_message(false, 3);
 }
 
 
@@ -58,6 +59,7 @@ void MidiInput::send_midi_event_sysex(uint8_t *data, uint16_t length)
 	      << std::endl;
 
   _synth->midi_input_sysex(data, length);
+  emit new_midi_message(true, length);
 }
 
 

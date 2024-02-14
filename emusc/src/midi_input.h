@@ -24,14 +24,17 @@
 
 #include <stdint.h>
 
+#include <QObject>
 #include <QString>
 #include <QStringList>
 
 
 // MIDI input base class. All MIDI systems must implement a callback (or
 // polling in separate thread) setup for receiving  MIDI event from the OS.
-class MidiInput
+class MidiInput : public QObject
 {
+  Q_OBJECT
+
 protected:
   //  void run(void(EmuSC::Synth::*midi_input)(EmuSC::Synth::MidiEvent))
   EmuSC::Synth *_synth;
@@ -50,6 +53,10 @@ public:
   virtual QStringList list_subscribers(void);
 
   //  virtual static QStringList get_available_devices(void);
+
+signals:
+  void new_midi_message(bool sysex, int length);
+
 };
 
 
