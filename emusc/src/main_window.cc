@@ -103,7 +103,19 @@ MainWindow::MainWindow(QWidget *parent)
 			_scene->sceneRect().height() + 50,
 			Qt::KeepAspectRatio);
   resize(1150, 280);  // FIXME
+
+  // Using event filters to detect a finished main window resize only seems to
+  // work on Linux systems
+#ifdef Q_OS_LINUX
   installEventFilter(this);
+#else
+  _resizeTimer = new QTimer();
+  _resizeTimer->setSingleShot(true);
+  _resizeTimer->setTimerType(Qt::CoarseTimer);
+  connect(_resizeTimer, SIGNAL(timeout()),
+	  this, SLOT(resize_timeout()));
+
+#endif
 }
 
 
@@ -389,6 +401,37 @@ void MainWindow::resizeEvent(QResizeEvent *event)
 			_scene->sceneRect().width() + 50,
 			_scene->sceneRect().height() + 50,
 			Qt::KeepAspectRatio);
+
+#ifndef Q_OS_LINUX
+  _resizeTimer->start(500);
+#endif
+}
+
+
+void MainWindow::resize_timeout(void)
+{
+  _synthView->fitInView(_scene->sceneRect().x(),
+			_scene->sceneRect().y(),
+			_scene->sceneRect().width() + 50,
+			_scene->sceneRect().height() + 50,
+			Qt::KeepAspectRatio);
+
+  int mbHeight = menuBar()->isVisible() ? menuBar()->height() : 0;
+  int sbHeight = statusBar()->isVisible() ? statusBar()->height() : 0;
+
+  if (_synthView->width() >
+      _aspectRatio * (_synthView->height() + mbHeight + sbHeight)) {
+    resize(_synthView->height() * _aspectRatio,
+	   _synthView->height() + mbHeight + sbHeight);
+  } else {
+    resize(_synthView->width(),
+	   _synthView->width() * (1 / _aspectRatio) + mbHeight + sbHeight);
+  }
+
+#ifndef Q_OS_LINUX
+  // Make sure we don't end up in a resize loop
+  _resizeTimer->stop();
+#endif
 }
 
 

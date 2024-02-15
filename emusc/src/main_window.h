@@ -28,6 +28,7 @@
 #include <QGraphicsView>
 #include <QMenu>
 #include <QPointer>
+#include <QTimer>
 
 #include "scene.h"
 #include "synth_dialog.h"
@@ -66,6 +67,7 @@ private:
   Scene *_scene;
   QGraphicsView *_synthView;
 
+  QTimer *_resizeTimer;
   float _aspectRatio;
 
   bool _hasMovedEvent;
@@ -84,6 +86,7 @@ public slots:
 
 private slots:
   void resizeEvent(QResizeEvent *event);
+  void resize_timeout(void);
 
   void cleanUp(void);
 
