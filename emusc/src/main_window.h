@@ -25,6 +25,7 @@
 #include <QAction>
 #include <QActionGroup>
 #include <QLineEdit>
+#include <QGraphicsView>
 #include <QMenu>
 #include <QPointer>
 
@@ -59,10 +60,16 @@ private:
 
   QPointer<SynthDialog> _synthDialog;
 
-  Scene *_scene;
-
   bool _powerState;
   Emulator *_emulator;
+
+  Scene *_scene;
+  QGraphicsView *_synthView;
+
+  float _aspectRatio;
+
+  bool _hasMovedEvent;
+  bool eventFilter(QObject *obj, QEvent *event);
 
   void _create_actions(void);
   void _create_menus(void);
@@ -76,6 +83,8 @@ public slots:
   void show_compact_view(bool state);
 
 private slots:
+  void resizeEvent(QResizeEvent *event);
+
   void cleanUp(void);
 
   void _display_preferences_dialog(void);

@@ -51,21 +51,24 @@ MainWindow::MainWindow(QWidget *parent)
   : QMainWindow(parent),
     _emulator(NULL),
     _scene(NULL),
-    _powerState(0)
+    _powerState(0),
+    _hasMovedEvent(false),
+    _aspectRatio(1150/258.0)
 {
-  resize(1150, 280);
+  // TODO: Update minumum size based on *bars and compact mode state
+  setMinimumSize(300, 120);
 
   _create_actions();
   _create_menus();
 
   _emulator = new Emulator();
   _scene = new Scene(_emulator, this);
-
-  QGraphicsView *_synthView = new QGraphicsView(this);
-  _synthView->setScene(_scene);
-
   _scene->setSceneRect(0, -10, 1100, 200);
-//    _synthView->fitInView(_scene->sceneRect(), Qt::KeepAspectRatio);
+
+  _synthView = new QGraphicsView(this);
+  _synthView->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+  _synthView->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+  _synthView->setScene(_scene);
 
   _viewCtrlRomDataAct->setEnabled(_emulator->has_valid_control_rom());
   _synthModeMenu->setEnabled(_emulator->has_valid_control_rom());
@@ -90,6 +93,17 @@ MainWindow::MainWindow(QWidget *parent)
       QCoreApplication::arguments().contains("-p") ||
       QCoreApplication::arguments().contains("--power-on"))
     power_switch(true);
+
+  // TODO: Add restore geometry as a preferences setting?
+  // restoreGeometry(settings.value("GUI/geometry").toByteArray());
+
+  _synthView->fitInView(_scene->sceneRect().x(),
+			_scene->sceneRect().y(),
+			_scene->sceneRect().width() + 50,
+			_scene->sceneRect().height() + 50,
+			Qt::KeepAspectRatio);
+  resize(1150, 280);  // FIXME
+  installEventFilter(this);
 }
 
 
@@ -105,6 +119,9 @@ void MainWindow::cleanUp()
     _synthDialog->close();
 
   power_switch(0);
+
+//  QSettings settings;
+//  settings.setValue("GUI/geometry", saveGeometry());
 }
 
 
@@ -348,11 +365,60 @@ void MainWindow::show_statusbar(bool state)
 
 void MainWindow::show_compact_view(bool state)
 {
+  int mbHeight = menuBar()->isVisible() ? menuBar()->height() : 0;
+  int sbHeight = statusBar()->isVisible() ? statusBar()->height() : 0;
+
   if (state) {
-    _scene->setSceneRect(0, -10, 610, 200);
-    resize(660, 280);
+    _scene->setSceneRect(0, -10, 605, 200);
+    _aspectRatio = 660 / 258.0;
+    resize(660, 258 + mbHeight + sbHeight);
   } else {
     _scene->setSceneRect(0, -10, 1100, 200);
-    resize(1150, 280);
+    _aspectRatio = 1150 / 258.0;
+    resize(1150, 258 + mbHeight + sbHeight);
   }
+}
+
+
+void MainWindow::resizeEvent(QResizeEvent *event)
+{
+  QMainWindow::resizeEvent(event);
+
+  _synthView->fitInView(_scene->sceneRect().x(),
+			_scene->sceneRect().y(),
+			_scene->sceneRect().width() + 50,
+			_scene->sceneRect().height() + 50,
+			Qt::KeepAspectRatio);
+}
+
+
+// TODO: Fix resize events based on drag handle in statusbar
+bool MainWindow::eventFilter(QObject *obj, QEvent *event)
+{
+  if (event->type() == QEvent::Resize) {
+    _hasMovedEvent = true;
+
+  } else if (_hasMovedEvent && event->type() == QEvent::WindowActivate) {
+    _synthView->fitInView(_scene->sceneRect().x(),
+			  _scene->sceneRect().y(),
+			  _scene->sceneRect().width() + 50,
+			  _scene->sceneRect().height() + 50,
+			  Qt::KeepAspectRatio);
+
+    int mbHeight = menuBar()->isVisible() ? menuBar()->height() : 0;
+    int sbHeight = statusBar()->isVisible() ? statusBar()->height() : 0;
+
+    if (_synthView->width() >
+	_aspectRatio * (_synthView->height() + mbHeight + sbHeight)) {
+      resize(_synthView->height() * _aspectRatio,
+	     _synthView->height() + mbHeight + sbHeight);
+    } else {
+      resize(_synthView->width(),
+	     _synthView->width() * (1 / _aspectRatio) + mbHeight + sbHeight);
+    }
+
+    _hasMovedEvent = false;
+  }
+
+  return QWidget::eventFilter(obj, event);
 }
