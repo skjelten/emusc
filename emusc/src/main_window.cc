@@ -251,7 +251,7 @@ void MainWindow::_display_about_dialog()
 			     "libEmuSC version " + libemuscVersion + "\n"
 			     "libQT version " QT_VERSION_STR "\n"
 			     "\n"
-			     "Copyright (C) 2022 Håkon Skjelten\n"
+			     "Copyright (C) 2024 Håkon Skjelten\n"
 			     "\n"
 			     "Licensed under GPL v3 or any later version"));
 }
