@@ -64,16 +64,16 @@ PreferencesDialog::PreferencesDialog(Emulator *emulator, Scene *scene, MainWindo
   _menuList = new QListWidget();
   _menuList->setMinimumHeight(100);
   
-  _generalLW = new QListWidgetItem(QIcon(":/icons/gear.png"),
+  _generalLW = new QListWidgetItem(QIcon(":/images/gear.png"),
 				   tr("General"), _menuList);
   _menuList->addItem(_generalLW);  
-  _audioLW = new QListWidgetItem(QIcon(":/icons/speaker.png"),
+  _audioLW = new QListWidgetItem(QIcon(":/images/speaker.png"),
 				 tr("Audio"), _menuList);
   _menuList->addItem(_audioLW);
-  _midiLW = new QListWidgetItem(QIcon(":/icons/midi.png"),
+  _midiLW = new QListWidgetItem(QIcon(":/images/midi.png"),
 				tr("MIDI"), _menuList);
   _menuList->addItem(_midiLW);
-  _romLW = new QListWidgetItem(QIcon(":/icons/rom.png"),
+  _romLW = new QListWidgetItem(QIcon(":/images/rom.png"),
 			       tr("ROM"), _menuList);
   _menuList->addItem(_romLW);
 

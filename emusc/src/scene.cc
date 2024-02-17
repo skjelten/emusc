@@ -75,7 +75,7 @@ Scene::Scene(Emulator *emulator, QWidget *parent)
 	  this, SLOT(update_mute_button(bool)));
 
   // Set background color to grey (use bitmap for better look?)
-  setBackgroundBrush(QBrush(QColor(60, 60, 60),QPixmap(":/icons/synth_bkg.png")));
+  setBackgroundBrush(QBrush(QColor(60, 60, 60),QPixmap(":/images/synth_bkg.png")));
 
   // Add sunken frame to LCD display
   QGraphicsRectItem *frameTop = new QGraphicsRectItem(0, 0, 510, 191);
@@ -359,7 +359,7 @@ Scene::Scene(Emulator *emulator, QWidget *parent)
 			      "background: black;"     \
 			    "padding: 5px");
   _partLButton->setAttribute(Qt::WA_TranslucentBackground);
-  _partLButton->setIcon(QPixmap(":/icons/left_arrow.png"));
+  _partLButton->setIcon(QPixmap(":/images/left_arrow.png"));
   _partLButton->setIconSize(QSize(9, 9));
   _partLButton->setAutoRepeat(true);
   _partLButton->setAutoRepeatDelay(500);
@@ -377,7 +377,7 @@ Scene::Scene(Emulator *emulator, QWidget *parent)
 			    "background: black;"     \
 			    "padding: 5px");
   _partRButton->setAttribute(Qt::WA_TranslucentBackground);
-  _partRButton->setIcon(QPixmap(":/icons/right_arrow.png"));
+  _partRButton->setIcon(QPixmap(":/images/right_arrow.png"));
   _partRButton->setIconSize(QSize(9, 9));
   _partRButton->setAutoRepeat(true);
   _partRButton->setAutoRepeatDelay(500);
@@ -389,7 +389,7 @@ Scene::Scene(Emulator *emulator, QWidget *parent)
   // Add instrument L/R buttons
   _instrumentLButton = new SynthButton();
   _instrumentLButton->setGeometry(QRect(945, -5, 70, 25));
-  _instrumentLButton->setIcon(QPixmap(":/icons/left_arrow.png"));
+  _instrumentLButton->setIcon(QPixmap(":/images/left_arrow.png"));
   connect(_instrumentLButton, SIGNAL(clicked()),
 	  emulator, SLOT(select_prev_instrument()));
   connect(_instrumentLButton, SIGNAL(rightClicked()),
@@ -398,7 +398,7 @@ Scene::Scene(Emulator *emulator, QWidget *parent)
 
   _instrumentRButton = new SynthButton();
   _instrumentRButton->setGeometry(QRect(1018, -5, 70, 25));
-  _instrumentRButton->setIcon(QPixmap(":/icons/right_arrow.png"));
+  _instrumentRButton->setIcon(QPixmap(":/images/right_arrow.png"));
   connect(_instrumentRButton, SIGNAL(clicked()),
 	  emulator, SLOT(select_next_instrument()));
   connect(_instrumentRButton, SIGNAL(rightClicked()),
@@ -408,78 +408,78 @@ Scene::Scene(Emulator *emulator, QWidget *parent)
   // Add pan L/R buttons
   _panLButton = new SynthButton();
   _panLButton->setGeometry(QRect(945, 50, 70, 25));
-  _panLButton->setIcon(QPixmap(":/icons/left_arrow.png"));
+  _panLButton->setIcon(QPixmap(":/images/left_arrow.png"));
   connect(_panLButton, SIGNAL(clicked()), emulator, SLOT(select_prev_pan()));
   QGraphicsProxyWidget *panLBtnProxy = addWidget(_panLButton);
 
   _panRButton = new SynthButton();
   _panRButton->setGeometry(QRect(1018, 50, 70, 25));
-  _panRButton->setIcon(QPixmap(":/icons/right_arrow.png"));
+  _panRButton->setIcon(QPixmap(":/images/right_arrow.png"));
   connect(_panRButton, SIGNAL(clicked()), emulator, SLOT(select_next_pan()));
   QGraphicsProxyWidget *panRBtnProxy = addWidget(_panRButton);
 
   // Add chorus L/R buttons
   _chorusLButton = new SynthButton();
   _chorusLButton->setGeometry(QRect(945, 105, 70, 25));
-  _chorusLButton->setIcon(QPixmap(":/icons/left_arrow.png"));
+  _chorusLButton->setIcon(QPixmap(":/images/left_arrow.png"));
   connect(_chorusLButton, SIGNAL(clicked()), emulator, SLOT(select_prev_chorus()));
   QGraphicsProxyWidget *chorusLBtnProxy = addWidget(_chorusLButton);
 
   _chorusRButton = new SynthButton();
   _chorusRButton->setGeometry(QRect(1018, 105, 70, 25));
-  _chorusRButton->setIcon(QPixmap(":/icons/right_arrow.png"));
+  _chorusRButton->setIcon(QPixmap(":/images/right_arrow.png"));
   connect(_chorusRButton, SIGNAL(clicked()), emulator, SLOT(select_next_chorus()));
   QGraphicsProxyWidget *chorusRBtnProxy = addWidget(_chorusRButton);
 
   // Add midich L/R buttons
   _midichLButton = new SynthButton();
   _midichLButton->setGeometry(QRect(945, 160, 70, 25));
-  _midichLButton->setIcon(QPixmap(":/icons/left_arrow.png"));
+  _midichLButton->setIcon(QPixmap(":/images/left_arrow.png"));
   connect(_midichLButton, SIGNAL(clicked()), emulator, SLOT(select_prev_midi_channel()));
   QGraphicsProxyWidget *midichLBtnProxy = addWidget(_midichLButton);
 
   _midichRButton = new SynthButton();
   _midichRButton->setGeometry(QRect(1018, 160, 70, 25));
-  _midichRButton->setIcon(QPixmap(":/icons/right_arrow.png"));
+  _midichRButton->setIcon(QPixmap(":/images/right_arrow.png"));
   connect(_midichRButton, SIGNAL(clicked()), emulator, SLOT(select_next_midi_channel()));
   QGraphicsProxyWidget *midichRBtnProxy = addWidget(_midichRButton);
 
   // Add level L/R buttons
   _levelLButton = new SynthButton();
   _levelLButton->setGeometry(QRect(780, 50, 70, 25));
-  _levelLButton->setIcon(QPixmap(":/icons/left_arrow.png"));
+  _levelLButton->setIcon(QPixmap(":/images/left_arrow.png"));
   connect(_levelLButton, SIGNAL(clicked()), emulator,SLOT(select_prev_level()));
   QGraphicsProxyWidget *levelLBtnProxy = addWidget(_levelLButton);
 
   _levelRButton = new SynthButton();
   _levelRButton->setGeometry(QRect(853, 50, 70, 25));
-  _levelRButton->setIcon(QPixmap(":/icons/right_arrow.png"));
+  _levelRButton->setIcon(QPixmap(":/images/right_arrow.png"));
   connect(_levelRButton, SIGNAL(clicked()), emulator,SLOT(select_next_level()));
   QGraphicsProxyWidget *levelRBtnProxy = addWidget(_levelRButton);
 
   // Add reverb L/R buttons
   _reverbLButton = new SynthButton();
   _reverbLButton->setGeometry(QRect(780, 105, 70, 25));
-  _reverbLButton->setIcon(QPixmap(":/icons/left_arrow.png"));
+  _reverbLButton->setIcon(QPixmap(":/images/left_arrow.png"));
   connect(_reverbLButton, SIGNAL(clicked()), emulator, SLOT(select_prev_reverb()));
   QGraphicsProxyWidget *reverbLBtnProxy = addWidget(_reverbLButton);
 
   _reverbRButton = new SynthButton();
   _reverbRButton->setGeometry(QRect(853, 105, 70, 25));
-  _reverbRButton->setIcon(QPixmap(":/icons/right_arrow.png"));
+  _reverbRButton->setIcon(QPixmap(":/images/right_arrow.png"));
   connect(_reverbRButton, SIGNAL(clicked()), emulator, SLOT(select_next_reverb()));
   QGraphicsProxyWidget *reverbRBtnProxy = addWidget(_reverbRButton);
 
   // Add keyshift L/R buttons
   _keyshiftLButton = new SynthButton();
   _keyshiftLButton->setGeometry(QRect(780, 160, 70, 25));
-  _keyshiftLButton->setIcon(QPixmap(":/icons/left_arrow.png"));
+  _keyshiftLButton->setIcon(QPixmap(":/images/left_arrow.png"));
   connect(_keyshiftLButton, SIGNAL(clicked()), emulator, SLOT(select_prev_key_shift()));
   QGraphicsProxyWidget *keyshiftLBtnProxy = addWidget(_keyshiftLButton);
 
   _keyshiftRButton = new SynthButton();
   _keyshiftRButton->setGeometry(QRect(853, 160, 70, 25));
-  _keyshiftRButton->setIcon(QPixmap(":/icons/right_arrow.png"));
+  _keyshiftRButton->setIcon(QPixmap(":/images/right_arrow.png"));
   connect(_keyshiftRButton, SIGNAL(clicked()), emulator, SLOT(select_next_key_shift()));
   QGraphicsProxyWidget *keyshiftRBtnProxy = addWidget(_keyshiftRButton);
 
@@ -535,11 +535,11 @@ Scene::Scene(Emulator *emulator, QWidget *parent)
   addItem(midichBtnText);
 
   // TODO: Show GM / GS logo based on ROM version
-  QGraphicsPixmapItem *gmLogo = new QGraphicsPixmapItem(QPixmap(":/icons/gm_logo.png"));
+  QGraphicsPixmapItem *gmLogo = new QGraphicsPixmapItem(QPixmap(":/images/gm_logo.png"));
   gmLogo->setPos(645, 170);
   addItem(gmLogo);
 
-  QGraphicsPixmapItem *gsLogo = new QGraphicsPixmapItem(QPixmap(":/icons/gs_logo.png"));
+  QGraphicsPixmapItem *gsLogo = new QGraphicsPixmapItem(QPixmap(":/images/gs_logo.png"));
   gsLogo->setPos(695, 170);
   addItem(gsLogo);
 

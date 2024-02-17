@@ -43,6 +43,7 @@
 #include <QDebug>
 #include <QSettings>
 #include <QStatusBar>
+#include <QTextEdit>
 
 #include "config.h"
 
@@ -116,6 +117,12 @@ MainWindow::MainWindow(QWidget *parent)
 	  this, SLOT(resize_timeout()));
 
 #endif
+
+  // Run a "welcome dialog" if ROM configurations and volume are missing
+  if (!settings.contains("Rom/control") &&
+      !settings.contains("Rom/pcm1") &&
+      !settings.contains("Audio/volume"))
+    _display_welcome_dialog();
 }
 
 
@@ -230,11 +237,56 @@ void MainWindow::_create_menus(void)
 }
 
 
+void MainWindow::_display_welcome_dialog()
+{
+  QDialog *welcomeDialog = new QDialog(this);
+  welcomeDialog->setWindowTitle("First run dialog");
+  welcomeDialog->setModal(true);
+  welcomeDialog->setFixedSize(QSize(520, 490));
+
+  QString message("<table><tr><td></td>"
+		  "<td><h1>Welcome to EmuSC</h1></td></tr>"
+		  "<tr><td colspan=2><hr></td></tr>"
+		  "<tr><td><img src=\":/icon-256.png\" width=128 height=128> "
+		  "&nbsp; &nbsp; &nbsp;</td><td>"
+		  "<p>EmuSC is a free software synthesizer that tries to "
+		  "emulate the Roland Sound Canvas SC-55 lineup to recreate "
+		  "the original sounds of these '90s era synthesizers."
+		  "</p><p>"
+		  "To get started you need to first congfigure a couple of "
+		  "parameters:"
+		  "</p><p><ul style=\"margin-left:25px; -qt-list-indent: 0;\">"
+		  "<li><b>ROM files</b><br>The emulator needs the ROM files "
+		  "for both the control ROM and the PCM ROMs to operate.</li>"
+		  "<li><b>Audio setup</b><br>A proper audio setup must be "
+		  "configured with the desired speaker setup</li>"
+		  "<li><b>MIDI setup</b><br>A MIDI source must be configured. "
+		  "Note that EmuSC is not able to play MIDI files directly, but"
+		  " needs a MIDI player to send the MIDI events in real-time."
+		  "</li><ul></p>"
+		  "<p>All these settings can be set in the Preferences dialog. "
+		  "</p><p>Good luck and have fun!</p></td></tr></table>");
+
+  QTextEdit *textArea = new QTextEdit(message);
+  textArea->setReadOnly(true);
+
+  QVBoxLayout *mainLayout = new QVBoxLayout();
+  mainLayout->addWidget(textArea);
+
+  QDialogButtonBox *buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok);
+  mainLayout->addWidget(buttonBox);
+  connect(buttonBox, &QDialogButtonBox::accepted,
+	  welcomeDialog, &QDialog::accept);
+
+  welcomeDialog->setLayout(mainLayout);
+  welcomeDialog->show();
+}
+
+
 void MainWindow::_display_preferences_dialog()
 {
   PreferencesDialog *preferencesDialog = new PreferencesDialog(_emulator, _scene, this);
   preferencesDialog->exec();
-
 
   if (_emulator->has_valid_control_rom() &&
       _emulator->get_synth_generation() > EmuSC::ControlRom::SynthGen::SC55)

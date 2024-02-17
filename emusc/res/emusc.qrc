@@ -1,31 +1,35 @@
 <RCC>
-    <qresource prefix="/fonts">
-        <file>retro_synth.ttf</file>
+    <qresource>
+        <file>fonts/retro_synth.ttf</file>
     </qresource>
 
-    <qresource prefix="/animations">
-        <file>emusc.anm</file>
-        <file>sc-55.anm</file>
+    <qresource>
+        <file alias="icon-256.png">icons/256x256/emusc.png</file>
     </qresource>
 
-    <qresource prefix="/icons">
-        <file>gm_logo.png</file>
-        <file>gs_logo.png</file>
-        <file>synth_bkg.png</file>
-        <file>left_arrow.png</file>
-        <file>right_arrow.png</file>
-        <file>gear.png</file>
-        <file>speaker.png</file>
-        <file>midi.png</file>
-        <file>rom.png</file>
-        <file>master.png</file>
-	<file>reverb.png</file>
-	<file>chorus.png</file>
-	<file>part.png</file>
-	<file>rx.png</file>
-	<file>tone.png</file>
-	<file>scale.png</file>
-	<file>controller.png</file>
-	<file>drum.png</file>
+    <qresource>
+        <file>images/gm_logo.png</file>
+        <file>images/gs_logo.png</file>
+        <file>images/synth_bkg.png</file>
+        <file>images/left_arrow.png</file>
+        <file>images/right_arrow.png</file>
+        <file>images/gear.png</file>
+        <file>images/speaker.png</file>
+        <file>images/midi.png</file>
+        <file>images/rom.png</file>
+        <file>images/master.png</file>
+	<file>images/reverb.png</file>
+	<file>images/chorus.png</file>
+	<file>images/part.png</file>
+	<file>images/rx.png</file>
+	<file>images/tone.png</file>
+	<file>images/scale.png</file>
+	<file>images/controller.png</file>
+	<file>images/drum.png</file>
+    </qresource>
+
+    <qresource>
+        <file>animations/emusc.anm</file>
+        <file>animations/sc-55.anm</file>
     </qresource>
 </RCC>

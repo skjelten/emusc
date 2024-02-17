@@ -62,7 +62,6 @@ set_property(TARGET emusc-client PROPERTY RUNTIME_OUTPUT_NAME emusc)
 
 include_directories(${EXTERNAL_INCLUDE_FILES})
 
-
 target_link_libraries(emusc-client emusc)
 
 target_link_libraries(emusc-client Qt${QT_VERSION_MAJOR}::Core)
@@ -78,3 +77,14 @@ target_link_libraries (emusc-client ${EXTERNAL_LIBRARIES})
 target_compile_features(emusc-client PUBLIC cxx_std_11)
 target_include_directories(emusc-client PUBLIC "${CMAKE_CURRENT_BINARY_DIR}")
 set_target_properties(emusc-client PROPERTIES CXX_EXTENSIONS OFF)
+
+if (APPLE)
+  set(MACOSX_BUNDLE_ICON_FILE emusc.icns)
+  set(APP_ICON_MACOS "${CMAKE_CURRENT_SOURCE_DIR}/../res/icons/emusc.icns")
+  set_source_files_properties(${APP_ICON_MACOS} PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
+  target_sources(emusc-client PRIVATE ${APP_ICON_MACOS})
+
+elseif(WIN32)
+  set(APP_ICON_RESOURCE_WINDOWS "${CMAKE_CURRENT_SOURCE_DIR}/../res/emusc-win32.rc")
+  target_sources(emusc-client PRIVATE ${APP_ICON_RESOURCE_WINDOWS})
+endif()

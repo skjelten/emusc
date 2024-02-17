@@ -79,22 +79,23 @@ int parse_arguments(int argc, char *argv[])
 
 int main(int argc, char *argv[])
 {
-    QApplication app(argc, argv);
+  QApplication app(argc, argv);
+  app.setWindowIcon(QIcon(":/icon-256.png"));
 
-    QCoreApplication::setOrganizationName("emusc");
-    QCoreApplication::setApplicationName("EmuSC");
+  QCoreApplication::setOrganizationName("emusc");
+  QCoreApplication::setApplicationName("EmuSC");
 
-    if (argc > 1) {
-      int ret = parse_arguments(argc, argv);
-      if (ret)
-	return ret;
-    }
+  if (argc > 1) {
+    int ret = parse_arguments(argc, argv);
+    if (ret)
+      return ret;
+  }
 
-    MainWindow window;
-    window.show();
+  MainWindow window;
+  window.show();
 
-    QApplication::connect(&app, SIGNAL(aboutToQuit()),
-			  &window, SLOT(cleanUp()));
+  QApplication::connect(&app, SIGNAL(aboutToQuit()),
+			&window, SLOT(cleanUp()));
 
-    return app.exec();
+  return app.exec();
 }

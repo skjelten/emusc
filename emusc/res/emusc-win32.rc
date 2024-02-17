@@ -1,0 +1,25 @@
+100 ICON "/icons/emusc.ico"
+1 VERSIONINFO
+FILEVERSION     1,0,0,0
+PRODUCTVERSION  1,0,0,0
+BEGIN
+  BLOCK "StringFileInfo"
+  BEGIN
+    BLOCK "040904E4"
+    BEGIN
+      VALUE "CompanyName", "EmuSC Team"
+      VALUE "FileDescription", "Sound Canvas emulator"
+      VALUE "FileVersion", "0.10"
+      VALUE "InternalName", "EmuSC"
+      VALUE "LegalCopyright", "Copyright 2022-2024"
+      VALUE "OriginalFilename", "emusc.exe"
+      VALUE "ProductName", "EmuSC"
+      VALUE "ProductVersion", "0.1"
+    END
+  END
+
+  BLOCK "VarFileInfo"
+  BEGIN
+    VALUE "Translation", 0x409, 1252
+  END
+END

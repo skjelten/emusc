@@ -66,34 +66,34 @@ SynthDialog::SynthDialog(Emulator *emulator, Scene *scene, QWidget *parent)
   _menuList = new QListWidget();
   _menuList->setMinimumHeight(100);
   
-  QListWidgetItem*masterLW = new QListWidgetItem(QIcon(":/icons/master.png"),
+  QListWidgetItem*masterLW = new QListWidgetItem(QIcon(":/images/master.png"),
 						  tr("Master"), _menuList);
   _menuList->addItem(masterLW);  
-  QListWidgetItem *reverbLW = new QListWidgetItem(QIcon(":/icons/reverb.png"),
+  QListWidgetItem *reverbLW = new QListWidgetItem(QIcon(":/images/reverb.png"),
 						  tr("Reverb"), _menuList);
   _menuList->addItem(reverbLW);
-  QListWidgetItem *chorusLW = new QListWidgetItem(QIcon(":/icons/chorus.png"),
+  QListWidgetItem *chorusLW = new QListWidgetItem(QIcon(":/images/chorus.png"),
 						  tr("Chorus"), _menuList);
   _menuList->addItem(chorusLW);
-  QListWidgetItem *partMainLW = new QListWidgetItem(QIcon(":/icons/part.png"),
+  QListWidgetItem *partMainLW = new QListWidgetItem(QIcon(":/images/part.png"),
 						  tr("Part: Main"), _menuList);
   _menuList->addItem(partMainLW);
-  QListWidgetItem *partRxLW = new QListWidgetItem(QIcon(":/icons/rx.png"),
+  QListWidgetItem *partRxLW = new QListWidgetItem(QIcon(":/images/rx.png"),
 						  tr("Part: Rx & Mode"),
 						  _menuList);
   _menuList->addItem(partRxLW);
-  QListWidgetItem *partTonesLW = new QListWidgetItem(QIcon(":/icons/tone.png"),
+  QListWidgetItem *partTonesLW = new QListWidgetItem(QIcon(":/images/tone.png"),
 						  tr("Part: Tones"), _menuList);
   _menuList->addItem(partTonesLW);
-  QListWidgetItem *partScaleLW = new QListWidgetItem(QIcon(":/icons/scale.png"),
+  QListWidgetItem *partScaleLW = new QListWidgetItem(QIcon(":/images/scale.png"),
 						     tr("Part: Scale Tuning"),
 						     _menuList);
   _menuList->addItem(partScaleLW);
-  QListWidgetItem *partCtrlLW = new QListWidgetItem(QIcon(":/icons/controller.png"),
+  QListWidgetItem *partCtrlLW = new QListWidgetItem(QIcon(":/images/controller.png"),
 						     tr("Part: Controllers"),
 						     _menuList);
   _menuList->addItem(partCtrlLW);
-  QListWidgetItem *drumsLW = new QListWidgetItem(QIcon(":/icons/drum.png"),
+  QListWidgetItem *drumsLW = new QListWidgetItem(QIcon(":/images/drum.png"),
 						  tr("Drums"), _menuList);
   _menuList->addItem(drumsLW);
 

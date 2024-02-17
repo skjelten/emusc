@@ -17,8 +17,8 @@
  */
 
 
-#ifndef MAINWINDOW_H
-#define MAINWINDOW_H
+#ifndef MAIN_WINDOW_H
+#define MAIN_WINDOW_H
 
 
 #include <QMainWindow>
@@ -90,6 +90,7 @@ private slots:
 
   void cleanUp(void);
 
+  void _display_welcome_dialog(void);
   void _display_preferences_dialog(void);
   void _display_synth_dialog(void);
   void _display_about_dialog(void);
@@ -105,4 +106,4 @@ private slots:
   void power_switch(int state = -1);
 };
 
-#endif // MAINWINDOW_H
+#endif // MAIN_WINDOW_H
