@@ -54,7 +54,8 @@ MainWindow::MainWindow(QWidget *parent)
     _scene(NULL),
     _powerState(0),
     _hasMovedEvent(false),
-    _aspectRatio(1150/258.0)
+    _aspectRatio(1150/258.0),
+    _resizeTimer(nullptr)
 {
   // TODO: Update minumum size based on *bars and compact mode state
   setMinimumSize(300, 120);
@@ -80,45 +81,51 @@ MainWindow::MainWindow(QWidget *parent)
   else
     _GMmodeAct->setVisible(false);
 
-  QSettings settings;
-  statusBar()->hide();
-  if (settings.value("Synth/show_statusbar").toBool())
-    show_statusbar(1);
-
-  if (settings.value("Synth/use_compact_view").toBool())
-    show_compact_view(true);
-
-  setCentralWidget(_synthView);
-
-  if (settings.value("Synth/auto_power_on").toBool() ||
-      QCoreApplication::arguments().contains("-p") ||
-      QCoreApplication::arguments().contains("--power-on"))
-    power_switch(true);
-
-  // TODO: Add restore geometry as a preferences setting?
-  // restoreGeometry(settings.value("GUI/geometry").toByteArray());
-
-  _synthView->fitInView(_scene->sceneRect().x(),
-			_scene->sceneRect().y(),
-			_scene->sceneRect().width() + 50,
-			_scene->sceneRect().height() + 50,
-			Qt::KeepAspectRatio);
-  resize(1150, 280);  // FIXME
-
-  // Using event filters to detect a finished main window resize only seems to
-  // work on Linux systems
-#ifdef Q_OS_LINUX
-  installEventFilter(this);
-#else
+  // Use timer hack to resize MainWindow to correct aspect ratio after the
+  // underlying window system has created a resize event
   _resizeTimer = new QTimer();
   _resizeTimer->setSingleShot(true);
   _resizeTimer->setTimerType(Qt::CoarseTimer);
   connect(_resizeTimer, SIGNAL(timeout()),
 	  this, SLOT(resize_timeout()));
 
-#endif
+  QSettings settings;
+  if (settings.value("remember_layout").toBool()) {
+    if (settings.value("show_statusbar").toBool()) {
+      statusBar()->show();
+      _viewStatusbarAct->setChecked(true);
+    } else {
+      statusBar()->hide();
+      _viewStatusbarAct->setChecked(false);
+    }
 
-  // Run a "welcome dialog" if ROM configurations and volume are missing
+    if (settings.value("compact_gui").toBool())
+      _set_compact_layout();
+    else
+      _set_normal_layout();
+
+    restoreGeometry(settings.value("geometry").toByteArray());
+  } else {
+    statusBar()->hide();
+    resize(1150, 250 + menuBar()->height());
+  }
+
+  if (settings.value("Synth/auto_power_on").toBool() ||
+      QCoreApplication::arguments().contains("-p") ||
+      QCoreApplication::arguments().contains("--power-on"))
+    power_switch(true);
+
+  setCentralWidget(_synthView);
+  show();
+
+  // Scale Scene to View in first draw
+  _synthView->fitInView(_scene->sceneRect().x(),
+			_scene->sceneRect().y(),
+			_scene->sceneRect().width() + 50,
+			_scene->sceneRect().height() + 50,
+			Qt::KeepAspectRatio);
+
+  // Run a "welcome dialog" if both ROM configurations and volume are missing
   if (!settings.contains("Rom/control") &&
       !settings.contains("Rom/pcm1") &&
       !settings.contains("Audio/volume"))
@@ -139,8 +146,10 @@ void MainWindow::cleanUp()
 
   power_switch(0);
 
-//  QSettings settings;
-//  settings.setValue("GUI/geometry", saveGeometry());
+  QSettings settings;
+  settings.setValue("geometry", saveGeometry());
+  settings.setValue("compact_gui", _compactLayoutAct->isChecked());
+  settings.setValue("show_statusbar", _viewStatusbarAct->isChecked());
 }
 
 
@@ -149,6 +158,45 @@ void MainWindow::_create_actions(void)
   _quitAct = new QAction("&Quit", this);
   _quitAct->setShortcut(tr("CTRL+Q"));
   connect(_quitAct, &QAction::triggered, this, &QApplication::quit);
+
+  _preferencesAct = new QAction("P&references...", this);
+  _preferencesAct->setShortcut(tr("CTRL+R"));
+  _preferencesAct->setMenuRole(QAction::PreferencesRole);
+  connect(_preferencesAct, &QAction::triggered,
+	  this, &MainWindow::_display_preferences_dialog);
+
+  _viewStatusbarAct = new QAction("Statusbar", this);
+  _viewStatusbarAct->setCheckable(true);
+  connect(_viewStatusbarAct, &QAction::triggered,
+	  this, &MainWindow::_show_statusbar_clicked);
+
+  _normalLayoutAct = new QAction("Normal", this);
+  _normalLayoutAct->setShortcut(tr("CTRL+1"));
+  _normalLayoutAct->setCheckable(true);
+  connect(_normalLayoutAct, &QAction::triggered,
+	  this, &MainWindow::_set_normal_layout);
+
+  _compactLayoutAct = new QAction("Compact", this);
+  _compactLayoutAct->setShortcut(tr("CTRL+2"));
+  _compactLayoutAct->setCheckable(true);
+  connect(_compactLayoutAct, &QAction::triggered,
+	  this, &MainWindow::_set_compact_layout);
+
+  _layoutGroup = new QActionGroup(this);
+  _layoutGroup->addAction(_normalLayoutAct);
+  _layoutGroup->addAction(_compactLayoutAct);
+  _layoutGroup->setExclusive(true);
+  _normalLayoutAct->setChecked(true);
+
+  _fullScreenAct = new QAction("Full screen", this);
+  _fullScreenAct->setShortcut(tr("F11"));
+  connect(_fullScreenAct, &QAction::triggered,
+	  this, &MainWindow::_fullscreen_toggle);
+
+  _resetWindowAct = new QAction("Default GUI", this);
+  _resetWindowAct->setShortcut(tr("CTRL+0"));
+  connect(_resetWindowAct, &QAction::triggered,
+	  this, &MainWindow::_show_default_view);
 
   _dumpSongsAct = new QAction("&Dump MIDI files to disk", this);
   connect(_dumpSongsAct, &QAction::triggered,
@@ -183,6 +231,7 @@ void MainWindow::_create_actions(void)
   _modeGroup->addAction(_GSmodeAct);
   _modeGroup->addAction(_GMmodeAct);
   _modeGroup->addAction(_MT32modeAct);
+  _modeGroup->setExclusive(true);
   _GSmodeAct->setChecked(true);
 
   _panicAct = new QAction("&Panic", this);
@@ -190,12 +239,6 @@ void MainWindow::_create_actions(void)
   _panicAct->setEnabled(false);
   connect(_panicAct, &QAction::triggered,
 	  this, &MainWindow::_panic);
-
-  _preferencesAct = new QAction("P&references...", this);
-  _preferencesAct->setShortcut(tr("CTRL+R"));
-  _preferencesAct->setMenuRole(QAction::PreferencesRole);
-  connect(_preferencesAct, &QAction::triggered,
-	  this, &MainWindow::_display_preferences_dialog);
 
   _aboutAct = new QAction("&About", this);
   connect(_aboutAct, &QAction::triggered,
@@ -214,6 +257,17 @@ void MainWindow::_create_menus(void)
   _editMenu = menuBar()->addMenu("&Edit");
   _editMenu->addAction(_preferencesAct);
 #endif
+
+  _viewMenu = menuBar()->addMenu("&View");
+  _viewMenu->addAction(_viewStatusbarAct);
+
+  _viewLayoutMenu = _viewMenu->addMenu("Layout");
+  _viewLayoutMenu->addAction(_normalLayoutAct);
+  _viewLayoutMenu->addAction(_compactLayoutAct);
+  _viewLayoutMenu->setEnabled(true);
+
+  _viewMenu->addAction(_fullScreenAct);
+  _viewMenu->addAction(_resetWindowAct);
 
   _toolsMenu = menuBar()->addMenu("&Tools");
   _toolsMenu->addAction(_dumpSongsAct);
@@ -414,9 +468,9 @@ void MainWindow::_set_mt32_map(void)
 }
 
 
-void MainWindow::show_statusbar(bool state)
+void MainWindow::_show_statusbar_clicked(bool state)
 {
-  // TODO: Find a better way to compensate for changes in MainWindow size
+//  qDebug() << "_show_statusbar_clickded: " << state;
   if (state) {
     resize(size().width(), size().height() + statusBar()->height());
     statusBar()->show();
@@ -424,44 +478,98 @@ void MainWindow::show_statusbar(bool state)
     resize(size().width(), size().height() - statusBar()->height());
     statusBar()->hide();
   }
+
+  //  resize_timeout();  Breaks on state == 1 on Linux(X11)
 }
 
 
-void MainWindow::show_compact_view(bool state)
+void MainWindow::_set_normal_layout(void)
 {
-  int mbHeight = menuBar()->isVisible() ? menuBar()->height() : 0;
-  int sbHeight = statusBar()->isVisible() ? statusBar()->height() : 0;
+  int newWidth = width() * (float) (1150 / 660.0);
+  resize(newWidth, height());
 
-  if (state) {
-    _scene->setSceneRect(0, -10, 605, 200);
-    _aspectRatio = 660 / 258.0;
-    resize(660, 258 + mbHeight + sbHeight);
+  _scene->setSceneRect(0, -10, 1100, 200);
+  _aspectRatio = 1150 / 258.0;
+  resize_timeout();
+
+  _normalLayoutAct->setChecked(true);
+}
+
+
+void MainWindow::_set_compact_layout(void)
+{
+  _scene->setSceneRect(0, -10, 605, 200);
+  _aspectRatio = 660 / 258.0;
+  resize_timeout();
+
+  _compactLayoutAct->setChecked(true);
+}
+
+
+void MainWindow::_fullscreen_toggle(void)
+{
+  if (isFullScreen()) {
+    showNormal();
+    menuBar()->show();
+    if (_viewStatusbarAct->isChecked())
+      statusBar()->show();
+
   } else {
-    _scene->setSceneRect(0, -10, 1100, 200);
-    _aspectRatio = 1150 / 258.0;
-    resize(1150, 258 + mbHeight + sbHeight);
+    statusBar()->hide();
+    menuBar()->hide();
+    showFullScreen();
   }
+}
+
+
+void MainWindow::_show_default_view(void)
+{
+  // FIXME: This method does not work on Linux (wayland) if clicked with mouse,
+  // but works if initiated with shortcut. On other systems is seems to work
+  // as expected both by mouse click and shortcut.
+
+  if (isFullScreen())
+    _fullscreen_toggle();
+
+  if (_compactLayoutAct->isChecked())
+    _set_normal_layout();
+
+  _viewStatusbarAct->setChecked(false);
+  _show_statusbar_clicked(false);
+
+  resize(1150, 280);
+  resize_timeout();
 }
 
 
 void MainWindow::resizeEvent(QResizeEvent *event)
 {
-  QMainWindow::resizeEvent(event);
+  // qDebug() << "resizeEvent:" << event;
 
+  // This is needed for the view to adapt to size changes while resizing
   _synthView->fitInView(_scene->sceneRect().x(),
 			_scene->sceneRect().y(),
 			_scene->sceneRect().width() + 50,
 			_scene->sceneRect().height() + 50,
 			Qt::KeepAspectRatio);
 
-#ifndef Q_OS_LINUX
+  QMainWindow::resizeEvent(event);
+
+  // Resize events coming from the underlying window system must be followed up
   _resizeTimer->start(500);
-#endif
 }
 
 
 void MainWindow::resize_timeout(void)
 {
+  // qDebug() << "resize_timeout";
+
+  // Do not enforce aspect ration in fullscreen mode (TODO: need black bars!)
+  if (isFullScreen()) {
+    _scene->setSceneRect(0, -10, 1100, 200);
+    return;
+  }
+
   _synthView->fitInView(_scene->sceneRect().x(),
 			_scene->sceneRect().y(),
 			_scene->sceneRect().width() + 50,
@@ -480,40 +588,14 @@ void MainWindow::resize_timeout(void)
 	   _synthView->width() * (1 / _aspectRatio) + mbHeight + sbHeight);
   }
 
-#ifndef Q_OS_LINUX
-  // Make sure we don't end up in a resize loop
-  _resizeTimer->stop();
-#endif
+  if (_resizeTimer)
+    _resizeTimer->stop();
 }
 
 
-// TODO: Fix resize events based on drag handle in statusbar
-bool MainWindow::eventFilter(QObject *obj, QEvent *event)
+void MainWindow::keyPressEvent(QKeyEvent *keyEvent)
 {
-  if (event->type() == QEvent::Resize) {
-    _hasMovedEvent = true;
-
-  } else if (_hasMovedEvent && event->type() == QEvent::WindowActivate) {
-    _synthView->fitInView(_scene->sceneRect().x(),
-			  _scene->sceneRect().y(),
-			  _scene->sceneRect().width() + 50,
-			  _scene->sceneRect().height() + 50,
-			  Qt::KeepAspectRatio);
-
-    int mbHeight = menuBar()->isVisible() ? menuBar()->height() : 0;
-    int sbHeight = statusBar()->isVisible() ? statusBar()->height() : 0;
-
-    if (_synthView->width() >
-	_aspectRatio * (_synthView->height() + mbHeight + sbHeight)) {
-      resize(_synthView->height() * _aspectRatio,
-	     _synthView->height() + mbHeight + sbHeight);
-    } else {
-      resize(_synthView->width(),
-	     _synthView->width() * (1 / _aspectRatio) + mbHeight + sbHeight);
-    }
-
-    _hasMovedEvent = false;
-  }
-
-  return QWidget::eventFilter(obj, event);
+  if  ((keyEvent->key() == Qt::Key_Escape || keyEvent->key() == Qt::Key_F11) &&
+       isFullScreen())
+    _fullscreen_toggle();
 }

@@ -108,8 +108,13 @@ private:
   QColor _lcdOnActiveColorReset;
   QColor _lcdOnInactiveColorReset;
 
+  QColor _backgroundColor;
+  QBrush _backgroundBrush;
+
   bool _midiKbdInput;
   int _keyNoteOctave;
+
+  void drawBackground(QPainter *painter, const QRectF &rect);
 
   void keyPressEvent(QKeyEvent *keyEvent);
   void keyReleaseEvent(QKeyEvent *keyEvent);

@@ -141,9 +141,8 @@ GeneralSettings::GeneralSettings(MainWindow *mainWindow, Scene *scene, QWidget *
   headerL->setFont(f);
   vboxLayout->addWidget(headerL);
 
-  _autoPowerOn = new QCheckBox("Power on at startup", this);
-  _showStatusBar = new QCheckBox("Show statusbar", this);
-  _useCompactView = new QCheckBox("Use compact view", this);
+  _autoPowerOnCB = new QCheckBox("Power on at startup", this);
+  _rememberLayoutCB = new QCheckBox("Remember window layout", this);
 
   QGroupBox *animGroupBox = new QGroupBox("LCD animations on startup");
   _emuscAnim = new QRadioButton("Show EmuSC and model animations", this);
@@ -190,9 +189,8 @@ GeneralSettings::GeneralSettings(MainWindow *mainWindow, Scene *scene, QWidget *
     settings.setValue("Synth/lcd_inactive_color", inactiveColor.name());  
   }
 
-  _autoPowerOn->setChecked(settings.value("Synth/auto_power_on").toBool());
-  _showStatusBar->setChecked(settings.value("Synth/show_statusbar").toBool());
-  _useCompactView->setChecked(settings.value("Synth/use_compact_view").toBool());
+  _autoPowerOnCB->setChecked(settings.value("Synth/auto_power_on").toBool());
+  _rememberLayoutCB->setChecked(settings.value("remember_layout").toBool());
 
   QString animSetting = settings.value("Synth/startup_animations").toString();
   if (animSetting == "only_rom")
@@ -202,12 +200,10 @@ GeneralSettings::GeneralSettings(MainWindow *mainWindow, Scene *scene, QWidget *
   else
     _emuscAnim->setChecked(true);
   
-  connect(_autoPowerOn, SIGNAL(toggled(bool)),
-	  this, SLOT(_autoPowerOn_toggled(bool)));
-  connect(_showStatusBar, SIGNAL(toggled(bool)),
-	  this, SLOT(_showStatusBar_toggled(bool)));
-  connect(_useCompactView, SIGNAL(toggled(bool)),
-	  this, SLOT(_useCompactView_toggled(bool)));
+  connect(_autoPowerOnCB, SIGNAL(toggled(bool)),
+	  this, SLOT(_autoPowerOn_clicked(bool)));
+  connect(_rememberLayoutCB, SIGNAL(toggled(bool)),
+	  this, SLOT(_remember_layout_clicked(bool)));
   connect(_lcdBkgColorPickB, SIGNAL(clicked(void)),
 	  this, SLOT(_lcd_bkg_colorpick_clicked(void)));
   connect(_lcdActiveColorPickB, SIGNAL(clicked(void)),
@@ -221,9 +217,8 @@ GeneralSettings::GeneralSettings(MainWindow *mainWindow, Scene *scene, QWidget *
   connect(_noAnim, SIGNAL(toggled(bool)),
 	  this, SLOT(_noAnim_toggled(bool)));
 
-  vboxLayout->addWidget(_autoPowerOn);
-  vboxLayout->addWidget(_showStatusBar);
-  vboxLayout->addWidget(_useCompactView);
+  vboxLayout->addWidget(_autoPowerOnCB);
+  vboxLayout->addWidget(_rememberLayoutCB);
   vboxLayout->addSpacing(15);
   vboxLayout->addWidget(animGroupBox);
   vboxLayout->addSpacing(15);
@@ -237,8 +232,8 @@ GeneralSettings::GeneralSettings(MainWindow *mainWindow, Scene *scene, QWidget *
 
 void GeneralSettings::reset(void)
 {
-  _autoPowerOn->setChecked(true);
-//  _showStatusBar_toggled(false);
+  _autoPowerOnCB->setChecked(true);
+  _rememberLayoutCB->setChecked(false);
   _emuscAnim->setChecked(true);
 
   QColor bkgColor = _scene->get_lcd_bkg_on_color_reset();
@@ -264,26 +259,17 @@ void GeneralSettings::reset(void)
 }
 
 
-void GeneralSettings::_autoPowerOn_toggled(bool checked)
+void GeneralSettings::_autoPowerOn_clicked(bool checked)
 {
   QSettings settings;
   settings.setValue("Synth/auto_power_on", checked);
 }
 
 
-void GeneralSettings::_showStatusBar_toggled(bool checked)
+void GeneralSettings::_remember_layout_clicked(bool checked)
 {
   QSettings settings;
-  settings.setValue("Synth/show_statusbar", checked);
-  _mainWindow->show_statusbar(checked);
-}
-
-
-void GeneralSettings::_useCompactView_toggled(bool checked)
-{
-  QSettings settings;
-  settings.setValue("Synth/use_compact_view", checked);
-  _mainWindow->show_compact_view(checked);
+  settings.setValue("remember_layout", checked);
 }
 
 

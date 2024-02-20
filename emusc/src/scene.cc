@@ -43,6 +43,7 @@ Scene::Scene(Emulator *emulator, QWidget *parent)
     _lcdOnInactiveColorReset(215, 135, 10),
     _lcdOffBackgroundColor(140, 160, 140),
     _lcdOffFontColor(80, 80, 80),
+    _backgroundColor(0, 0, 0),
     _keyNoteOctave(3)
 {
   setParent(parent);
@@ -74,8 +75,8 @@ Scene::Scene(Emulator *emulator, QWidget *parent)
   connect(_emulator, SIGNAL(mute_button_changed(bool)),
 	  this, SLOT(update_mute_button(bool)));
 
-  // Set background color to grey (use bitmap for better look?)
-  setBackgroundBrush(QBrush(QColor(60, 60, 60),QPixmap(":/images/synth_bkg.png")));
+  // Set background brush to grey texture for synth object
+  _backgroundBrush.setTexture(QPixmap(":/images/synth_bkg.png"));
 
   // Add sunken frame to LCD display
   QGraphicsRectItem *frameTop = new QGraphicsRectItem(0, 0, 510, 191);
@@ -109,7 +110,7 @@ Scene::Scene(Emulator *emulator, QWidget *parent)
   addItem(_lcdBackground);
 
   // Set black vertical bar background
-  QGraphicsRectItem *blackBackground = new QGraphicsRectItem(0, 0, 110, 300);
+  QGraphicsRectItem *blackBackground = new QGraphicsRectItem(0, 0, 110, 280);
   blackBackground->setBrush(QColor(0, 0, 0));
   blackBackground->setPen(QColor(0, 0, 0, 0));
   blackBackground->setPos(QPointF(637, -50));
@@ -794,11 +795,29 @@ void Scene::set_lcd_inactive_on_color(QColor color)
 }
 
 
+void Scene::drawBackground(QPainter *painter, const QRectF &rect)
+{
+  // Black background
+  painter->setBrush(_backgroundColor);
+  painter->drawRect(rect);
+
+  // Bakground texture over the synth rectangle area
+  painter->setBrush(_backgroundBrush);
+  painter->drawRect(-50, -50, 1200, 280);
+}
+
+
 void Scene::keyPressEvent(QKeyEvent *keyEvent)
 {
   // Ignore repeating key events generated from keys being held down
   if (keyEvent->isAutoRepeat())
     return;
+
+  // Ignore (send forward) key events not handled by Scene, but by MainWindow
+  if (keyEvent->key() == Qt::Key_Escape || keyEvent->key() == Qt::Key_F11) {
+    keyEvent->ignore();
+    return;
+  }
 
   if (keyEvent->key() == Qt::Key_Plus) {
     int volume = _volumeDial->value();

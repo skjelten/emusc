@@ -42,14 +42,22 @@ class MainWindow : public QMainWindow
 private:
   QMenu *_fileMenu;
   QMenu *_editMenu;
+  QMenu *_viewMenu;
+  QMenu *_viewLayoutMenu;
   QMenu *_toolsMenu;
   QMenu *_synthMenu;
   QMenu *_synthModeMenu;
   QMenu *_helpMenu;
 
+  QActionGroup *_layoutGroup;
   QActionGroup *_modeGroup;
   QAction *_quitAct;
   QAction *_preferencesAct;
+  QAction *_normalLayoutAct;
+  QAction *_compactLayoutAct;
+  QAction *_viewStatusbarAct;
+  QAction *_fullScreenAct;
+  QAction *_resetWindowAct;
   QAction *_dumpSongsAct;
   QAction *_viewCtrlRomDataAct;
   QAction *_synthSettingsAct;
@@ -68,10 +76,10 @@ private:
   QGraphicsView *_synthView;
 
   QTimer *_resizeTimer;
+  bool _useNormalLayout;
   float _aspectRatio;
 
   bool _hasMovedEvent;
-  bool eventFilter(QObject *obj, QEvent *event);
 
   void _create_actions(void);
   void _create_menus(void);
@@ -80,15 +88,19 @@ public:
   MainWindow(QWidget *parent = nullptr);
   ~MainWindow();
 
-public slots:
-  void show_statusbar(bool state);
-  void show_compact_view(bool state);
-
 private slots:
   void resizeEvent(QResizeEvent *event);
   void resize_timeout(void);
+  void keyPressEvent(QKeyEvent *keyEvent);
 
   void cleanUp(void);
+
+  void _set_normal_layout(void);
+  void _set_compact_layout(void);
+
+  void _show_statusbar_clicked(bool state);
+  void _fullscreen_toggle(void);
+  void _show_default_view(void);
 
   void _display_welcome_dialog(void);
   void _display_preferences_dialog(void);
@@ -105,5 +117,6 @@ private slots:
 
   void power_switch(int state = -1);
 };
+
 
 #endif // MAIN_WINDOW_H
