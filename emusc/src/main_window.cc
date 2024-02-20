@@ -266,8 +266,10 @@ void MainWindow::_create_menus(void)
   _viewLayoutMenu->addAction(_compactLayoutAct);
   _viewLayoutMenu->setEnabled(true);
 
-  _viewMenu->addAction(_fullScreenAct);
   _viewMenu->addAction(_resetWindowAct);
+#ifndef Q_OS_MACOS
+  _viewMenu->addAction(_fullScreenAct);
+#endif
 
   _toolsMenu = menuBar()->addMenu("&Tools");
   _toolsMenu->addAction(_dumpSongsAct);
