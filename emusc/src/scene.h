@@ -114,6 +114,9 @@ private:
   bool _midiKbdInput;
   int _keyNoteOctave;
 
+  QString _generate_sans_text_html(QString text, float size);
+  QString _generate_retro_text_html(QString text);
+
   void drawBackground(QPainter *painter, const QRectF &rect);
 
   void keyPressEvent(QKeyEvent *keyEvent);

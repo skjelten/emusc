@@ -122,62 +122,67 @@ Scene::Scene(Emulator *emulator, QWidget *parent)
 //    addItem(logoText);
 
   QGraphicsTextItem *partHeaderText = new QGraphicsTextItem;
-  partHeaderText->setHtml("<html><head><body style=\" white-space: pre-wrap; font-family:Sans Serif; font-style:normal; text-decoration:none;\"><font style=\"font-size:10pt; font-weight:normal; color: #bbbbbb\">PART</font>");
+  partHeaderText->setHtml(_generate_sans_text_html("PART", 10));
+  partHeaderText->setDefaultTextColor(0xbbbbbb);
   partHeaderText->setPos(QPointF(110, -30));
   addItem(partHeaderText);
 
   QGraphicsTextItem *instrumentHeaderText = new QGraphicsTextItem;
-  instrumentHeaderText->setHtml("<html><head><body style=\" white-space: pre-wrap; font-family:Sans Serif; font-style:normal; text-decoration:none;\"><font style=\"font-size:10pt; font-weight:normal; color: #bbbbbb\">INSTRUMENT</font>");
+  instrumentHeaderText->setHtml(_generate_sans_text_html("INSTRUMENT", 10));
+  instrumentHeaderText->setDefaultTextColor(0xbbbbbb);
   instrumentHeaderText->setPos(QPointF(192, -30));
   addItem(instrumentHeaderText);
 
   QGraphicsTextItem *partBottomText = new QGraphicsTextItem;
-  partBottomText->setHtml("<html><head><body style=\" white-space: pre-wrap; font-family:Sans Serif; font-style:normal; text-decoration:none;\"><font style=\"font-size:10pt; font-weight:normal; color: #bbbbbb\">PART</font>");
+  partBottomText->setHtml(_generate_sans_text_html("PART", 10));
+  partBottomText->setDefaultTextColor(0xbbbbbb);
   partBottomText->setPos(QPointF(385, 180));
   addItem(partBottomText);
 
   QGraphicsTextItem *powerText = new QGraphicsTextItem;
-  powerText->setHtml("<html><head><body style=\" white-space: pre-wrap; font-family:Sans Serif; font-style:normal; text-decoration:none;\"><font style=\"font-size:12pt; font-weight:normal; color: #bbbbbb\">POWER</font>");
+  powerText->setHtml(_generate_sans_text_html("POWER", 12));
+  powerText->setDefaultTextColor(0xbbbbbb);
   powerText->setPos(QPointF(0, -20));
   addItem(powerText);
 
   QGraphicsTextItem *volumeText = new QGraphicsTextItem;
-  volumeText->setHtml("<html><head><body style=\" white-space: pre-wrap; font-family:Sans Serif; font-style:normal; text-decoration:none;\"><font style=\"font-size:12pt; font-weight:normal; color: #bbbbbb\">VOLUME</font>");
-  volumeText->setPos(QPointF(0, 50));
+  volumeText->setHtml(_generate_sans_text_html("VOLUME", 12));
+  volumeText->setDefaultTextColor(0xbbbbbb);
+  volumeText->setPos(QPointF(0, 55));
   addItem(volumeText);
 
   _lcdLevelHeaderText = new QGraphicsTextItem;
-  _lcdLevelHeaderText->setHtml("<html><head><body style=\" white-space: pre-wrap; font-family:Sans Serif; font-style:normal; text-decoration:none;\"><font style=\"font-size:8pt; font-weight:normal\">LEVEL</font>");
+  _lcdLevelHeaderText->setHtml(_generate_sans_text_html("LEVEL", 8));
   _lcdLevelHeaderText->setDefaultTextColor(_lcdOffFontColor);
   _lcdLevelHeaderText->setPos(QPointF(110, 32));
   addItem(_lcdLevelHeaderText);
 
   _lcdPanHeaderText = new QGraphicsTextItem;
-  _lcdPanHeaderText->setHtml("<html><head><body style=\" white-space: pre-wrap; font-family:Sans Serif; font-style:normal; text-decoration:none;\"><font style=\"font-size:8pt; font-weight:normal\">PAN</font>");
+  _lcdPanHeaderText->setHtml(_generate_sans_text_html("PAN", 8));
   _lcdPanHeaderText->setDefaultTextColor(_lcdOffFontColor);
   _lcdPanHeaderText->setPos(QPointF(192, 32));
   addItem(_lcdPanHeaderText);
 
   _lcdReverbHeaderText = new QGraphicsTextItem;
-  _lcdReverbHeaderText->setHtml("<html><head><body style=\" white-space: pre-wrap; font-family:Sans Serif; font-style:normal; text-decoration:none;\"><font style=\"font-size:8pt; font-weight:normal\">REVERB</font>");
+  _lcdReverbHeaderText->setHtml(_generate_sans_text_html("REVERB", 8));
   _lcdReverbHeaderText->setDefaultTextColor(_lcdOffFontColor);
   _lcdReverbHeaderText->setPos(QPointF(110, 76));
   addItem(_lcdReverbHeaderText);
 
   _lcdChorusHeaderText = new QGraphicsTextItem;
-  _lcdChorusHeaderText->setHtml("<html><head><body style=\" white-space: pre-wrap; font-family:Sans Serif; font-style:normal; text-decoration:none;\"><font style=\"font-size:8pt; font-weight:normal\">CHORUS</font>");
+  _lcdChorusHeaderText->setHtml(_generate_sans_text_html("CHORUS", 8));
   _lcdChorusHeaderText->setDefaultTextColor(_lcdOffFontColor);
   _lcdChorusHeaderText->setPos(QPointF(192, 76));
   addItem(_lcdChorusHeaderText);
 
   _lcdKshiftHeaderText = new QGraphicsTextItem;
-  _lcdKshiftHeaderText->setHtml("<html><head><body style=\" white-space: pre-wrap; font-family:Sans Serif; font-style:normal; text-decoration:none;\"><font style=\"font-size:8pt; font-weight:normal\">K SHIFT</font>");
+  _lcdKshiftHeaderText->setHtml(_generate_sans_text_html("K SHIFT", 8));
   _lcdKshiftHeaderText->setDefaultTextColor(_lcdOffFontColor);
   _lcdKshiftHeaderText->setPos(QPointF(110, 119));
   addItem(_lcdKshiftHeaderText);
 
   _lcdMidichHeaderText = new QGraphicsTextItem;
-  _lcdMidichHeaderText->setHtml("<html><head><body style=\" white-space: pre-wrap; font-family:Sans Serif; font-style:normal; text-decoration:none;\"><font style=\"font-size:8pt; font-weight:normal\">MIDI CH</font>");
+  _lcdMidichHeaderText->setHtml(_generate_sans_text_html("MIDI CH", 8));
   _lcdMidichHeaderText->setDefaultTextColor(_lcdOffFontColor);
   _lcdMidichHeaderText->setPos(QPointF(192, 119));
   addItem(_lcdMidichHeaderText);
@@ -254,7 +259,7 @@ Scene::Scene(Emulator *emulator, QWidget *parent)
   QGraphicsProxyWidget *pwrProxy = addWidget(_powerButton);
 
   _volumeDial = new VolumeDial();
-  _volumeDial->setGeometry(QRect(-2, 73, 75, 75));
+  _volumeDial->setGeometry(QRect(-2, 78, 75, 75));
   _volumeDial->setStyleSheet("background-color: #00000000;");
   _volumeDial->setRange(0,100);
 
@@ -277,7 +282,7 @@ Scene::Scene(Emulator *emulator, QWidget *parent)
   // Populate volume bars with text and bars
   for (int i = 0; i < 16; i ++) {
     QGraphicsTextItem *partNumber = new QGraphicsTextItem;
-    partNumber->setHtml("<html><head><body style=\" white-space: pre-wrap; font-family:Sans Serif; font-style:normal; text-decoration:none;\"><font style=\"font-size:8pt; font-weight:normal\">" + QString::number(i+1) + " </font>");
+    partNumber->setHtml(_generate_sans_text_html(QString::number(i+1), 8));
     partNumber->setDefaultTextColor(QColor(80, 80, 80));
 
     if (i < 9)
@@ -485,54 +490,63 @@ Scene::Scene(Emulator *emulator, QWidget *parent)
   QGraphicsProxyWidget *keyshiftRBtnProxy = addWidget(_keyshiftRButton);
 
   QGraphicsTextItem *allBtnText = new QGraphicsTextItem;
-  allBtnText->setHtml("<html><head><body style=\" white-space: pre-wrap; font-family:Sans Serif; font-style:normal; text-decoration:none;\"><font style=\"font-size:10.5pt; font-weight: normal; color: #bbbbbb\">ALL</font>");
+  allBtnText->setHtml(_generate_sans_text_html("ALL", 10.5));
   allBtnText->setPos(QPointF(690 - allBtnText->boundingRect().right(), 3));
+  allBtnText->setDefaultTextColor(0xbbbbbb);
   addItem(allBtnText);
 
   QGraphicsTextItem *muteBtnText = new QGraphicsTextItem;
-  muteBtnText->setHtml("<html><head><body style=\" white-space: pre-wrap; font-family:Sans Serif; font-style:normal; text-decoration:none;\"><font style=\"font-size:10.5pt; font-weight: normal; color: #bbbbbb\">MUTE</font>");
+  muteBtnText->setHtml(_generate_sans_text_html("MUTE", 10.5));
   muteBtnText->setPos(QPointF(690 - muteBtnText->boundingRect().right(), 56));
+  muteBtnText->setDefaultTextColor(0xbbbbbb);
   addItem(muteBtnText);
 
-
   QGraphicsTextItem *partBtnText = new QGraphicsTextItem;
-  partBtnText->setHtml("<html><head><body style=\" white-space: pre-wrap; font-family:Sans Serif; font-style:normal; text-decoration:none;\"><font style=\"font-size:10.5pt; font-weight: normal; color: #bbbbbb\">PART</font>");
+  partBtnText->setHtml(_generate_sans_text_html("PART", 10.5));
   partBtnText->setPos(QPointF(855 - partBtnText->boundingRect().center().x(), -33));
+  partBtnText->setDefaultTextColor(0xbbbbbb);
   addItem(partBtnText);
 
   QGraphicsTextItem *instrumentBtnText = new QGraphicsTextItem;
-  instrumentBtnText->setHtml("<html><head><body style=\" white-space: pre-wrap; font-family:Sans Serif; font-style:normal; text-decoration:none;\"><font style=\"font-size:10.5pt; font-weight: normal; color: #bbbbbb\">INSTRUMENT</font>");
+  instrumentBtnText->setHtml(_generate_sans_text_html("INSTRUMENT", 10.5));
   instrumentBtnText->setPos(QPointF(1015 - instrumentBtnText->boundingRect().center().x(), -33));
+  instrumentBtnText->setDefaultTextColor(0xbbbbbb);
   addItem(instrumentBtnText);
 
   QGraphicsTextItem *levelBtnText = new QGraphicsTextItem;
-  levelBtnText->setHtml("<html><head><body style=\" white-space: pre-wrap; font-family:Sans Serif; font-style:normal; text-decoration:none;\"><font style=\"font-size:10.5pt; font-weight: normal; color: #bbbbbb\">LEVEL</font>");
+  levelBtnText->setHtml(_generate_sans_text_html("LEVEL", 10.5));
   levelBtnText->setPos(QPointF(855 - levelBtnText->boundingRect().center().x(), 22));
+  levelBtnText->setDefaultTextColor(0xbbbbbb);
   addItem(levelBtnText);
 
   QGraphicsTextItem *panBtnText = new QGraphicsTextItem;
-  panBtnText->setHtml("<html><head><body style=\" white-space: pre-wrap; font-family:Sans Serif; font-style:normal; text-decoration:none;\"><font style=\"font-size:10.5pt; font-weight: normal; color: #bbbbbb\">PAN</font>");
+  panBtnText->setHtml(_generate_sans_text_html("PAN", 10.5));
   panBtnText->setPos(QPointF(1015 - panBtnText->boundingRect().center().x(), 22));
+  panBtnText->setDefaultTextColor(0xbbbbbb);
   addItem(panBtnText);
 
   QGraphicsTextItem *reverbBtnText = new QGraphicsTextItem;
-  reverbBtnText->setHtml("<html><head><body style=\" white-space: pre-wrap; font-family:Sans Serif; font-style:normal; text-decoration:none;\"><font style=\"font-size:10.5pt; font-weight: normal; color: #bbbbbb\">REVERB</font>");
+  reverbBtnText->setHtml(_generate_sans_text_html("REVERB", 10.5));
   reverbBtnText->setPos(QPointF(855 - reverbBtnText->boundingRect().center().x(), 77));
+  reverbBtnText->setDefaultTextColor(0xbbbbbb);
   addItem(reverbBtnText);
 
   QGraphicsTextItem *chorusBtnText = new QGraphicsTextItem;
-  chorusBtnText->setHtml("<html><head><body style=\" white-space: pre-wrap; font-family:Sans Serif; font-style:normal; text-decoration:none;\"><font style=\"font-size:10.5pt; font-weight: normal; color: #bbbbbb\">CHORUS</font>");
+  chorusBtnText->setHtml(_generate_sans_text_html("CHORUS", 10.5));
   chorusBtnText->setPos(QPointF(1015 - chorusBtnText->boundingRect().center().x(), 77));
+  chorusBtnText->setDefaultTextColor(0xbbbbbb);
   addItem(chorusBtnText);
 
-    QGraphicsTextItem *keyshiftBtnText = new QGraphicsTextItem;
-  keyshiftBtnText->setHtml("<html><head><body style=\" white-space: pre-wrap; font-family:Sans Serif; font-style:normal; text-decoration:none;\"><font style=\"font-size:10.5pt; font-weight: normal; color: #bbbbbb\">KEY SHIFT</font>");
+  QGraphicsTextItem *keyshiftBtnText = new QGraphicsTextItem;
+  keyshiftBtnText->setHtml(_generate_sans_text_html("KEY SHIFT", 10.5));
   keyshiftBtnText->setPos(QPointF(855 - keyshiftBtnText->boundingRect().center().x(), 132));
+  keyshiftBtnText->setDefaultTextColor(0xbbbbbb);
   addItem(keyshiftBtnText);
 
   QGraphicsTextItem *midichBtnText = new QGraphicsTextItem;
-  midichBtnText->setHtml("<html><head><body style=\" white-space: pre-wrap; font-family:Sans Serif; font-style:normal; text-decoration:none;\"><font style=\"font-size:10.5pt; font-weight: normal; color: #bbbbbb\">MIDI CH</font>");
+  midichBtnText->setHtml(_generate_sans_text_html("MIDI CH", 10.5));
   midichBtnText->setPos(QPointF(1015 - midichBtnText->boundingRect().center().x(), 132));
+  midichBtnText->setDefaultTextColor(0xbbbbbb);
   addItem(midichBtnText);
 
   // TODO: Show GM / GS logo based on ROM version
@@ -693,49 +707,48 @@ void Scene::update_mute_button(bool status)
 
 void Scene::update_lcd_instrument_text(QString text)
 {
-    _lcdInstrumentText->setHtml(QString("<html><head><body style=\" white-space: pre-wrap; letter-spacing: 4px; font-style:normal; text-decoration:none;\"><font style=\"font-size:27pt; font-weight:normal;\">") + text + QString("</font>"));
+  _lcdInstrumentText->setHtml(_generate_retro_text_html(text));
 }
 
 
 void Scene::update_lcd_part_text(QString text)
 {
-    _lcdPartText->setHtml(QString("<html><head><body style=\" white-space: pre-wrap; letter-spacing: 4px; font-style:normal; text-decoration:none;\"><font style=\"font-size:27pt; font-weight:normal;\">") + text + QString("</font>"));
-
+  _lcdPartText->setHtml(_generate_retro_text_html(text));
 }
+
 
 void Scene::update_lcd_level_text(QString text)
 {
-    _lcdLevelText->setHtml(QString("<html><head><body style=\" white-space: pre-wrap; letter-spacing: 4px; font-style:normal; text-decoration:none;\"><font style=\"font-size:27pt; font-weight:normal;\">") + text + QString("</font>"));
-
+  _lcdLevelText->setHtml(_generate_retro_text_html(text));
 }
 
 
 void Scene::update_lcd_pan_text(QString text)
 {
-    _lcdPanText->setHtml(QString("<html><head><body style=\" white-space: pre-wrap; letter-spacing: 4px; font-style:normal; text-decoration:none;\"><font style=\"font-size:27pt; font-weight:normal;\">") + text + QString("</font>"));
+  _lcdPanText->setHtml(_generate_retro_text_html(text));
 }
 
 
 void Scene::update_lcd_reverb_text(QString text)
 {
-    _lcdReverbText->setHtml(QString("<html><head><body style=\" white-space: pre-wrap; letter-spacing: 4px; font-style:normal; text-decoration:none;\"><font style=\"font-size:27pt; font-weight:normal;\">") + text + QString("</font>"));
+  _lcdReverbText->setHtml(_generate_retro_text_html(text));
 }
 
 
 void Scene::update_lcd_chorus_text(QString text)
 {
-    _lcdChorusText->setHtml(QString("<html><head><body style=\" white-space: pre-wrap; letter-spacing: 4px; font-style:normal; text-decoration:none;\"><font style=\"font-size:27pt; font-weight:normal;\">") + text + QString("</font>"));
+  _lcdChorusText->setHtml(_generate_retro_text_html(text));
 }
 
 
 void Scene::update_lcd_kshift_text(QString text)
 {
-    _lcdKshiftText->setHtml(QString("<html><head><body style=\" white-space: pre-wrap; letter-spacing: 4px; font-style:normal; text-decoration:none;\"><font style=\"font-size:27pt; font-weight:normal;\">") + text + QString("</font>"));
+  _lcdKshiftText->setHtml(_generate_retro_text_html(text));
 }
 
 void Scene::update_lcd_midich_text(QString text)
 {
-    _lcdMidichText->setHtml(QString("<html><head><body style=\" white-space: pre-wrap; letter-spacing: 4px; font-style:normal; text-decoration:none;\"><font style=\"font-size:27pt; font-weight:normal;\">") + text + QString("</font>"));
+  _lcdMidichText->setHtml(_generate_retro_text_html(text));
 }
 
 
@@ -792,6 +805,50 @@ void Scene::set_lcd_active_on_color(QColor color)
 void Scene::set_lcd_inactive_on_color(QColor color)
 {
   _lcdOnInactiveColor = color;
+}
+
+
+QString Scene::_generate_sans_text_html(QString text, float size)
+{
+#ifdef Q_OS_MACOS
+  if (size == 8)
+    size = 10;
+  else if (size == 10)
+    size = 13.5;
+  else if (size == 10.5)
+    size = 13.5;
+  else if (size == 12)
+    size = 16;
+#endif
+
+  return QString(QString("<html><head><body style=\" white-space: pre-wrap; "
+                         "font-family:Sans Serif; font-style:normal; "
+                         "text-decoration:none;\">"
+                         "<font style=\"font-size:")
+		 + QString::number(size, 'f', 1)
+		 + QString("pt; font-weight:normal;\">")
+                 + text
+                 + QString("</font>"));
+}
+
+
+QString Scene::_generate_retro_text_html(QString text)
+{
+#ifdef Q_OS_MACOS
+  return QString(QString("<html><head><body style=\" white-space: pre-wrap; "
+                         "letter-spacing: 4px; font-style:normal; "
+                         "text-decoration:none;\">"
+                         "<font style=\"font-size:35pt; font-weight:thin;\">")
+                 + text
+                 + QString("</font>"));
+#endif
+
+  return QString(QString("<html><head><body style=\" white-space: pre-wrap; "
+                         "letter-spacing: 4px; font-style:normal; "
+                         "text-decoration:none;\">"
+                         "<font style=\"font-size:27pt; font-weight:normal;\">")
+                 + text
+                 + QString("</font>"));
 }
 
 
