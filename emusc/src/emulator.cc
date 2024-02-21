@@ -72,10 +72,16 @@ void Emulator::load_control_rom(QString romPath)
     delete _emuscControlRom, _emuscControlRom = NULL;
 
   try {
-    _emuscControlRom = new EmuSC::ControlRom(romPath.toStdString());
+    if (romPath.isEmpty())
+      throw(QString("Emulator is unable to start since no control ROM has been "
+		    "selected yet. This can be done in the Preferences dialog."
+		    ));
+    else
+      _emuscControlRom = new EmuSC::ControlRom(romPath.toStdString());
   } catch (std::string errorMsg) {
     delete _emuscControlRom, _emuscControlRom = NULL;
-    throw(QString(errorMsg.c_str()));
+    throw(QString("libemusc failed to load the selected control ROM:\n - ")
+	  + errorMsg.c_str());
   }
 
   _ctrlRomModel = _emuscControlRom->model().c_str();
@@ -89,7 +95,10 @@ void Emulator::load_pcm_rom(QStringList romPaths)
 {
   // We depend on a valid control ROM before loading the PCM ROM
   if (!_emuscControlRom)
-    return;
+    throw(QString("Internal error: Control ROM must be loaded before PCM ROMs"));
+  else if (romPaths.isEmpty() || romPaths.first() == "")
+    throw(QString("Emulator is unable to start since no PCM ROMs have been "
+		  "selected yet. This can be done in the Preferences dialog."));
 
   // If we already have a PCM ROM loaded, free it first
   if (_emuscPcmRom)
@@ -255,7 +264,8 @@ void Emulator::_start_midi_subsystem()
       throw(QString("Win32 MIDI system is missing in this build"));
 #endif
     } else {
-      throw(QString("No valid MIDI system configured"));
+      throw(QString("No valid MIDI system configured. This can be done in the "
+		    "Preferences dialog."));
     }
   } catch (QString errorMsg) {
     throw(QString("Failed to initialize MIDI system (%1)\nError message: %3")
@@ -271,11 +281,10 @@ void Emulator::_start_audio_subsystem(void)
   QSettings settings;
 
   if (!settings.contains("Audio/system"))
-    throw(QString("Audio system not configured. Please open the Preferences "
-		  "dialog and configure the preferred audio setup."));
+    throw(QString("Audio system not configured. This can be done in the "
+		  "Preferences dialog."));
 
   QString audioSystem = settings.value("Audio/system").toString();
-
 
   try {
     if (!audioSystem.compare("alsa", Qt::CaseInsensitive)) {
@@ -331,7 +340,7 @@ void Emulator::_start_audio_subsystem(void)
 #ifdef aQT_MULTIMEDIA_LIB
       _audioOutput = new AudioOutputQt(_emuscSynth);
 #else
-      throw(QString("'Qt' audio ouput is missing in this build"));
+      throw(QString("'Qt Multimedia' audio ouput is missing in this build"));
 #endif
 
     } else if (!audioSystem.compare("null", Qt::CaseInsensitive)) {
@@ -1107,11 +1116,12 @@ void Emulator::set_pan(uint8_t value, bool update)
   if (!_emuscSynth)
     return;
 
-  if (update)
+  if (update) {
     if (_allMode)
       _emuscSynth->set_param(EmuSC::SystemParam::Pan, value);
     else
       _emuscSynth->set_param(EmuSC::PatchParam::PartPanpot, value, _selectedPart);
+  }
 
   QString str = QStringLiteral("%1").arg(abs(value - 64),3,10,QLatin1Char(' '));
 
