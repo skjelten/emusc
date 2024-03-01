@@ -205,8 +205,8 @@ private:
   void _load_control_rom(QString romPath);
   void _load_pcm_rom(QStringList romPaths);
 
-  void set_all(void);
-  void set_part(uint8_t value);
+  void _set_all(void);
+  void _set_part(uint8_t value);
 
   void _set_instrument(uint8_t index, uint8_t bank, bool update);
   void _set_level(uint8_t value, bool update);

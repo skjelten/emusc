@@ -166,6 +166,9 @@ void Emulator::start(void)
     throw(errorMsg);
   }
 
+  connect(_midiInput, SIGNAL(new_midi_message(bool, int)),
+	  _scene, SLOT(update_midi_activity_led(bool, int)));
+
   _lcdDisplay->turn_on(control_rom_changed(),
 		       settings.value("Synth/startup_animations").toString());
 
@@ -253,7 +256,7 @@ void Emulator::_load_pcm_rom(QStringList romPaths)
 
 void Emulator::lcd_display_init_complete(void)
 {
-  set_part(_selectedPart = 0);
+  _set_part(_selectedPart = 0);
   _emuscSynth->add_part_midi_mod_callback(std::bind(&Emulator::_part_mod_callback,
 						    this,
 						    std::placeholders::_1));
@@ -263,9 +266,9 @@ void Emulator::lcd_display_init_complete(void)
 void Emulator::_part_mod_callback(const int partId)
 {
   if (partId == _selectedPart && !_allMode)
-    set_part(partId);
+    _set_part(partId);
   else if (partId < 0 && _allMode)
-    set_all();
+    _set_all();
 }
 
 
@@ -648,9 +651,9 @@ void Emulator::select_all()
   emit(all_button_changed(_allMode));
 
   if (_allMode)
-    set_all();
+    _set_all();
   else
-    set_part(_selectedPart);
+    _set_part(_selectedPart);
 }
 
 
@@ -671,7 +674,7 @@ void Emulator::select_prev_part()
   if (_emuscSynth == NULL || _selectedPart == 0 || _allMode)
     return;
 
-  set_part(--_selectedPart);
+  _set_part(--_selectedPart);
 }
 
 
@@ -680,13 +683,13 @@ void Emulator::select_next_part()
   if (_emuscSynth == NULL || _selectedPart >= 15 || _allMode)
     return;
 
-  set_part(++_selectedPart);
+  _set_part(++_selectedPart);
 }
 
 
 // Update all LCD part information with global (ALL) settings
 // Used when ALL button is used to change settings affecting all parts
-void Emulator::set_all(void)
+void Emulator::_set_all(void)
 {
   if (!_emuscSynth)
     return;
@@ -708,7 +711,7 @@ void Emulator::set_all(void)
 
 // Update all LCD part information and button state of mute
 // Used when part is changed and all information must be updated
-void Emulator::set_part(uint8_t value)
+void Emulator::_set_part(uint8_t value)
 {
   if (!_emuscSynth)
     return;
@@ -1371,11 +1374,11 @@ std::vector<EmuSC::ControlRom::DrumSet> &Emulator::get_drumsets_ref(void)
 void Emulator::update_LCD_display(int8_t part)
 {
   if (part < 0 && _allMode)
-    set_all();
+    _set_all();
   else if (part == _selectedPart && !_allMode)
-    set_part(part);
+    _set_part(part);
   else if (part < 0 && !_allMode)
-    set_part(_selectedPart);
+    _set_part(_selectedPart);
 }
 
 

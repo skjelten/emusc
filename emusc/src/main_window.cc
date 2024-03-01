@@ -73,9 +73,6 @@ MainWindow::MainWindow(QWidget *parent)
   _synthView->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
   _synthView->setScene(_scene);
 
-  _viewCtrlRomDataAct->setEnabled(_emulator->has_valid_control_rom());
-  _synthModeMenu->setEnabled(_emulator->has_valid_control_rom());
-
   if (_emulator->has_valid_control_rom() &&
       _emulator->get_synth_generation() > EmuSC::ControlRom::SynthGen::SC55)
     _GMmodeAct->setVisible(true);
@@ -394,11 +391,10 @@ void MainWindow::power_switch(int newPowerState)
       return;
     }
 
-    _panicAct->setDisabled(false);
-    _synthSettingsAct->setDisabled(false);
-
-    connect(_emulator->get_midi_driver(), SIGNAL(new_midi_message(bool, int)),
-	    _scene, SLOT(update_midi_activity_led(bool, int)));
+    _panicAct->setEnabled(true);
+    _synthSettingsAct->setEnabled(true);
+    _viewCtrlRomDataAct->setEnabled(true);
+    _synthModeMenu->setEnabled(false);
 
     _powerState = 1;
 
@@ -412,6 +408,8 @@ void MainWindow::power_switch(int newPowerState)
 
     _panicAct->setDisabled(true);
     _synthSettingsAct->setDisabled(true);
+    _viewCtrlRomDataAct->setDisabled(true);
+    _synthModeMenu->setDisabled(false);
   }
 }
 
