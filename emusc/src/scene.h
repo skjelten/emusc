@@ -21,12 +21,11 @@
 #define SCENE_H
 
 
-#include "emulator.h"
-
 #include <QBrush>
 #include <QColor>
 #include <QDial>
 #include <QGraphicsScene>
+#include <QGraphicsSceneMouseEvent>
 #include <QGraphicsRectItem>
 #include <QGraphicsTextItem>
 #include <QGraphicsEllipseItem>
@@ -48,8 +47,6 @@ class Scene : public QGraphicsScene
   Q_OBJECT
 
 private:
-  Emulator *_emulator;
-
   QGraphicsRectItem* _lcdBackground;
   QPushButton *_powerButton;
   VolumeDial *_volumeDial;
@@ -114,16 +111,24 @@ private:
   bool _midiKbdInput;
   int _keyNoteOctave;
 
+  void _add_lcd_display_items(void);
+
   QString _generate_sans_text_html(QString text, float size);
   QString _generate_retro_text_html(QString text);
 
+  void _connect_signals(void);
+
+
+protected:
   void drawBackground(QPainter *painter, const QRectF &rect);
 
   void keyPressEvent(QKeyEvent *keyEvent);
   void keyReleaseEvent(QKeyEvent *keyEvent);
 
+  void mousePressEvent(QGraphicsSceneMouseEvent *event);
+
 public:
-  Scene(Emulator *emulator, QWidget *parent = nullptr);
+  Scene(QWidget *parent = nullptr);
   virtual ~Scene();
 
   QColor get_lcd_bkg_on_color(void) { return _lcdOnBackgroundColor; }
@@ -144,6 +149,14 @@ public slots:
   void display_on(void);
   void display_off(void);
 
+  void update_lcd_bar_display(QVector<bool> *partAmp);
+
+  void update_all_button(bool status);
+  void update_mute_button(bool status);
+
+  void update_midi_activity_led(bool sysex, int length);
+  void update_midi_activity_timeout(void);
+
   void update_lcd_instrument_text(QString text);
   void update_lcd_part_text(QString text);
   void update_lcd_level_text(QString text);
@@ -152,13 +165,33 @@ public slots:
   void update_lcd_chorus_text(QString text);
   void update_lcd_kshift_text(QString text);
   void update_lcd_midich_text(QString text);
-  void update_lcd_bar_display(QVector<bool> *partAmp);
 
-  void update_all_button(bool status);
-  void update_mute_button(bool status);
+signals:
+  void volume_changed(int percent);
+  void play_note(uint8_t key, uint8_t velocity);
+  void lcd_display_mouse_press_event(Qt::MouseButton button,const QPointF &pos);
 
-  void update_midi_activity_led(bool sysex, int length);
-  void update_midi_activity_timeout(void);
+  void all_button_clicked(void);
+  void mute_button_clicked(void);
+  void partL_button_clicked(void);
+  void partR_button_clicked(void);
+  void instrumentL_button_clicked(void);
+  void instrumentR_button_clicked(void);
+  void instrumentL_button_rightClicked(void);
+  void instrumentR_button_rightClicked(void);
+  void panL_button_clicked(void);
+  void panR_button_clicked(void);
+  void chorusL_button_clicked(void);
+  void chorusR_button_clicked(void);
+  void midichL_button_clicked(void);
+  void midichR_button_clicked(void);
+  void levelL_button_clicked(void);
+  void levelR_button_clicked(void);
+  void reverbL_button_clicked(void);
+  void reverbR_button_clicked(void);
+  void keyshiftL_button_clicked(void);
+  void keyshiftR_button_clicked(void);
+
 };
 
 

@@ -41,32 +41,160 @@
 #include "midi_input_win32.h"
 
 
-Emulator::Emulator(void)
-  : _emuscControlRom(NULL),
+Emulator::Emulator(Scene *scene)
+  : _scene(scene),
+    _emuscControlRom(NULL),
     _emuscPcmRom(NULL),
     _emuscSynth(NULL),
     _audioOutput(NULL),
     _midiInput(NULL),
     _updateROMs(false),
     _selectedPart(0),
-    _lcdBarDisplayHistVect(16, {0,-1,0}),
-    _animIndex(2),
-    _animFrameIndex(0),
     _allMode(false),
     _running(false)
 {
-  // Start fixed timer for LCD updates & set bar display
-  _lcdDisplayTimer = new QTimer(this);
+  _lcdDisplay = new LcdDisplay(scene, &_emuscSynth, &_emuscControlRom);
 
+  _connect_signals();
 }
 
 
 Emulator::~Emulator()
 {
+  delete _lcdDisplay;
 }
 
 
-void Emulator::load_control_rom(QString romPath)
+void Emulator::_connect_signals(void)
+{
+  connect(_scene, SIGNAL(volume_changed(int)), this, SLOT(change_volume(int)));
+  connect(_scene, SIGNAL(play_note(uint8_t,uint8_t)),
+	  this, SLOT(play_note(uint8_t,uint8_t)));
+
+  connect(_scene, SIGNAL(all_button_clicked()), this, SLOT(select_all()));
+  connect(_scene, SIGNAL(mute_button_clicked()), this, SLOT(select_mute()));
+
+  connect(_scene, SIGNAL(partL_button_clicked()),
+	  this, SLOT(select_prev_part()));
+  connect(_scene, SIGNAL(partR_button_clicked()),
+	  this, SLOT(select_next_part()));
+
+  connect(_scene, SIGNAL(instrumentL_button_clicked()),
+	  this, SLOT(select_prev_instrument()));
+  connect(_scene, SIGNAL(instrumentR_button_clicked()),
+	  this, SLOT(select_next_instrument()));
+  connect(_scene, SIGNAL(instrumentL_button_rightClicked()),
+	  this, SLOT(select_prev_instrument_variant()));
+  connect(_scene, SIGNAL(instrumentR_button_rightClicked()),
+	  this, SLOT(select_next_instrument_variant()));
+
+  connect(_scene, SIGNAL(panL_button_clicked()),
+	  this, SLOT(select_prev_pan()));
+  connect(_scene, SIGNAL(panR_button_clicked()),
+	  this, SLOT(select_next_pan()));
+
+  connect(_scene, SIGNAL(chorusL_button_clicked()),
+	  this, SLOT(select_prev_chorus()));
+  connect(_scene, SIGNAL(chorusR_button_clicked()),
+	  this, SLOT(select_next_chorus()));
+
+  connect(_scene, SIGNAL(midichL_button_clicked()),
+	  this, SLOT(select_prev_midi_channel()));
+  connect(_scene, SIGNAL(midichR_button_clicked()),
+	  this, SLOT(select_next_midi_channel()));
+
+  connect(_scene, SIGNAL(levelL_button_clicked()),
+	  this, SLOT(select_prev_level()));
+  connect(_scene, SIGNAL(levelR_button_clicked()),
+	  this, SLOT(select_next_level()));
+
+  connect(_scene, SIGNAL(reverbL_button_clicked()),
+	  this, SLOT(select_prev_reverb()));
+  connect(_scene, SIGNAL(reverbR_button_clicked()),
+	  this, SLOT(select_next_reverb()));
+
+  connect(_scene, SIGNAL(keyshiftL_button_clicked()),
+	  this, SLOT(select_prev_key_shift()));
+  connect(_scene, SIGNAL(keyshiftR_button_clicked()),
+	  this, SLOT(select_next_key_shift()));
+
+  connect(_lcdDisplay, SIGNAL(init_complete()),
+	  this, SLOT(lcd_display_init_complete()));
+  connect(_scene,SIGNAL(lcd_display_mouse_press_event(Qt::MouseButton,QPointF)),
+	  _lcdDisplay, SLOT(mouse_press_event(Qt::MouseButton, QPointF)));
+}
+
+
+void Emulator::start(void)
+{
+  QSettings settings;
+
+  if (_updateROMs || !_emuscControlRom || !_emuscPcmRom) {
+    _updateROMs = true;
+    _load_control_rom(settings.value("Rom/control").toString());
+
+    QStringList pcmRomFilePaths;
+    pcmRomFilePaths << settings.value("Rom/pcm1").toString()
+		    << settings.value("Rom/pcm2").toString()
+		    << settings.value("Rom/pcm3").toString()
+		    << settings.value("Rom/pcm4").toString();
+
+    _load_pcm_rom(pcmRomFilePaths);
+//    _updateROMs == false;
+  }
+
+  if (!_emuscControlRom)
+    throw(QString("Invalid control ROM selected"));
+
+  if (!_emuscPcmRom)
+    throw(QString("Invalid PCM ROM(s) selected"));
+
+  if (_emuscSynth) {
+    delete _emuscSynth, _emuscSynth = NULL;
+  }
+
+  try {
+    _emuscSynth = new EmuSC::Synth(*_emuscControlRom, *_emuscPcmRom, _soundMap);
+
+    _start_audio_subsystem();
+    _start_midi_subsystem();
+
+    // TODO: Set audio format -> _emuscSynth->set_audio_format(44100, 2);
+
+  } catch (QString errorMsg) {
+    stop();
+    throw(errorMsg);
+  }
+
+  _lcdDisplay->turn_on(control_rom_changed(),
+		       settings.value("Synth/startup_animations").toString());
+
+  _running = true;
+}
+
+
+// Stop synth emulation
+void Emulator::stop(void)
+{
+  _emuscSynth->clear_part_midi_mod_callback();
+
+  _lcdDisplay->turn_off();
+
+  if (_midiInput)
+    delete _midiInput, _midiInput = NULL;
+
+  if (_audioOutput)
+    delete _audioOutput, _audioOutput = NULL;
+
+  if (_emuscSynth) {
+    delete _emuscSynth, _emuscSynth = NULL;
+  }
+
+  _running = false;
+}
+
+
+void Emulator::_load_control_rom(QString romPath)
 {
   if (_emuscControlRom)
     delete _emuscControlRom, _emuscControlRom = NULL;
@@ -91,7 +219,7 @@ void Emulator::load_control_rom(QString romPath)
 }
 
 
-void Emulator::load_pcm_rom(QStringList romPaths)
+void Emulator::_load_pcm_rom(QStringList romPaths)
 {
   // We depend on a valid control ROM before loading the PCM ROM
   if (!_emuscControlRom)
@@ -121,113 +249,18 @@ void Emulator::load_pcm_rom(QStringList romPaths)
 }
 
 
-void Emulator::start(void)
+
+
+void Emulator::lcd_display_init_complete(void)
 {
-  QSettings settings;
-
-  if (_updateROMs || !_emuscControlRom || !_emuscPcmRom) {
-    _updateROMs = true;
-    load_control_rom(settings.value("Rom/control").toString());
-
-    QStringList pcmRomFilePaths;
-    pcmRomFilePaths << settings.value("Rom/pcm1").toString()
-		    << settings.value("Rom/pcm2").toString()
-		    << settings.value("Rom/pcm3").toString()
-		    << settings.value("Rom/pcm4").toString();
-
-    load_pcm_rom(pcmRomFilePaths);
-//    _updateROMs == false;
-  }
-
-  if (!_emuscControlRom)
-    throw(QString("Invalid control ROM selected"));
-
-  if (!_emuscPcmRom)
-    throw(QString("Invalid PCM ROM(s) selected"));
-
-  if (_emuscSynth) {
-    delete _emuscSynth, _emuscSynth = NULL;
-  }
-
-  try {
-    _emuscSynth = new EmuSC::Synth(*_emuscControlRom, *_emuscPcmRom, _soundMap);
-
-    _start_audio_subsystem();
-    _start_midi_subsystem();
-
-    // TODO: Set audio format -> _emuscSynth->set_audio_format(44100, 2);
-
-  } catch (QString errorMsg) {
-    stop();
-    throw(errorMsg);
-  }
-
-  emit emulator_started();
-  _running = true;
-
-  //  Disconnect any previously connected timer signal
-  disconnect(_lcdDisplayTimer, SIGNAL(timeout()), NULL, NULL);
-
-  // Set initial state of volume bar view
-  // Play intro animation only at first run and only if ROM contains animation
-  if (control_rom_changed()) {
-
-    if (settings.value("Synth/startup_animations").toString() != "none") {
-      // Update part display before showing intro animation
-      if (_ctrlRomModel == "SC-55mkII") {
-        emit display_part_updated(" **");
-        emit display_instrument_updated(" SOUND CANVAS **");
-        emit display_level_updated("SC-");
-        emit display_pan_updated("55 ");
-        emit display_chorus_updated("mk$");
-      }
-
-      // Play model anim from ROM
-      _introModelAnim = get_intro_anim();
-      _animIndex = 1;
-    }
-
-    if (settings.value("Synth/startup_animations").toString() == "all") {
-      QFile f(":/animations/emusc.anm");
-      if (f.open(QIODevice::ReadOnly)) {
-        _introEmuscAnim.resize(f.size());
-        QDataStream fileStream(&f);
-        fileStream.readRawData((char *) &_introEmuscAnim[0], f.size());
-        f.close();
-        _animIndex = 0;
-      }
-
-      if (_introModelAnim.isEmpty()) {     // Prefer anim from ROM if it exists
-	if (_ctrlRomModel == "SC-55") {
-	  QFile f(":/animations/sc-55.anm");
-	  if (f.open(QIODevice::ReadOnly)) {
-	    _introModelAnim.resize(f.size());
-	    QDataStream fileStream(&f);
-	    fileStream.readRawData((char *) &_introModelAnim[0], f.size());
-	    f.close();
-	  }
-	}
-      }
-    }
-
-    connect(_lcdDisplayTimer, SIGNAL(timeout()),
-            this, SLOT(play_anim_bar_display()));
-
-  } else {
-    connect(_lcdDisplayTimer, SIGNAL(timeout()),
-            this, SLOT(generate_bar_display()));
-    set_part(_selectedPart = 0);
-    _emuscSynth->add_part_midi_mod_callback(std::bind(&Emulator::part_mod_callback,
-                                                      this,
-                                                      std::placeholders::_1));
-  }
-
-  // Start LCD update timer at ~16,67 FPS
-  _lcdDisplayTimer->start(60);
+  set_part(_selectedPart = 0);
+  _emuscSynth->add_part_midi_mod_callback(std::bind(&Emulator::_part_mod_callback,
+						    this,
+						    std::placeholders::_1));
 }
 
 
-void Emulator::part_mod_callback(const int partId)
+void Emulator::_part_mod_callback(const int partId)
 {
   if (partId == _selectedPart && !_allMode)
     set_part(partId);
@@ -357,29 +390,6 @@ void Emulator::_start_audio_subsystem(void)
   }
 
   _audioOutput->start();
-}
-
-
-// Stop synth emulation
-void Emulator::stop(void)
-{
-  _emuscSynth->clear_part_midi_mod_callback();
-
-  emit emulator_stopped();
-  _lcdDisplayTimer->stop();
-  _animFrameIndex = 0;
-
-  if (_midiInput)
-    delete _midiInput, _midiInput = NULL;
-
-  if (_audioOutput)
-    delete _audioOutput, _audioOutput = NULL;
-
-  if (_emuscSynth) {
-    delete _emuscSynth, _emuscSynth = NULL;
-  }
-
-  _running = false;
 }
 
 
@@ -617,20 +627,6 @@ void Emulator::panic(void)
 }
 
 
-QVector<uint8_t> Emulator::get_intro_anim(void)
-{
-  if (!_emuscControlRom)
-  return QVector<uint8_t> { };
-
-#if QT_VERSION <= QT_VERSION_CHECK(5,14,0)
-  return QVector<uint8_t>::fromStdVector(_emuscControlRom->get_intro_anim());
-#endif
-
-  std::vector<uint8_t> intro = _emuscControlRom->get_intro_anim();
-  return QVector<uint8_t>(intro.begin(), intro.end());
-}
-
-
 bool Emulator::control_rom_changed(void)
 {
   if (_updateROMs) {
@@ -639,137 +635,6 @@ bool Emulator::control_rom_changed(void)
   }
 
   return false;
-}
-
-
-// Generate a binary map of the bar display
-// Height of 0-15 indicates bar 1-16, height < 0 indicates no bars (muted)
-void Emulator::generate_bar_display(void)
-{
-  if (!_emuscSynth)
-    return;
-
-  _barDisplay.clear();        // clear() preserves memory allocated for vector
-
-  int partNum = 0;
-  std::vector<float> partsAmp = _emuscSynth->get_parts_last_peak_sample();
-  for (auto &p : partsAmp) {
-    int height = p * 100 * 0.7;  // FIXME: Audio values follows function?
-    if (height > 16) height = 16;
-
-    // We need to store values to support the top point to fall slower
-    if (_lcdBarDisplayHistVect[partNum].value <= height) {
-      _lcdBarDisplayHistVect[partNum].value = height;
-      _lcdBarDisplayHistVect[partNum].time = 0;
-      _lcdBarDisplayHistVect[partNum].falling = false;
-    } else {
-      _lcdBarDisplayHistVect[partNum].time++;
-    }
-
-    if (_lcdBarDisplayHistVect[partNum].falling == false &&
-	_lcdBarDisplayHistVect[partNum].time > 16 &&             // First fall
-	_lcdBarDisplayHistVect[partNum].value > 0) {
-      _lcdBarDisplayHistVect[partNum].falling = true;
-      _lcdBarDisplayHistVect[partNum].value--;
-      _lcdBarDisplayHistVect[partNum].time = 0;
-
-    } else if (_lcdBarDisplayHistVect[partNum].falling == true &&
-	       _lcdBarDisplayHistVect[partNum].time > 2 &&       // Fall speed
-	       _lcdBarDisplayHistVect[partNum].value > 0) {
-      _lcdBarDisplayHistVect[partNum].value--;
-      _lcdBarDisplayHistVect[partNum].time = 0;
-    }
-
-    for (int i = 1; i <= 16; i++) {
-      if ((i == 1 && height >= 0) ||                  // First line, no input
-	  height > i ||                               // Higher ampl. than bar
-	  _lcdBarDisplayHistVect[partNum].value == i) // Hist draw bar
-	_barDisplay.push_back(true);
-      else
-	_barDisplay.push_back(false);
-    }
-
-    partNum ++;
-  }
-
-  emit new_bar_display(&_barDisplay);
-}
-
-
-void Emulator::play_anim_bar_display(void)
-{
-  if (_animFrameIndex == 0) {
-    if (_animIndex == 0) {
-      if (!_introEmuscAnim.isEmpty())
-        _introAnimPtr = &_introEmuscAnim;
-      else
-        _animIndex += 1;
-    }
-
-    if (_animIndex == 1) {
-      if (!_introModelAnim.isEmpty())
-        _introAnimPtr = &_introModelAnim;
-      else
-        _animIndex += 1;
-    }
-
-    if (_animIndex > 1) {
-      disconnect(_lcdDisplayTimer, SIGNAL(timeout()),
-                 this, SLOT(play_anim_bar_display()));
-      connect(_lcdDisplayTimer, SIGNAL(timeout()),
-              this, SLOT(generate_bar_display()));
-      set_part(_selectedPart = 0);
-      _emuscSynth->add_part_midi_mod_callback(std::bind(&Emulator::part_mod_callback,
-                                                        this,
-                                                        std::placeholders::_1));
-      return;
-    }
-  }
-
-  _barDisplay.fill(0, 16 * 16);
-
-  for (int y = 0; y < 16; y++) {
-
-    // First 5 parts
-    for (int x = 0; x < 5; x++) {
-      if (_introAnimPtr->at(_animFrameIndex + y) & (1 << x))
-	_barDisplay[16 * 4 - x * 16 + 15 - y] = true;
-      else
-	_barDisplay[16 * 4 - x * 16 + 15 - y] = false;
-    }
-
-    // Parts 5-10
-    for (int x = 0; x < 5; x++) {
-      if (_introAnimPtr->at(_animFrameIndex + y + 16) & (1 << x))
-	_barDisplay[16 * 9 - x * 16 + 15 - y] = true;
-      else
-	_barDisplay[16 * 9 - x * 16 + 15 - y] = false;
-    }
-
-    // Parts 10-15
-    for (int x = 0; x < 5; x++) {
-      if (_introAnimPtr->at(_animFrameIndex + y + 32) & (1 << x))
-	_barDisplay[16 * 14 - x * 16 + 15 - y] = true;
-      else
-	_barDisplay[16 * 14 - x * 16 + 15 - y] = false;
-    }
-
-    // Part 16
-    if (_introAnimPtr->at(_animFrameIndex + y + 48))
-      _barDisplay[16 * 15 + 15 - y] = true;
-    else
-      _barDisplay[16 * 15 + 15 - y] = false;
-  }
-
-  emit new_bar_display(&_barDisplay);
-
-  // Each frame is 64 bytes (even though there is only 32 bytes of image data)
-  _animFrameIndex += 64;
-
-  if (_animFrameIndex >= _introAnimPtr->size()) {
-    _animIndex ++;
-    _animFrameIndex = 0;
-  }
 }
 
 
@@ -829,11 +694,11 @@ void Emulator::set_all(void)
   emit display_part_updated("ALL");
   emit display_instrument_updated("- SOUND Canvas -");
 
-  set_level(_emuscSynth->get_param(EmuSC::SystemParam::Volume), false);
-  set_pan(_emuscSynth->get_param(EmuSC::SystemParam::Pan), false);
-  set_reverb(_emuscSynth->get_param(EmuSC::PatchParam::ReverbLevel), false);
-  set_chorus(_emuscSynth->get_param(EmuSC::PatchParam::ChorusLevel), false);
-  set_key_shift(_emuscSynth->get_param(EmuSC::SystemParam::KeyShift), false);
+  _set_level(_emuscSynth->get_param(EmuSC::SystemParam::Volume), false);
+  _set_pan(_emuscSynth->get_param(EmuSC::SystemParam::Pan), false);
+  _set_reverb(_emuscSynth->get_param(EmuSC::PatchParam::ReverbLevel), false);
+  _set_chorus(_emuscSynth->get_param(EmuSC::PatchParam::ChorusLevel), false);
+  _set_key_shift(_emuscSynth->get_param(EmuSC::SystemParam::KeyShift), false);
 
   emit display_midi_channel_updated(" 17");
 
@@ -850,21 +715,21 @@ void Emulator::set_part(uint8_t value)
 
   QString str = QStringLiteral("%1").arg(value + 1, 2, 10, QLatin1Char('0'));
   str.prepend(' ');
-  emit display_part_updated(str);
+  _lcdDisplay->set_part(str);
 
   uint8_t *toneNumber =
     _emuscSynth->get_param_ptr(EmuSC::PatchParam::ToneNumber, value);
-  set_instrument(toneNumber[1], toneNumber[0], false);
-  set_level(_emuscSynth->get_param(EmuSC::PatchParam::PartLevel, value), false);
-  set_pan(_emuscSynth->get_param(EmuSC::PatchParam::PartPanpot, value), false);
-  set_reverb(_emuscSynth->get_param(EmuSC::PatchParam::ReverbSendLevel, value),
-	     false);
-  set_chorus(_emuscSynth->get_param(EmuSC::PatchParam::ChorusSendLevel, value),
-	     false);
-  set_key_shift(_emuscSynth->get_param(EmuSC::PatchParam::PitchKeyShift, value),
-		false);
-  set_midi_channel(_emuscSynth->get_param(EmuSC::PatchParam::RxChannel, value),
-		   false);
+  _set_instrument(toneNumber[1], toneNumber[0], false);
+  _set_level(_emuscSynth->get_param(EmuSC::PatchParam::PartLevel, value),false);
+  _set_pan(_emuscSynth->get_param(EmuSC::PatchParam::PartPanpot, value), false);
+  _set_reverb(_emuscSynth->get_param(EmuSC::PatchParam::ReverbSendLevel, value),
+	      false);
+  _set_chorus(_emuscSynth->get_param(EmuSC::PatchParam::ChorusSendLevel, value),
+	      false);
+  _set_key_shift(_emuscSynth->get_param(EmuSC::PatchParam::PitchKeyShift,value),
+		 false);
+  _set_midi_channel(_emuscSynth->get_param(EmuSC::PatchParam::RxChannel, value),
+		    false);
 
 
   emit (mute_button_changed(_emuscSynth->get_part_mute(value)));
@@ -880,14 +745,14 @@ void Emulator::select_prev_instrument()
     _emuscSynth->get_param_ptr(EmuSC::PatchParam::ToneNumber, _selectedPart);
   uint8_t bank = toneNumber[0];
   uint8_t index = toneNumber[1];
-  set_instrument(index, bank, false);
+  _set_instrument(index, bank, false);
 
   // Instrument
   if (!_emuscSynth->get_param(EmuSC::PatchParam::UseForRhythm, _selectedPart)) {
     const std::array<uint16_t, 128> &var = _emuscControlRom->variation(bank);
     for (int i = index - 1; i >= 0; i--) {
       if (var[i] != 0xffff) {
-	set_instrument(i, bank, true);
+	_set_instrument(i, bank, true);
 	break;
       }
     }
@@ -899,8 +764,8 @@ void Emulator::select_prev_instrument()
 						    drumSetBank.end(),
 						    (int) index);
     if (it != drumSetBank.begin())
-      set_instrument(drumSetBank[std::distance(drumSetBank.begin(), it) - 1],
-		     0, true);
+      _set_instrument(drumSetBank[std::distance(drumSetBank.begin(), it) - 1],
+		      0, true);
   }
 }
 
@@ -914,14 +779,14 @@ void Emulator::select_next_instrument()
     _emuscSynth->get_param_ptr(EmuSC::PatchParam::ToneNumber, _selectedPart);
   uint8_t bank = toneNumber[0];
   uint8_t index = toneNumber[1];
-  set_instrument(index, bank, false);
+  _set_instrument(index, bank, false);
 
   // Instrument
   if (!_emuscSynth->get_param(EmuSC::PatchParam::UseForRhythm, _selectedPart)) {
     const std::array<uint16_t, 128> &var = _emuscControlRom->variation(bank);
     for (int i = index + 1; i < var.size(); i++) {
       if (var[i] != 0xffff) {
-	set_instrument(i, bank, true);
+	_set_instrument(i, bank, true);
 	break;
       }
     }
@@ -933,8 +798,8 @@ void Emulator::select_next_instrument()
 						    drumSetBank.end(),
 						    (int) toneNumber[1]);
     if (it != drumSetBank.end() - 1)
-      set_instrument(drumSetBank[std::distance(drumSetBank.begin(), it) + 1],
-		     0, true);
+      _set_instrument(drumSetBank[std::distance(drumSetBank.begin(), it) + 1],
+		      0, true);
   }
 }
 
@@ -954,7 +819,7 @@ void Emulator::select_next_instrument_variant()
     for (int i = bank + 1; i < 128; i++) {
       const std::array<uint16_t, 128> &var = _emuscControlRom->variation(i);
       if (var[index] != 0xffff) {
-	set_instrument(index, i, true);
+	_set_instrument(index, i, true);
 	break;
       }
     }
@@ -977,7 +842,7 @@ void Emulator::select_prev_instrument_variant()
     for (int i = bank - 1; i >= 0; i--) {
       const std::array<uint16_t, 128> &var = _emuscControlRom->variation(i);
       if (var[index] != 0xffff) {
-	set_instrument(index, i, true);
+	_set_instrument(index, i, true);
 	break;
       }
     }
@@ -985,7 +850,7 @@ void Emulator::select_prev_instrument_variant()
 }
 
 
-void Emulator::set_instrument(uint8_t index, uint8_t bank, bool update)
+void Emulator::_set_instrument(uint8_t index, uint8_t bank, bool update)
 {
   if ((!_emuscSynth && update ) || !_emuscControlRom)
     return;
@@ -1018,7 +883,7 @@ void Emulator::set_instrument(uint8_t index, uint8_t bank, bool update)
     str.append(QString(name.c_str()));
   }
 
-  emit display_instrument_updated(str);
+  _lcdDisplay->set_instrument(str);
 }
 
 
@@ -1036,7 +901,7 @@ void Emulator::select_prev_level(void)
 					  _selectedPart);
 
   if (currentLevel > 0)
-    set_level(currentLevel - 1, true);
+    _set_level(currentLevel - 1, true);
 }
 
 
@@ -1054,11 +919,11 @@ void Emulator::select_next_level(void)
 					  _selectedPart);
 
   if (currentLevel < 127)
-    set_level(currentLevel + 1, true);
+    _set_level(currentLevel + 1, true);
 }
 
 
-void Emulator::set_level(uint8_t value, bool update)
+void Emulator::_set_level(uint8_t value, bool update)
 {
   if (!_emuscSynth && update)
     return;
@@ -1071,7 +936,7 @@ void Emulator::set_level(uint8_t value, bool update)
   }
 
   QString str = QStringLiteral("%1").arg(value, 3, 10,QLatin1Char(' '));
-  emit display_level_updated(str);
+  _lcdDisplay->set_level(str);
 }
 
 
@@ -1089,7 +954,7 @@ void Emulator::select_prev_pan()
 					      _selectedPart);
 
   if ((_allMode && currentPan > 1) || (!_allMode && currentPan > 0))
-    set_pan(currentPan - 1, true);
+    _set_pan(currentPan - 1, true);
 }
 
 
@@ -1107,11 +972,11 @@ void Emulator::select_next_pan()
 					      _selectedPart);
 
   if (currentPan < 127)
-    set_pan(currentPan + 1, true);
+    _set_pan(currentPan + 1, true);
 }
 
 
-void Emulator::set_pan(uint8_t value, bool update)
+void Emulator::_set_pan(uint8_t value, bool update)
 {
   if (!_emuscSynth)
     return;
@@ -1133,7 +998,7 @@ void Emulator::set_pan(uint8_t value, bool update)
   else if (value > 64)
     str.replace(0, 1, 'R');
 
-  emit display_pan_updated(str);
+  _lcdDisplay->set_pan(str);
 }
 
 
@@ -1151,7 +1016,7 @@ void Emulator::select_prev_reverb()
 					   _selectedPart);
 
   if (currentReverb > 0)
-    set_reverb(currentReverb - 1, true);
+    _set_reverb(currentReverb - 1, true);
 }
 
 
@@ -1169,11 +1034,11 @@ void Emulator::select_next_reverb()
 					   _selectedPart);
 
   if (currentReverb < 127)
-    set_reverb(currentReverb + 1, true);
+    _set_reverb(currentReverb + 1, true);
 }
 
 
-void Emulator::set_reverb(uint8_t value, bool update)
+void Emulator::_set_reverb(uint8_t value, bool update)
 {
   if (!_emuscSynth && update)
     return;
@@ -1187,7 +1052,7 @@ void Emulator::set_reverb(uint8_t value, bool update)
   }
 
   QString str = QStringLiteral("%1").arg(value, 3, 10, QLatin1Char(' '));
-  emit display_reverb_updated(str);
+  _lcdDisplay->set_reverb(str);
 }
 
 
@@ -1205,7 +1070,7 @@ void Emulator::select_prev_chorus()
 					   _selectedPart);
 
   if (currentChorus > 0)
-    set_chorus(currentChorus - 1, true);
+    _set_chorus(currentChorus - 1, true);
 }
 
 
@@ -1223,11 +1088,11 @@ void Emulator::select_next_chorus()
 					   _selectedPart);
 
   if (currentChorus < 127)
-    set_chorus(currentChorus + 1, true);
+    _set_chorus(currentChorus + 1, true);
 }
 
 
-void Emulator::set_chorus(uint8_t value, bool update)
+void Emulator::_set_chorus(uint8_t value, bool update)
 {
   if (!_emuscSynth && update)
     return;
@@ -1241,7 +1106,7 @@ void Emulator::set_chorus(uint8_t value, bool update)
   }
 
   QString str = QStringLiteral("%1").arg(value, 3, 10, QLatin1Char(' '));
-  emit display_chorus_updated(str);
+  _lcdDisplay->set_chorus(str);
 }
 
 
@@ -1259,7 +1124,7 @@ void Emulator::select_prev_key_shift()
 					     _selectedPart);
 
   if (currentKeyShift > 0x28)
-    set_key_shift(currentKeyShift - 1, true);
+    _set_key_shift(currentKeyShift - 1, true);
 }
 
 
@@ -1277,11 +1142,11 @@ void Emulator::select_next_key_shift()
 					     _selectedPart);
 
   if (currentKeyShift < 0x58)
-    set_key_shift(currentKeyShift + 1, true);
+    _set_key_shift(currentKeyShift + 1, true);
 }
 
 
-void Emulator::set_key_shift(uint8_t value, bool update)
+void Emulator::_set_key_shift(uint8_t value, bool update)
 {
   if (!_emuscSynth && update)
     return;
@@ -1300,7 +1165,7 @@ void Emulator::set_key_shift(uint8_t value, bool update)
     str.replace(0, 1, '+');
   else if (aValue < 0)
     str.replace(0, 1, '-');
-  emit display_key_shift_updated(str);
+  _lcdDisplay->set_kshift(str);
 }
 
 
@@ -1312,7 +1177,7 @@ void Emulator::select_prev_midi_channel()
   uint8_t currentMidiChannel =
     _emuscSynth->get_param(EmuSC::PatchParam::RxChannel, _selectedPart);
   if (currentMidiChannel > 0)
-    set_midi_channel(currentMidiChannel - 1, true);
+    _set_midi_channel(currentMidiChannel - 1, true);
 }
 
 
@@ -1323,13 +1188,12 @@ void Emulator::select_next_midi_channel()
 
   uint8_t currentMidiChannel =
     _emuscSynth->get_param(EmuSC::PatchParam::RxChannel, _selectedPart);
-  std::cout << "currentMidiChannel=" << (int) currentMidiChannel << std::endl;
   if (currentMidiChannel < 16)
-    set_midi_channel(currentMidiChannel + 1, true);
+    _set_midi_channel(currentMidiChannel + 1, true);
 }
 
 
-void Emulator::set_midi_channel(uint8_t value, bool update)
+void Emulator::_set_midi_channel(uint8_t value, bool update)
 {
   if (!_emuscSynth && update)
     return;
@@ -1344,7 +1208,7 @@ void Emulator::set_midi_channel(uint8_t value, bool update)
   } else {
     str = "Off";
   }
-  emit display_midi_channel_updated(str);
+  _lcdDisplay->set_midich(str);
 }
 
 

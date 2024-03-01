@@ -63,9 +63,10 @@ MainWindow::MainWindow(QWidget *parent)
   _create_actions();
   _create_menus();
 
-  _emulator = new Emulator();
-  _scene = new Scene(_emulator, this);
+  _scene = new Scene(this);
   _scene->setSceneRect(0, -10, 1100, 200);
+
+  _emulator = new Emulator(_scene);
 
   _synthView = new QGraphicsView(this);
   _synthView->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
@@ -135,6 +136,7 @@ MainWindow::MainWindow(QWidget *parent)
 
 MainWindow::~MainWindow()
 {
+  delete _emulator;
   delete _scene;
 }
 

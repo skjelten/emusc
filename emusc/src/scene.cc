@@ -36,9 +36,8 @@
 #include <cmath>
 
 
-Scene::Scene(Emulator *emulator, QWidget *parent)
-  : _emulator(emulator),
-    _lcdOnBackgroundColorReset(225, 145, 15),
+Scene::Scene(QWidget *parent)
+  : _lcdOnBackgroundColorReset(225, 145, 15),
     _lcdOnActiveColorReset(94, 37, 28),
     _lcdOnInactiveColorReset(215, 135, 10),
     _lcdOffBackgroundColor(140, 160, 140),
@@ -67,14 +66,6 @@ Scene::Scene(Emulator *emulator, QWidget *parent)
 
   _midiKbdInput = settings.value("Midi/kbd_input").toBool();
 
-  // Connect all signals for the emulator
-  connect(_emulator, SIGNAL(emulator_started()), this, SLOT(display_on()));
-  connect(_emulator, SIGNAL(emulator_stopped()), this, SLOT(display_off()));
-  connect(_emulator, SIGNAL(all_button_changed(bool)),
-	  this, SLOT(update_all_button(bool)));
-  connect(_emulator, SIGNAL(mute_button_changed(bool)),
-	  this, SLOT(update_mute_button(bool)));
-
   // Set background brush to grey texture for synth object
   _backgroundBrush.setTexture(QPixmap(":/images/synth_bkg.png"));
 
@@ -102,12 +93,7 @@ Scene::Scene(Emulator *emulator, QWidget *parent)
   addItem(new GrooveRect(760, 155, 353, 35));
   addItem(new GrooveRect(-15, 8, 100, 35));
 
-  // Set LCD display background
-  _lcdBackground = new QGraphicsRectItem(0, 0, 494, 175);
-  _lcdBackground->setBrush(_lcdOffBackgroundColor);
-  _lcdBackground->setPen(QColor(0, 0, 0, 0));
-  _lcdBackground->setPos(QPointF(102, 0));
-  addItem(_lcdBackground);
+  _add_lcd_display_items();
 
   // Set black vertical bar background
   QGraphicsRectItem *blackBackground = new QGraphicsRectItem(0, 0, 110, 280);
@@ -151,102 +137,6 @@ Scene::Scene(Emulator *emulator, QWidget *parent)
   volumeText->setPos(QPointF(0, 55));
   addItem(volumeText);
 
-  _lcdLevelHeaderText = new QGraphicsTextItem;
-  _lcdLevelHeaderText->setHtml(_generate_sans_text_html("LEVEL", 8));
-  _lcdLevelHeaderText->setDefaultTextColor(_lcdOffFontColor);
-  _lcdLevelHeaderText->setPos(QPointF(110, 32));
-  addItem(_lcdLevelHeaderText);
-
-  _lcdPanHeaderText = new QGraphicsTextItem;
-  _lcdPanHeaderText->setHtml(_generate_sans_text_html("PAN", 8));
-  _lcdPanHeaderText->setDefaultTextColor(_lcdOffFontColor);
-  _lcdPanHeaderText->setPos(QPointF(192, 32));
-  addItem(_lcdPanHeaderText);
-
-  _lcdReverbHeaderText = new QGraphicsTextItem;
-  _lcdReverbHeaderText->setHtml(_generate_sans_text_html("REVERB", 8));
-  _lcdReverbHeaderText->setDefaultTextColor(_lcdOffFontColor);
-  _lcdReverbHeaderText->setPos(QPointF(110, 76));
-  addItem(_lcdReverbHeaderText);
-
-  _lcdChorusHeaderText = new QGraphicsTextItem;
-  _lcdChorusHeaderText->setHtml(_generate_sans_text_html("CHORUS", 8));
-  _lcdChorusHeaderText->setDefaultTextColor(_lcdOffFontColor);
-  _lcdChorusHeaderText->setPos(QPointF(192, 76));
-  addItem(_lcdChorusHeaderText);
-
-  _lcdKshiftHeaderText = new QGraphicsTextItem;
-  _lcdKshiftHeaderText->setHtml(_generate_sans_text_html("K SHIFT", 8));
-  _lcdKshiftHeaderText->setDefaultTextColor(_lcdOffFontColor);
-  _lcdKshiftHeaderText->setPos(QPointF(110, 119));
-  addItem(_lcdKshiftHeaderText);
-
-  _lcdMidichHeaderText = new QGraphicsTextItem;
-  _lcdMidichHeaderText->setHtml(_generate_sans_text_html("MIDI CH", 8));
-  _lcdMidichHeaderText->setDefaultTextColor(_lcdOffFontColor);
-  _lcdMidichHeaderText->setPos(QPointF(192, 119));
-  addItem(_lcdMidichHeaderText);
-
-  int id = QFontDatabase::addApplicationFont(":/fonts/retro_synth.ttf");
-  if (id < 0) {
-    QMessageBox::critical(parent,
-			  tr("Font file not found"),
-			  tr("The font file retro_synth.ttf was not found. "
-			     "This font is required for running EmuSC."),
-			  QMessageBox::Close);
-    exit(-1); // Use exit() since the main loop has not been initiated yet
-  }
-  QString family = QFontDatabase::applicationFontFamilies(id).at(0);
-  QFont retroSynth(family);
-
-  _lcdInstrumentText = new QGraphicsTextItem;
-  _lcdInstrumentText->setFont(retroSynth);
-  _lcdInstrumentText->setDefaultTextColor(_lcdOnActiveColor);
-  _lcdInstrumentText->setPos(QPointF(192, 2));
-  addItem(_lcdInstrumentText);
-
-  _lcdPartText = new QGraphicsTextItem;
-  _lcdPartText->setFont(retroSynth);
-  _lcdPartText->setDefaultTextColor(_lcdOnActiveColor);
-  _lcdPartText->setPos(QPointF(110, 2));
-  addItem(_lcdPartText);
-
-  _lcdLevelText = new QGraphicsTextItem;
-  _lcdLevelText->setFont(retroSynth);
-  _lcdLevelText->setDefaultTextColor(_lcdOnActiveColor);
-  _lcdLevelText->setPos(QPointF(110, 46));
-  addItem(_lcdLevelText);
-
-  _lcdPanText = new QGraphicsTextItem;
-  _lcdPanText->setFont(retroSynth);
-  _lcdPanText->setDefaultTextColor(_lcdOnActiveColor);
-  _lcdPanText->setPos(QPointF(192, 46));
-  addItem(_lcdPanText);
-
-  _lcdReverbText = new QGraphicsTextItem;
-  _lcdReverbText->setFont(retroSynth);
-  _lcdReverbText->setDefaultTextColor(_lcdOnActiveColor);
-  _lcdReverbText->setPos(QPointF(110, 90));
-  addItem(_lcdReverbText);
-
-  _lcdChorusText = new QGraphicsTextItem;
-  _lcdChorusText->setFont(retroSynth);
-  _lcdChorusText->setDefaultTextColor(_lcdOnActiveColor);
-  _lcdChorusText->setPos(QPointF(192, 90));
-  addItem(_lcdChorusText);
-
-  _lcdKshiftText = new QGraphicsTextItem;
-  _lcdKshiftText->setFont(retroSynth);
-  _lcdKshiftText->setDefaultTextColor(_lcdOnActiveColor);
-  _lcdKshiftText->setPos(QPointF(110, 132));
-  addItem(_lcdKshiftText);
-
-  _lcdMidichText = new QGraphicsTextItem;
-  _lcdMidichText->setFont(retroSynth);
-  _lcdMidichText->setDefaultTextColor(_lcdOnActiveColor);
-  _lcdMidichText->setPos(QPointF(192, 132));
-  addItem(_lcdMidichText);
-
   _powerButton = new QPushButton();
   _powerButton->setGeometry(QRect(-5, 13, 78, 25));
   _powerButton->setStyleSheet("background-color: #111111; \
@@ -255,7 +145,6 @@ Scene::Scene(Emulator *emulator, QWidget *parent)
                              border-radius: 5px;	    \
                              border-color: #333333;");
   _powerButton->setAttribute(Qt::WA_TranslucentBackground);
-  connect(_powerButton, SIGNAL(clicked()), parent, SLOT(power_switch()));
   QGraphicsProxyWidget *pwrProxy = addWidget(_powerButton);
 
   _volumeDial = new VolumeDial();
@@ -265,8 +154,6 @@ Scene::Scene(Emulator *emulator, QWidget *parent)
 
   // Default value
   _volumeDial->setValue(settings.value("Audio/volume", 80).toInt());
-
-  connect(_volumeDial, SIGNAL(valueChanged(int)), emulator, SLOT(change_volume(int)));
 
   QHBoxLayout *layout = new QHBoxLayout(_volumeDial);
   layout->setContentsMargins(0, 0, 0, 0);
@@ -278,47 +165,6 @@ Scene::Scene(Emulator *emulator, QWidget *parent)
   QGraphicsProxyWidget *proxy = new QGraphicsProxyWidget();
   proxy->setWidget(_volumeDial);
   proxy->setParentItem(parentWidget);
-
-  // Populate volume bars with text and bars
-  for (int i = 0; i < 16; i ++) {
-    QGraphicsTextItem *partNumber = new QGraphicsTextItem;
-    partNumber->setHtml(_generate_sans_text_html(QString::number(i+1), 8));
-    partNumber->setDefaultTextColor(QColor(80, 80, 80));
-
-    if (i < 9)
-      partNumber->setPos(QPointF(296.5 + 18 * i, 156));
-    else
-      partNumber->setPos(QPointF(296 + 15.7 * i + 2 * i, 156));
-
-    addItem(partNumber);
-    _partNumText.append(partNumber);
-    
-    for (int j = 0; j < 16; j ++) {
-      qreal x = 295 + i*18;
-      qreal y = 155 - j*7;
-
-      QGraphicsRectItem* item = new QGraphicsRectItem(0,0,16,6);
-      item->setBrush(QBrush(QColor(0, 0, 0, 0)));
-      item->setPen(QColor(0, 0, 0, 0));
-      item->setPos(QPointF(x, y));
-      addItem(item);
-      _volumeBars.append(item);
-    }
-  }
-
-  // Populate filled volume bars circles
-  for (int i = 0; i < 11; i ++) {
-    QGraphicsEllipseItem *circle = new QGraphicsEllipseItem;
-    if (i == 0 || i == 5 || i == 10)
-      circle->setRect(287, 155 - i * 10.4, 4.5, 4.5);
-    else
-      circle->setRect(287 + (1.5 / 2), 155 - i * 10, 3, 3);
-
-    circle->setBrush(_lcdOffFontColor);
-    circle->setPen(QColor(0, 0, 0, 0));
-    addItem(circle);
-    _volumeCircles.append(circle);
-  }
 
   // Add all / mute buttons
   _allButton = new QPushButton();
@@ -335,7 +181,6 @@ Scene::Scene(Emulator *emulator, QWidget *parent)
 			     "QPushButton::checked"	\
                              "{background-color : #ff7a45;}");
   _allButton->setAttribute(Qt::WA_TranslucentBackground);
-  connect(_allButton, SIGNAL(clicked()), emulator, SLOT(select_all()));
   QGraphicsProxyWidget *allBtnProxy = addWidget(_allButton);
 
   _muteButton = new QPushButton();
@@ -352,7 +197,6 @@ Scene::Scene(Emulator *emulator, QWidget *parent)
 			     "QPushButton::checked"	\
                              "{background-color : #ff7a45;}");
   _muteButton->setAttribute(Qt::WA_TranslucentBackground);
-  connect(_muteButton, SIGNAL(clicked()), emulator, SLOT(select_mute()));
   QGraphicsProxyWidget *muteBtnProxy = addWidget(_muteButton);
 
   // Add partL / mute buttons
@@ -370,8 +214,6 @@ Scene::Scene(Emulator *emulator, QWidget *parent)
   _partLButton->setAutoRepeat(true);
   _partLButton->setAutoRepeatDelay(500);
   _partLButton->setAutoRepeatInterval(120);
-
-  connect(_partLButton, SIGNAL(clicked()), emulator, SLOT(select_prev_part()));
   QGraphicsProxyWidget *partLBtnProxy = addWidget(_partLButton);
 
   _partRButton = new QPushButton();
@@ -388,105 +230,83 @@ Scene::Scene(Emulator *emulator, QWidget *parent)
   _partRButton->setAutoRepeat(true);
   _partRButton->setAutoRepeatDelay(500);
   _partRButton->setAutoRepeatInterval(120);
-
-  connect(_partRButton, SIGNAL(clicked()), emulator, SLOT(select_next_part()));
   QGraphicsProxyWidget *partRBtnProxy = addWidget(_partRButton);
 
   // Add instrument L/R buttons
   _instrumentLButton = new SynthButton();
   _instrumentLButton->setGeometry(QRect(945, -5, 70, 25));
   _instrumentLButton->setIcon(QPixmap(":/images/left_arrow.png"));
-  connect(_instrumentLButton, SIGNAL(clicked()),
-	  emulator, SLOT(select_prev_instrument()));
-  connect(_instrumentLButton, SIGNAL(rightClicked()),
-	  emulator, SLOT(select_prev_instrument_variant()));
   QGraphicsProxyWidget *instLBtnProxy = addWidget(_instrumentLButton);
 
   _instrumentRButton = new SynthButton();
   _instrumentRButton->setGeometry(QRect(1018, -5, 70, 25));
   _instrumentRButton->setIcon(QPixmap(":/images/right_arrow.png"));
-  connect(_instrumentRButton, SIGNAL(clicked()),
-	  emulator, SLOT(select_next_instrument()));
-  connect(_instrumentRButton, SIGNAL(rightClicked()),
-	  emulator, SLOT(select_next_instrument_variant()));
   QGraphicsProxyWidget *instRBtnProxy = addWidget(_instrumentRButton);
 
   // Add pan L/R buttons
   _panLButton = new SynthButton();
   _panLButton->setGeometry(QRect(945, 50, 70, 25));
   _panLButton->setIcon(QPixmap(":/images/left_arrow.png"));
-  connect(_panLButton, SIGNAL(clicked()), emulator, SLOT(select_prev_pan()));
   QGraphicsProxyWidget *panLBtnProxy = addWidget(_panLButton);
 
   _panRButton = new SynthButton();
   _panRButton->setGeometry(QRect(1018, 50, 70, 25));
   _panRButton->setIcon(QPixmap(":/images/right_arrow.png"));
-  connect(_panRButton, SIGNAL(clicked()), emulator, SLOT(select_next_pan()));
   QGraphicsProxyWidget *panRBtnProxy = addWidget(_panRButton);
 
   // Add chorus L/R buttons
   _chorusLButton = new SynthButton();
   _chorusLButton->setGeometry(QRect(945, 105, 70, 25));
   _chorusLButton->setIcon(QPixmap(":/images/left_arrow.png"));
-  connect(_chorusLButton, SIGNAL(clicked()), emulator, SLOT(select_prev_chorus()));
   QGraphicsProxyWidget *chorusLBtnProxy = addWidget(_chorusLButton);
 
   _chorusRButton = new SynthButton();
   _chorusRButton->setGeometry(QRect(1018, 105, 70, 25));
   _chorusRButton->setIcon(QPixmap(":/images/right_arrow.png"));
-  connect(_chorusRButton, SIGNAL(clicked()), emulator, SLOT(select_next_chorus()));
   QGraphicsProxyWidget *chorusRBtnProxy = addWidget(_chorusRButton);
 
   // Add midich L/R buttons
   _midichLButton = new SynthButton();
   _midichLButton->setGeometry(QRect(945, 160, 70, 25));
   _midichLButton->setIcon(QPixmap(":/images/left_arrow.png"));
-  connect(_midichLButton, SIGNAL(clicked()), emulator, SLOT(select_prev_midi_channel()));
   QGraphicsProxyWidget *midichLBtnProxy = addWidget(_midichLButton);
 
   _midichRButton = new SynthButton();
   _midichRButton->setGeometry(QRect(1018, 160, 70, 25));
   _midichRButton->setIcon(QPixmap(":/images/right_arrow.png"));
-  connect(_midichRButton, SIGNAL(clicked()), emulator, SLOT(select_next_midi_channel()));
   QGraphicsProxyWidget *midichRBtnProxy = addWidget(_midichRButton);
 
   // Add level L/R buttons
   _levelLButton = new SynthButton();
   _levelLButton->setGeometry(QRect(780, 50, 70, 25));
   _levelLButton->setIcon(QPixmap(":/images/left_arrow.png"));
-  connect(_levelLButton, SIGNAL(clicked()), emulator,SLOT(select_prev_level()));
   QGraphicsProxyWidget *levelLBtnProxy = addWidget(_levelLButton);
 
   _levelRButton = new SynthButton();
   _levelRButton->setGeometry(QRect(853, 50, 70, 25));
   _levelRButton->setIcon(QPixmap(":/images/right_arrow.png"));
-  connect(_levelRButton, SIGNAL(clicked()), emulator,SLOT(select_next_level()));
   QGraphicsProxyWidget *levelRBtnProxy = addWidget(_levelRButton);
 
   // Add reverb L/R buttons
   _reverbLButton = new SynthButton();
   _reverbLButton->setGeometry(QRect(780, 105, 70, 25));
   _reverbLButton->setIcon(QPixmap(":/images/left_arrow.png"));
-  connect(_reverbLButton, SIGNAL(clicked()), emulator, SLOT(select_prev_reverb()));
   QGraphicsProxyWidget *reverbLBtnProxy = addWidget(_reverbLButton);
 
   _reverbRButton = new SynthButton();
   _reverbRButton->setGeometry(QRect(853, 105, 70, 25));
   _reverbRButton->setIcon(QPixmap(":/images/right_arrow.png"));
-  connect(_reverbRButton, SIGNAL(clicked()), emulator, SLOT(select_next_reverb()));
   QGraphicsProxyWidget *reverbRBtnProxy = addWidget(_reverbRButton);
 
   // Add keyshift L/R buttons
   _keyshiftLButton = new SynthButton();
   _keyshiftLButton->setGeometry(QRect(780, 160, 70, 25));
   _keyshiftLButton->setIcon(QPixmap(":/images/left_arrow.png"));
-  connect(_keyshiftLButton, SIGNAL(clicked()), emulator, SLOT(select_prev_key_shift()));
   QGraphicsProxyWidget *keyshiftLBtnProxy = addWidget(_keyshiftLButton);
 
   _keyshiftRButton = new SynthButton();
   _keyshiftRButton->setGeometry(QRect(853, 160, 70, 25));
   _keyshiftRButton->setIcon(QPixmap(":/images/right_arrow.png"));
-  connect(_keyshiftRButton, SIGNAL(clicked()), emulator, SLOT(select_next_key_shift()));
   QGraphicsProxyWidget *keyshiftRBtnProxy = addWidget(_keyshiftRButton);
 
   QGraphicsTextItem *allBtnText = new QGraphicsTextItem;
@@ -575,28 +395,10 @@ Scene::Scene(Emulator *emulator, QWidget *parent)
   _midiActTimer = new QTimer();
   _midiActTimer->setSingleShot(true);
   _midiActTimer->setTimerType(Qt::CoarseTimer);
-
-  // Connect emulator's signals to our display's slots
-  connect(emulator, SIGNAL(new_bar_display(QVector<bool>*)),
-	  this, SLOT(update_lcd_bar_display(QVector<bool>*)));
-  connect(emulator, SIGNAL(display_part_updated(QString)),
-	  this, SLOT(update_lcd_part_text(QString)));
-  connect(emulator, SIGNAL(display_instrument_updated(QString)),
-	  this, SLOT(update_lcd_instrument_text(QString)));
-  connect(emulator, SIGNAL(display_level_updated(QString)),
-	  this, SLOT(update_lcd_level_text(QString)));
-  connect(emulator, SIGNAL(display_pan_updated(QString)),
-	  this, SLOT(update_lcd_pan_text(QString)));
-  connect(emulator, SIGNAL(display_reverb_updated(QString)),
-	  this, SLOT(update_lcd_reverb_text(QString)));
-  connect(emulator, SIGNAL(display_chorus_updated(QString)),
-	  this, SLOT(update_lcd_chorus_text(QString)));
-  connect(emulator, SIGNAL(display_key_shift_updated(QString)),
-	  this, SLOT(update_lcd_kshift_text(QString)));
-  connect(emulator, SIGNAL(display_midi_channel_updated(QString)),
-	  this, SLOT(update_lcd_midich_text(QString)));
   connect(_midiActTimer, SIGNAL(timeout()),
 	  this, SLOT(update_midi_activity_timeout()));
+
+  _connect_signals();
 }
 
 
@@ -604,7 +406,55 @@ Scene::~Scene()
 {
   QSettings settings;
   settings.setValue("Audio/volume", _volumeDial->value());
- }
+}
+
+
+void Scene::_connect_signals(void)
+{
+  connect(_allButton, SIGNAL(clicked()), this, SIGNAL(all_button_clicked()));
+  connect(_muteButton, SIGNAL(clicked()), this, SIGNAL(mute_button_clicked()));
+
+  connect(_partLButton, SIGNAL(clicked()),
+	  this, SIGNAL(partL_button_clicked()));
+  connect(_partRButton, SIGNAL(clicked()),
+	  this, SIGNAL(partR_button_clicked()));
+  connect(_instrumentLButton, SIGNAL(clicked()),
+	  this, SIGNAL(instrumentL_button_clicked()));
+  connect(_instrumentRButton, SIGNAL(clicked()),
+	  this, SIGNAL(instrumentR_button_clicked()));
+  connect(_instrumentLButton, SIGNAL(rightClicked()),
+	  this, SIGNAL(instrumentL_button_rightClicked()));
+  connect(_instrumentRButton, SIGNAL(rightClicked()),
+	  this, SIGNAL(instrumentR_button_rightClicked()));
+  connect(_panLButton, SIGNAL(clicked()),
+	  this, SIGNAL(panL_button_clicked()));
+  connect(_panRButton, SIGNAL(clicked()),
+	  this, SIGNAL(panR_button_clicked()));
+  connect(_chorusLButton, SIGNAL(clicked()),
+	  this, SIGNAL(chorusL_button_clicked()));
+  connect(_chorusRButton, SIGNAL(clicked()),
+	  this, SIGNAL(chorusR_button_clicked()));
+  connect(_midichLButton, SIGNAL(clicked()),
+	  this, SIGNAL(midichL_button_clicked()));
+  connect(_midichRButton, SIGNAL(clicked()),
+	  this, SIGNAL(midichR_button_clicked()));
+  connect(_levelLButton, SIGNAL(clicked()),
+	  this, SIGNAL(levelL_button_clicked()));
+  connect(_levelRButton, SIGNAL(clicked()),
+	  this, SIGNAL(levelR_button_clicked()));
+  connect(_reverbLButton, SIGNAL(clicked()),
+	  this, SIGNAL(reverbL_button_clicked()));
+  connect(_reverbRButton, SIGNAL(clicked()),
+	  this, SIGNAL(reverbR_button_clicked()));
+  connect(_keyshiftLButton, SIGNAL(clicked()),
+	  this, SIGNAL(keyshiftL_button_clicked()));
+  connect(_keyshiftRButton, SIGNAL(clicked()),
+	  this, SIGNAL(keyshiftR_button_clicked()));
+
+  connect(_powerButton, SIGNAL(clicked()), parent(), SLOT(power_switch()));
+  connect(_volumeDial, SIGNAL(sliderMoved(int)),
+	  this, SIGNAL(volume_changed(int)));
+}
 
 
 void Scene::display_on(void)
@@ -632,9 +482,6 @@ void Scene::display_on(void)
   QVectorIterator<QGraphicsRectItem*> ir(_volumeBars);
   while (ir.hasNext())
     ir.next()->setBrush(QBrush(_lcdOnInactiveColor));
-
-  // Hack to update volume when power on
-  _emulator->change_volume(_volumeDial->value());
 }
 
 
@@ -705,15 +552,15 @@ void Scene::update_mute_button(bool status)
 }
 
 
-void Scene::update_lcd_instrument_text(QString text)
-{
-  _lcdInstrumentText->setHtml(_generate_retro_text_html(text));
-}
-
-
 void Scene::update_lcd_part_text(QString text)
 {
   _lcdPartText->setHtml(_generate_retro_text_html(text));
+}
+
+
+void Scene::update_lcd_instrument_text(QString text)
+{
+  _lcdInstrumentText->setHtml(_generate_retro_text_html(text));
 }
 
 
@@ -902,29 +749,29 @@ void Scene::keyPressEvent(QKeyEvent *keyEvent)
       _keyNoteOctave--;
 
   } else if (keyEvent->key() == Qt::Key_Z) {
-    _emulator->play_note(_keyNoteOctave * 12 + 0, 120);
+    emit play_note(_keyNoteOctave * 12 + 0, 120);
   } else if (keyEvent->key() == Qt::Key_S) {
-    _emulator->play_note(_keyNoteOctave * 12 + 1, 120);
+    emit play_note(_keyNoteOctave * 12 + 1, 120);
   } else if (keyEvent->key() == Qt::Key_X) {
-    _emulator->play_note(_keyNoteOctave * 12 + 2, 120);
+    emit play_note(_keyNoteOctave * 12 + 2, 120);
   } else if (keyEvent->key() == Qt::Key_D) {
-    _emulator->play_note(_keyNoteOctave * 12 + 3, 120);
+    emit play_note(_keyNoteOctave * 12 + 3, 120);
   } else if (keyEvent->key() == Qt::Key_C) {
-    _emulator->play_note(_keyNoteOctave * 12 + 4, 120);
+    emit play_note(_keyNoteOctave * 12 + 4, 120);
   } else if (keyEvent->key() == Qt::Key_V) {
-    _emulator->play_note(_keyNoteOctave * 12 + 5, 120);
+    emit play_note(_keyNoteOctave * 12 + 5, 120);
   } else if (keyEvent->key() == Qt::Key_G) {
-    _emulator->play_note(_keyNoteOctave * 12 + 6, 120);
+    emit play_note(_keyNoteOctave * 12 + 6, 120);
   } else if (keyEvent->key() == Qt::Key_B) {
-    _emulator->play_note(_keyNoteOctave * 12 + 7, 120);
+    emit play_note(_keyNoteOctave * 12 + 7, 120);
   } else if (keyEvent->key() == Qt::Key_H) {
-    _emulator->play_note(_keyNoteOctave * 12 + 8, 120);
+    emit play_note(_keyNoteOctave * 12 + 8, 120);
   } else if (keyEvent->key() == Qt::Key_N) {
-    _emulator->play_note(_keyNoteOctave * 12 + 9, 120);
+    emit play_note(_keyNoteOctave * 12 + 9, 120);
   } else if (keyEvent->key() == Qt::Key_J) {
-    _emulator->play_note(_keyNoteOctave * 12 + 10, 120);
+    emit play_note(_keyNoteOctave * 12 + 10, 120);
   } else if (keyEvent->key() == Qt::Key_M) {
-    _emulator->play_note(_keyNoteOctave * 12 + 11, 120);
+    emit play_note(_keyNoteOctave * 12 + 11, 120);
   }
 }
 
@@ -939,29 +786,191 @@ void Scene::keyReleaseEvent(QKeyEvent *keyEvent)
     return;
 
   if (keyEvent->key() == Qt::Key_Z) {
-    _emulator->play_note(_keyNoteOctave * 12 + 0, 0);
+    emit play_note(_keyNoteOctave * 12 + 0, 0);
   } else if (keyEvent->key() == Qt::Key_S) {
-    _emulator->play_note(_keyNoteOctave * 12 + 1, 0);
+    emit play_note(_keyNoteOctave * 12 + 1, 0);
   } else if (keyEvent->key() == Qt::Key_X) {
-    _emulator->play_note(_keyNoteOctave * 12 + 2, 0);
+    emit play_note(_keyNoteOctave * 12 + 2, 0);
   } else if (keyEvent->key() == Qt::Key_D) {
-    _emulator->play_note(_keyNoteOctave * 12 + 3, 0);
+    emit play_note(_keyNoteOctave * 12 + 3, 0);
   } else if (keyEvent->key() == Qt::Key_C) {
-    _emulator->play_note(_keyNoteOctave * 12 + 4, 0);
+    emit play_note(_keyNoteOctave * 12 + 4, 0);
   } else if (keyEvent->key() == Qt::Key_V) {
-    _emulator->play_note(_keyNoteOctave * 12 + 5, 0);
+    emit play_note(_keyNoteOctave * 12 + 5, 0);
   } else if (keyEvent->key() == Qt::Key_G) {
-    _emulator->play_note(_keyNoteOctave * 12 + 6, 0);
+    emit play_note(_keyNoteOctave * 12 + 6, 0);
   } else if (keyEvent->key() == Qt::Key_B) {
-    _emulator->play_note(_keyNoteOctave * 12 + 7, 0);
+    emit play_note(_keyNoteOctave * 12 + 7, 0);
   } else if (keyEvent->key() == Qt::Key_H) {
-    _emulator->play_note(_keyNoteOctave * 12 + 8, 0);
+    emit play_note(_keyNoteOctave * 12 + 8, 0);
   } else if (keyEvent->key() == Qt::Key_N) {
-    _emulator->play_note(_keyNoteOctave * 12 + 9, 0);
+    emit play_note(_keyNoteOctave * 12 + 9, 0);
   } else if (keyEvent->key() == Qt::Key_J) {
-    _emulator->play_note(_keyNoteOctave * 12 + 10, 0);
+    emit play_note(_keyNoteOctave * 12 + 10, 0);
   } else if (keyEvent->key() == Qt::Key_M) {
-    _emulator->play_note(_keyNoteOctave * 12 + 11, 0);
+    emit play_note(_keyNoteOctave * 12 + 11, 0);
+  }
+}
+
+
+void Scene::mousePressEvent(QGraphicsSceneMouseEvent *event)
+{
+  // LCD display coordinates
+  if (event->scenePos().x() > 100 && event->scenePos().y() > 0 &&
+      event->scenePos().x() < 595 && event->scenePos().y() < 175) {
+    emit lcd_display_mouse_press_event(event->button(), event->scenePos());
+  } else {
+    QGraphicsScene::mousePressEvent(event);
+  }
+}
+
+
+void Scene::_add_lcd_display_items(void)
+{
+  // Set LCD display background
+  _lcdBackground = new QGraphicsRectItem(0, 0, 494, 175);
+  _lcdBackground->setBrush(_lcdOffBackgroundColor);
+  _lcdBackground->setPen(QColor(0, 0, 0, 0));
+  _lcdBackground->setPos(QPointF(102, 0));
+  addItem(_lcdBackground);
+
+  // Set LCD static text items
+  _lcdLevelHeaderText = new QGraphicsTextItem;
+  _lcdLevelHeaderText->setHtml(_generate_sans_text_html("LEVEL", 8));
+  _lcdLevelHeaderText->setDefaultTextColor(_lcdOffFontColor);
+  _lcdLevelHeaderText->setPos(QPointF(110, 32));
+  addItem(_lcdLevelHeaderText);
+
+  _lcdPanHeaderText = new QGraphicsTextItem;
+  _lcdPanHeaderText->setHtml(_generate_sans_text_html("PAN", 8));
+  _lcdPanHeaderText->setDefaultTextColor(_lcdOffFontColor);
+  _lcdPanHeaderText->setPos(QPointF(192, 32));
+  addItem(_lcdPanHeaderText);
+
+  _lcdReverbHeaderText = new QGraphicsTextItem;
+  _lcdReverbHeaderText->setHtml(_generate_sans_text_html("REVERB", 8));
+  _lcdReverbHeaderText->setDefaultTextColor(_lcdOffFontColor);
+  _lcdReverbHeaderText->setPos(QPointF(110, 76));
+  addItem(_lcdReverbHeaderText);
+
+  _lcdChorusHeaderText = new QGraphicsTextItem;
+  _lcdChorusHeaderText->setHtml(_generate_sans_text_html("CHORUS", 8));
+  _lcdChorusHeaderText->setDefaultTextColor(_lcdOffFontColor);
+  _lcdChorusHeaderText->setPos(QPointF(192, 76));
+  addItem(_lcdChorusHeaderText);
+
+  _lcdKshiftHeaderText = new QGraphicsTextItem;
+  _lcdKshiftHeaderText->setHtml(_generate_sans_text_html("K SHIFT", 8));
+  _lcdKshiftHeaderText->setDefaultTextColor(_lcdOffFontColor);
+  _lcdKshiftHeaderText->setPos(QPointF(110, 119));
+  addItem(_lcdKshiftHeaderText);
+
+  _lcdMidichHeaderText = new QGraphicsTextItem;
+  _lcdMidichHeaderText->setHtml(_generate_sans_text_html("MIDI CH", 8));
+  _lcdMidichHeaderText->setDefaultTextColor(_lcdOffFontColor);
+  _lcdMidichHeaderText->setPos(QPointF(192, 119));
+  addItem(_lcdMidichHeaderText);
+
+  // Set LCD dynamic text items
+  int id = QFontDatabase::addApplicationFont(":/fonts/retro_synth.ttf");
+  if (id < 0) {
+    QMessageBox::critical((QWidget *) parent(),
+			  tr("Font file not found"),
+			  tr("The font file retro_synth.ttf was not found. "
+			     "This font is required for running EmuSC."),
+			  QMessageBox::Close);
+    exit(-1); // Use exit() since the main loop has not been initiated yet
+  }
+  QString family = QFontDatabase::applicationFontFamilies(id).at(0);
+  QFont retroSynth(family);
+
+  _lcdPartText = new QGraphicsTextItem;
+  _lcdPartText->setFont(retroSynth);
+  _lcdPartText->setDefaultTextColor(_lcdOnActiveColor);
+  _lcdPartText->setPos(QPointF(110, 2));
+  addItem(_lcdPartText);
+
+  _lcdInstrumentText = new QGraphicsTextItem;
+  _lcdInstrumentText->setFont(retroSynth);
+  _lcdInstrumentText->setDefaultTextColor(_lcdOnActiveColor);
+  _lcdInstrumentText->setPos(QPointF(192, 2));
+  addItem(_lcdInstrumentText);
+
+  _lcdLevelText = new QGraphicsTextItem;
+  _lcdLevelText->setFont(retroSynth);
+  _lcdLevelText->setDefaultTextColor(_lcdOnActiveColor);
+  _lcdLevelText->setPos(QPointF(110, 46));
+  addItem(_lcdLevelText);
+
+  _lcdPanText = new QGraphicsTextItem;
+  _lcdPanText->setFont(retroSynth);
+  _lcdPanText->setDefaultTextColor(_lcdOnActiveColor);
+  _lcdPanText->setPos(QPointF(192, 46));
+  addItem(_lcdPanText);
+
+  _lcdReverbText = new QGraphicsTextItem;
+  _lcdReverbText->setFont(retroSynth);
+  _lcdReverbText->setDefaultTextColor(_lcdOnActiveColor);
+  _lcdReverbText->setPos(QPointF(110, 90));
+  addItem(_lcdReverbText);
+
+  _lcdChorusText = new QGraphicsTextItem;
+  _lcdChorusText->setFont(retroSynth);
+  _lcdChorusText->setDefaultTextColor(_lcdOnActiveColor);
+  _lcdChorusText->setPos(QPointF(192, 90));
+  addItem(_lcdChorusText);
+
+  _lcdKshiftText = new QGraphicsTextItem;
+  _lcdKshiftText->setFont(retroSynth);
+  _lcdKshiftText->setDefaultTextColor(_lcdOnActiveColor);
+  _lcdKshiftText->setPos(QPointF(110, 132));
+  addItem(_lcdKshiftText);
+
+  _lcdMidichText = new QGraphicsTextItem;
+  _lcdMidichText->setFont(retroSynth);
+  _lcdMidichText->setDefaultTextColor(_lcdOnActiveColor);
+  _lcdMidichText->setPos(QPointF(192, 132));
+  addItem(_lcdMidichText);
+
+  // Setup LCD bar display
+  for (int i = 0; i < 16; i ++) {
+    QGraphicsTextItem *partNumber = new QGraphicsTextItem;
+    partNumber->setHtml(_generate_sans_text_html(QString::number(i+1), 8));
+    partNumber->setDefaultTextColor(QColor(80, 80, 80));
+
+    if (i < 9)
+      partNumber->setPos(QPointF(296.5 + 18 * i, 156));
+    else
+      partNumber->setPos(QPointF(296 + 15.7 * i + 2 * i, 156));
+
+    addItem(partNumber);
+    _partNumText.append(partNumber);
+
+    for (int j = 0; j < 16; j ++) {
+      qreal x = 295 + i*18;
+      qreal y = 155 - j*7;
+
+      QGraphicsRectItem* item = new QGraphicsRectItem(0,0,16,6);
+      item->setBrush(QBrush(QColor(0, 0, 0, 0)));
+      item->setPen(QColor(0, 0, 0, 0));
+      item->setPos(QPointF(x, y));
+      addItem(item);
+      _volumeBars.append(item);
+    }
+  }
+
+  // Populate filled volume bars circles
+  for (int i = 0; i < 11; i ++) {
+    QGraphicsEllipseItem *circle = new QGraphicsEllipseItem;
+    if (i == 0 || i == 5 || i == 10)
+      circle->setRect(287, 155 - i * 10.4, 4.5, 4.5);
+    else
+      circle->setRect(287 + (1.5 / 2), 155 - i * 10, 3, 3);
+
+    circle->setBrush(_lcdOffFontColor);
+    circle->setPen(QColor(0, 0, 0, 0));
+    addItem(circle);
+    _volumeCircles.append(circle);
   }
 }
 

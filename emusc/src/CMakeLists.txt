@@ -33,11 +33,15 @@ add_executable(emusc-client
   audio_output_wav.h
   audio_output_win32.cc
   audio_output_win32.h
+  bar_display.cc
+  bar_display.h
   emulator.cc
   emulator.h
   emusc.cc
   control_rom_info_dialog.cc
   control_rom_info_dialog.h
+  lcd_display.cc
+  lcd_display.h
   main_window.cc
   main_window.h
   midi_input.cc

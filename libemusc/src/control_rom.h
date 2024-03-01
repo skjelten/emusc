@@ -150,7 +150,8 @@ public:
   float lookup_table(uint8_t table, float index, int interpolate = 1);
 
   int dump_demo_songs(std::string path);
-  std::vector<uint8_t> get_intro_anim(void);
+  bool intro_anim_available(void);
+  std::vector<uint8_t> get_intro_anim(int animIndex = 0);
 
   std::string model(void) { return _model; }
   std::string version(void) { return _version; }

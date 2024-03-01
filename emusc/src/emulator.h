@@ -26,7 +26,9 @@
 #include "emusc/params.h"
 
 #include "audio_output.h"
+#include "lcd_display.h"
 #include "midi_input.h"
+#include "scene.h"
 
 #include <QString>
 #include <QVector>
@@ -42,17 +44,14 @@ class Emulator : public QObject
   Q_OBJECT
 
 public:
-  Emulator(void);
+  Emulator(Scene *scene);
   virtual ~Emulator();
-
-  void load_control_rom(QString romPath);
-  void load_pcm_rom(QStringList romPaths);
-
-  bool has_valid_control_rom(void);
-  bool has_valid_pcm_rom(void);
 
   void start(void);
   void stop(void);
+
+  bool has_valid_control_rom(void);
+  bool has_valid_pcm_rom(void);
 
   QString control_rom_model(void);
   QString control_rom_version(void);
@@ -67,7 +66,6 @@ public:
   QStandardItemModel *get_drum_sets_list(void);
 
   int dump_demo_songs(QString path);
-  QVector<uint8_t> get_intro_anim(void);
   bool control_rom_changed(void);
 
   void panic(void);
@@ -76,6 +74,8 @@ public:
 
   void set_update_rom_state(bool state) { _updateROMs = state; }
   enum EmuSC::ControlRom::SynthGen get_synth_generation(void);
+
+  void lcd_mouse_press_event(Qt::MouseButton button, const QPointF &pos);
 
   // libEmuSC Synth API for get & set paramters
   uint8_t  get_param(enum EmuSC::SystemParam sp);
@@ -106,7 +106,10 @@ public:
   void set_param(enum EmuSC::DrumParam dp, uint8_t map, uint8_t *data,
 		 uint8_t length);
 
+
 signals:
+  void bar_display_update(QVector<bool>*);
+
   void emulator_started(void);
   void emulator_stopped(void);
 
@@ -148,9 +151,6 @@ public slots:
 
   void change_volume(int volume);
 
-  void generate_bar_display(void);
-  void play_anim_bar_display(void);
-
   void play_note(uint8_t key, uint8_t velocity);
 
   std::vector<EmuSC::ControlRom::DrumSet> &get_drumsets_ref(void);
@@ -165,10 +165,19 @@ public slots:
   bool running(void) { return _running; }
   MidiInput *get_midi_driver(void) { return _midiInput; }
 
+  void lcd_display_init_complete(void);
+
 private:
+  Scene *_scene;
+
   EmuSC::ControlRom *_emuscControlRom;
   EmuSC::PcmRom *_emuscPcmRom;
   EmuSC::Synth *_emuscSynth;
+
+  AudioOutput *_audioOutput;
+  MidiInput   *_midiInput;
+
+  LcdDisplay *_lcdDisplay;
 
   QString _ctrlRomModel;
   QString _ctrlRomVersion;
@@ -176,29 +185,9 @@ private:
   QString _pcmRomVersion;
   QString _pcmRomDate;
 
-  AudioOutput *_audioOutput;
-  MidiInput   *_midiInput;
-
   bool _updateROMs;
 
   uint8_t _selectedPart;
-
-  QVector<bool> _barDisplay;
-
-  struct lcdBarDisplayPartHist {
-    bool falling;
-    int value;
-    int time;
-  };
-  QVector<struct lcdBarDisplayPartHist> _lcdBarDisplayHistVect;
-
-  QTimer *_lcdDisplayTimer;
-
-  unsigned int _animIndex;
-  unsigned int _animFrameIndex;
-  QVector<uint8_t> *_introAnimPtr;
-  QVector<uint8_t> _introEmuscAnim;
-  QVector<uint8_t> _introModelAnim;
 
   bool _allMode;
 
@@ -206,21 +195,28 @@ private:
 
   EmuSC::Synth::SoundMap _soundMap;
 
+  Emulator();
+
+  void _connect_signals(void);
+
   void _start_midi_subsystem();
   void _start_audio_subsystem();
+
+  void _load_control_rom(QString romPath);
+  void _load_pcm_rom(QStringList romPaths);
 
   void set_all(void);
   void set_part(uint8_t value);
 
-  void set_instrument(uint8_t index, uint8_t bank, bool update);
-  void set_level(uint8_t value, bool update);
-  void set_pan(uint8_t value, bool update);
-  void set_reverb(uint8_t value, bool update);
-  void set_chorus(uint8_t value, bool update);
-  void set_key_shift(uint8_t value, bool update);
-  void set_midi_channel(uint8_t value, bool update);
+  void _set_instrument(uint8_t index, uint8_t bank, bool update);
+  void _set_level(uint8_t value, bool update);
+  void _set_pan(uint8_t value, bool update);
+  void _set_reverb(uint8_t value, bool update);
+  void _set_chorus(uint8_t value, bool update);
+  void _set_key_shift(uint8_t value, bool update);
+  void _set_midi_channel(uint8_t value, bool update);
 
-  void part_mod_callback(const int partId);
+  void _part_mod_callback(const int partId);
 };
 
 

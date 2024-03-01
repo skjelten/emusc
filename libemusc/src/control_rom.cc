@@ -797,22 +797,42 @@ float ControlRom::lookup_table(uint8_t table, float index, int interpolate)
 }
 
 
-std::vector<uint8_t> ControlRom::get_intro_anim(void)
+bool ControlRom::intro_anim_available(void)
 {
-  if (_synthModel != sm_SC55mkII)
-    return std::vector<uint8_t> {};
+  // TODO: Use SHA256 and proper ROM list to identify ROMs with intro animations
+  if (_synthModel == sm_SC55mkII)
+    return true;
 
-  // Index & length for SC55mkII ROM
-  int index = 0x70000;               // Note: SC155mkII starts at 0x071280
-  int length = 0x1280;
-    
+  return false;
+}
+
+
+std::vector<uint8_t> ControlRom::get_intro_anim(int animIndex)
+{
+  int romIndex;
+  int length;
+
+  if (_synthModel == sm_SC55mkII) {
+    if (animIndex == 0)
+      romIndex = 0x70000;               // SC-55mkII
+    else if (animIndex == 1)
+      romIndex = 0x71280;               // SC-155mkII
+    else
+      return std::vector<uint8_t> {};
+
+    length = 0x1280;
+
+  } else {
+    return std::vector<uint8_t> {};
+  }
+
   std::ifstream romFile(_romPath, std::ios::binary | std::ios::in);
   if (!romFile.is_open()) {
     std::cerr << "Unable to open control ROM: " << _romPath << std::endl;
   }
 
   std::vector<uint8_t> romData(length);
-  romFile.seekg(index);
+  romFile.seekg(romIndex);
   romFile.read((char*) &romData[0], length);
   romFile.close();
 

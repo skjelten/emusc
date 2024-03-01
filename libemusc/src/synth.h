@@ -75,7 +75,7 @@ public:
   void midi_input_sysex(uint8_t *data, uint16_t length);
 
   int get_next_sample(int16_t *sample);
-  std::vector<float> get_parts_last_peak_sample(void);
+  std::array<float, 16> get_parts_last_peak_sample(void);
 
   // Setting audio properties (default is 44100, 2)
   void set_audio_format(uint32_t sampleRate, uint8_t channels);
