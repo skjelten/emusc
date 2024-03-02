@@ -55,6 +55,17 @@ private:
   QStackedWidget *_stack;
   QListWidget *_menuList;
 
+  QListWidgetItem *_masterLW;
+  QListWidgetItem *_reverbLW;
+  QListWidgetItem *_chorusLW;
+  QListWidgetItem *_partMainLW;
+  QListWidgetItem *_partRxLW;
+  QListWidgetItem *_partTonesLW;
+  QListWidgetItem *_partScaleLW;
+  QListWidgetItem *_partCtrlLW;
+  QListWidgetItem *_drumsLW;
+  QListWidgetItem *_displayLW;
+
   Emulator *_emulator;
   Scene *_scene;
   int8_t _partId;
@@ -68,6 +79,7 @@ public:
 
 private slots:
   void accept(void);
+  void _reset(void);
   void _display_help(void);
   void _new_stack_item_focus(int index);
 };
@@ -102,6 +114,7 @@ private:
 public:
   explicit MasterSettings(Emulator *emulator, QWidget *parent = nullptr);
 
+  void reset(void);
   void calculate_tune_value(uint32_t settings);
 					      
 private slots:
@@ -143,6 +156,7 @@ private:
 public:
   explicit ReverbSettings(Emulator *emulator, QWidget *parent = nullptr);
 
+  void reset(void);
   void update_all_widgets(void);
 
 private slots:
@@ -186,6 +200,7 @@ private:
 public:
   explicit ChorusSettings(Emulator *emulator, QWidget *parent = nullptr);
 
+  void reset(void);
   void update_all_widgets(void);
 
 private slots:
@@ -244,6 +259,7 @@ public:
   explicit PartMainSettings(Emulator *emulator, int8_t &partId,
 			    QWidget *parent = nullptr);
 
+  void reset(void);
   void update_all_widgets(void);
 
 private slots:
@@ -305,6 +321,8 @@ private:
 public:
   explicit PartRxModeSettings(Emulator *emulator, int8_t &partId,
 			      QWidget *parent = nullptr);
+
+  void reset(void);
   void update_all_widgets(void);
 
 private slots:
@@ -370,6 +388,7 @@ public:
   explicit PartToneSettings(Emulator *emulator, int8_t &partId,
 			    QWidget *parent = nullptr);
 
+  void reset(void);
   void update_all_widgets(void);
 
 private slots:
@@ -403,6 +422,7 @@ public:
   explicit PartScaleSettings(Emulator *emulator, int8_t &partId,
 			     QWidget *parent = nullptr);
 
+  void reset(void);
   void update_all_widgets(bool blockSignals = true);
 
 private slots:
@@ -467,6 +487,8 @@ private:
 public:
   explicit PartControllerSettings(Emulator *emulator, int8_t &partId,
 				  QWidget *parent = nullptr);
+
+  void reset(void);
   void update_all_widgets(void);
 
 private slots:
@@ -528,6 +550,7 @@ private:
 public:
   explicit DrumSettings(Emulator *emulator, QWidget *parent = nullptr);
 
+  void reset(void);
   void update_all_widgets(void);
 
 private slots:
@@ -560,6 +583,7 @@ private:
 public:
   explicit DisplaySettings(Emulator *emulator, QWidget *parent = nullptr);
 
+  void reset(void);
   void update_all_widgets(void);
 
 private slots:

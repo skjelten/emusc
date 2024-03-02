@@ -64,43 +64,40 @@ SynthDialog::SynthDialog(Emulator *emulator, Scene *scene, QWidget *parent)
 
   QVBoxLayout *mainLayout = new QVBoxLayout;
   QHBoxLayout *settingsLayout = new QHBoxLayout;
-  
+
   _menuList = new QListWidget();
   _menuList->setMinimumHeight(100);
-  
-  QListWidgetItem*masterLW = new QListWidgetItem(QIcon(":/images/master.png"),
-						  tr("Master"), _menuList);
-  _menuList->addItem(masterLW);  
-  QListWidgetItem *reverbLW = new QListWidgetItem(QIcon(":/images/reverb.png"),
-						  tr("Reverb"), _menuList);
-  _menuList->addItem(reverbLW);
-  QListWidgetItem *chorusLW = new QListWidgetItem(QIcon(":/images/chorus.png"),
-						  tr("Chorus"), _menuList);
-  _menuList->addItem(chorusLW);
-  QListWidgetItem *partMainLW = new QListWidgetItem(QIcon(":/images/part.png"),
-						  tr("Part: Main"), _menuList);
-  _menuList->addItem(partMainLW);
-  QListWidgetItem *partRxLW = new QListWidgetItem(QIcon(":/images/rx.png"),
-						  tr("Part: Rx & Mode"),
-						  _menuList);
-  _menuList->addItem(partRxLW);
-  QListWidgetItem *partTonesLW = new QListWidgetItem(QIcon(":/images/tone.png"),
-						  tr("Part: Tones"), _menuList);
-  _menuList->addItem(partTonesLW);
-  QListWidgetItem *partScaleLW = new QListWidgetItem(QIcon(":/images/scale.png"),
-						     tr("Part: Scale Tuning"),
-						     _menuList);
-  _menuList->addItem(partScaleLW);
-  QListWidgetItem *partCtrlLW = new QListWidgetItem(QIcon(":/images/controller.png"),
-						     tr("Part: Controllers"),
-						     _menuList);
-  _menuList->addItem(partCtrlLW);
-  QListWidgetItem *drumsLW = new QListWidgetItem(QIcon(":/images/drum.png"),
-						  tr("Drums"), _menuList);
-  _menuList->addItem(drumsLW);
-  QListWidgetItem *displayLW =new QListWidgetItem(QIcon(":/images/display.png"),
-						  tr("Display"), _menuList);
-  _menuList->addItem(displayLW);
+
+  _masterLW = new QListWidgetItem(QIcon(":/images/master.png"),
+				  tr("Master"), _menuList);
+  _menuList->addItem(_masterLW);
+  _reverbLW = new QListWidgetItem(QIcon(":/images/reverb.png"),
+				  tr("Reverb"), _menuList);
+  _menuList->addItem(_reverbLW);
+  _chorusLW = new QListWidgetItem(QIcon(":/images/chorus.png"),
+				  tr("Chorus"), _menuList);
+  _menuList->addItem(_chorusLW);
+  _partMainLW = new QListWidgetItem(QIcon(":/images/part.png"),
+				    tr("Part: Main"), _menuList);
+  _menuList->addItem(_partMainLW);
+  _partRxLW = new QListWidgetItem(QIcon(":/images/rx.png"),
+				  tr("Part: Rx & Mode"), _menuList);
+  _menuList->addItem(_partRxLW);
+  _partTonesLW = new QListWidgetItem(QIcon(":/images/tone.png"),
+				     tr("Part: Tones"), _menuList);
+  _menuList->addItem(_partTonesLW);
+  _partScaleLW = new QListWidgetItem(QIcon(":/images/scale.png"),
+				     tr("Part: Scale Tuning"), _menuList);
+  _menuList->addItem(_partScaleLW);
+  _partCtrlLW = new QListWidgetItem(QIcon(":/images/controller.png"),
+				    tr("Part: Controllers"), _menuList);
+  _menuList->addItem(_partCtrlLW);
+  _drumsLW = new QListWidgetItem(QIcon(":/images/drum.png"),
+				 tr("Drums"), _menuList);
+  _menuList->addItem(_drumsLW);
+  _displayLW =new QListWidgetItem(QIcon(":/images/display.png"),
+				  tr("Display"), _menuList);
+  _menuList->addItem(_displayLW);
 
   _menuList->setFixedWidth(_menuList->sizeHintForColumn(0) + 10 +
 			 _menuList->frameWidth() * 2);
@@ -111,12 +108,14 @@ SynthDialog::SynthDialog(Emulator *emulator, Scene *scene, QWidget *parent)
 	  _stack, SLOT(setCurrentIndex(int)));
   connect(_stack, SIGNAL(currentChanged(int)),
 	  this, SLOT(_new_stack_item_focus(int)));
-  
+
   QDialogButtonBox *buttonBox = new QDialogButtonBox(QDialogButtonBox::Help  |
 						     QDialogButtonBox::Reset |
 						     QDialogButtonBox::Ok);
   connect(buttonBox, &QDialogButtonBox::helpRequested,
 	  this, &SynthDialog::_display_help);
+  connect(buttonBox->button(QDialogButtonBox::Reset), SIGNAL(clicked()),
+	  this, SLOT(_reset()));
   connect(buttonBox, &QDialogButtonBox::accepted, this, &QDialog::accept);
 
   mainLayout->addLayout(settingsLayout);
@@ -135,6 +134,33 @@ SynthDialog::SynthDialog(Emulator *emulator, Scene *scene, QWidget *parent)
 
 SynthDialog::~SynthDialog()
 {
+}
+
+
+void SynthDialog::_reset(void)
+{
+  if (_menuList->currentItem() == _masterLW)
+    _masterSettings->reset();
+  else if (_menuList->currentItem() == _reverbLW)
+    _reverbSettings->reset();
+  else if (_menuList->currentItem() == _chorusLW)
+    _chorusSettings->reset();
+  else if (_menuList->currentItem() == _partMainLW)
+    _partMainSettings->reset();
+  else if (_menuList->currentItem() == _partRxLW)
+    _partRxModeSettings->reset();
+  else if (_menuList->currentItem() == _partTonesLW)
+    _partToneSettings->reset();
+  else if (_menuList->currentItem() == _partScaleLW)
+    _partScaleSettings->reset();
+  else if (_menuList->currentItem() == _partCtrlLW)
+    _partControllerSettings->reset();
+  else if (_menuList->currentItem() == _drumsLW)
+    _drumSettings->reset();
+  else if (_menuList->currentItem() == _displayLW)
+    _displaySettings->reset();
+  else
+    std::cerr << "EmuSC: Internal error, reset unkown menu widget" << std::endl;
 }
 
 
@@ -410,6 +436,12 @@ MasterSettings::MasterSettings(Emulator *emulator, QWidget *parent)
 }
 
 
+void MasterSettings::reset(void)
+{
+  std::cout << "RESET" << std::endl;
+}
+
+
 void MasterSettings::_volume_changed(int value)
 {
   _volumeL->setText(": " + QString::number(value));
@@ -594,6 +626,12 @@ ReverbSettings::ReverbSettings(Emulator *emulator, QWidget *parent)
   vboxLayout->insertSpacing(3, 15);
 
   setLayout(vboxLayout);  
+}
+
+
+void ReverbSettings::reset(void)
+{
+  _preset_changed(4);                   // Default: Hall 2
 }
 
 
@@ -796,6 +834,12 @@ ChorusSettings::ChorusSettings(Emulator *emulator, QWidget *parent)
   vboxLayout->insertSpacing(3, 15);
 
   setLayout(vboxLayout);
+}
+
+
+void ChorusSettings::reset(void)
+{
+  _preset_changed(2);                   // Default: Chorus 3
 }
 
 
@@ -1112,6 +1156,11 @@ PartMainSettings::PartMainSettings(Emulator *emulator, int8_t &partId,
 }
 
 
+void PartMainSettings::reset(void)
+{
+  std::cout << "RESET" << std::endl;
+}
+
 void PartMainSettings::update_all_widgets(void)
 {
   _partC->setCurrentIndex(_partId);
@@ -1422,6 +1471,12 @@ PartRxModeSettings::PartRxModeSettings(Emulator *emulator, int8_t &partId,
   update_all_widgets();
 
   setLayout(vboxLayout);
+}
+
+
+void PartRxModeSettings::reset(void)
+{
+  std::cout << "RESET" << std::endl;
 }
 
 
@@ -1743,6 +1798,12 @@ PartToneSettings::PartToneSettings(Emulator *emulator, int8_t &partId,
 }
 
 
+void PartToneSettings::reset(void)
+{
+  std::cout << "RESET" << std::endl;
+}
+
+
 void PartToneSettings::update_all_widgets(void)
 {
   _partC->setCurrentIndex(_partId);
@@ -1927,6 +1988,12 @@ PartScaleSettings::PartScaleSettings(Emulator *emulator, int8_t &partId,
   vboxLayout->insertSpacing(5, 10);
   vboxLayout->addStretch(0);
   setLayout(vboxLayout);
+}
+
+
+void PartScaleSettings::reset(void)
+{
+  std::cout << "RESET" << std::endl;
 }
 
 
@@ -2306,6 +2373,12 @@ PartControllerSettings::PartControllerSettings(Emulator *emulator,
 }
 
 
+void PartControllerSettings::reset(void)
+{
+  std::cout << "RESET" << std::endl;
+}
+
+
 void PartControllerSettings::update_all_widgets(void)
 {
   _partC->setCurrentIndex(_partId);
@@ -2642,6 +2715,12 @@ DrumSettings::DrumSettings(Emulator *emulator, QWidget *parent)
 }
 
 
+void DrumSettings::reset(void)
+{
+  std::cout << "RESET" << std::endl;
+}
+
+
 void DrumSettings::update_all_widgets(void)
 {
   _instrument = _instrumentC->currentIndex();
@@ -2837,6 +2916,15 @@ DisplaySettings::DisplaySettings(Emulator *emulator, QWidget *parent)
   vboxLayout->addLayout(gridLayout);
   vboxLayout->addStretch(0);
   setLayout(vboxLayout);
+}
+
+
+void DisplaySettings::reset(void)
+{
+  _emulator->set_bar_display_type(1);
+  _emulator->set_bar_display_peak_hold(1);
+
+  update_all_widgets();
 }
 
 
