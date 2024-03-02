@@ -44,6 +44,9 @@ public:
   LcdDisplay(Scene *scene, EmuSC::Synth **synth,EmuSC::ControlRom **controlRom);
   virtual ~LcdDisplay();
   
+  void turn_on(bool newRom, QString startupAnimSetting);
+  void turn_off(void);
+
   void set_part(QString text);
   void set_instrument(QString text);
   void set_level(QString text);
@@ -53,8 +56,11 @@ public:
   void set_kshift(QString text);
   void set_midich(QString text);
 
-  void turn_on(bool newRom, QString startupAnimSetting);
-  void turn_off(void);
+  int get_bar_display_type(void) { return _barDisplay->get_type(); }
+  void set_bar_display_type(int type) { _barDisplay->set_type(type); }
+
+  int get_bar_display_peak_hold(void) { return _barDisplay->get_peak_hold(); }
+  void set_bar_display_peak_hold(int type) { _barDisplay->set_peak_hold(type); }
 
 public slots:
   void mouse_press_event(Qt::MouseButton button, const QPointF &pos);

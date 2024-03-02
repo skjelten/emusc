@@ -26,6 +26,7 @@
 	<file>images/scale.png</file>
 	<file>images/controller.png</file>
 	<file>images/drum.png</file>
+	<file>images/display.png</file>
     </qresource>
 
     <qresource>

@@ -40,54 +40,6 @@ LcdDisplay::~LcdDisplay()
 }
 
 
-void LcdDisplay::set_part(QString text)
-{
-  emit update_part_text(text);
-}
-
-
-void LcdDisplay::set_instrument(QString text)
-{
-  emit update_instrument_text(text);
-}
-
-
-void LcdDisplay::set_level(QString text)
-{
-  emit update_level_text(text);
-}
-
-
-void LcdDisplay::set_pan(QString text)
-{
-  emit update_pan_text(text);
-}
-
-
-void LcdDisplay::set_reverb(QString text)
-{
-  emit update_reverb_text(text);
-}
-
-
-void LcdDisplay::set_chorus(QString text)
-{
-  emit update_chorus_text(text);
-}
-
-
-void LcdDisplay::set_kshift(QString text)
-{
-  emit update_kshift_text(text);
-}
-
-
-void LcdDisplay::set_midich(QString text)
-{
-  emit update_midich_text(text);
-}
-
-
 void LcdDisplay::turn_on(bool newRom, QString startupAnimSetting)
 {
   if (!(*_emuscControlRom)) {
@@ -134,6 +86,54 @@ void LcdDisplay::turn_off(void)
 {
   _barDisplay->stop();
   _scene->display_off();
+}
+
+
+void LcdDisplay::set_part(QString text)
+{
+  emit update_part_text(text);
+}
+
+
+void LcdDisplay::set_instrument(QString text)
+{
+  emit update_instrument_text(text);
+}
+
+
+void LcdDisplay::set_level(QString text)
+{
+  emit update_level_text(text);
+}
+
+
+void LcdDisplay::set_pan(QString text)
+{
+  emit update_pan_text(text);
+}
+
+
+void LcdDisplay::set_reverb(QString text)
+{
+  emit update_reverb_text(text);
+}
+
+
+void LcdDisplay::set_chorus(QString text)
+{
+  emit update_chorus_text(text);
+}
+
+
+void LcdDisplay::set_kshift(QString text)
+{
+  emit update_kshift_text(text);
+}
+
+
+void LcdDisplay::set_midich(QString text)
+{
+  emit update_midich_text(text);
 }
 
 

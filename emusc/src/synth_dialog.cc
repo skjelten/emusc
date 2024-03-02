@@ -48,6 +48,7 @@ SynthDialog::SynthDialog(Emulator *emulator, Scene *scene, QWidget *parent)
   _partScaleSettings = new PartScaleSettings(emulator, _partId);
   _partControllerSettings = new PartControllerSettings(emulator, _partId);
   _drumSettings = new DrumSettings(emulator);
+  _displaySettings = new DisplaySettings(emulator);
 
   _stack = new QStackedWidget();
   _stack->addWidget(_masterSettings);
@@ -59,6 +60,7 @@ SynthDialog::SynthDialog(Emulator *emulator, Scene *scene, QWidget *parent)
   _stack->addWidget(_partScaleSettings);
   _stack->addWidget(_partControllerSettings);
   _stack->addWidget(_drumSettings);
+  _stack->addWidget(_displaySettings);
 
   QVBoxLayout *mainLayout = new QVBoxLayout;
   QHBoxLayout *settingsLayout = new QHBoxLayout;
@@ -96,6 +98,9 @@ SynthDialog::SynthDialog(Emulator *emulator, Scene *scene, QWidget *parent)
   QListWidgetItem *drumsLW = new QListWidgetItem(QIcon(":/images/drum.png"),
 						  tr("Drums"), _menuList);
   _menuList->addItem(drumsLW);
+  QListWidgetItem *displayLW =new QListWidgetItem(QIcon(":/images/display.png"),
+						  tr("Display"), _menuList);
+  _menuList->addItem(displayLW);
 
   _menuList->setFixedWidth(_menuList->sizeHintForColumn(0) + 10 +
 			 _menuList->frameWidth() * 2);
@@ -2791,4 +2796,64 @@ void DrumSettings::_rxNoteOn_changed(int value)
 void DrumSettings::_rxNoteOff_changed(int value)
 {
   _emulator->set_param(EmuSC::DrumParam::RxNoteOff, _map, _instrument, value);
+}
+
+
+DisplaySettings::DisplaySettings(Emulator *emulator, QWidget *parent)
+  : _emulator(emulator)
+{
+  QVBoxLayout *vboxLayout = new QVBoxLayout();
+
+  QLabel *headerL = new QLabel("Display Settings");
+  QFont f("Arial", 12, QFont::Bold);
+  headerL->setFont( f);
+  vboxLayout->addWidget(headerL);
+
+  QGridLayout *gridLayout = new QGridLayout();
+  gridLayout->addWidget(new QLabel("Bar display:"), 0, 0);
+  gridLayout->addWidget(new QLabel("Peak hold:"), 1, 0);
+
+  _barDisplayCB = new QComboBox();
+  _barDisplayCB->addItems({"Type 1", "Type 2", "Type 3", "Type 4",
+                           "Type 5", "Type 6", "Type 7", "Type 8"});
+  _barDisplayCB->setEditable(false);
+  gridLayout->addWidget(_barDisplayCB, 0, 1);
+
+  _peakHoldCB = new QComboBox();
+  _peakHoldCB->addItems({"Off", "Type 1", "Type 2", "Type 3"});
+  _peakHoldCB->setEditable(false);
+  gridLayout->addWidget(_peakHoldCB, 1, 1);
+
+  update_all_widgets();
+
+  connect(_barDisplayCB, SIGNAL(currentIndexChanged(int)),
+	  this, SLOT(_barDisplay_changed(int)));
+  connect(_peakHoldCB, SIGNAL(currentIndexChanged(int)),
+	  this, SLOT(_peakHold_changed(int)));
+
+  gridLayout->setColumnStretch(2, 1);
+
+  vboxLayout->insertSpacing(1, 15);
+  vboxLayout->addLayout(gridLayout);
+  vboxLayout->addStretch(0);
+  setLayout(vboxLayout);
+}
+
+
+void DisplaySettings::update_all_widgets(void)
+{
+  _barDisplayCB->setCurrentIndex(_emulator->get_bar_display_type() - 1);
+  _peakHoldCB->setCurrentIndex(_emulator->get_bar_display_peak_hold());
+}
+
+
+void DisplaySettings::_barDisplay_changed(int value)
+{
+  _emulator->set_bar_display_type(value + 1);
+}
+
+
+void DisplaySettings::_peakHold_changed(int value)
+{
+  _emulator->set_bar_display_peak_hold(value);
 }

@@ -50,10 +50,11 @@ private:
   class PartScaleSettings *_partScaleSettings;
   class PartControllerSettings *_partControllerSettings;
   class DrumSettings *_drumSettings;
+  class DisplaySettings *_displaySettings;
 
   QStackedWidget *_stack;
   QListWidget *_menuList;
-  
+
   Emulator *_emulator;
   Scene *_scene;
   int8_t _partId;
@@ -95,9 +96,9 @@ private:
   QCheckBox *_rxGSResetCh;
   QCheckBox *_rxInstChgCh;
   QCheckBox *_rxFuncCtrlCh;
-  
+
   Emulator *_emulator;
-  
+
 public:
   explicit MasterSettings(Emulator *emulator, QWidget *parent = nullptr);
 
@@ -543,6 +544,27 @@ private slots:
 
   void _rxNoteOn_changed(int value);
   void _rxNoteOff_changed(int value);
+};
+
+
+class DisplaySettings : public QWidget
+{
+  Q_OBJECT
+
+private:
+  QComboBox *_barDisplayCB;
+  QComboBox *_peakHoldCB;
+
+  Emulator *_emulator;
+
+public:
+  explicit DisplaySettings(Emulator *emulator, QWidget *parent = nullptr);
+
+  void update_all_widgets(void);
+
+private slots:
+  void _barDisplay_changed(int value);
+  void _peakHold_changed(int value);
 };
 
 

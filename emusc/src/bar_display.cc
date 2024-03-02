@@ -19,6 +19,8 @@
 
 #include "bar_display.h"
 
+#include <inttypes.h>
+
 #include <iostream>
 
 #include <QFile>
@@ -31,8 +33,8 @@ BarDisplay::BarDisplay(EmuSC::Synth **synth, EmuSC::ControlRom **controlRom)
     _barDisplayHistVect(16, {0,-1,0}),
     _playAnimation(false),
     _animFrameIndex(0),
-    _barDisplayType(1),
-    _barDisplayPeakHoldType(1)
+    _type(1),
+    _peakHold(1)
 {
   _barDisplay.reserve(256);
 //  _barDisplay.fill(1, 256);
@@ -107,6 +109,19 @@ void BarDisplay::update(void)
 }
 
 
+void BarDisplay::set_type(int type)
+{
+  if (type >= 1 && type <= 8)
+    _type = type;
+}
+
+void BarDisplay::set_peak_hold(int type)
+{
+  if (type >= 0 && type <= 3)
+    _peakHold = type;
+}
+
+
 void BarDisplay::_update_animation(void)
 {
   if (_animFrameIndex == 0)
@@ -159,11 +174,11 @@ void BarDisplay::_update_volume(void)
 {
   _barDisplay.clear();
 
-  bool on = (_barDisplayType <= 4) ? true : false;
+  bool on = (_type <= 4) ? true : false;
   bool off = !on;
-  bool showBars = (_barDisplayType % 2) ? true : false;
-  bool upwards = (_barDisplayType == 1 || _barDisplayType == 2 ||
-		  _barDisplayType == 5 || _barDisplayType == 6) ? true : false;
+  bool showBars = (_type % 2) ? true : false;
+  bool upwards = (_type == 1 || _type == 2 ||
+		  _type == 5 || _type == 6) ? true : false;
   int partNum = 0;
   for (auto &p : _currentPartsAmp) {
     int height = p * 100 * 0.7;  // FIXME: Audio values follows function?
@@ -181,7 +196,7 @@ void BarDisplay::_update_volume(void)
     if (_barDisplayHistVect[partNum].falling == false &&
 	_barDisplayHistVect[partNum].time > 16 &&             // First fall
 	_barDisplayHistVect[partNum].value > 0 &&
-	(_barDisplayPeakHoldType == 1 || _barDisplayPeakHoldType == 3)) {
+	(_peakHold == 1 || _peakHold == 3)) {
       _barDisplayHistVect[partNum].falling = true;
       _barDisplayHistVect[partNum].value--;
       _barDisplayHistVect[partNum].time = 0;
@@ -189,7 +204,7 @@ void BarDisplay::_update_volume(void)
     } else if (_barDisplayHistVect[partNum].falling == false &&
 	       _barDisplayHistVect[partNum].time > 16 &&      // No fall
 	       _barDisplayHistVect[partNum].value > 0 &&
-	       (_barDisplayPeakHoldType == 0 || _barDisplayPeakHoldType == 2)) {
+	       (_peakHold == 0 || _peakHold == 2)) {
       _barDisplayHistVect[partNum].falling = false;
       _barDisplayHistVect[partNum].value = 0;
       _barDisplayHistVect[partNum].time = 0;
@@ -205,7 +220,7 @@ void BarDisplay::_update_volume(void)
       int j = (upwards) ? i : 17 - i;
       if ((j == 1 && height >= 0) ||                  // First line, no input
 	  (showBars && height > j) ||                 // All bars up to height
-	  (_barDisplayPeakHoldType &&
+	  (_peakHold &&
 	   _barDisplayHistVect[partNum].value == j))  // Draw peak hold bar
 	_barDisplay.push_back(on);
       else
@@ -302,22 +317,22 @@ bool BarDisplay::_set_animBuffer_from_resource(QString animPath)
 void BarDisplay::mouse_press_event(Qt::MouseButton button, const QPointF &pos)
 {
   if (button == Qt::LeftButton) {
-    _barDisplayType ++;
-    if (_barDisplayType > 8)
-      _barDisplayType = 1;
+    _type ++;
+    if (_type > 8)
+      _type = 1;
 
   } else if (button == Qt::RightButton) {
-    _barDisplayType --;
-    if (_barDisplayType < 1)
-      _barDisplayType = 8;
+    _type --;
+    if (_type < 1)
+      _type = 8;
 
   } else if (button == Qt::MiddleButton) {
-    _barDisplayPeakHoldType ++;
-    if (_barDisplayPeakHoldType > 3)
-      _barDisplayPeakHoldType = 0;
+    _peakHold ++;
+    if (_peakHold > 3)
+      _peakHold = 0;
 
   } else if (button == Qt::BackButton) {
-    _barDisplayType = 1;
-    _barDisplayPeakHoldType = 1;
+    _type = 1;
+    _peakHold = 1;
   }
 }

@@ -75,6 +75,12 @@ public:
   void set_update_rom_state(bool state) { _updateROMs = state; }
   enum EmuSC::ControlRom::SynthGen get_synth_generation(void);
 
+  int get_bar_display_type(void) { return _lcdDisplay->get_bar_display_type(); }
+  void set_bar_display_type(int type) {_lcdDisplay->set_bar_display_type(type);}
+
+  int get_bar_display_peak_hold(void) { return _lcdDisplay->get_bar_display_peak_hold(); }
+  void set_bar_display_peak_hold(int type) { _lcdDisplay->set_bar_display_peak_hold(type);}
+
   void lcd_mouse_press_event(Qt::MouseButton button, const QPointF &pos);
 
   // libEmuSC Synth API for get & set paramters

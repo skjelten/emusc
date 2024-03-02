@@ -24,8 +24,6 @@
 #include "emusc/synth.h"
 #include "emusc/control_rom.h"
 
-#include <inttypes.h>
-
 #include <QVector>
 #include <QString>
 #include <QObject>
@@ -51,7 +49,13 @@ public:
     SC55   = 3
   };
   void play_intro_animations(QString startupAnimSetting);
-  
+
+  int get_type(void) { return _type; }
+  void set_type(int type);
+
+  int get_peak_hold() { return _peakHold; }
+  void set_peak_hold(int type);
+
   void mouse_press_event(Qt::MouseButton button, const QPointF &pos);
 
 public slots:
@@ -63,8 +67,8 @@ private:
 
   QTimer *_updateTimer;
 
-  int _barDisplayType;                             // Type 1 - 8       [1]
-  int _barDisplayPeakHoldType;                     // Off / Type 1 - 3 [1]
+  int _type;                                // Type 1 - 8       [1]
+  int _peakHold;                            // Off / Type 1 - 3 [1]
 
   QVector<bool> _barDisplay;
   std::array<float, 16> _currentPartsAmp;
