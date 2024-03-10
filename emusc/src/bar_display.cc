@@ -23,6 +23,7 @@
 
 #include <iostream>
 
+#include <QDataStream>
 #include <QFile>
 #include <QDebug>
 
