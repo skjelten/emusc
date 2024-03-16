@@ -22,7 +22,6 @@
 
 
 #include "control_rom.h"
-#include "riaa_filter.h"
 #include "pcm_rom.h"
 #include "settings.h"
 #include "tva.h"
@@ -75,9 +74,6 @@ private:
   TVP *_tvp;
   TVF *_tvf;
   TVA *_tva;
-
-  RiaaFilter _rf1;
-  RiaaFilter _rf2;
 
   double _sample;
 

@@ -61,8 +61,6 @@ Partial::Partial(uint8_t key, int partialId, uint16_t instrumentIndex,
     _keyFreq(440 * exp(log(2) * (key - 69) / 12)),
     _expFactor(log(2) / 12000),
     _lastPos(0),
-    _rf1(32000, 15),
-    _rf2(32000, 15),
     _tvp(NULL),
     _tvf(NULL),
     _tva(NULL)
@@ -183,7 +181,7 @@ bool Partial::get_next_sample(float *noteSample)
     return 1;
 
   double sample[2] = {0, 0};
-  sample[0] = _sample;
+  sample[0] = _sample * 0.7;      // Reduce audio volume to avoid overflow
 
   // TODO: Move all static volume calculations to constructor
   // Calculate volume correction from sample definition (7f - 0)
@@ -249,13 +247,11 @@ bool Partial::_next_sample_from_rom(float pitchAdj)
 
     _index += pitchAdj;
 
-    while (roundf(_index) > _lastPos && _lastPos < _ctrlSample->sampleLen - 1) {
-      _sample = _rf1.apply(_pcmSamples->at(_lastPos++));
-      _sample = _rf2.apply(_sample);
-    }
+    while (roundf(_index) > _lastPos && _lastPos < _ctrlSample->sampleLen - 1)
+      _sample += _pcmSamples->at(_lastPos++);
 
     // Check for sample position passing sample boundary
-    if (_index > _ctrlSample->sampleLen - 1) {      // -1 due to lin. interpol.
+    if (_index > _ctrlSample->sampleLen) {
       // Keep track of correct sample index when switching sample direction
       float remaining = abs(_ctrlSample->sampleLen - _index);
 
@@ -263,12 +259,11 @@ bool Partial::_next_sample_from_rom(float pitchAdj)
       if (_ctrlSample->loopMode == 0) {
 	_index = _ctrlSample->sampleLen - _ctrlSample->loopLen - 1 + remaining;
 	_lastPos = _ctrlSample->sampleLen - _ctrlSample->loopLen - 1;
+	_sample = _lastPos = 0;
 
 	// Filter any remainging samples
-	while (roundf(_index) > _lastPos) {
-	  _sample = _rf1.apply(_pcmSamples->at(_lastPos++));
-	  _sample = _rf2.apply(_sample);
-	}
+	while (roundf(_index) > _lastPos)
+	  _sample += _pcmSamples->at(_lastPos++);
 
       // loopMode == 1 => Forward-backward (start moving backwards)
       } else if (_ctrlSample->loopMode == 1) {
@@ -276,10 +271,8 @@ bool Partial::_next_sample_from_rom(float pitchAdj)
 	_direction = 0;
 
 	// Filter any remainging samples
-	while (roundf(_index) < _lastPos) {
-	  _sample = _rf1.apply(_pcmSamples->at(_lastPos--));
-	  _sample = _rf2.apply(_sample);
-	}
+	while (roundf(_index) < _lastPos)
+	  _sample += _pcmSamples->at(_lastPos--);
 
       // loopMode == 2 => Forward-stop (end playback)
       } else if (_ctrlSample->loopMode == 2) {
@@ -299,19 +292,15 @@ bool Partial::_next_sample_from_rom(float pitchAdj)
     _index -= pitchAdj;
 
     while (roundf(_index) < _lastPos &&
-	   _lastPos > _ctrlSample->sampleLen - _ctrlSample->loopLen) {
-      _sample = _rf1.apply(_pcmSamples->at(_lastPos--));
-      _sample = _rf2.apply(_sample);
-    }
+	   _lastPos > _ctrlSample->sampleLen - _ctrlSample->loopLen)
+      _sample += _pcmSamples->at(_lastPos--);
 
     // Check for sample position passing sample boundary
     if (_index < _ctrlSample->sampleLen - _ctrlSample->loopLen - 1) {
 
       // Filter any remainging samples backward
-      while (_lastPos > _ctrlSample->sampleLen - _ctrlSample->loopLen - 1) {
-	_sample = _rf1.apply(_pcmSamples->at(_lastPos--));
-	_sample = _rf2.apply(_sample);
-      }
+      while (_lastPos > _ctrlSample->sampleLen - _ctrlSample->loopLen - 1)
+	_sample += _pcmSamples->at(_lastPos--);
 
       // Keep track of correct position switching position
       float remaining = _ctrlSample->sampleLen - _ctrlSample->loopLen - _index;
@@ -322,10 +311,9 @@ bool Partial::_next_sample_from_rom(float pitchAdj)
 
       // Filter any remainging samples forward
       _lastPos = _ctrlSample->sampleLen - _ctrlSample->loopLen;
-      while (roundf(_index) < _lastPos) {
-	_sample = _rf1.apply(_pcmSamples->at(_lastPos++));
-	_sample = _rf2.apply(_sample);
-      }
+      _sample = 0;
+      while (roundf(_index) < _lastPos)
+	_sample += _pcmSamples->at(_lastPos++);
     }
   }
 

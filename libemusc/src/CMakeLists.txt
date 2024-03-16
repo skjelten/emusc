@@ -22,8 +22,6 @@ add_library(emusc
   partial.h
   pcm_rom.cc
   pcm_rom.h
-  riaa_filter.cc
-  riaa_filter.h
   settings.cc
   settings.h
   synth.cc
