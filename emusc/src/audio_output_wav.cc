@@ -28,7 +28,6 @@
 #include "audio_output_wav.h"
 
 #include <QDataStream>
-#include <QFile>
 #include <QSettings>
 #include <QString>
 
@@ -47,11 +46,13 @@ AudioOutputWav::AudioOutputWav(EmuSC::Synth *synth)
     _channels(2)
 {
   QSettings settings;
-  QString filePath = settings.value("Audio/file_path").toString();
+  QString filePath = settings.value("Audio/wav_file_path").toString();
 
-  QFile wavFile(filePath);
-  if (!wavFile.open(QIODevice::WriteOnly))
+  _wavFile = new QFile(filePath);
+  if (!_wavFile->open(QIODevice::WriteOnly)) {
+    delete _wavFile;
     throw(QString("EmuSC: Error opening file path " + filePath));
+  }
 
   synth->set_audio_format(_sampleRate, _channels);
   std::cout << "EmuSC: Audio output [WAV] successfully initialized"
@@ -62,6 +63,8 @@ AudioOutputWav::AudioOutputWav(EmuSC::Synth *synth)
 AudioOutputWav::~AudioOutputWav()
 {
   stop();
+
+  delete _wavFile;
 }
 
 
@@ -96,13 +99,6 @@ void AudioOutputWav::start(void)
 
 void AudioOutputWav::run(void)
 {
-  QSettings settings;
-  QString filePath = settings.value("Audio/file_path").toString();
-
-  QFile wavFile(filePath);
-  if (!wavFile.open(QIODevice::WriteOnly))
-    return;
-
   // Write static WAV header before starting audio loop
   const uint8_t header[] = { 'R', 'I', 'F', 'F',     0x00, 0x00, 0x00, 0x00,
 			     'W', 'A', 'V', 'E',      'f',  'm',  't',  ' ',
@@ -112,14 +108,14 @@ void AudioOutputWav::run(void)
 			     0x00, 0x00, 0x00, 0x00 };
   QByteArray headerArray = QByteArray::fromRawData((const char *) header,
 						   sizeof(header));
-  wavFile.write(headerArray);
+  _wavFile->write(headerArray);
 
   int8_t data[1024];
 
   uint32_t numSamples = 0;
   int bytesPerSample = 4;
 
-  QDataStream stream(&wavFile);
+  QDataStream stream(_wavFile);
 
   std::chrono::high_resolution_clock::time_point t1;
   std::chrono::high_resolution_clock::time_point t2;
@@ -135,29 +131,29 @@ void AudioOutputWav::run(void)
     
     int len = _fill_buffer(&data[0], 4);
     QByteArray dataArray = QByteArray::fromRawData((const char *)&data[0], len);
-    wavFile.write(dataArray);
+    _wavFile->write(dataArray);
     numSamples += len / 4;
 
     t1 += std::chrono::nanoseconds(22676);   // 22676 = ns per sample (44.1kHz)
   }
 
   // Update WAV header with correct sizes before closing the file
-  wavFile.seek(4);
+  _wavFile->seek(4);
   stream << (quint8) (((numSamples * bytesPerSample) + 36) & 0xff)
 	 << (quint8) ((((numSamples * bytesPerSample) + 36) >> 8) & 0xff)
 	 << (quint8) ((((numSamples * bytesPerSample) + 36) >> 16) & 0xff)
 	 << (quint8) ((((numSamples * bytesPerSample) + 36) >> 24) & 0xff);
 
-  wavFile.seek(40);
+  _wavFile->seek(40);
   stream << (quint8) ((numSamples * bytesPerSample) & 0xff)
 	 << (quint8) (((numSamples * bytesPerSample) >> 8) & 0xff)
 	 << (quint8) (((numSamples * bytesPerSample) >> 16) & 0xff)
 	 << (quint8) (((numSamples * bytesPerSample) >> 24) & 0xff);
 
-  wavFile.close();
+  std::cout << "EmuSC: " << _wavFile->size() / 1000 << "kB WAV file written to "
+	    << _wavFile->fileName().toStdString() << std::endl;
 
-  std::cout << "EmuSC: WAV file written to " << filePath.toStdString()
-	    << std::endl;
+  _wavFile->close();
 }
 
 

@@ -706,6 +706,9 @@ void AudioSettings::_open_file_path_dialog(void)
   if (dialog.exec()) {
     fileNames = dialog.selectedFiles();
     _filePathLE->setText(fileNames[0]);
+
+    QSettings settings;
+    settings.setValue("Audio/wav_file_path", fileNames[0]);
   }
 }
 

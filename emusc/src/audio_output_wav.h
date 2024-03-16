@@ -30,6 +30,8 @@
 
 #include <thread>
 
+#include <QFile>
+
 
 class AudioOutputWav: public AudioOutput
 {
@@ -48,6 +50,8 @@ private:
 
   int _channels;
   unsigned int _sampleRate;
+
+  QFile *_wavFile;
 
   int _fill_buffer(int8_t *data, size_t length);
 
