@@ -142,7 +142,7 @@ void AHDSR::_init_new_phase(enum Phase newPhase)
   _phaseInitValue = _currentValue;
 
   int durationTotal = _phaseDuration[newPhase];
-  if (newPhase == ahdsr_Attack) {
+  if (newPhase == ahdsr_Attack || newPhase == ahdsr_Hold) {
     durationTotal += _settings->get_param(PatchParam::TVFAEnvAttack, _partId)
                      - 0x40;
 
