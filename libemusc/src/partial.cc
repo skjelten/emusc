@@ -122,6 +122,24 @@ Partial::Partial(uint8_t key, int partialId, uint16_t instrumentIndex,
 	 * log(2) / 1200))
     * 32000.0 / settings->get_param_uint32(SystemParam::SampleRate);
 
+  // 6. Calculate volume correction
+  double sampleVol = _convert_volume(_ctrlSample->volume +
+				     ((_ctrlSample->fineVolume- 1024) /1000.0));
+  double partialVol = _convert_volume(_instPartial.volume);
+  double drumVol = 1;
+  if (_isDrum)
+    drumVol = _convert_volume(_settings->get_param(DrumParam::Level, _drumMap,
+						   _key));
+  float ctrlVol = _settings->get_param(PatchParam::Acc_AmplitudeControl, _partId) / 64.0;
+  _volumeCorrection = sampleVol * partialVol * drumVol * ctrlVol;
+
+  // 7. Calculate panpot (stereo positioning of sounds)
+  if (!_isDrum)
+    _panpot = (_instPartial.panpot - 0x40) / 64.0;
+  else
+    _panpot = (_settings->get_param(DrumParam::Panpot, _drumMap, _key) - 0x40) / 64.0;
+
+  // 8. Create envelope classes
   // 1. Pitch: Vibrato & TVP envelope
   _tvp = new TVP(_instPartial, LFO, settings, partId);
 
@@ -183,24 +201,9 @@ bool Partial::get_next_sample(float *noteSample)
   double sample[2] = {0, 0};
   sample[0] = _sample * 0.7;      // Reduce audio volume to avoid overflow
 
-  // TODO: Move all static volume calculations to constructor
-  // Calculate volume correction from sample definition (7f - 0)
-  double sampleVol = _convert_volume(_ctrlSample->volume +
-				     ((_ctrlSample->fineVolume- 1024) /1000.0));
-
-  // Calculate volume correction from partial definition (7f - 0)
-  double partialVol = _convert_volume(_instPartial.volume);
-
-  // Calculate volume correction from drum set definition
-  double drumVol = 1;
-  if (_isDrum)
-    drumVol = _convert_volume(_settings->get_param(DrumParam::Level, _drumMap,
-						   _key));
-
-  float ctrlVol = _settings->get_param(PatchParam::Acc_AmplitudeControl, _partId) / 64.0;
 
   // Apply volume changes
-  sample[0] *= sampleVol * partialVol * drumVol * ctrlVol;
+  sample[0] *= _volumeCorrection;
 
   // Apply TVF
 // NOTE: TEMPORARILY DISABLED
@@ -212,17 +215,10 @@ bool Partial::get_next_sample(float *noteSample)
   // Make both channels equal before adding pan (stereo position)
   sample[1] = sample[0];
 
-  // Add panpot (stereo positioning of sounds)
-  double panpot;
-  if (!_isDrum)
-    panpot = (_instPartial.panpot - 0x40) / 64.0;
-  else
-    panpot = (_settings->get_param(DrumParam::Panpot, _drumMap, _key) - 0x40) / 64.0;
-
-  if (panpot < 0)
-    sample[1] *= (1 + panpot);
-  else if (panpot > 0)
-    sample[0] *= (1 - panpot);
+  if (_panpot < 0)
+    sample[1] *= (1 + _panpot);
+  else if (_panpot > 0)
+    sample[0] *= (1 - _panpot);
 
   // Finally add samples to the sample pointers (always 2 channels / stereo)
   noteSample[0] += sample[0];
@@ -258,7 +254,6 @@ bool Partial::_next_sample_from_rom(float pitchAdj)
       // loopMode == 0 => Forward only w/loop (jump back "loopLen + 1")
       if (_ctrlSample->loopMode == 0) {
 	_index = _ctrlSample->sampleLen - _ctrlSample->loopLen - 1 + remaining;
-	_lastPos = _ctrlSample->sampleLen - _ctrlSample->loopLen - 1;
 	_sample = _lastPos = 0;
 
 	// Filter any remainging samples

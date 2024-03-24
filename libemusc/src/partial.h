@@ -65,6 +65,9 @@ private:
 
   float _staticPitchTune;
 
+  double _volumeCorrection;
+  double _panpot;
+
   Settings *_settings;
   int8_t _partId;
 
