@@ -25,6 +25,7 @@
 #include "control_rom.h"
 #include "pcm_rom.h"
 #include "note.h"
+#include "reverb.h"
 #include "settings.h"
 
 #include <stdint.h>
@@ -98,6 +99,7 @@ private:
   PcmRom &_pcmRom;
 
   Chorus *_chorus;
+  Reverb *_reverb;
 
   // Calculated controller values (minimize number of calculations)
   // TODO: Figure out how to do this properly. Only relevant for pitchBend?

@@ -34,7 +34,8 @@ Part::Part(uint8_t id, Settings *settings, ControlRom &ctrlRom, PcmRom &pcmRom)
     _7bScale(1/127.0),
     _lastPeakSample(0),
     _lastPitchBendRange(2),
-    _chorus(NULL)
+    _chorus(NULL),
+    _reverb(NULL)
 {
   // TODO: Rename mode => synthMode and set proper defaults for MT32 mode
   _notesMutex = new std::mutex();
@@ -43,6 +44,7 @@ Part::Part(uint8_t id, Settings *settings, ControlRom &ctrlRom, PcmRom &pcmRom)
   _mute = false;                 // TODO: Also move to settings
 
   _chorus = new Chorus(settings);
+  _reverb = new Reverb(settings);
 }
 
 
@@ -52,6 +54,7 @@ Part::~Part()
   delete _notesMutex;
 
   delete _chorus;
+  delete _reverb;
 }
 
 
@@ -114,18 +117,37 @@ int Part::get_next_sample(float *sampleOut, float *sysEffect)
     sampleOut[1] += partSample[1];
   }
 
-  // Add system effects: Chorus and Reverb
-
-  // Chorus effect (if both global & part chorus levels != 0)
+  float cSample[2] = { 0, 0 };
+  // Chorus system effect (if both global & part chorus levels != 0)
   if (_settings->get_param(PatchParam::ChorusSendLevel, _id) &&
-      _settings->get_param(PatchParam::ChorusLevel, _id)) {
+      _settings->get_param(PatchParam::ChorusLevel)) {
     float cLevel = _settings->get_param(PatchParam::ChorusSendLevel, _id)/127.0;
-    float cSample[2] = { 0, 0 };
     float cInput = ((partSample[0] + partSample[1]) / 2) * cLevel;
     _chorus->process_sample(cInput, cSample);
 
+    // TODO: Need an audio compressor to compensate for additive audio signals
     sysEffect[0] += cSample[0] * _settings->get_param(PatchParam::ChorusLevel) / 127.0;
     sysEffect[1] += cSample[1] * _settings->get_param(PatchParam::ChorusLevel) / 127.0;
+  }
+
+  // Reverb system effect (if both global & part reverb levels != 0)
+  if (_settings->get_param(PatchParam::ReverbSendLevel, _id) &&
+      _settings->get_param(PatchParam::ReverbLevel)) {
+    float rLevel = _settings->get_param(PatchParam::ReverbSendLevel, _id)/127.0;
+    float rSample[2] = { 0, 0 };
+
+    // TODO: Figure out if the reverb has mono or stereo input
+    // Current guess is mono input and variable delay to create stereo output
+    float rInput[2];
+    rInput[0] = rInput[1] = ((partSample[0] + partSample[1]) / 2) * rLevel +
+      ((cSample[0] + cSample[1]) / 2) *
+      (float) _settings->get_param(PatchParam::ChorusSendToReverb) / 127.0;
+
+    _reverb->process_sample(rInput, rSample, (bool) !_id);
+
+    // TODO: Need an audio compressor to compensate for additive audio signals
+    sysEffect[0] += rSample[0] * _settings->get_param(PatchParam::ReverbLevel) / 127.0; // 127.0
+    sysEffect[1] += rSample[1] * _settings->get_param(PatchParam::ReverbLevel) / 127.0; // 127.0
   }
 
   return 0;

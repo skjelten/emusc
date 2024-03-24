@@ -199,7 +199,7 @@ bool Partial::get_next_sample(float *noteSample)
     return 1;
 
   double sample[2] = {0, 0};
-  sample[0] = _sample * 0.7;      // Reduce audio volume to avoid overflow
+  sample[0] = _sample * 0.65;      // Reduce audio volume to avoid overflow
 
 
   // Apply volume changes
