@@ -115,10 +115,11 @@ Partial::Partial(uint8_t key, int partialId, uint16_t instrumentIndex,
     pitchKeyFollow += ((float) _instPartial.pitchKeyFlw - 0x4a) / 10.0;
 
   _staticPitchTune =
-    (exp(((_instPartial.coarsePitch - 0x40 + _keyDiff * pitchKeyFollow) * 100 +
+    (exp(((_instPartial.coarsePitch - 0x40 +
+	   _keyDiff * pitchKeyFollow +
+	   (60 - _ctrlSample->rootKey) * (1 - pitchKeyFollow)) * 100 +
 	  _instPartial.finePitch - 0x40 +
-	  ((_ctrlSample->pitch - 1024) / 16)
-	  - 120)                // FIXME: Why do we need -120 cents to match hw?
+	  ((_ctrlSample->pitch - 1024) / 16))
 	 * log(2) / 1200))
     * 32000.0 / settings->get_param_uint32(SystemParam::SampleRate);
 
@@ -187,7 +188,7 @@ bool Partial::get_next_sample(float *noteSample)
                    (_settings->get_patch_param((int) PatchParam::ScaleTuningC +
 					       (_key % 12), _partId) - 0x40)*10+
                    ((_settings->get_param_uint16(PatchParam::PitchFineTune,
-						 _partId) - 8192) / 8.192);
+						 _partId) - 16384) / 16.384);
 
   float pitchAdj = exp(pitchExp * _expFactor) *
                    pitchOffsetHz *
