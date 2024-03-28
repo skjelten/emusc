@@ -452,7 +452,7 @@ void Scene::_connect_signals(void)
 	  this, SIGNAL(keyshiftR_button_clicked()));
 
   connect(_powerButton, SIGNAL(clicked()), parent(), SLOT(power_switch()));
-  connect(_volumeDial, SIGNAL(sliderMoved(int)),
+  connect(_volumeDial, SIGNAL(valueChanged(int)),
 	  this, SIGNAL(volume_changed(int)));
 }
 
@@ -482,6 +482,9 @@ void Scene::display_on(void)
   QVectorIterator<QGraphicsRectItem*> ir(_volumeBars);
   while (ir.hasNext())
     ir.next()->setBrush(QBrush(_lcdOnInactiveColor));
+
+  // Update volume (TODO: Find a better place to do this)
+  emit volume_changed(_volumeDial->value());
 }
 
 
