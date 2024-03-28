@@ -865,7 +865,7 @@ void MidiSettings::_systemCB_changed(int index)
 {
   _deviceCB->clear();
 
-  if (!_systemCB->currentText().compare("Core", Qt::CaseInsensitive)) {
+  if (_systemCB->currentText().compare("Core", Qt::CaseInsensitive)) {
     // List all available MIDI devices - or show a warning if none    
 #ifdef __CORE_MIDI__
     QStringList devices = MidiInputCore::get_available_devices();
@@ -874,7 +874,7 @@ void MidiSettings::_systemCB_changed(int index)
       _deviceCB->addItem(d);
 #endif
 
-  } else if (!_systemCB->currentText().compare("alsa", Qt::CaseInsensitive)) {
+  } else if (_systemCB->currentText().compare("alsa", Qt::CaseInsensitive)) {
 #ifdef __ALSA_MIDI__
     QStringList devices = MidiInputAlsa::get_available_devices();
 
@@ -882,7 +882,7 @@ void MidiSettings::_systemCB_changed(int index)
       _deviceCB->addItem(d);
 #endif
 
-  } else if (!_systemCB->currentText().compare("win32", Qt::CaseInsensitive)) {
+  } else if (_systemCB->currentText().compare("win32", Qt::CaseInsensitive)) {
 #ifdef __WIN32_MIDI__
     QStringList devices = MidiInputWin32::get_available_devices();
 
