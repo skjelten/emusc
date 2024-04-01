@@ -521,6 +521,8 @@ AudioSettings::AudioSettings(Emulator *emulator, QWidget *parent)
 	  this, SLOT(_system_box_changed(int)));
   connect(_deviceBox, SIGNAL(currentIndexChanged(int)),
 	  this, SLOT(_device_box_changed(int)));
+  connect(_filePathLE, SIGNAL(editingFinished()),
+	  this, SLOT(_filePathLE_changed()));
 //  connect(_channelsCB, SIGNAL(currentIndexChanged(int)),
 //	  this, SLOT(_channels_box_changed(int)));
 
@@ -697,6 +699,14 @@ void AudioSettings::_channels_box_changed(int index)
 
 }
 
+
+void AudioSettings::_filePathLE_changed(void)
+{
+  QSettings settings;
+  settings.setValue("Audio/wav_file_path", _filePathLE->text());
+}
+
+
 void AudioSettings::_open_file_path_dialog(void)
 {
   QFileDialog dialog(this, "Select file name and location for WAV recording");
@@ -706,9 +716,6 @@ void AudioSettings::_open_file_path_dialog(void)
   if (dialog.exec()) {
     fileNames = dialog.selectedFiles();
     _filePathLE->setText(fileNames[0]);
-
-    QSettings settings;
-    settings.setValue("Audio/wav_file_path", fileNames[0]);
   }
 }
 
@@ -779,7 +786,7 @@ MidiSettings::MidiSettings(Emulator *emulator, Scene *scene, QWidget *parent)
 	      << systemStr.toStdString() << std::endl;
   else
     _systemCB->setCurrentIndex(systemIndex);
-  
+
   QString deviceStr = settings.value("Midi/device").toString();
   int deviceIndex = _deviceCB->findText(deviceStr);
   if (deviceIndex < 0)

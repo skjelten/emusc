@@ -151,6 +151,7 @@ private slots:
   void _system_box_changed(int index);
   void _device_box_changed(int index);
   void _channels_box_changed(int index);
+  void _filePathLE_changed(void);
   void _open_file_path_dialog(void);
 };
 
