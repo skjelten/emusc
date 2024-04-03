@@ -67,7 +67,7 @@ TVF::TVF(ControlRom::InstPartial &instPartial, uint8_t key,
 
   _LFO1DepthPartial = instPartial.TVFLFODepth & 0x7f;
 
-  _lpFilter = new LowPassFilter(_sampleRate);
+  _lpFilter = new LowPassFilter2(_sampleRate);
 
   // If TVF envelope phase durations are all 0 we only have a static filter
   // TODO: Verify that this is correct - what to do when P1-5 value != 0?

@@ -17,8 +17,8 @@
  */
 
 
-#ifndef __LOWPASS_FILTER_H__
-#define __LOWPASS_FILTER_H__
+#ifndef __LOWPASS_FILTER2_H__
+#define __LOWPASS_FILTER2_H__
 
 
 #include "biquad_filter.h"
@@ -28,20 +28,20 @@
 
 namespace EmuSC {
 
-class LowPassFilter: public BiquadFilter
+class LowPassFilter2: public BiquadFilter
 {
 public:
-  LowPassFilter(int sampleRate);
-  ~LowPassFilter();
+  LowPassFilter2(int sampleRate);
+  ~LowPassFilter2();
 
   void calculate_coefficients(float frequency, float q);
 
 private:
   int _sampleRate;
   
-  LowPassFilter();
+  LowPassFilter2();
 };
 
 }
 
-#endif  // __LOWPASS_FILTER_H__
+#endif  // __LOWPASS_FILTER2_H__

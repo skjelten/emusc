@@ -16,59 +16,48 @@
  *  along with libEmuSC. If not, see <http://www.gnu.org/licenses/>.
  */
 
+// This class implements a 2nd. order biquad highpass filter in direct form 1 
+// Note: This class is currently not in use, but included for testing purpose
 
-#ifndef __TVF_H__
-#define __TVF_H__
 
+#include "highpass_filter2.h"
 
-#include "control_rom.h"
-#include "lowpass_filter2.h"
-#include "ahdsr.h"
-#include "settings.h"
-#include "wave_generator.h"
+#include <cmath>
 
 #include <stdint.h>
+#include <stdlib.h>
 
-#include <array>
+#ifndef M_PI
+    #define M_PI 3.14159265358979323846
+#endif
 
 
 namespace EmuSC {
 
 
-class TVF
+HighPassFilter2::HighPassFilter2(int sampleRate)
+  : _sampleRate(sampleRate)
+{}
+
+
+HighPassFilter2::~HighPassFilter2()
+{}
+
+
+//  q = 0.707 -> no resonance
+void HighPassFilter2::calculate_coefficients(float frequency, float q)
 {
-public:
-  TVF(ControlRom::InstPartial &instPartial, uint8_t key, WaveGenerator *_LFO[2],
-      Settings *settings, int8_t partId);
-  ~TVF();
+  double omega = 2.0 * M_PI * frequency / _sampleRate;
+  double alpha = sin(omega) / (2.0 * q);
+  double cos_omega = cos(omega);
 
-  double apply(double input);
-  void note_off();
+  _d[0] = 1.0 + alpha;
+  _d[1] = -2.0 * cos_omega / _d[0];
+  _d[2] = (1.0 - alpha) / _d[0];
 
-  inline bool finished(void) { if (_ahdsr) return _ahdsr->finished(); }
-
-private:
-  uint32_t _sampleRate;
-
-  WaveGenerator *_LFO1;
-  WaveGenerator *_LFO2;
-  int _LFO1DepthPartial;
-
-  Settings *_settings;
-  int8_t _partId;
-
-  AHDSR *_ahdsr;
-  LowPassFilter2 *_lpFilter;
-
-  uint32_t _lpBaseFrequency;
-  float _lpResonance;
-
-  ControlRom::InstPartial _instPartial;
-
-  TVF();
-
-};
-
+  _n[0] = 0.5 * (1.0 + cos_omega) / _d[0];
+  _n[1] = -(1.0 + cos_omega) / _d[0];
+  _n[2] = _n[0];
 }
 
-#endif  // __TVF_H__
+}

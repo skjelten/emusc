@@ -16,8 +16,10 @@
  *  along with libEmuSC. If not, see <http://www.gnu.org/licenses/>.
  */
 
+// This class implements a 2nd. order biquad lowpass filter in direct form 1 
 
-#include "lowpass_filter.h"
+
+#include "lowpass_filter2.h"
 
 #include <cmath>
 
@@ -28,33 +30,33 @@
     #define M_PI 3.14159265358979323846
 #endif
 
+
 namespace EmuSC {
 
 
-LowPassFilter::LowPassFilter(int sampleRate)
+LowPassFilter2::LowPassFilter2(int sampleRate)
   : _sampleRate(sampleRate)
 {}
 
 
-LowPassFilter::~LowPassFilter()
+LowPassFilter2::~LowPassFilter2()
 {}
 
 
 //  q = 0.707 -> no resonance
-//  frequency = 1000.0;
-void LowPassFilter::calculate_coefficients(float frequency, float q)
+void LowPassFilter2::calculate_coefficients(float frequency, float q)
 {
-  float w = frequency * 2.0 * M_PI;
-  float t = 1.0 / _sampleRate;
+  double omega = 2.0 * M_PI * frequency / _sampleRate;
+  double alpha = sin(omega) / (2.0 * q);
+  double cos_omega = cos(omega);
 
-  // Calculate coefficients (redo if sampleRate, frequency or q changes)
-  _d[0] = 4.0 + ((w / q)* 2.0 * t) + pow(w, 2.0) * pow(t, 2.0);
-  _d[1] = ((2.0 * pow(t, 2.0) * pow(w, 2.0)) -8.0) / _d[0];
-  _d[2] = (4.0 - (w / q * 2.0 * t) + (pow(w, 2.0) * pow(t, 2.0))) / _d[0];
+  _d[0] = 1.0 + alpha;
+  _d[1] = -2.0 * cos_omega / _d[0];
+  _d[2] = (1.0 - alpha) / _d[0];
 
-  _n[0] = pow(w, 2.0) * pow(t, 2.0) / _d[0];
-  _n[1] = pow(w, 2.0) * 2.0 * pow(t, 2.0) / _d[0];
-  _n[2] = pow(w, 2.0) * pow(t, 2.0) / _d[0];
+  _n[0] = (1.0 - cos_omega) / (2.0 * _d[0]);
+  _n[1] = (1.0 - cos_omega) / _d[0];
+  _n[2] = _n[0];
 }
 
 }
