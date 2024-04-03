@@ -17,6 +17,8 @@ add_library(emusc
   control_rom.h
   delay.cc
   delay.h
+  lowpass_filter1.cc
+  lowpass_filter1.h
   lowpass_filter.cc
   lowpass_filter.h
   note.cc

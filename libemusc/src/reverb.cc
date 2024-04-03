@@ -41,7 +41,8 @@ Reverb::Reverb(Settings *settings)
     _sampleRate(settings->get_param_uint32(SystemParam::SampleRate)),
     _time(1.0),
     _panning(0),
-    _lpFilter(_sampleRate)
+    _lp1Filter(_sampleRate),
+    _preLPF(-1)
 {
   const int maxDelay = 2000;                       // Number of samples
   _reverbTime = _settings->get_param(PatchParam::ReverbTime);
@@ -101,12 +102,12 @@ void Reverb::process_sample(float *input, float *output, bool part0)
       cFilter.set_coefficient(rTime);
   }
 
-
   // Run through pre lowpass filter
-  // TODO: This seems to be a single order lowpass filter?
-  _preLPF = _settings->get_param(PatchParam::ReverbPreLPF);
-  _lpFilter.calculate_coefficients(_lpCutoffFreq[_preLPF], 0.707);
-  float inputAP = _lpFilter.apply(sample);
+  if (_preLPF != _settings->get_param(PatchParam::ReverbPreLPF)) {
+    _preLPF = _settings->get_param(PatchParam::ReverbPreLPF);
+    _lp1Filter.calculate_alpha(_lpCutoffFreq[_preLPF]);
+  }
+  float inputAP = _lp1Filter.apply(sample);
 
   if (_settings->get_param(PatchParam::ReverbCharacter) < 6) {
 

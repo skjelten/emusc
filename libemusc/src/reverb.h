@@ -24,7 +24,7 @@
 #include "allpass_filter.h"
 #include "comb_filter.h"
 #include "delay.h"
-#include "lowpass_filter.h"
+#include "lowpass_filter1.h"
 #include "settings.h"
 
 #include <array>
@@ -64,7 +64,7 @@ class Reverb
   float _feedback;             // Feedback, 0 - 0.96?
   bool _panning;               // 0 = left, 1 = right
 
-  LowPassFilter _lpFilter;
+  LowPassFilter1 _lp1Filter;
   std::array<int, 8> _lpCutoffFreq = { 8000, 5000, 3150, 2000,
 				       1250, 800, 400, 250 };
 

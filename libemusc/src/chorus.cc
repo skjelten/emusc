@@ -38,7 +38,8 @@ Chorus::Chorus(Settings *settings)
     _sampleRate(settings->get_param_uint32(SystemParam::SampleRate)),
     _stereoWidth(0.5),
     _lfoPhase(0),
-    _lpFilter(_sampleRate),
+    _lp1Filter(_sampleRate),
+    _preLPF(-1),
     _numVoices(1),
     _writeIndex(0)
 {
@@ -46,7 +47,7 @@ Chorus::Chorus(Settings *settings)
 
   _delayLinesLeft.reserve(_numVoices);
   _delayLinesRight.reserve(_numVoices);
-  
+
   for (int i = 0; i < _numVoices; ++i) {
     _delayLinesLeft.push_back(std::vector<float>(_delayLineSize, 0.0f));
     _delayLinesRight.push_back(std::vector<float>(_delayLineSize, 0.0f));
@@ -77,10 +78,11 @@ void Chorus::process_sample(float input, float *output)
   _rate = chorusRate <= 105 ? chorusRate / 8.0 : 105 / 8.0;
 
   // Run through pre lowpass filter
-  // TODO: This seems to be a single order lowpass filter?
-  _preLPF = _settings->get_param(PatchParam::ChorusPreLPF);
-  _lpFilter.calculate_coefficients(_lpCutoffFreq[_preLPF], 0.707);
-  float filteredInput = _lpFilter.apply(input);
+  if (_preLPF != _settings->get_param(PatchParam::ChorusPreLPF)) {
+    _preLPF = _settings->get_param(PatchParam::ChorusPreLPF);
+    _lp1Filter.calculate_alpha(_lpCutoffFreq[_preLPF]);
+  }
+  float filteredInput = _lp1Filter.apply(input);
 
   // Create delayed and detuned voices for left channel
   float outputL = 0.0f;
