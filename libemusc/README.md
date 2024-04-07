@@ -1,17 +1,11 @@
 # libEmuSC
-## About
-libEmuSC is a software synthesizer library that aims to emulate the Roland Sound Canvas SC-55 lineup to recreate the original sounds of these '90s era synthesizers. Emulation is done by extracting relevant information from the original control and PCM ROMs and reimplement the synth's behavior in modern C++.
-
-This project is in no way endorsed by or affiliated with Roland Corp.
-
-
 ## Status
-We are currently able to decode most of the ROM's content and recreate the correct PCM samples for each instrument. Basic support for RIAA filtering and volume (TVA) envelope is also present, but no work has been done so far towards TVF envelope, pitch envelope, reverb and chorus effects.
+We are currently able to decode most of the ROM's content and recreate the sample structures for each instrument. Basic support for DPCM decoding and volume envelope (TVA) are present, but filter envelope (TVF) and pitch envelope is currently diasabled as they are not complete. LFO modulation including vibrato and tremolo effects are implemented, and basic implementations are in place for reverb and chorus system effects.
 
+Note that this project is in no way endorsed by or affiliated with Roland Corp.
 
 ## Requirements
 libEmuSC only depends on C++11 with threads and should be very portable.
-
 
 ## Building
 CMake is used to generate the necessary files for building libEmuSC. Depending on which operating system and build environment you are using the build instructions may vary.
@@ -29,11 +23,11 @@ cd emusc/libemusc
 ```
 4. Run cmake
 ```
-cmake .
+cmake . -DCMAKE_BUILD_TYPE=Release
 ```
 Or, if you want to build a static library
 ```
-cmake . -DBUILD_SHARED_LIBS=OFF
+cmake . -DBUILD_SHARED_LIBS=OFF -DCMAKE_BUILD_TYPE=Release
 ```
 5. And finally build the library by running
 ```
@@ -60,11 +54,11 @@ cd emusc/libemusc
 ```
 5. Run cmake (note that you have to specify the build generator)
 ```
-cmake . -G "MSYS Makefiles"
+cmake . -G "MSYS Makefiles" -DCMAKE_BUILD_TYPE=Release
 ```
 Or, if you want to build a static library
 ```
-cmake . -G "MSYS Makefiles" -DBUILD_SHARED_LIBS=OFF
+cmake . -G "MSYS Makefiles" -DBUILD_SHARED_LIBS=OFF -DCMAKE_BUILD_TYPE=Release
 ```
 6. And finally build the library by running
 ```
@@ -89,11 +83,11 @@ cd emusc/libemusc
 ```
 5. Run cmake
 ```
-cmake .
+cmake . -DCMAKE_BUILD_TYPE=Release
 ```
 Or, if you want to build a static library
 ```
-cmake . -DBUILD_SHARED_LIBS=OFF
+cmake . -DBUILD_SHARED_LIBS=OFF -DCMAKE_BUILD_TYPE=Release
 ```
 6. And finally build the library by running
 ```
