@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.12)
 
 project(
   libemusc
-  VERSION 0.0.1
+  VERSION 0.1.0
   DESCRIPTION "A software library for emulating the Sound Canvas SC-55 lineup"
   HOMEPAGE_URL "https://github.com/skjelten/emusc"
   LANGUAGES CXX)
