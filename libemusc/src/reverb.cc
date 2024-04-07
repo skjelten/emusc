@@ -42,11 +42,11 @@ Reverb::Reverb(Settings *settings)
     _time(1.0),
     _panning(0),
     _lp1Filter(_sampleRate),
-    _preLPF(-1)
+    _preLPF(-1),
+    _reverbTime(-1),
+    _delayFeedback(-1)
 {
   const int maxDelay = 2000;                       // Number of samples
-  _reverbTime = _settings->get_param(PatchParam::ReverbTime);
-  _delayFeedback = _settings->get_param(PatchParam::ReverbDelayFeedback);
 
   // FreeVerb inspired delay lengths for 44100 Hz sample rate
   int delayLengths[9] = { 225, 341, 441, 1116, 1356, 1422, 1617, 211, 179 };
@@ -89,17 +89,19 @@ Reverb::~Reverb()
 
 
 // Process a single audio sample
-void Reverb::process_sample(float *input, float *output, bool part0)
+void Reverb::process_sample(float *input, float *output)
 {
   // TODO: Stereo reverb. For now: mix left and right to MONO
   float sample = (input[0] + input[1]) / 2;
 
-  // DEBUG
-  if (part0) {
-    // Reverb time is guessed to be a linear scale for T60 between 0.0 and 4.0
-    float rTime = _settings->get_param(PatchParam::ReverbTime) / 32.0;
+  // Reverb time is guessed to be a linear scale for T60 between 0.0 and 4.0
+  if (_reverbTime != _settings->get_param(PatchParam::ReverbTime)) {
+    _reverbTime = _settings->get_param(PatchParam::ReverbTime);
+
     for (auto& cFilter : combFilters)
-      cFilter.set_coefficient(rTime);
+      cFilter.set_coefficient((float) _reverbTime / 32.0);
+
+    _delayFilter->set_delay((_reverbTime / 127.0) * _sampleRate * 0.430);
   }
 
   // Run through pre lowpass filter
@@ -115,7 +117,7 @@ void Reverb::process_sample(float *input, float *output, bool part0)
     for (auto &aFilter : allPassFilters)
       inputAP = aFilter.process_sample(inputAP);
 
-    // Process com b filters in parallell
+    // Process comb filters in parallell
     float combOutput = 0.0f;
     for (auto& cFilter : combFilters)
       combOutput += cFilter.process_sample(inputAP);
@@ -126,13 +128,7 @@ void Reverb::process_sample(float *input, float *output, bool part0)
 
   // Delay modes
   } else if (_settings->get_param(PatchParam::ReverbCharacter) >= 6) {
-    if (part0 && _reverbTime != _settings->get_param(PatchParam::ReverbTime)) {
-      _reverbTime = _settings->get_param(PatchParam::ReverbTime);
-      _delayFilter->set_delay((_reverbTime / 127.0) * _sampleRate * 0.430);
-    }
-
-    if (part0 &&
-	_delayFeedback !=_settings->get_param(PatchParam::ReverbDelayFeedback)){
+    if (_delayFeedback !=_settings->get_param(PatchParam::ReverbDelayFeedback)){
       _delayFeedback = _settings->get_param(PatchParam::ReverbDelayFeedback);
       _delayFilter->set_feedback(_delayFeedback / 180.0);
     }

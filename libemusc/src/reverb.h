@@ -40,7 +40,7 @@ class Reverb
   Reverb(Settings *settings);
   ~Reverb();
  
-  void process_sample(float *input, float *output, bool start = false);
+  void process_sample(float *input, float *output);
 
  private:
   Reverb();

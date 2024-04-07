@@ -143,7 +143,7 @@ int Part::get_next_sample(float *sampleOut, float *sysEffect)
       ((cSample[0] + cSample[1]) / 2) *
       (float) _settings->get_param(PatchParam::ChorusSendToReverb) / 127.0;
 
-    _reverb->process_sample(rInput, rSample, (bool) !_id);
+    _reverb->process_sample(rInput, rSample);
 
     // TODO: Need an audio compressor to compensate for additive audio signals
     sysEffect[0] += rSample[0] * _settings->get_param(PatchParam::ReverbLevel) / 127.0; // 127.0
