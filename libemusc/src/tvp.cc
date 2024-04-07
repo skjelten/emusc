@@ -111,11 +111,11 @@ double TVP::get_pitch()
   // TODO: Delay function -> seconds
   // sec = 0.5 * exp(_LFODelay * log(10.23 / 0.5) / 50)
 
-  // Pitch envelope
+  // Pitch envelope - DISABLED -
   // Envelope pitch values in ROM seems to be in percent.
   double pEnv = 1;
-  if (_ahdsr)
-    pEnv += _ahdsr->get_next_value() * 0.01;
+//  if (_ahdsr)
+//    pEnv += _ahdsr->get_next_value() * 0.01;
 
   return vibrato * pEnv;
 }
