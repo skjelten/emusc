@@ -869,7 +869,7 @@ void MidiSettings::_systemCB_changed(int index)
 {
   _deviceCB->clear();
 
-  if (!_systemCB->currentText().compare("Core", Qt::CaseInsensitive)) {
+  if (!_systemCB->currentText().compare("Core MIDI", Qt::CaseInsensitive)) {
     // List all available MIDI devices - or show a warning if none    
 #ifdef __CORE_MIDI__
     QStringList devices = MidiInputCore::get_available_devices();
