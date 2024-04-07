@@ -143,6 +143,7 @@ GeneralSettings::GeneralSettings(MainWindow *mainWindow, Scene *scene, QWidget *
 
   _autoPowerOnCB = new QCheckBox("Power on at startup", this);
   _rememberLayoutCB = new QCheckBox("Remember window layout", this);
+  _enableKbdMidi = new QCheckBox("Enable keyboard MIDI input", this);
 
   QGroupBox *animGroupBox = new QGroupBox("LCD animations on startup");
   _emuscAnim = new QRadioButton("Show EmuSC and model animations", this);
@@ -191,6 +192,7 @@ GeneralSettings::GeneralSettings(MainWindow *mainWindow, Scene *scene, QWidget *
 
   _autoPowerOnCB->setChecked(settings.value("Synth/auto_power_on").toBool());
   _rememberLayoutCB->setChecked(settings.value("remember_layout").toBool());
+  _enableKbdMidi->setChecked(settings.value("kbd_midi_input").toBool());
 
   QString animSetting = settings.value("Synth/startup_animations").toString();
   if (animSetting == "only_rom")
@@ -201,9 +203,11 @@ GeneralSettings::GeneralSettings(MainWindow *mainWindow, Scene *scene, QWidget *
     _emuscAnim->setChecked(true);
   
   connect(_autoPowerOnCB, SIGNAL(toggled(bool)),
-	  this, SLOT(_autoPowerOn_clicked(bool)));
+	  this, SLOT(_autoPowerOn_toggled(bool)));
   connect(_rememberLayoutCB, SIGNAL(toggled(bool)),
-	  this, SLOT(_remember_layout_clicked(bool)));
+	  this, SLOT(_remember_layout_toggled(bool)));
+  connect(_enableKbdMidi, SIGNAL(toggled(bool)),
+	  this, SLOT(_enableKbdMidi_toggled(bool)));
   connect(_lcdBkgColorPickB, SIGNAL(clicked(void)),
 	  this, SLOT(_lcd_bkg_colorpick_clicked(void)));
   connect(_lcdActiveColorPickB, SIGNAL(clicked(void)),
@@ -219,6 +223,7 @@ GeneralSettings::GeneralSettings(MainWindow *mainWindow, Scene *scene, QWidget *
 
   vboxLayout->addWidget(_autoPowerOnCB);
   vboxLayout->addWidget(_rememberLayoutCB);
+  vboxLayout->addWidget(_enableKbdMidi);
   vboxLayout->addSpacing(15);
   vboxLayout->addWidget(animGroupBox);
   vboxLayout->addSpacing(15);
@@ -259,17 +264,25 @@ void GeneralSettings::reset(void)
 }
 
 
-void GeneralSettings::_autoPowerOn_clicked(bool checked)
+void GeneralSettings::_autoPowerOn_toggled(bool checked)
 {
   QSettings settings;
   settings.setValue("Synth/auto_power_on", checked);
 }
 
 
-void GeneralSettings::_remember_layout_clicked(bool checked)
+void GeneralSettings::_remember_layout_toggled(bool checked)
 {
   QSettings settings;
   settings.setValue("remember_layout", checked);
+}
+
+
+void GeneralSettings::_enableKbdMidi_toggled(bool checked)
+{
+  QSettings settings;
+  settings.setValue("kbd_midi_input", checked);
+  _scene->set_midi_kbd_enable(checked);
 }
 
 
@@ -721,8 +734,7 @@ void AudioSettings::_open_file_path_dialog(void)
 
 
 MidiSettings::MidiSettings(Emulator *emulator, Scene *scene, QWidget *parent)
-  : _emulator(emulator),
-    _scene(scene)
+  : _emulator(emulator)
 {
   QSettings settings;
   QVBoxLayout *vboxLayout = new QVBoxLayout();
@@ -752,17 +764,12 @@ MidiSettings::MidiSettings(Emulator *emulator, Scene *scene, QWidget *parent)
   if (!emulator->running())
     portsGroupBox->setEnabled(false);
 
-  _enableKbdMidi = new QCheckBox("Enable keyboard MIDI input", this);
-  _enableKbdMidi->setChecked(settings.value("Midi/kbd_input").toBool());
-
   connect(_systemCB, SIGNAL(currentIndexChanged(int)),
 	  this, SLOT(_systemCB_changed(int)));
   connect(_deviceCB, SIGNAL(currentIndexChanged(int)),
 	  this, SLOT(_deviceCB_changed(int)));
   connect(_portsListLW, SIGNAL(itemChanged(QListWidgetItem*)),
 	  this, SLOT(_ports_list_changed(QListWidgetItem*)));
-  connect(_enableKbdMidi, SIGNAL(toggled(bool)),
-	  this, SLOT(_enableKbdMidi_toggled(bool)));
 
 #ifdef __ALSA_MIDI__
   _systemCB->addItem("ALSA");
@@ -798,8 +805,6 @@ MidiSettings::MidiSettings(Emulator *emulator, Scene *scene, QWidget *parent)
   vboxLayout->addLayout(gridLayout);
   vboxLayout->addSpacing(15);
   vboxLayout->addWidget(portsGroupBox);
-  vboxLayout->addSpacing(15);
-  vboxLayout->addWidget(_enableKbdMidi);
   vboxLayout->addStretch(0);
   vboxLayout->insertSpacing(1, 15);
   setLayout(vboxLayout);
@@ -857,14 +862,6 @@ void MidiSettings::_ports_list_changed(QListWidgetItem *item)
 				  "Error message: ") + errorMsg,
 			  QMessageBox::Close);
   }
-}
-
-
-void MidiSettings::_enableKbdMidi_toggled(bool checked)
-{
-  QSettings settings;
-  settings.setValue("Midi/kbd_input", checked);
-  _scene->set_midi_kbd_enable(checked);
 }
 
 

@@ -43,7 +43,7 @@ Scene::Scene(QWidget *parent)
     _lcdOffBackgroundColor(140, 160, 140),
     _lcdOffFontColor(80, 80, 80),
     _backgroundColor(0, 0, 0),
-    _keyNoteOctave(3)
+    _keyNoteOctave(4)
 {
   setParent(parent);
 
@@ -64,7 +64,7 @@ Scene::Scene(QWidget *parent)
   else
     _lcdOnInactiveColor = _lcdOnInactiveColorReset;
 
-  _midiKbdInput = settings.value("Midi/kbd_input").toBool();
+  _midiKbdInput = settings.value("kbd_midi_input").toBool();
 
   // Set background brush to grey texture for synth object
   _backgroundBrush.setTexture(QPixmap(":/images/synth_bkg.png"));

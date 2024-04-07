@@ -80,6 +80,7 @@ class GeneralSettings : public QWidget
 private:
   QCheckBox *_autoPowerOnCB;
   QCheckBox *_rememberLayoutCB;
+  QCheckBox *_enableKbdMidi;
 
   QRadioButton *_emuscAnim;
   QRadioButton *_romAnim;
@@ -100,8 +101,9 @@ public:
   void reset(void);
 
 private slots:
-  void _autoPowerOn_clicked(bool checked);
-  void _remember_layout_clicked(bool checked);
+  void _autoPowerOn_toggled(bool checked);
+  void _remember_layout_toggled(bool checked);
+  void _enableKbdMidi_toggled(bool checked);
   void _lcd_bkg_colorpick_clicked(void);
   void _lcd_active_colorpick_clicked(void);
   void _lcd_inactive_colorpick_clicked(void);
@@ -163,12 +165,10 @@ class MidiSettings : public QWidget
 private:
   QComboBox *_systemCB;
   QComboBox *_deviceCB;
-  QCheckBox *_enableKbdMidi;
 
   QListWidget *_portsListLW;
 
   Emulator *_emulator;
-  Scene *_scene;
 
 public:
   explicit MidiSettings(Emulator *emulator, Scene *scene, QWidget *parent = nullptr);
@@ -179,7 +179,6 @@ private slots:
   void _update_ports_list(void);
   void _ports_list_changed(QListWidgetItem *item);
 
-  void _enableKbdMidi_toggled(bool checked);
   void _systemCB_changed(int index);
   void _deviceCB_changed(int index);
 };
