@@ -33,6 +33,7 @@ void show_arguments(std::string program)
 	    << "Options:\n"
 	    << "  -c, --print-config      \tPrint configuration to stdout\n"
 	    << "  -p, --power-on          \tStart with synth powered on\n"
+	    << "  -o, --power-off         \tStart with synth powered off\n"
 	    << "  -h, --help              \tShow this help message\n"
 	    << std::endl;
 }

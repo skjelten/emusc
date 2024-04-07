@@ -108,10 +108,12 @@ MainWindow::MainWindow(QWidget *parent)
     resize(1150, 250 + menuBar()->height());
   }
 
-  if (settings.value("Synth/auto_power_on").toBool() ||
-      QCoreApplication::arguments().contains("-p") ||
-      QCoreApplication::arguments().contains("--power-on"))
-    power_switch(true);
+  if (!(QCoreApplication::arguments().contains("-o") ||
+	QCoreApplication::arguments().contains("--power-off")))
+    if (settings.value("Synth/auto_power_on").toBool() ||
+	QCoreApplication::arguments().contains("-p") ||
+	QCoreApplication::arguments().contains("--power-on"))
+      power_switch(true);
 
   setCentralWidget(_synthView);
   show();
