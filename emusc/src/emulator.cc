@@ -203,12 +203,17 @@ void Emulator::_load_control_rom(QString romPath)
     delete _emuscControlRom, _emuscControlRom = NULL;
 
   try {
-    if (romPath.isEmpty())
+    if (romPath.isEmpty()) {
       throw(QString("Emulator is unable to start since no control ROM has been "
 		    "selected yet. This can be done in the Preferences dialog."
 		    ));
-    else
+    } else {
+#ifdef Q_OS_WINDOWS
+      _emuscControlRom = new EmuSC::ControlRom(romPath.toLocal8Bit().constData());
+#else
       _emuscControlRom = new EmuSC::ControlRom(romPath.toStdString());
+#endif
+    }
   } catch (std::string errorMsg) {
     delete _emuscControlRom, _emuscControlRom = NULL;
     throw(QString("libemusc failed to load the selected control ROM:\n - ")
@@ -237,8 +242,13 @@ void Emulator::_load_pcm_rom(QStringList romPaths)
 
   std::vector<std::string> romPathsStdVect;
   for (auto &filePath : romPaths) {
-    if (!filePath.isEmpty())
+    if (!filePath.isEmpty()) {
+#ifdef Q_OS_WINDOWS
+      romPathsStdVect.push_back(filePath.toLocal8Bit().constData());
+#else
       romPathsStdVect.push_back(filePath.toStdString());
+#endif
+    }
   }
   try {
     _emuscPcmRom = new EmuSC::PcmRom(romPathsStdVect, *_emuscControlRom);
@@ -370,13 +380,6 @@ void Emulator::_start_audio_subsystem(void)
       _audioOutput = new AudioOutputCore(_emuscSynth);
 #else
       throw(QString("'Core Audio' audio ouput is missing in this build"));
-#endif
-
-    } else if (!audioSystem.compare("qt", Qt::CaseInsensitive)) {
-#ifdef aQT_MULTIMEDIA_LIB
-      _audioOutput = new AudioOutputQt(_emuscSynth);
-#else
-      throw(QString("'Qt Multimedia' audio ouput is missing in this build"));
 #endif
 
     } else if (!audioSystem.compare("null", Qt::CaseInsensitive)) {
