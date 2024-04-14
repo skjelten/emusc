@@ -139,6 +139,7 @@ int PcmRom::_read_samples(std::vector<char> &romData, struct ControlRom::Sample 
 {
   uint32_t romAddress = _find_samples_rom_address(ctrlSample.address);
 
+  float sample = 0;
   struct Samples s;
   s.samplesF.reserve(ctrlSample.sampleLen + 1);
 
@@ -152,8 +153,10 @@ int PcmRom::_read_samples(std::vector<char> &romData, struct ControlRom::Sample 
 
     // Convert to float
     float ffinal = (float) final / (1 << 31);
+    // Accumulate (interpret as DPCM)
+    sample += ffinal;
 
-    s.samplesF.push_back(ffinal);
+    s.samplesF.push_back(sample);
   }
 
   _sampleSets.push_back(s);
