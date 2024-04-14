@@ -26,6 +26,10 @@
 #include <QSettings>
 #include <QString>
 
+#ifdef Q_OS_WINDOWS
+#include <Windows.h>
+#endif
+
 
 void show_arguments(std::string program)
 {
@@ -85,6 +89,14 @@ int main(int argc, char *argv[])
 
   QCoreApplication::setOrganizationName("emusc");
   QCoreApplication::setApplicationName("EmuSC");
+
+  // Make Windows send stdout & stderr to console if started from one
+#ifdef Q_OS_WINDOWS
+  if (AttachConsole(ATTACH_PARENT_PROCESS)) {
+    freopen("CONOUT$", "w", stdout);
+    freopen("CONOUT$", "w", stderr);
+  }
+#endif
 
   if (argc > 1) {
     int ret = parse_arguments(argc, argv);
