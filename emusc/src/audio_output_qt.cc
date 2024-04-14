@@ -46,7 +46,7 @@ AudioOutputQt::AudioOutputQt(EmuSC::Synth *synth)
   for (const QAudioDeviceInfo &deviceInfo : deviceInfos) {
     if (deviceInfo.deviceName() == deviceName) {
       format.setSampleSize(16);
-      format.setCodec("Audio/pcm");
+      format.setCodec("audio/pcm");
       format.setSampleType(QAudioFormat::SignedInt);
 
       if (!deviceInfo.isFormatSupported(format))
