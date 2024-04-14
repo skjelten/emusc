@@ -140,10 +140,10 @@ int PcmRom::_read_samples(std::vector<char> &romData, struct ControlRom::Sample 
   uint32_t romAddress = _find_samples_rom_address(ctrlSample.address);
 
   struct Samples s;
-  s.samplesF.reserve(ctrlSample.sampleLen);
+  s.samplesF.reserve(ctrlSample.sampleLen + 1);
 
   // Read PCM samples from ROM
-  for (int i = 0; i < ctrlSample.sampleLen; i++) {
+  for (int i = 0; i <= ctrlSample.sampleLen; i++) {
     uint32_t sAddress = romAddress + i;
     int8_t data = romData[sAddress];
     uint8_t sByte = romData[((sAddress & 0xFFFFF) >> 5)|(sAddress & 0xF00000)];
