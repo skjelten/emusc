@@ -59,7 +59,7 @@ private:
 
   unsigned int _lastPos;  // Last read sample position
   float _index;           // Sample position in number of samples from start
-  bool _direction;        // Sample read direction: 0 = backward & 1 = foreward
+  int _direction;         // Sample looping direction: -1 = backward, 1 = forward
 
   float _expFactor;       // log(2) / 12000
 

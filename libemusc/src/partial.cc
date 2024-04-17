@@ -229,89 +229,51 @@ bool Partial::get_next_sample(float *noteSample)
 }
 
 
-bool Partial::_next_sample_from_rom(float pitchAdj)
+bool Partial::_next_sample_from_rom(float timeStep)
 {
-  if (_direction == 1) {   // Update sample position going in forward direction
-    if (0)
-      std::cout << "-> FW " << std::dec << "pos=" << (int) _index
-		<< " pa=" << pitchAdj
-		<< " np=" << _index + pitchAdj
-		<< " sl=" << (int) _ctrlSample->sampleLen
-		<< " lm=" << (int) _ctrlSample->loopMode
-		<< " ll=" << _ctrlSample->loopLen
-		<< " lp=" << _lastPos
-		<< std::endl;
+  float loopEnd = _ctrlSample->sampleLen;
+  float loopLen = _ctrlSample->loopLen;
+  float loopStart = loopEnd - loopLen;
 
-    _index += pitchAdj;
-
-    while (roundf(_index) > _lastPos && _lastPos < _ctrlSample->sampleLen - 1)
-      _sample += _pcmSamples->at(_lastPos++);
-
-    // Check for sample position passing sample boundary
-    if (_index > _ctrlSample->sampleLen) {
-      // Keep track of correct sample index when switching sample direction
-      float remaining = abs(_ctrlSample->sampleLen - _index);
-
-      // loopMode == 0 => Forward only w/loop (jump back "loopLen + 1")
-      if (_ctrlSample->loopMode == 0) {
-	_index = _ctrlSample->sampleLen - _ctrlSample->loopLen - 1 + remaining;
-	_sample = _lastPos = 0;
-
-	// Filter any remainging samples
-	while (roundf(_index) > _lastPos)
-	  _sample += _pcmSamples->at(_lastPos++);
-
-      // loopMode == 1 => Forward-backward (start moving backwards)
-      } else if (_ctrlSample->loopMode == 1) {
-	_index = _ctrlSample->sampleLen - remaining - 1;
-	_direction = 0;
-
-	// Filter any remainging samples
-	while (roundf(_index) < _lastPos)
-	  _sample += _pcmSamples->at(_lastPos--);
-
-      // loopMode == 2 => Forward-stop (end playback)
-      } else if (_ctrlSample->loopMode == 2) {
-	return 1;                                 // Terminate this partial
-      }
+  // Half-frame "overshoot" is desired so that, in effect, the
+  // first and last frames are duplicated during the ping-pong loop.
+  // This is necessary to avoid a "click" at the loop point.
+  //
+  //                        NO                        YES
+  //           ----------------------------------------------------
+  //           3         •           •           • •             •
+  //  sample   2       •   •       •           •     •         •
+  //  index    1     •       •   •           •         •     •
+  //           0   •           •           •             • •
+  //           ----------------------------------------------------
+  //                                time ->
+  if (_index > loopEnd + 0.5f) {
+    if (_ctrlSample->loopMode == 0) {
+      // Normal: do nothing
+    } else if (_ctrlSample->loopMode == 1) {
+      // Ping-pong: switch direction
+      _direction *= -1;
+    } else if (_ctrlSample->loopMode == 2) {
+      // One-shot: sample is finished; exit
+      return 1;
     }
 
-  } else {              // Update sample position going in backward direction
-    if (0)
-      std::cout << "<- BW " << std::dec << "pos=" << (int) _index
-		<< " sl=" << (int) _ctrlSample->sampleLen
-		<< " ll=" << _ctrlSample->loopLen
-		<< " lp=" << _lastPos
-		<< std::endl;
-
-    // Update partial sample position based on pitch input
-    _index -= pitchAdj;
-
-    while (roundf(_index) < _lastPos &&
-	   _lastPos > _ctrlSample->sampleLen - _ctrlSample->loopLen)
-      _sample += _pcmSamples->at(_lastPos--);
-
-    // Check for sample position passing sample boundary
-    if (_index < _ctrlSample->sampleLen - _ctrlSample->loopLen - 1) {
-
-      // Filter any remainging samples backward
-      while (_lastPos > _ctrlSample->sampleLen - _ctrlSample->loopLen - 1)
-	_sample += _pcmSamples->at(_lastPos--);
-
-      // Keep track of correct position switching position
-      float remaining = _ctrlSample->sampleLen - _ctrlSample->loopLen - _index;
-
-      // Start moving forward
-      _index = _ctrlSample->sampleLen - _ctrlSample->loopLen + remaining;
-      _direction = 1;
-
-      // Filter any remainging samples forward
-      _lastPos = _ctrlSample->sampleLen - _ctrlSample->loopLen;
-      _sample = 0;
-      while (roundf(_index) < _lastPos)
-	_sample += _pcmSamples->at(_lastPos++);
-    }
+    // Restart loop
+    _index -= (loopLen + 1);
   }
+
+  int pos;
+  if (_direction == 1) {
+    // Forward loop
+    pos = (int)(_index);
+    _sample = _pcmSamples->at(pos);
+  } else {
+    // Backward loop, inverted polarity
+    pos = (int)(loopStart + loopEnd - _index);
+    _sample = -_pcmSamples->at(pos);
+  }
+
+  _index += timeStep;
 
   return 0;
 }
