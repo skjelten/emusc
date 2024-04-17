@@ -40,10 +40,12 @@
 
 
 #include "partial.h"
+#include "resample.h"
 
 #include <iostream>
 #include <cmath>
 
+extern double interp_coeff_cubic[EMUSC_INTERP_MAX][4];
 
 namespace EmuSC {
 
@@ -55,6 +57,7 @@ Partial::Partial(uint8_t key, int partialId, uint16_t instrumentIndex,
     _instPartial(ctrlRom.instrument(instrumentIndex).partials[partialId]),
     _index(0),
     _direction(1),
+    _looping(false),
     _sample(0),
     _settings(settings),
     _partId(partId),
@@ -227,12 +230,44 @@ bool Partial::get_next_sample(float *noteSample)
   return 0;
 }
 
+static inline std::array<int, 4> get_indexes(int i, int dir, int loopMode, int loopStart, int loopEnd, bool looping) {
+  if (i == 0 && !looping) return {i, i, i+1, i+2};
+
+
+
+  if (loopMode == 0 && looping) {
+    if (i == (int) loopEnd - 2) return {i-1, i, i+1, loopStart};
+    if (i == loopEnd - 1) return {i-1, i, loopStart, loopStart+1};
+    if (i == 0) return {loopEnd - 1, i, i+1, i+2};
+  }
+
+  if (loopMode == 1 && looping) {
+    if (i == loopEnd - 2) return {i-1, i, i+1, i+1};
+    if (i == loopEnd - 1) {
+      if (dir == 1) return {i-1, i, i, i-1};
+      if (dir == -1) return {i, i, i-1, i-2};
+    }
+    if (i == loopStart + 1) return {i+1, i, i-1, i-1};
+    if (i == loopStart) {
+      if (dir == -1) return {i+1, i, i, i+1};
+      if (dir == 1) return {i, i, i+1, i+2};
+    }
+  }
+
+  if (i == loopEnd - 2) return {i-1, i, i+1, i+1};
+  if (i == loopEnd - 1) return {i-1, i, i, i};
+  if (i >= loopEnd) return {i-1, i, i, i};
+
+  return {i-1, i, i+1, i+2};
+}
+
 
 bool Partial::_next_sample_from_rom(float timeStep)
 {
   float loopEnd = _ctrlSample->sampleLen;
   float loopLen = _ctrlSample->loopLen;
   float loopStart = loopEnd - loopLen;
+  const double *coeffs;
 
   // Half-frame "overshoot" is desired so that, in effect, the
   // first and last frames are duplicated during the ping-pong loop.
@@ -246,6 +281,7 @@ bool Partial::_next_sample_from_rom(float timeStep)
   //           0   •           •           •             • •
   //           ----------------------------------------------------
   //                                time ->
+  if (_index > loopStart) _looping = true;
   if (_index > loopEnd + 0.5f) {
     if (_ctrlSample->loopMode == 0) {
       // Normal: do nothing
@@ -256,21 +292,40 @@ bool Partial::_next_sample_from_rom(float timeStep)
       // One-shot: sample is finished; exit
       return 1;
     }
+    printf("Direction: %s   Sample   : %.4f\n", (_direction == 1 ? "-->" : "<--"), _sample);
 
     // Restart loop
     _index -= (loopLen + 1);
   }
 
-  int pos;
+  float idx;
   if (_direction == 1) {
     // Forward loop
-    pos = (int)(_index);
-    _sample = _pcmSamples->at(pos);
+    idx = roundf(_index);
   } else {
     // Backward loop, inverted polarity
-    pos = (int)(loopStart + loopEnd - _index);
-    _sample = -_pcmSamples->at(pos);
+    idx = loopStart + loopEnd - roundf(_index);
   }
+  float frac = idx - floor(idx);
+  _sample = 0;
+  coeffs = interp_coeff_cubic[emusc_float_to_row(frac)];
+  auto offsets = get_indexes((int) idx,
+                             _direction,
+                             _ctrlSample->loopMode,
+                             _ctrlSample->sampleLen - _ctrlSample->loopLen,
+                             _ctrlSample->sampleLen,
+                             _looping);
+  for (int i = 0; i < 4; i++) {
+    if (offsets[i] >= _ctrlSample->sampleLen || offsets[i] < 0)
+      std::cout << "Sample access out of bounds! pos=" << offsets[i] << std::endl;
+    else
+      _sample += coeffs[i] * _pcmSamples->at(offsets[i]);
+  }
+//  _sample = coeffs[0] * _pcmSamples->at(offsets[0]) +
+//            coeffs[1] * _pcmSamples->at(offsets[1]) +
+//            coeffs[2] * _pcmSamples->at(offsets[2]) +
+//            coeffs[3] * _pcmSamples->at(offsets[3]);
+//  _sample = -_pcmSamples->at(pos);
 
   _index += timeStep;
 

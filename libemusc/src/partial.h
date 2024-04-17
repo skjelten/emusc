@@ -57,9 +57,10 @@ private:
 
   std::vector<float> *_pcmSamples;
 
-  unsigned int _lastPos;  // Last read sample position
+  int _lastPos;  // Last read sample position
   float _index;           // Sample position in number of samples from start
   int _direction;         // Sample looping direction: -1 = backward, 1 = forward
+  bool _looping;          // Have we started looping yet? Important for determining previous position
 
   float _expFactor;       // log(2) / 12000
 
@@ -80,7 +81,7 @@ private:
 
   double _sample;
 
-  bool _next_sample_from_rom(float pitchAdj);
+  bool _next_sample_from_rom(float timeStep);
   double _convert_volume(uint8_t volume);
 
 };
