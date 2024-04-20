@@ -83,6 +83,7 @@ target_include_directories(emusc-client PUBLIC "${CMAKE_CURRENT_BINARY_DIR}")
 set_target_properties(emusc-client PROPERTIES CXX_EXTENSIONS OFF)
 
 if (APPLE)
+  set_property(TARGET emusc-client PROPERTY RUNTIME_OUTPUT_NAME EmuSC)
   set(MACOSX_BUNDLE_ICON_FILE emusc.icns)
   set(APP_ICON_MACOS "${CMAKE_CURRENT_SOURCE_DIR}/../res/icons/emusc.icns")
   set_source_files_properties(${APP_ICON_MACOS} PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")

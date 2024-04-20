@@ -6,6 +6,8 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 include(GNUInstallDirs)
 
+set(USE_MACOS_BUNDLE "no")
+
 set(ALSA_AUDIO  "no")
 set(CORE_AUDIO  "no")
 set(JACK_AUDIO  "no")
@@ -95,8 +97,9 @@ endif()
 add_subdirectory(src)
 
 if(APPLE)
-  option(BUILD_MACOSX_BUNDLE "Build macOS bundle" ON)
-  set_target_properties(emusc-client PROPERTIES MACOSX_BUNDLE ${BUILD_MACOSX_BUNDLE})
+  set_target_properties(emusc-client PROPERTIES MACOSX_BUNDLE TRUE)
+  set(USE_MACOS_BUNDLE "yes")
+
 elseif(WIN32)
   option(BUILD_WIN32_EXECUTABLE "Build executable without debug console" ON)
   set_target_properties(emusc-client PROPERTIES WIN32_EXECUTABLE ${BUILD_WIN32_EXECUTABLE})
@@ -117,7 +120,7 @@ message(STATUS "")
 
 if(APPLE)
   message(STATUS "Platform: macOS")
-  message(STATUS " * Build bundle: ${MACOSX_BUNDLE}")
+  message(STATUS " * Build bundle: ${USE_MACOS_BUNDLE}")
 elseif(UNIX)
   message(STATUS "Platform: UNIX")
 elseif(WIN32)
