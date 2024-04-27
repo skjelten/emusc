@@ -54,6 +54,7 @@ private:
   int _LFO1DepthPartial;
 
   AHDSR *_ahdsr;
+  int _multiplier;
 
   ControlRom::InstPartial *_instPartial;
 

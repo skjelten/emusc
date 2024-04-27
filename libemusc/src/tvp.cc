@@ -44,20 +44,20 @@ namespace EmuSC {
 
 TVP::TVP(ControlRom::InstPartial &instPartial, WaveGenerator *LFO[2],
 	 Settings *settings,int8_t partId)
-  : _settings(settings),
-    _partId(partId),
-    _sampleRate(settings->get_param_uint32(SystemParam::SampleRate)),
-    _ahdsr(NULL)
+  : _sampleRate(settings->get_param_uint32(SystemParam::SampleRate)),
+    _LFO1(LFO[0]),
+    _LFO2(LFO[1]),
+    _LFO1DepthPartial(instPartial.TVPLFODepth & 0x7f),
+    _ahdsr(NULL),
+    _multiplier(instPartial.pitchMult & 0x7f),
+    _settings(settings),
+    _partId(partId)
 {
-  _LFO1 = LFO[0];
-  _LFO2 = LFO[1];
-
-  _LFO1DepthPartial = (instPartial.TVPLFODepth & 0x7f);
-
   // If TVP envelope phase durations are all 0 we only have a static filter
   // TODO: Verify that this is correct - what to do when P1-5 value != 0?
-  if ((instPartial.pitchDurP1 + instPartial.pitchDurP2 + instPartial.pitchDurP3+
-       instPartial.pitchDurP4 + instPartial.pitchDurP5) == 0)
+  if ((!instPartial.pitchDurP1 && !instPartial.pitchDurP2 &&
+       !instPartial.pitchDurP3 && !instPartial.pitchDurP4 &&
+       !instPartial.pitchDurP5))
     return;
 
   int phasePitchInit;           // Initial pitch for phase 1
@@ -112,13 +112,12 @@ double TVP::get_pitch()
   // TODO: Delay function -> seconds
   // sec = 0.5 * exp(_LFODelay * log(10.23 / 0.5) / 50)
 
-  // Pitch envelope - DISABLED -
-  // Envelope pitch values in ROM seems to be in percent.
-  double pEnv = 1;
-//  if (_ahdsr)
-//    pEnv += _ahdsr->get_next_value() * 0.01;
+  // Envelope pitch values in ROM seems to be in percent
+  double pEnvelope = 1;
+  if (_ahdsr)
+    pEnvelope += (_ahdsr->get_next_value() * ((float) _multiplier / 6400));
 
-  return vibrato * pEnv;
+  return vibrato * pEnvelope;
 }
 
 
