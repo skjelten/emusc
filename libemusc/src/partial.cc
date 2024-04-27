@@ -207,8 +207,7 @@ bool Partial::get_next_sample(float *noteSample)
   sample[0] *= _volumeCorrection;
 
   // Apply TVF
-// NOTE: TEMPORARILY DISABLED
-//  sample[0] = _tvf->apply(sample[0]);
+  sample[0] = _tvf->apply(sample[0]);
 
   // Apply TVA
   sample[0] *= _tva->get_amplification();

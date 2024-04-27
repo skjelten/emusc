@@ -60,7 +60,7 @@ TVP::TVP(ControlRom::InstPartial &instPartial, WaveGenerator *LFO[2],
        instPartial.pitchDurP4 + instPartial.pitchDurP5) == 0)
     return;
 
-  double phasePitchInit;        // Initial pitch for phase 1
+  int phasePitchInit;           // Initial pitch for phase 1
   double phasePitch[5];         // Target phase pitch for phase 1-5
   uint8_t phaseDuration[5];     // Phase duration for phase 1-5
 
@@ -77,9 +77,10 @@ TVP::TVP(ControlRom::InstPartial &instPartial, WaveGenerator *LFO[2],
   phaseDuration[3] = instPartial.pitchDurP4 & 0x7F;
   phaseDuration[4] = instPartial.pitchDurP5 & 0x7F;
 
-  std::string id = "TVP (" + std::to_string(instPartial.partialIndex) + ")";
+  bool phaseShape[5] = { 0, 0, 0, 0, 0 };
 
-  _ahdsr = new AHDSR(phasePitchInit, phasePitch, phaseDuration, settings, partId, id);
+  _ahdsr = new AHDSR(phasePitch, phaseDuration, phaseShape, 0,
+		     settings, partId, AHDSR::Type::TVP, phasePitchInit);
   _ahdsr->start();
 }
 

@@ -25,8 +25,6 @@
 
 #include <stdint.h>
 
-#include <string>
-
 
 namespace EmuSC {
 
@@ -34,8 +32,14 @@ namespace EmuSC {
 class AHDSR
 {
 public:
-  AHDSR(double value[5], uint8_t duration[5], bool shape[5], int key, Settings *settings, int8_t partId, std::string id);
-  AHDSR(double init, double value[5], uint8_t duration[5], Settings *settings, int8_t partId, std::string id);
+  enum class Type {
+    TVA,
+    TVF,
+    TVP
+  };
+
+  AHDSR(double value[5], uint8_t duration[5], bool shape[5], int key,
+	Settings *settings, int8_t partId, enum Type type, int initValue = 0);
   ~AHDSR();
 
   void start(void);
@@ -69,14 +73,13 @@ private:
     ahdsr_Release =  4
   };
   enum Phase _phase;
-  enum Phase _terminalPhase;
 
   int _key;
 
   Settings *_settings;
   int8_t _partId;
 
-  std::string _id;
+  enum Type _type;
   const char *_phaseName[5] = { "Attack", "Hold", "Decay",
 				"Sustain", "Release" };
 

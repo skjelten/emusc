@@ -67,9 +67,8 @@ TVA::TVA(ControlRom::InstPartial &instPartial, uint8_t key,
   phaseShape[3] = (instPartial.TVALenP4 & 0x80) ? 0 : 1;
   phaseShape[4] = (instPartial.TVALenP5 & 0x80) ? 0 : 1;
 
-  std::string id = "TVA (" + std::to_string(instPartial.partialIndex) + ")";
-
-  _ahdsr = new AHDSR(phaseVolume, phaseDuration, phaseShape, key, settings, partId, id);
+  _ahdsr = new AHDSR(phaseVolume, phaseDuration, phaseShape, key,
+		     settings, partId, AHDSR::Type::TVA);
   _ahdsr->start();
 }
 

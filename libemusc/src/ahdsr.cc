@@ -27,16 +27,16 @@
 namespace EmuSC {
 
 
-AHDSR::AHDSR(double value[5], uint8_t duration[5], bool shape[5], int key, Settings *settings, int8_t partId, std::string id)
-  : _id(id),
+AHDSR::AHDSR(double value[5], uint8_t duration[5], bool shape[5], int key,
+	     Settings *settings, int8_t partId, enum Type type, int initValue)
+  : _finished(false),
     _sampleRate(settings->get_param_uint32(SystemParam::SampleRate)),
+    _currentValue(initValue),
+    _phase(ahdsr_Off),
     _key(key),
     _settings(settings),
     _partId(partId),
-    _phase(ahdsr_Off),
-    _terminalPhase(ahdsr_Release),
-    _currentValue(0),
-    _finished(false)
+    _type(type)
 {
   for (int i = 0; i < 5; i++) {
     _phaseValue[i] = value[i];
@@ -44,8 +44,13 @@ AHDSR::AHDSR(double value[5], uint8_t duration[5], bool shape[5], int key, Setti
     _phaseShape[i] = shape[i];
   }
 
-  if (0)
-    std::cout << "\nNew AHDSR envelope: " << _id << std::endl << std::dec
+  if (0) {
+    std::string envType;
+    if (type == Type::TVA) envType = "TVA";
+    else if (type == Type::TVF) envType = "TVF";
+    else envType = "Pitch";
+
+    std::cout << "\nNew AHDSR envelope: " << envType << std::endl << std::dec
 	      << " Attack:  -> V=" << (double) _phaseValue[0]
 	      << " T=" << (float) _phaseDuration[0]
 	      << " S=" << _phaseShape[0]
@@ -67,55 +72,9 @@ AHDSR::AHDSR(double value[5], uint8_t duration[5], bool shape[5], int key, Setti
 	      << " S=" << _phaseShape[4]
 	      << std::endl
 	      << " Key=" << key << std::endl;
-
+  }
   // Debug output for plotting in Octave
   // _sampleNum = 0; _ofs.open("/tmp/TVA.txt", std::ios_base::trunc);
-}
-
-
-AHDSR::AHDSR(double init, double value[5], uint8_t duration[5], Settings *settings, int8_t partId, std::string id)
-  : _id(id),
-    _sampleRate(settings->get_param_uint32(SystemParam::SampleRate)),
-    _key(-1),
-    _settings(settings),
-    _partId(partId),
-    _phase(ahdsr_Off),
-    _terminalPhase(ahdsr_Release),
-    _currentValue(init),
-    _finished(false)
-{
-  for (int i = 0; i < 5; i++) {
-    _phaseValue[i] = value[i];
-    _phaseDuration[i] = duration[i];
-    _phaseShape[i] = 0;
-  }
-
-  if (0)
-    std::cout << "\nNew AHDSR envelope: " << _id << std::endl << std::dec
-	      << " Init:    -> F/P=" << init << std::endl
-	      << " Attack:  -> F/P=" << (double) _phaseValue[0]
-	      << " T=" << (float) _phaseDuration[0]
-	      << " S=" << _phaseShape[0]
-	      << std::endl
-	      << " Hold:    -> F/P=" << (double) _phaseValue[1]
-	      << " T=" << (float) _phaseDuration[1]
-	      << " S=" << _phaseShape[1]
-	      << std::endl
-	      << " Decay:   -> F/P=" << (double) _phaseValue[2]
-	      << " T=" << (float) _phaseDuration[2]
-	      << " S=" << _phaseShape[2]
-	      << std::endl
-	      << " Sustain: -> F/P=" << (double) _phaseValue[3]
-	      << " T=" << (float) _phaseDuration[3]
-	      << " S=" << _phaseShape[3]
-	      << std::endl
-	      << " Release: -> F/P=" << (double) _phaseValue[4]
-	      << " T=" << (float) _phaseDuration[4]
-	      << " S=" << _phaseShape[4]
-	      << std::endl;
-
-//  _sampleNum = 0;
-//  _ofs.open("/tmp/TVFP.txt", std::ios_base::trunc);
 }
 
 
@@ -164,14 +123,20 @@ void AHDSR::_init_new_phase(enum Phase newPhase)
 
   _phaseSampleIndex = 0;
   _phase = newPhase;
-  
-  if (0)
-    std::cout << "New " << _id << " envelope phase: -> " << _phase
+
+  if (0) {
+    std::string envType;
+    if (_type == Type::TVA) envType = "TVA";
+    else if (_type == Type::TVF) envType = "TVF";
+    else envType = "Pitch";
+
+    std::cout << "New " << envType << " envelope phase: -> " << _phase
 	      << " (" << _phaseName[_phase] << ")"
 	      << ": len = " << phaseDurationSec << "s"
 	      << " (" << _phaseSampleLen << " samples)"
 	      << " val = " << _phaseInitValue << " -> " << _phaseValue[_phase]
 	      << std::endl;
+  }
 }
 
 
@@ -206,11 +171,12 @@ double AHDSR::get_next_value(void)
       _init_new_phase(ahdsr_Sustain);
 
   } else if (_phase == ahdsr_Sustain) {
-    if (_phaseSampleIndex > _phaseSampleLen)
+    if (_phaseSampleIndex > _phaseSampleLen) {
       if (_phaseValue[ahdsr_Sustain] == 0)
 	_init_new_phase(ahdsr_Release);
       else
 	return _currentValue;                  // Sustain can last forever
+    }
 
   } else if (_phase == ahdsr_Release) {
     if (_phaseSampleIndex > _phaseSampleLen) {
