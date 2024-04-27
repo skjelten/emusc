@@ -508,7 +508,19 @@ AudioSettings::AudioSettings(Emulator *emulator, QWidget *parent)
   if (!settings.contains("Audio/system"))
     reset();
 
-  _systemBox->setCurrentText(settings.value("Audio/system").toString());
+  // Set best audio system for each system if no audio config exist
+  if (!settings.contains("Audio/system")) {
+#ifdef __ALSA_AUDIO__
+    _systemBox->setCurrentText("ALSA");
+#elif __CORE_AUDIO__
+    _systemBox->setCurrentText("Core Audio");
+#elif __WIN32_AUDIO__
+    _systemBox->setCurrentText("Win32");
+#endif
+  } else {
+    _systemBox->setCurrentText(settings.value("Audio/system").toString());
+  }
+
   _deviceBox->setCurrentText(settings.value("Audio/device").toString());
   _system_box_changed(0);
 
@@ -534,6 +546,12 @@ AudioSettings::AudioSettings(Emulator *emulator, QWidget *parent)
 	  this, SLOT(_system_box_changed(int)));
   connect(_deviceBox, SIGNAL(currentIndexChanged(int)),
 	  this, SLOT(_device_box_changed(int)));
+  connect(_bufferTimeSB, SIGNAL(valueChanged(int)),
+	  this, SLOT(_bufferTimeSB_changed(int)));
+  connect(_periodTimeSB, SIGNAL(valueChanged(int)),
+	  this, SLOT(_periodTimeSB_changed(int)));
+  connect(_sampleRateSB, SIGNAL(valueChanged(int)),
+	  this, SLOT(_sampleRateSB_changed(int)));
   connect(_filePathLE, SIGNAL(editingFinished()),
 	  this, SLOT(_filePathLE_changed()));
 //  connect(_channelsCB, SIGNAL(currentIndexChanged(int)),
@@ -709,7 +727,27 @@ void AudioSettings::_channels_box_changed(int index)
     _reverseStereo->setEnabled(true);
   else
     _reverseStereo->setEnabled(false);
+}
 
+
+void AudioSettings::_bufferTimeSB_changed(int value)
+{
+  QSettings settings;
+  settings.setValue("Audio/buffer_time", value);
+}
+
+
+void AudioSettings::_periodTimeSB_changed(int value)
+{
+  QSettings settings;
+  settings.setValue("Audio/period_time", value);
+}
+
+
+void AudioSettings::_sampleRateSB_changed(int value)
+{
+  QSettings settings;
+  settings.setValue("Audio/sample_rate", value);
 }
 
 

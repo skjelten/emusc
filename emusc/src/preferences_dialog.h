@@ -153,6 +153,9 @@ private slots:
   void _system_box_changed(int index);
   void _device_box_changed(int index);
   void _channels_box_changed(int index);
+  void _bufferTimeSB_changed(int value);
+  void _periodTimeSB_changed(int value);
+  void _sampleRateSB_changed(int value);
   void _filePathLE_changed(void);
   void _open_file_path_dialog(void);
 };
