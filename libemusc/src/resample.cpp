@@ -1,43 +1,39 @@
-//
-// Created by Matt Montag on 4/15/24.
-//
+/*
+ *  This file is part of libEmuSC, a Sound Canvas emulator library
+ *  Copyright (C) 2022-2024  Håkon Skjelten
+ *
+ *  libEmuSC is free software: you can redistribute it and/or modify it
+ *  under the terms of the GNU Lesser General Public License as published
+ *  by the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  libEmuSC is distributed in the hope that it will be useful, but
+ *  WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU Lesser General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with libEmuSC. If not, see <http://www.gnu.org/licenses/>.
+ */
 
 #include "resample.h"
-//#include "partial.h"
-//
-//float emusc_interp_cubic(const Partial *partial, float phase_incr)
-//{
-//  int index = (int)partial->phase;
-//  float fraction = partial->phase - index;
-//
-//  float a = interp_coeff_cubic[index][0];
-//  float b = interp_coeff_cubic[index][1];
-//  float c = interp_coeff_cubic[index][2];
-//  float d = interp_coeff_cubic[index][3];
-//
-//  float y = a * partial->samples[0] + b * partial->samples[1] + c * partial->samples[2] + d * partial->samples[3];
-//
-//  partial->phase += phase_incr;
-//
-//  return y;
-//}
+
+namespace Resample {
 double interp_coeff_cubic[EMUSC_INTERP_MAX][4];
 double interp_coeff_linear[EMUSC_INTERP_MAX][2];
 
-void init_interp_tables()
-{
-  for (int i = 0; i < EMUSC_INTERP_MAX; i++)
-  {
-    double x = (double)i / EMUSC_INTERP_MAX;
-    double x2 = x * x;
-    double x3 = x2 * x;
+void init_interp_tables() {
+  for (int i = 0; i < EMUSC_INTERP_MAX; i++) {
+    double x = (double) i / EMUSC_INTERP_MAX;
 
-    interp_coeff_cubic[i][0] = 0.5 * (2.0 * x3 - 3.0 * x2 + 1.0);
-    interp_coeff_cubic[i][1] = 0.5 * (3.0 * x2 - 2.0 * x3);
-    interp_coeff_cubic[i][2] = 0.5 * (x3 - 2.0 * x2 + x);
-    interp_coeff_cubic[i][3] = 0.5 * (x3 - x2);
+    // Source: https://github.com/FluidSynth/fluidsynth/blob/master/src/gentables/gen_rvoice_dsp.c
+    Resample::interp_coeff_cubic[i][0] = (x * (-0.5 + x * (1 - 0.5 * x)));
+    Resample::interp_coeff_cubic[i][1] = (1.0 + x * x * (1.5 * x - 2.5));
+    Resample::interp_coeff_cubic[i][2] = (x * (0.5 + x * (2.0 - 1.5 * x)));
+    Resample::interp_coeff_cubic[i][3] = (0.5 * x * x * (x - 1.0));
 
-    interp_coeff_linear[i][0] = 1.0 - x;
-    interp_coeff_linear[i][1] = x;
+    Resample::interp_coeff_linear[i][0] = 1.0 - x;
+    Resample::interp_coeff_linear[i][1] = x;
   }
 }
+} // namespace Resample
