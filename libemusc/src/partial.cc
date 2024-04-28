@@ -45,7 +45,23 @@
 #include <iostream>
 #include <cmath>
 
-extern double interp_coeff_cubic[EMUSC_INTERP_MAX][4];
+namespace {
+struct InterpIndexes {
+  int i0, i1, i2, i3;
+};
+
+static InterpIndexes get_cubic_indexes(int i, int loopStart, int loopEnd, bool isLooping) {
+  if (i == loopEnd - 1) {
+    return {i-1, i, isLooping ? loopStart : i+1, isLooping ? loopStart+1 : i+1};
+  } else if (i == loopEnd) {
+    return {i-1, i, isLooping ? loopStart : i, isLooping ? loopStart+1 : i};
+  } else if (i == 0) {
+    return {isLooping ? loopEnd : i, i, i+1, i+2};
+  } else {
+    return {i-1, i, i+1, i+2};
+  }
+}
+}
 
 namespace EmuSC {
 
@@ -56,8 +72,7 @@ Partial::Partial(uint8_t key, int partialId, uint16_t instrumentIndex,
   : _key(key),
     _instPartial(ctrlRom.instrument(instrumentIndex).partials[partialId]),
     _index(0),
-    _direction(1),
-    _looping(false),
+    _isLooping(false),
     _sample(0),
     _settings(settings),
     _partId(partId),
@@ -230,38 +245,6 @@ bool Partial::get_next_sample(float *noteSample)
   return 0;
 }
 
-static inline std::array<int, 4> get_indexes(int i, int dir, int loopMode, int loopStart, int loopEnd, bool looping) {
-  if (i == 0 && !looping) return {i, i, i+1, i+2};
-
-
-
-  if (loopMode == 0 && looping) {
-    if (i == (int) loopEnd - 2) return {i-1, i, i+1, loopStart};
-    if (i == loopEnd - 1) return {i-1, i, loopStart, loopStart+1};
-    if (i == 0) return {loopEnd - 1, i, i+1, i+2};
-  }
-
-  if (loopMode == 1 && looping) {
-    if (i == loopEnd - 2) return {i-1, i, i+1, i+1};
-    if (i == loopEnd - 1) {
-      if (dir == 1) return {i-1, i, i, i-1};
-      if (dir == -1) return {i, i, i-1, i-2};
-    }
-    if (i == loopStart + 1) return {i+1, i, i-1, i-1};
-    if (i == loopStart) {
-      if (dir == -1) return {i+1, i, i, i+1};
-      if (dir == 1) return {i, i, i+1, i+2};
-    }
-  }
-
-  if (i == loopEnd - 2) return {i-1, i, i+1, i+1};
-  if (i == loopEnd - 1) return {i-1, i, i, i};
-  if (i >= loopEnd) return {i-1, i, i, i};
-
-  return {i-1, i, i+1, i+2};
-}
-
-
 bool Partial::_next_sample_from_rom(float timeStep)
 {
   float loopEnd = _ctrlSample->sampleLen;
@@ -269,64 +252,54 @@ bool Partial::_next_sample_from_rom(float timeStep)
   float loopStart = loopEnd - loopLen;
   const double *coeffs;
 
-  // Half-frame "overshoot" is desired so that, in effect, the
-  // first and last frames are duplicated during the ping-pong loop.
-  // This is necessary to avoid a "click" at the loop point.
-  //
-  //                        NO                        YES
-  //           ----------------------------------------------------
-  //           3         •           •           • •             •
-  //  sample   2       •   •       •           •     •         •
-  //  index    1     •       •   •           •         •     •
-  //           0   •           •           •             • •
-  //           ----------------------------------------------------
-  //                                time ->
-  if (_index > loopStart) _looping = true;
-  if (_index > loopEnd + 0.5f) {
-    if (_ctrlSample->loopMode == 0) {
-      // Normal: do nothing
-    } else if (_ctrlSample->loopMode == 1) {
-      // Ping-pong: switch direction
-      _direction *= -1;
-    } else if (_ctrlSample->loopMode == 2) {
+  if (_index > loopStart && _ctrlSample->loopMode != 2) _isLooping = true;
+
+  if (_index >= loopEnd + 1.f) {
+    if (_ctrlSample->loopMode == 2) {
       // One-shot: sample is finished; exit
       return 1;
     }
-    printf("Direction: %s   Sample   : %.4f\n", (_direction == 1 ? "-->" : "<--"), _sample);
 
     // Restart loop
-    _index -= (loopLen + 1);
+    _index -= (loopLen + 1.f);
   }
 
-  float idx;
-  if (_direction == 1) {
-    // Forward loop
-    idx = roundf(_index);
-  } else {
-    // Backward loop, inverted polarity
-    idx = loopStart + loopEnd - roundf(_index);
-  }
-  float frac = idx - floor(idx);
-  _sample = 0;
-  coeffs = interp_coeff_cubic[emusc_float_to_row(frac)];
-  auto offsets = get_indexes((int) idx,
-                             _direction,
-                             _ctrlSample->loopMode,
-                             _ctrlSample->sampleLen - _ctrlSample->loopLen,
-                             _ctrlSample->sampleLen,
-                             _looping);
-  for (int i = 0; i < 4; i++) {
-    if (offsets[i] >= _ctrlSample->sampleLen || offsets[i] < 0)
-      std::cout << "Sample access out of bounds! pos=" << offsets[i] << std::endl;
-    else
-      _sample += coeffs[i] * _pcmSamples->at(offsets[i]);
-  }
-//  _sample = coeffs[0] * _pcmSamples->at(offsets[0]) +
-//            coeffs[1] * _pcmSamples->at(offsets[1]) +
-//            coeffs[2] * _pcmSamples->at(offsets[2]) +
-//            coeffs[3] * _pcmSamples->at(offsets[3]);
-//  _sample = -_pcmSamples->at(pos);
+  int idx0 = (int) floor(_index);
+  float frac = _index - floor(_index);
 
+  // TODO: Make interpolation mode configurable.
+  InterpMode interpMode = InterpMode::Cubic;
+  switch (interpMode) {
+    case InterpMode::Nearest: {
+      // Nearest neighbor
+      _sample = _pcmSamples->at(idx0);
+      break;
+    }
+    case InterpMode::Linear: {
+      // Linear interpolation
+      int idx1 = idx0 + 1;
+      if (idx1 > (int) loopEnd) idx1 = (int) loopStart;
+
+      coeffs = Resample::interp_coeff_linear[emusc_float_to_row(frac)];
+      _sample = coeffs[0] * _pcmSamples->at(idx0) +
+                coeffs[1] * _pcmSamples->at(idx1);
+      break;
+    }
+    case InterpMode::Cubic: {
+      // Cubic interpolation
+      auto indexes = get_cubic_indexes(idx0,
+                                       _ctrlSample->sampleLen - _ctrlSample->loopLen,
+                                       _ctrlSample->sampleLen,
+                                       _isLooping);
+
+      coeffs = Resample::interp_coeff_cubic[emusc_float_to_row(frac)];
+      _sample = coeffs[0] * _pcmSamples->at(indexes.i0) +
+                coeffs[1] * _pcmSamples->at(indexes.i1) +
+                coeffs[2] * _pcmSamples->at(indexes.i2) +
+                coeffs[3] * _pcmSamples->at(indexes.i3);
+      break;
+    }
+  }
   _index += timeStep;
 
   return 0;

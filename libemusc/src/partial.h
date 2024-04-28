@@ -59,8 +59,7 @@ private:
 
   int _lastPos;  // Last read sample position
   float _index;           // Sample position in number of samples from start
-  int _direction;         // Sample looping direction: -1 = backward, 1 = forward
-  bool _looping;          // Have we started looping yet? Important for determining previous position
+  bool _isLooping;        // Have we entered the loop region? Important for determining previous position
 
   float _expFactor;       // log(2) / 12000
 
