@@ -278,9 +278,11 @@ bool Partial::_next_sample_from_rom(float timeStep)
     case InterpMode::Linear: {
       // Linear interpolation
       int idx1 = idx0 + 1;
-      if (idx1 > (int) loopEnd) idx1 = (int) loopStart;
+      if (idx1 > (int) loopEnd) {
+        idx1 = _isLooping ? (int) loopStart : idx0;
+      }
 
-      coeffs = Resample::interp_coeff_linear[emusc_float_to_row(frac)];
+      coeffs = interp_coeff_linear[emusc_float_to_row(frac)];
       _sample = coeffs[0] * _pcmSamples->at(idx0) +
                 coeffs[1] * _pcmSamples->at(idx1);
       break;
@@ -292,7 +294,7 @@ bool Partial::_next_sample_from_rom(float timeStep)
                                        _ctrlSample->sampleLen,
                                        _isLooping);
 
-      coeffs = Resample::interp_coeff_cubic[emusc_float_to_row(frac)];
+      coeffs = interp_coeff_cubic[emusc_float_to_row(frac)];
       _sample = coeffs[0] * _pcmSamples->at(indexes.i0) +
                 coeffs[1] * _pcmSamples->at(indexes.i1) +
                 coeffs[2] * _pcmSamples->at(indexes.i2) +

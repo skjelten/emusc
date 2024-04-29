@@ -18,7 +18,7 @@
 
 #include "resample.h"
 
-namespace Resample {
+namespace EmuSC {
 double interp_coeff_cubic[EMUSC_INTERP_MAX][4];
 double interp_coeff_linear[EMUSC_INTERP_MAX][2];
 
@@ -27,13 +27,13 @@ void init_interp_tables() {
     double x = (double) i / EMUSC_INTERP_MAX;
 
     // Source: https://github.com/FluidSynth/fluidsynth/blob/master/src/gentables/gen_rvoice_dsp.c
-    Resample::interp_coeff_cubic[i][0] = (x * (-0.5 + x * (1 - 0.5 * x)));
-    Resample::interp_coeff_cubic[i][1] = (1.0 + x * x * (1.5 * x - 2.5));
-    Resample::interp_coeff_cubic[i][2] = (x * (0.5 + x * (2.0 - 1.5 * x)));
-    Resample::interp_coeff_cubic[i][3] = (0.5 * x * x * (x - 1.0));
+    interp_coeff_cubic[i][0] = (x * (-0.5 + x * (1 - 0.5 * x)));
+    interp_coeff_cubic[i][1] = (1.0 + x * x * (1.5 * x - 2.5));
+    interp_coeff_cubic[i][2] = (x * (0.5 + x * (2.0 - 1.5 * x)));
+    interp_coeff_cubic[i][3] = (0.5 * x * x * (x - 1.0));
 
-    Resample::interp_coeff_linear[i][0] = 1.0 - x;
-    Resample::interp_coeff_linear[i][1] = x;
+    interp_coeff_linear[i][0] = 1.0 - x;
+    interp_coeff_linear[i][1] = x;
   }
 }
-} // namespace Resample
+} // namespace EmuSC

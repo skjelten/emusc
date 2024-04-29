@@ -49,7 +49,7 @@ Synth::Synth(ControlRom &controlRom, PcmRom &pcmRom, SoundMap map)
 
   _parts.reserve(16);
 
-  Resample::init_interp_tables();
+  init_interp_tables();
 
   if (map == SoundMap::GS) {
     std::cout << "libEmuSC: GS sound map initialized" << std::endl;

@@ -29,11 +29,11 @@ enum class InterpMode {
   Cubic
 };
 
-namespace Resample {
+namespace EmuSC {
 extern double interp_coeff_cubic[EMUSC_INTERP_MAX][4];
 extern double interp_coeff_linear[EMUSC_INTERP_MAX][2];
 
 void init_interp_tables();
-} // namespace Resample
+} // namespace EmuSC
 
 #endif //EMUSC_RESAMPLE_H

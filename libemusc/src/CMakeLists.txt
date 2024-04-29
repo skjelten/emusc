@@ -32,7 +32,7 @@ add_library(emusc
   partial.h
   pcm_rom.cc
   pcm_rom.h
-  resample.cpp
+  resample.cc
   resample.h
   reverb.cc
   reverb.h
