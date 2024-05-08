@@ -98,29 +98,27 @@ void MidiInputCore::_midi_callback(const MIDIPacketList* packetList,
 }
 
 
-void MidiInputCore::start(EmuSC::Synth *synth, QString device)
+void MidiInputCore::start(EmuSC::Synth *synth, QString deviceName)
 {
   _synth = synth;
   
-  int n = MIDIGetNumberOfSources();  
+  ItemCount n = MIDIGetNumberOfSources();
   for (int i = 0; i < n; ++i) {
     MIDIEndpointRef source = MIDIGetSource(i);
 
     if (source) {
-      CFStringRef name = NULL;
-      MIDIObjectGetStringProperty(source, kMIDIPropertyName, &name);
-      CFStringEncoding enc = CFStringGetSystemEncoding();
-      if (!device.compare(CFStringGetCStringPtr(name, enc))) {
-	MIDIPortConnectSource(_inPort, source, NULL);
-	_sourceInUse = source;
-	break;
+      QString devName = _get_device_name(source);
+      if (devName == deviceName) {
+        MIDIPortConnectSource(_inPort, source, nullptr);
+        _sourceInUse = source;
+        break;
       }
     }
   }
 }
 
 
-void MidiInputCore::stop(void)
+void MidiInputCore::stop()
 {
   if (_sourceInUse) {
     MIDIPortDisconnectSource(_inPort, _sourceInUse);
@@ -138,24 +136,43 @@ void MidiInputCore::midi_callback(const MIDIPacketList* packetList,
 }
 
 
-QStringList MidiInputCore::get_available_devices(void)
+QStringList MidiInputCore::get_available_devices()
 {
   QStringList deviceList;
-  int n = MIDIGetNumberOfSources();
+  ItemCount n = MIDIGetNumberOfSources();
 
   for (int i = 0; i < n; ++i) {
-    MIDIEndpointRef src = MIDIGetSource(i);
+    MIDIEndpointRef source = MIDIGetSource(i);
 
-    if (src) {
-      CFStringRef name = NULL;
-      MIDIObjectGetStringProperty(src, kMIDIPropertyName, &name);
-      CFStringEncoding enc = CFStringGetSystemEncoding();
-      deviceList << CFStringGetCStringPtr(name, enc);
+    if (source) {
+      QString deviceName = _get_device_name(source);
+      deviceList << deviceName;
     }
   }
 
   return deviceList;
 }
 
+QString MidiInputCore::_get_device_name(MIDIEndpointRef ep) {
+  MIDIEntityRef entity;
+  MIDIDeviceRef device;
+  CFStringRef endpointName, deviceName, fullName;
+  CFStringEncoding enc = CFStringGetSystemEncoding();
+
+  MIDIEndpointGetEntity(ep, &entity);
+  MIDIEntityGetDevice(entity, &device);
+  MIDIObjectGetStringProperty(ep, kMIDIPropertyName, &endpointName);
+  MIDIObjectGetStringProperty(device, kMIDIPropertyName, &deviceName);
+  if (deviceName != nullptr && CFStringCompare(endpointName, deviceName, 0) != kCFCompareEqualTo) {
+    fullName = CFStringCreateWithFormat(nullptr, nullptr, CFSTR("%@: %@"), deviceName, endpointName);
+  } else {
+    fullName = endpointName;
+  }
+
+  char buf[128];
+  CFStringGetCString(fullName, buf, 128, enc);
+
+  return {buf};
+}
 
 #endif  // __CORE_MIDI__
