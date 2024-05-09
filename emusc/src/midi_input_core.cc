@@ -57,39 +57,64 @@ void MidiInputCore::_midi_callback(const MIDIPacketList* packetList,
   uint16_t length;
   const uint8_t *data;
 
-  const MIDIPacket* packet = const_cast<MIDIPacket*>(packetList->packet);
+  const MIDIPacket *packet = const_cast<MIDIPacket *>(packetList->packet);
   for (int i = 0; i < packetList->numPackets; i++) {
     length = packet->length;
     data = packet->data;
 
-    // Regular MIDI message
     if (data[0] != 0xf0 && _sysExDataLength == 0) {
-      send_midi_event(data[0], data[1], data[2]);
-
-    // SysEx MIDI message
+      // Regular MIDI message
+      // A packet can contain multiple messages.
+      // See https://stackoverflow.com/a/30657822/264970
+      int idx = 0;
+      while (idx < length) {
+        int statusByte = data[idx] & 0xf0;
+        switch(statusByte) {
+          // 3-byte messages
+          case 0x80: // Note Off
+          case 0x90: // Note On
+          case 0xa0: // Polyphonic Key Pressure (Aftertouch)
+          case 0xb0: // Control Change
+          case 0xe0: // Pitch Bend
+            send_midi_event(data[idx], data[idx + 1], data[idx + 2]);
+            idx += 3;
+            break;
+          // 2-byte messages
+          case 0xc0: // Program Change
+          case 0xd0: // Channel Pressure (Aftertouch)
+            send_midi_event(data[idx], data[idx + 1], 0);
+            idx += 2;
+            break;
+          // Unexpected status byte, skip rest of packet
+          default:
+            idx = length;
+            break;
+        }
+      }
     } else if (data[0] == 0xf0) {
+      // TODO: combine with switch-case above
+      // SysEx MIDI message
 
       // New and complete SysEx message
-      if (_sysExDataLength == 0 && (data[0] & 0xff) == 0xf0 &&
-	  (data[length - 1] & 0xff) == 0xf7) {
-	send_midi_event_sysex(const_cast<uint8_t*>(data), length);
+      if (_sysExDataLength == 0 && (data[0] & 0xff) == 0xf0 && (data[length - 1] & 0xff) == 0xf7) {
+        send_midi_event_sysex(const_cast<uint8_t *>(data), length);
 
-      // Starting or ongoing SysEx message divided in multiple parts
+        // Starting or ongoing SysEx message divided in multiple parts
       } else {
-	// SysEx too large
-	if (_sysExDataLength + length > _sysExData.size()) {
-	  _sysExDataLength = 0;
-	  break;
-	}
+        // SysEx too large
+        if (_sysExDataLength + length > _sysExData.size()) {
+          _sysExDataLength = 0;
+          break;
+        }
 
-	std::copy(data, data + length, &_sysExData[_sysExDataLength]);
-	_sysExDataLength += length;
+        std::copy(data, data + length, &_sysExData[_sysExDataLength]);
+        _sysExDataLength += length;
 
-	// SysEx message is complete
-	if (_sysExData[_sysExDataLength - 1] == 0xf7) {
-	  send_midi_event_sysex(_sysExData.data(), _sysExDataLength);
-	  _sysExDataLength = 0;
-	}
+        // SysEx message is complete
+        if (_sysExData[_sysExDataLength - 1] == 0xf7) {
+          send_midi_event_sysex(_sysExData.data(), _sysExDataLength);
+          _sysExDataLength = 0;
+        }
       }
     }
 
