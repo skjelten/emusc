@@ -31,6 +31,9 @@
 // When accumulated sum of vibrato depth exceeds 55, it seems to start following
 // an exponential function.
 
+// Pitch envelopes have a linear correlation between pitch envelope value and
+// multiplier value: Pitch change in cents = 0.3 * multiplier * phase value
+
 
 #include "tvp.h"
 
@@ -112,12 +115,15 @@ double TVP::get_pitch()
   // TODO: Delay function -> seconds
   // sec = 0.5 * exp(_LFODelay * log(10.23 / 0.5) / 50)
 
-  // Envelope pitch values in ROM seems to be in percent
-  double pEnvelope = 1;
-  if (_ahdsr)
-    pEnvelope += (_ahdsr->get_next_value() * ((float) _multiplier / 6400));
+  // Return only vibrato if pitch envelope is not present in this partial
+  if (!_ahdsr)
+    return vibrato;
 
-  return vibrato * pEnvelope;
+  // TODO: Make this calculation more CPU efficient
+  float envelope = exp(_ahdsr->get_next_value() * 0.3 * _multiplier *
+		       (log(2) / 1200.0));
+
+  return vibrato * envelope;
 }
 
 
