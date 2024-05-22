@@ -47,6 +47,7 @@ private:
   uint16_t _sysExDataLength;
 
   void _midi_callback(const MIDIPacketList* packetList, void *srcConnRefCon);
+  static QString _get_device_name(MIDIEndpointRef source);
 
 public:
   MidiInputCore();

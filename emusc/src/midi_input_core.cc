@@ -57,39 +57,64 @@ void MidiInputCore::_midi_callback(const MIDIPacketList* packetList,
   uint16_t length;
   const uint8_t *data;
 
-  const MIDIPacket* packet = const_cast<MIDIPacket*>(packetList->packet);
+  const MIDIPacket *packet = const_cast<MIDIPacket *>(packetList->packet);
   for (int i = 0; i < packetList->numPackets; i++) {
     length = packet->length;
     data = packet->data;
 
-    // Regular MIDI message
     if (data[0] != 0xf0 && _sysExDataLength == 0) {
-      send_midi_event(data[0], data[1], data[2]);
-
-    // SysEx MIDI message
+      // Regular MIDI message
+      // A packet can contain multiple messages.
+      // See https://stackoverflow.com/a/30657822/264970
+      int idx = 0;
+      while (idx < length) {
+        int statusByte = data[idx] & 0xf0;
+        switch(statusByte) {
+          // 3-byte messages
+          case 0x80: // Note Off
+          case 0x90: // Note On
+          case 0xa0: // Polyphonic Key Pressure (Aftertouch)
+          case 0xb0: // Control Change
+          case 0xe0: // Pitch Bend
+            send_midi_event(data[idx], data[idx + 1], data[idx + 2]);
+            idx += 3;
+            break;
+          // 2-byte messages
+          case 0xc0: // Program Change
+          case 0xd0: // Channel Pressure (Aftertouch)
+            send_midi_event(data[idx], data[idx + 1], 0);
+            idx += 2;
+            break;
+          // Unexpected status byte, skip rest of packet
+          default:
+            idx = length;
+            break;
+        }
+      }
     } else if (data[0] == 0xf0) {
+      // TODO: combine with switch-case above
+      // SysEx MIDI message
 
       // New and complete SysEx message
-      if (_sysExDataLength == 0 && (data[0] & 0xff) == 0xf0 &&
-	  (data[length - 1] & 0xff) == 0xf7) {
-	send_midi_event_sysex(const_cast<uint8_t*>(data), length);
+      if (_sysExDataLength == 0 && (data[0] & 0xff) == 0xf0 && (data[length - 1] & 0xff) == 0xf7) {
+        send_midi_event_sysex(const_cast<uint8_t *>(data), length);
 
-      // Starting or ongoing SysEx message divided in multiple parts
+        // Starting or ongoing SysEx message divided in multiple parts
       } else {
-	// SysEx too large
-	if (_sysExDataLength + length > _sysExData.size()) {
-	  _sysExDataLength = 0;
-	  break;
-	}
+        // SysEx too large
+        if (_sysExDataLength + length > _sysExData.size()) {
+          _sysExDataLength = 0;
+          break;
+        }
 
-	std::copy(data, data + length, &_sysExData[_sysExDataLength]);
-	_sysExDataLength += length;
+        std::copy(data, data + length, &_sysExData[_sysExDataLength]);
+        _sysExDataLength += length;
 
-	// SysEx message is complete
-	if (_sysExData[_sysExDataLength - 1] == 0xf7) {
-	  send_midi_event_sysex(_sysExData.data(), _sysExDataLength);
-	  _sysExDataLength = 0;
-	}
+        // SysEx message is complete
+        if (_sysExData[_sysExDataLength - 1] == 0xf7) {
+          send_midi_event_sysex(_sysExData.data(), _sysExDataLength);
+          _sysExDataLength = 0;
+        }
       }
     }
 
@@ -98,29 +123,27 @@ void MidiInputCore::_midi_callback(const MIDIPacketList* packetList,
 }
 
 
-void MidiInputCore::start(EmuSC::Synth *synth, QString device)
+void MidiInputCore::start(EmuSC::Synth *synth, QString deviceName)
 {
   _synth = synth;
   
-  int n = MIDIGetNumberOfSources();  
+  ItemCount n = MIDIGetNumberOfSources();
   for (int i = 0; i < n; ++i) {
     MIDIEndpointRef source = MIDIGetSource(i);
 
     if (source) {
-      CFStringRef name = NULL;
-      MIDIObjectGetStringProperty(source, kMIDIPropertyName, &name);
-      CFStringEncoding enc = CFStringGetSystemEncoding();
-      if (!device.compare(CFStringGetCStringPtr(name, enc))) {
-	MIDIPortConnectSource(_inPort, source, NULL);
-	_sourceInUse = source;
-	break;
+      QString devName = _get_device_name(source);
+      if (devName == deviceName) {
+        MIDIPortConnectSource(_inPort, source, nullptr);
+        _sourceInUse = source;
+        break;
       }
     }
   }
 }
 
 
-void MidiInputCore::stop(void)
+void MidiInputCore::stop()
 {
   if (_sourceInUse) {
     MIDIPortDisconnectSource(_inPort, _sourceInUse);
@@ -138,24 +161,43 @@ void MidiInputCore::midi_callback(const MIDIPacketList* packetList,
 }
 
 
-QStringList MidiInputCore::get_available_devices(void)
+QStringList MidiInputCore::get_available_devices()
 {
   QStringList deviceList;
-  int n = MIDIGetNumberOfSources();
+  ItemCount n = MIDIGetNumberOfSources();
 
   for (int i = 0; i < n; ++i) {
-    MIDIEndpointRef src = MIDIGetSource(i);
+    MIDIEndpointRef source = MIDIGetSource(i);
 
-    if (src) {
-      CFStringRef name = NULL;
-      MIDIObjectGetStringProperty(src, kMIDIPropertyName, &name);
-      CFStringEncoding enc = CFStringGetSystemEncoding();
-      deviceList << CFStringGetCStringPtr(name, enc);
+    if (source) {
+      QString deviceName = _get_device_name(source);
+      deviceList << deviceName;
     }
   }
 
   return deviceList;
 }
 
+QString MidiInputCore::_get_device_name(MIDIEndpointRef ep) {
+  MIDIEntityRef entity;
+  MIDIDeviceRef device;
+  CFStringRef endpointName, deviceName, fullName;
+  CFStringEncoding enc = CFStringGetSystemEncoding();
+
+  MIDIEndpointGetEntity(ep, &entity);
+  MIDIEntityGetDevice(entity, &device);
+  MIDIObjectGetStringProperty(ep, kMIDIPropertyName, &endpointName);
+  MIDIObjectGetStringProperty(device, kMIDIPropertyName, &deviceName);
+  if (deviceName != nullptr && CFStringCompare(endpointName, deviceName, 0) != kCFCompareEqualTo) {
+    fullName = CFStringCreateWithFormat(nullptr, nullptr, CFSTR("%@: %@"), deviceName, endpointName);
+  } else {
+    fullName = endpointName;
+  }
+
+  char buf[128];
+  CFStringGetCString(fullName, buf, 128, enc);
+
+  return {buf};
+}
 
 #endif  // __CORE_MIDI__
