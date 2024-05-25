@@ -553,9 +553,11 @@ int Part::set_program(uint8_t index, int8_t bank, bool ignRxFlags)
     if (bank < 63 && index < 120) {
       while (instrument == 0xffff)
 	instrument = _ctrlRom.variation(--bank)[index];
-
-      _settings->set_param(PatchParam::ToneNumber, bank, _id);
     }
+    if (instrument == 0xffff) // FIXME: Just a workaround
+      bank = 0;
+
+    _settings->set_param(PatchParam::ToneNumber, bank, _id);
 
   // If part is used for drums, select correct drum set
   } else {
