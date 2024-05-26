@@ -457,11 +457,11 @@ int Part::control_change(uint8_t msgId, uint8_t value)
 
   } else if (msgId == 126) {                           // Mono (-> Mode 4)
     stop_all_notes();
-    _settings->set_param(PatchParam::PolyMode, 0, _id);
+    _settings->set_param(PatchParam::PolyMode, (uint8_t) 0, (int8_t) _id);
 
   } else if (msgId == 127) {                           // Poly (-> Mode 3)
     stop_all_notes();
-    _settings->set_param(PatchParam::PolyMode, 1, _id);
+    _settings->set_param(PatchParam::PolyMode, (uint8_t) 1, (int8_t) _id);
   }
 
   // Update CC1 and CC2 based on configured controller inputs
@@ -553,9 +553,11 @@ int Part::set_program(uint8_t index, int8_t bank, bool ignRxFlags)
     if (bank < 63 && index < 120) {
       while (instrument == 0xffff)
 	instrument = _ctrlRom.variation(--bank)[index];
-
-      _settings->set_param(PatchParam::ToneNumber, bank, _id);
     }
+    if (instrument == 0xffff) // FIXME: Just a workaround
+      bank = 0;
+
+    _settings->set_param(PatchParam::ToneNumber, bank, _id);
 
   // If part is used for drums, select correct drum set
   } else {
