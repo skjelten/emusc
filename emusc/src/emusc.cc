@@ -23,24 +23,17 @@
 #include <string>
 
 #include <QApplication>
+#include <QCommandLineOption>
+#include <QCommandLineParser>
 #include <QSettings>
 #include <QString>
+#include <QStringList>
 
 #ifdef Q_OS_WINDOWS
 #include <Windows.h>
 #endif
 
-
-void show_arguments(std::string program)
-{
-  std::cerr << "Usage: " << program << " [OPTION...]\n\n"
-	    << "Options:\n"
-	    << "  -c, --print-config      \tPrint configuration to stdout\n"
-	    << "  -p, --power-on          \tStart with synth powered on\n"
-	    << "  -o, --power-off         \tStart with synth powered off\n"
-	    << "  -h, --help              \tShow this help message\n"
-	    << std::endl;
-}
+#include "config.h"
 
 
 void print_config()
@@ -65,23 +58,6 @@ void print_config()
 }
 
 
-int parse_arguments(int argc, char *argv[])
-{
-  if (QCoreApplication::arguments().contains("-h") ||
-      QCoreApplication::arguments().contains("--help")) {
-    show_arguments(argv[0]);
-    return 1;
-
-  } else if (QCoreApplication::arguments().contains("-c") ||
-	     QCoreApplication::arguments().contains("--print-config")) {
-    print_config();
-    return 1;
-  }
-
-  return 0;
-}
-
-
 int main(int argc, char *argv[])
 {
   QApplication app(argc, argv);
@@ -89,6 +65,42 @@ int main(int argc, char *argv[])
 
   QCoreApplication::setOrganizationName("emusc");
   QCoreApplication::setApplicationName("EmuSC");
+  QCoreApplication::setApplicationVersion(VERSION);
+
+  QCommandLineParser parser;
+  parser.setApplicationDescription("Roland SC-55 emulator");
+  parser.addHelpOption();
+  parser.addVersionOption();
+
+  QCommandLineOption printConfig(QStringList() << "c" << "show-config",
+                                 "Print configuration to stdout");
+  parser.addOption(printConfig);
+
+  QCommandLineOption power(QStringList() << "p" << "power",
+                           "Override configuration with synth power ON or OFF",
+                           "state", "");
+  parser.addOption(power);
+
+#ifdef __ALSA_MIDI__
+  QCommandLineOption midiPort(QStringList() << "m" << "midi-port",
+                              "Connect to MIDI port (ALSA only)",
+                              "address", "");
+  parser.addOption(midiPort);
+#endif
+
+  parser.process(app);
+
+  if (parser.isSet(power) &&
+      !(!parser.value(power).compare("ON", Qt::CaseInsensitive) ||
+        !parser.value(power).compare("OFF", Qt::CaseInsensitive))) {
+    std::cerr << "Error: Invalid power state. Must be ON or OFF." << std::endl;
+    parser.showHelp(1);
+  }
+
+  if (parser.isSet(printConfig)) {
+    print_config();
+    return 1;
+  }
 
   // Make Windows send stdout & stderr to console if started from one
 #ifdef Q_OS_WINDOWS
@@ -97,12 +109,6 @@ int main(int argc, char *argv[])
     freopen("CONOUT$", "w", stderr);
   }
 #endif
-
-  if (argc > 1) {
-    int ret = parse_arguments(argc, argv);
-    if (ret)
-      return ret;
-  }
 
   MainWindow window;
   window.show();

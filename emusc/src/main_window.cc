@@ -43,6 +43,8 @@
 #include <QDebug>
 #include <QSettings>
 #include <QStatusBar>
+#include <QString>
+#include <QStringList>
 #include <QTextEdit>
 
 #include "config.h"
@@ -108,12 +110,16 @@ MainWindow::MainWindow(QWidget *parent)
     resize(1150, 250 + menuBar()->height());
   }
 
-  if (!(QCoreApplication::arguments().contains("-o") ||
-	QCoreApplication::arguments().contains("--power-off")))
-    if (settings.value("Synth/auto_power_on").toBool() ||
-	QCoreApplication::arguments().contains("-p") ||
-	QCoreApplication::arguments().contains("--power-on"))
-      power_switch(true);
+  QStringList arguments = QCoreApplication::arguments();
+  QString powerArg;
+  if (arguments.contains("-p"))
+    powerArg = arguments.at(arguments.indexOf("-p") + 1);
+  else if (arguments.contains("--power"))
+    powerArg = arguments.at(arguments.indexOf("--power") + 1);
+
+  if (powerArg.compare("OFF", Qt::CaseInsensitive) &&
+      settings.value("Synth/auto_power_on").toBool())
+    power_switch(true);
 
   setCentralWidget(_synthView);
   show();
@@ -124,6 +130,27 @@ MainWindow::MainWindow(QWidget *parent)
 			_scene->sceneRect().width() + 50,
 			_scene->sceneRect().height() + 50,
 			Qt::KeepAspectRatio);
+
+  // Connect to MIDI device if specified on the command line
+  // Currently only supported on ALSA MIDI.
+#ifdef __ALSA_MIDI__
+  QString midiPortArg;
+  if (arguments.contains("-m"))
+    midiPortArg = arguments.at(arguments.indexOf("-m") + 1);
+  else if (arguments.contains("--midiPort"))
+    midiPortArg = arguments.at(arguments.indexOf("--midiPort") + 1);
+
+  if (!midiPortArg.isEmpty() && _emulator && _emulator->running()) {
+    try {
+      _emulator->get_midi_driver()->connect_port(midiPortArg, true);
+    } catch(QString errorMsg) {
+      QMessageBox::critical(this, "Connection failure",
+                            QString("Failed to connect to MIDI port.\n"
+                                    "Error message: ") + errorMsg,
+                            QMessageBox::Close);
+    }
+  }
+#endif
 
   // Run a "welcome dialog" if both ROM configurations and volume are missing
   if (!settings.contains("Rom/control") &&
