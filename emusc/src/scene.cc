@@ -18,7 +18,6 @@
 
 
 #include <QApplication>
-#include <QFont>
 #include <QFontDatabase>
 #include <QGraphicsItem>
 #include <QGraphicsWidget>
@@ -483,6 +482,16 @@ void Scene::display_on(void)
   while (ir.hasNext())
     ir.next()->setBrush(QBrush(_lcdOnInactiveColor));
 
+  // Turn on backround of all non-static LCD text
+  _lcdPartTextBkg->show();
+  _lcdInstrumentTextBkg->show();
+  _lcdLevelTextBkg->show();
+  _lcdPanTextBkg->show();
+  _lcdReverbTextBkg->show();
+  _lcdChorusTextBkg->show();
+  _lcdKshiftTextBkg->show();
+  _lcdMidichTextBkg->show();
+
   // Update volume (TODO: Find a better place to do this)
   emit volume_changed(_volumeDial->value());
 }
@@ -512,7 +521,17 @@ void Scene::display_off(void)
   while (i.hasNext())
     i.next()->setBrush(QBrush(QColor(0, 0, 0, 0)));
 
-  // Turn off all non-static text
+  // Turn off backround of all non-static LCD text
+  _lcdPartTextBkg->hide();
+  _lcdInstrumentTextBkg->hide();
+  _lcdLevelTextBkg->hide();
+  _lcdPanTextBkg->hide();
+  _lcdReverbTextBkg->hide();
+  _lcdChorusTextBkg->hide();
+  _lcdKshiftTextBkg->hide();
+  _lcdMidichTextBkg->hide();
+
+  // Turn off all non-static LCD text
   update_lcd_instrument_text("");
   update_lcd_part_text("");
   update_lcd_level_text("");
@@ -655,6 +674,15 @@ void Scene::set_lcd_active_on_color(QColor color)
 void Scene::set_lcd_inactive_on_color(QColor color)
 {
   _lcdOnInactiveColor = color;
+
+  _lcdInstrumentTextBkg->setDefaultTextColor(color);
+  _lcdPartTextBkg->setDefaultTextColor(color);
+  _lcdLevelTextBkg->setDefaultTextColor(color);
+  _lcdPanTextBkg->setDefaultTextColor(color);
+  _lcdReverbTextBkg->setDefaultTextColor(color);
+  _lcdChorusTextBkg->setDefaultTextColor(color);
+  _lcdKshiftTextBkg->setDefaultTextColor(color);
+  _lcdMidichTextBkg->setDefaultTextColor(color);
 }
 
 
@@ -887,53 +915,49 @@ void Scene::_add_lcd_display_items(void)
   QString family = QFontDatabase::applicationFontFamilies(id).at(0);
   QFont retroSynth(family);
 
-  _lcdPartText = new QGraphicsTextItem;
-  _lcdPartText->setFont(retroSynth);
-  _lcdPartText->setDefaultTextColor(_lcdOnActiveColor);
-  _lcdPartText->setPos(QPointF(110, 2));
-  addItem(_lcdPartText);
+  _init_lcd_text(&_lcdPartTextBkg, retroSynth, _lcdOnInactiveColor,
+                 QPointF(110, 2), "‑‑‑");
+  _init_lcd_text(&_lcdInstrumentTextBkg, retroSynth, _lcdOnInactiveColor,
+                 QPointF(192, 2), "‑‑‑‑‑‑‑‑‑‑‑‑‑‑‑‑");
+  _init_lcd_text(&_lcdLevelTextBkg, retroSynth, _lcdOnInactiveColor,
+                 QPointF(110, 46), "‑‑‑");
+  _init_lcd_text(&_lcdPanTextBkg, retroSynth, _lcdOnInactiveColor,
+                 QPointF(192, 46), "‑‑‑");
+  _init_lcd_text(&_lcdReverbTextBkg, retroSynth, _lcdOnInactiveColor,
+                 QPointF(110, 90), "‑‑‑");
+  _init_lcd_text(&_lcdChorusTextBkg, retroSynth, _lcdOnInactiveColor,
+                 QPointF(192, 90), "‑‑‑");
+  _init_lcd_text(&_lcdKshiftTextBkg, retroSynth, _lcdOnInactiveColor,
+                 QPointF(110, 132), "‑‑‑");
+  _init_lcd_text(&_lcdMidichTextBkg, retroSynth, _lcdOnInactiveColor,
+                 QPointF(192, 132), "‑‑‑");
 
-  _lcdInstrumentText = new QGraphicsTextItem;
-  _lcdInstrumentText->setFont(retroSynth);
-  _lcdInstrumentText->setDefaultTextColor(_lcdOnActiveColor);
-  _lcdInstrumentText->setPos(QPointF(192, 2));
-  addItem(_lcdInstrumentText);
+  // Background text is hidden until LCD is turned on
+  _lcdPartTextBkg->hide();
+  _lcdInstrumentTextBkg->hide();
+  _lcdLevelTextBkg->hide();
+  _lcdPanTextBkg->hide();
+  _lcdReverbTextBkg->hide();
+  _lcdChorusTextBkg->hide();
+  _lcdKshiftTextBkg->hide();
+  _lcdMidichTextBkg->hide();
 
-  _lcdLevelText = new QGraphicsTextItem;
-  _lcdLevelText->setFont(retroSynth);
-  _lcdLevelText->setDefaultTextColor(_lcdOnActiveColor);
-  _lcdLevelText->setPos(QPointF(110, 46));
-  addItem(_lcdLevelText);
-
-  _lcdPanText = new QGraphicsTextItem;
-  _lcdPanText->setFont(retroSynth);
-  _lcdPanText->setDefaultTextColor(_lcdOnActiveColor);
-  _lcdPanText->setPos(QPointF(192, 46));
-  addItem(_lcdPanText);
-
-  _lcdReverbText = new QGraphicsTextItem;
-  _lcdReverbText->setFont(retroSynth);
-  _lcdReverbText->setDefaultTextColor(_lcdOnActiveColor);
-  _lcdReverbText->setPos(QPointF(110, 90));
-  addItem(_lcdReverbText);
-
-  _lcdChorusText = new QGraphicsTextItem;
-  _lcdChorusText->setFont(retroSynth);
-  _lcdChorusText->setDefaultTextColor(_lcdOnActiveColor);
-  _lcdChorusText->setPos(QPointF(192, 90));
-  addItem(_lcdChorusText);
-
-  _lcdKshiftText = new QGraphicsTextItem;
-  _lcdKshiftText->setFont(retroSynth);
-  _lcdKshiftText->setDefaultTextColor(_lcdOnActiveColor);
-  _lcdKshiftText->setPos(QPointF(110, 132));
-  addItem(_lcdKshiftText);
-
-  _lcdMidichText = new QGraphicsTextItem;
-  _lcdMidichText->setFont(retroSynth);
-  _lcdMidichText->setDefaultTextColor(_lcdOnActiveColor);
-  _lcdMidichText->setPos(QPointF(192, 132));
-  addItem(_lcdMidichText);
+  _init_lcd_text(&_lcdPartText, retroSynth, _lcdOnActiveColor,
+                 QPointF(110, 2));
+  _init_lcd_text(&_lcdInstrumentText, retroSynth, _lcdOnActiveColor,
+                 QPointF(192, 2));
+  _init_lcd_text(&_lcdLevelText, retroSynth, _lcdOnActiveColor,
+                 QPointF(110, 46));
+  _init_lcd_text(&_lcdPanText, retroSynth, _lcdOnActiveColor,
+                 QPointF(192, 46));
+  _init_lcd_text(&_lcdReverbText, retroSynth, _lcdOnActiveColor,
+                 QPointF(110, 90));
+  _init_lcd_text(&_lcdChorusText, retroSynth, _lcdOnActiveColor,
+                 QPointF(192, 90));
+  _init_lcd_text(&_lcdKshiftText, retroSynth, _lcdOnActiveColor,
+                 QPointF(110, 132));
+  _init_lcd_text(&_lcdMidichText, retroSynth, _lcdOnActiveColor,
+                 QPointF(192, 132));
 
   // Setup LCD bar display
   for (int i = 0; i < 16; i ++) {
@@ -975,6 +999,21 @@ void Scene::_add_lcd_display_items(void)
     addItem(circle);
     _volumeCircles.append(circle);
   }
+}
+
+
+void Scene::_init_lcd_text(QGraphicsTextItem **item, QFont &font, QColor &color,
+                           QPointF pos, QString text)
+{
+  (*item) = new QGraphicsTextItem;
+  (*item)->setFont(font);
+  (*item)->setDefaultTextColor(color);
+  (*item)->setPos(pos);
+
+  if (!text.isEmpty())
+    (*item)->setHtml(_generate_retro_text_html(text));
+
+  addItem(*item);
 }
 
 

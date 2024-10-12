@@ -24,6 +24,7 @@
 #include <QBrush>
 #include <QColor>
 #include <QDial>
+#include <QFont>
 #include <QGraphicsScene>
 #include <QGraphicsSceneMouseEvent>
 #include <QGraphicsRectItem>
@@ -61,8 +62,17 @@ private:
   QGraphicsTextItem *_lcdKshiftHeaderText;
   QGraphicsTextItem *_lcdMidichHeaderText;
 
-  QGraphicsTextItem *_lcdInstrumentText;
+  QGraphicsTextItem *_lcdPartTextBkg;
+  QGraphicsTextItem *_lcdInstrumentTextBkg;
+  QGraphicsTextItem *_lcdLevelTextBkg;
+  QGraphicsTextItem *_lcdPanTextBkg;
+  QGraphicsTextItem *_lcdReverbTextBkg;
+  QGraphicsTextItem *_lcdChorusTextBkg;
+  QGraphicsTextItem *_lcdKshiftTextBkg;
+  QGraphicsTextItem *_lcdMidichTextBkg;
+
   QGraphicsTextItem *_lcdPartText;
+  QGraphicsTextItem *_lcdInstrumentText;
   QGraphicsTextItem *_lcdLevelText;
   QGraphicsTextItem *_lcdPanText;
   QGraphicsTextItem *_lcdReverbText;
@@ -112,6 +122,9 @@ private:
   int _keyNoteOctave;
 
   void _add_lcd_display_items(void);
+
+  void _init_lcd_text(QGraphicsTextItem **item, QFont &font, QColor &color,
+                      QPointF pos, QString text = "");
 
   QString _generate_sans_text_html(QString text, float size);
   QString _generate_retro_text_html(QString text);
