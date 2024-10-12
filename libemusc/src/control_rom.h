@@ -43,7 +43,7 @@ public:
   // Internal data structures extracted from the control ROM file
 
   struct Sample {         // 16 bytes
-    uint8_t  volume;      // Volume attenuation 7F to 0
+    uint8_t  volume;      // Volume attenuation (0x7f - 0)
     uint32_t address;     // Offset on vsc, bank + scrambled address on SC55.
                           // Bits above 20 are wave bank.
     uint16_t attackEnd;   // boundry between attack and decay? Unconfirmed.
@@ -69,7 +69,7 @@ public:
     int8_t coarsePitch;   // Shifts pitch in semitones. Default 0x40
     int8_t finePitch;     // Shifts pitch in cents. Default 0x40
     int8_t randPitch;
-    int8_t volume;        // Volume attenuation (7f - 0)
+    int8_t volume;        // Volume attenuation (0x7f - 0)
     int8_t pitchKeyFlw;
 
     uint8_t TVPLFODepth;
@@ -89,7 +89,7 @@ public:
     int8_t TVFResonance;
     int8_t LowVelClear;
 
-    uint8_t TVFLFODepth;    // TVF LFO Depth
+    uint8_t TVFLFODepth;  // TVF LFO Depth
     uint8_t TVFLvlInit;
     uint8_t TVFLvlP1;
     uint8_t TVFLvlP2;
@@ -102,21 +102,22 @@ public:
     uint8_t TVFDurP4;
     uint8_t TVFDurP5;
 
-    uint8_t TVALFODepth;   // TVA LFO Depth
-    uint8_t TVAVolP1;      // TVA level phase 1 (Attack)     Default 0x7f
-    uint8_t TVAVolP2;      // TVA level phase 2 (Hold)       Default 0x7f
-    uint8_t TVAVolP3;      // TVA level phase 3 (Decay)      Default 0x7f
-    uint8_t TVAVolP4;      // TVA level phase 4 (Sustain)    Default 0x7f
-    uint8_t TVALenP1;      // TVA duration phase 1 (Attack)  Default 0x80
-    uint8_t TVALenP2;      // TVA duration phase 2 (Hold)    Default 0x80
-    uint8_t TVALenP3;      // TVA duration phase 3 (Decay)   Default 0
-    uint8_t TVALenP4;      // TVA duration phase 4 (Sustain) Default 0
-    uint8_t TVALenP5;      // TVA duration phase 5 (Release) Default 0x09  
+    uint8_t TVALFODepth;  // TVA LFO Depth
+    uint8_t TVAVolP1;     // TVA level phase 1 (Attack)     Default 0x7f
+    uint8_t TVAVolP2;     // TVA level phase 2 (Hold)       Default 0x7f
+    uint8_t TVAVolP3;     // TVA level phase 3 (Decay)      Default 0x7f
+    uint8_t TVAVolP4;     // TVA level phase 4 (Sustain)    Default 0x7f
+    uint8_t TVALenP1;     // TVA duration phase 1 (Attack)  Default 0x80
+    uint8_t TVALenP2;     // TVA duration phase 2 (Hold)    Default 0x80
+    uint8_t TVALenP3;     // TVA duration phase 3 (Decay)   Default 0
+    uint8_t TVALenP4;     // TVA duration phase 4 (Sustain) Default 0
+    uint8_t TVALenP5;     // TVA duration phase 5 (Release) Default 0x09
   };
 
   struct Instrument {     // 204 bytes in total
     std::string name;
 
+    uint8_t volume;       // Volume attenuation (0x7f - 0)
     uint8_t LFO1Rate;
     uint8_t LFO1Delay;
     uint8_t LFO1Fade;

@@ -142,6 +142,7 @@ Partial::Partial(uint8_t key, int partialId, uint16_t instrumentIndex,
     * 32000.0 / settings->get_param_uint32(SystemParam::SampleRate);
 
   // 6. Calculate volume correction
+  double instVol = _convert_volume(ctrlRom.instrument(instrumentIndex).volume);
   double sampleVol = _convert_volume(_ctrlSample->volume +
 				     ((_ctrlSample->fineVolume- 1024) /1000.0));
   double partialVol = _convert_volume(_instPartial.volume);
@@ -150,7 +151,7 @@ Partial::Partial(uint8_t key, int partialId, uint16_t instrumentIndex,
     drumVol = _convert_volume(_settings->get_param(DrumParam::Level, _drumMap,
 						   _key));
   float ctrlVol = _settings->get_param(PatchParam::Acc_AmplitudeControl, _partId) / 64.0;
-  _volumeCorrection = sampleVol * partialVol * drumVol * ctrlVol;
+  _volumeCorrection = instVol * sampleVol * partialVol * drumVol * ctrlVol;
 
   // 7. Calculate panpot (stereo positioning of sounds)
   if (!_isDrum)
