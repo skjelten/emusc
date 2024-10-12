@@ -55,6 +55,7 @@ private:
   QAction *_preferencesAct;
   QAction *_normalLayoutAct;
   QAction *_compactLayoutAct;
+  QAction *_viewMenubarAct;
   QAction *_viewStatusbarAct;
   QAction *_fullScreenAct;
   QAction *_resetWindowAct;
@@ -98,6 +99,7 @@ private slots:
   void _set_normal_layout(void);
   void _set_compact_layout(void);
 
+  void _show_menubar_clicked(bool state);
   void _show_statusbar_clicked(bool state);
   void _fullscreen_toggle(void);
   void _show_default_view(void);

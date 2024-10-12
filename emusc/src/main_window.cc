@@ -159,14 +159,26 @@ void MainWindow::_create_actions(void)
   _quitAct = new QAction("&Quit", this);
   _quitAct->setShortcut(tr("CTRL+Q"));
   connect(_quitAct, &QAction::triggered, this, &QApplication::quit);
+  addAction(_quitAct);
 
   _preferencesAct = new QAction("P&references...", this);
   _preferencesAct->setShortcut(tr("CTRL+R"));
   _preferencesAct->setMenuRole(QAction::PreferencesRole);
   connect(_preferencesAct, &QAction::triggered,
 	  this, &MainWindow::_display_preferences_dialog);
+  addAction(_preferencesAct);
 
-  _viewStatusbarAct = new QAction("Statusbar", this);
+  if (!menuBar()->isNativeMenuBar()) {
+    _viewMenubarAct = new QAction("Menu bar", this);
+    _viewMenubarAct->setShortcut(tr("CTRL+M"));
+    _viewMenubarAct->setCheckable(true);
+    _viewMenubarAct->setChecked(true);
+    connect(_viewMenubarAct, &QAction::triggered,
+            this, &MainWindow::_show_menubar_clicked);
+    addAction(_viewMenubarAct);
+  }
+
+  _viewStatusbarAct = new QAction("Status bar", this);
   _viewStatusbarAct->setCheckable(true);
   connect(_viewStatusbarAct, &QAction::triggered,
 	  this, &MainWindow::_show_statusbar_clicked);
@@ -193,6 +205,7 @@ void MainWindow::_create_actions(void)
   _fullScreenAct->setShortcut(tr("F11"));
   connect(_fullScreenAct, &QAction::triggered,
 	  this, &MainWindow::_fullscreen_toggle);
+  addAction(_fullScreenAct);
 
   _resetWindowAct = new QAction("Default GUI", this);
   _resetWindowAct->setShortcut(tr("CTRL+0"));
@@ -213,6 +226,7 @@ void MainWindow::_create_actions(void)
   _synthSettingsAct->setEnabled(false);
   connect(_synthSettingsAct, &QAction::triggered,
 	  this, &MainWindow::_display_synth_dialog);
+  addAction(_synthSettingsAct);
 
   _GSmodeAct = new QAction("&GS", this);
   _GSmodeAct->setCheckable(true);
@@ -240,6 +254,7 @@ void MainWindow::_create_actions(void)
   _panicAct->setEnabled(false);
   connect(_panicAct, &QAction::triggered,
 	  this, &MainWindow::_panic);
+  addAction(_panicAct);
 
   _aboutAct = new QAction("&About", this);
   connect(_aboutAct, &QAction::triggered,
@@ -260,6 +275,7 @@ void MainWindow::_create_menus(void)
 #endif
 
   _viewMenu = menuBar()->addMenu("&View");
+  _viewMenu->addAction(_viewMenubarAct);
   _viewMenu->addAction(_viewStatusbarAct);
 
   _viewLayoutMenu = _viewMenu->addMenu("Layout");
@@ -469,6 +485,18 @@ void MainWindow::_set_mt32_map(void)
 {
   if (_emulator)
     _emulator->set_mt32_map();
+}
+
+
+void MainWindow::_show_menubar_clicked(bool state)
+{
+  if (state) {
+    menuBar()->show();
+    resize(size().width(), size().height() + menuBar()->height());
+  } else {
+    resize(size().width(), size().height() - menuBar()->height());
+    menuBar()->hide();
+  }
 }
 
 
