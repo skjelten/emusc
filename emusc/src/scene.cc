@@ -633,17 +633,22 @@ void Scene::update_midi_activity_timeout(void)
   _midiActLed->setBrush(*_ledOffGradient);
 }
 
-void Scene::set_lcd_bkg_on_color(QColor color)
+void Scene::set_lcd_bkg_on_color(QColor color, bool update)
 {
   _lcdOnBackgroundColor = color;
+  if (!update)
+    return;
+
   _lcdBackground->setBrush(color);
   _lcdBackground->update();
 }
 
 
-void Scene::set_lcd_active_on_color(QColor color)
+void Scene::set_lcd_active_on_color(QColor color, bool update)
 {
   _lcdOnActiveColor = color;
+  if (!update)
+    return;
 
   _lcdInstrumentText->setDefaultTextColor(color);
   _lcdPartText->setDefaultTextColor(color);

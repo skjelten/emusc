@@ -91,12 +91,14 @@ private:
   QPushButton *_lcdInactiveColorPickB;
 
   MainWindow *_mainWindow;
+  Emulator *_emulator;
   Scene *_scene;
 
   void _set_button_color(QPushButton *button, QColor color);
 
 public:
-  explicit GeneralSettings(MainWindow *mainWindow, Scene *scene, QWidget *parent = nullptr);
+  explicit GeneralSettings(MainWindow *mainWindow, Emulator *emulator,
+                           Scene *scene, QWidget *parent = nullptr);
 
   void reset(void);
 
@@ -137,7 +139,7 @@ private:
   QToolButton *_fileDialogTB;
 
   QCheckBox *_reverseStereo;
-  
+
   Emulator *_emulator;
 
   int _defaultBufferTime = 75000;

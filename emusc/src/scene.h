@@ -152,8 +152,8 @@ public:
   QColor get_lcd_active_on_color_reset(void) { return _lcdOnActiveColorReset; }
   QColor get_lcd_inactive_on_color_reset(void) { return _lcdOnInactiveColorReset; }
 
-  void set_lcd_bkg_on_color(QColor color);
-  void set_lcd_active_on_color(QColor color);
+  void set_lcd_bkg_on_color(QColor color, bool update = true);
+  void set_lcd_active_on_color(QColor color, bool update = true);
   void set_lcd_inactive_on_color(QColor color);
 
   void set_midi_kbd_enable(bool state) { _midiKbdInput = state; }

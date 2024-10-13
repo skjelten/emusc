@@ -47,7 +47,7 @@ PreferencesDialog::PreferencesDialog(Emulator *emulator, Scene *scene, MainWindo
   : QDialog{parent},
     _emulator(emulator)
 {
-  _generalSettings = new GeneralSettings(mWindow, scene);
+  _generalSettings = new GeneralSettings(mWindow, emulator, scene);
   _audioSettings = new AudioSettings(emulator);
   _midiSettings = new MidiSettings(emulator, scene);
   _romSettings = new RomSettings(emulator);
@@ -131,8 +131,10 @@ void PreferencesDialog::reset()
 }
 
 
-GeneralSettings::GeneralSettings(MainWindow *mainWindow, Scene *scene, QWidget *parent)
+GeneralSettings::GeneralSettings(MainWindow *mainWindow, Emulator *emulator,
+                                 Scene *scene, QWidget *parent)
   : _mainWindow(mainWindow),
+    _emulator(emulator),
     _scene(scene)
 {
   QVBoxLayout *vboxLayout = new QVBoxLayout();
@@ -245,11 +247,10 @@ void GeneralSettings::reset(void)
   QColor activeColor = _scene->get_lcd_active_on_color_reset();
   QColor inactiveColor = _scene->get_lcd_inactive_on_color_reset();
 
-  _scene->set_lcd_bkg_on_color(bkgColor);
-  _scene->set_lcd_active_on_color(activeColor);
+  _scene->set_lcd_bkg_on_color(bkgColor, _emulator->running());
+  _scene->set_lcd_active_on_color(activeColor, _emulator->running());
   _scene->set_lcd_inactive_on_color(inactiveColor);
 
-  // FIXME: Handle cases where synth is off
   _set_button_color(_lcdBkgColorPickB, bkgColor);
   _set_button_color(_lcdActiveColorPickB, activeColor);
   _set_button_color(_lcdInactiveColorPickB, inactiveColor);
@@ -288,12 +289,13 @@ void GeneralSettings::_enableKbdMidi_toggled(bool checked)
 
 void GeneralSettings::_lcd_bkg_colorpick_clicked(void)
 {
-  const QColor color = QColorDialog::getColor(Qt::green, this,
+  const QColor color = QColorDialog::getColor(_scene->get_lcd_bkg_on_color(),
+                                              this,
 					      "Select background color");
 
   if (color.isValid()) {
     _set_button_color(_lcdBkgColorPickB, color);
-    _scene->set_lcd_bkg_on_color(color);
+    _scene->set_lcd_bkg_on_color(color, _emulator->running());
 
     QSettings settings;
     settings.setValue("Synth/lcd_bkg_color", color.name());
@@ -303,12 +305,13 @@ void GeneralSettings::_lcd_bkg_colorpick_clicked(void)
 
 void GeneralSettings::_lcd_active_colorpick_clicked(void)
 {
-  const QColor color = QColorDialog::getColor(Qt::green, this,
+  const QColor color = QColorDialog::getColor(_scene->get_lcd_active_on_color_reset(),
+                                              this,
 					      "Select active color");
 
   if (color.isValid()) {
     _set_button_color(_lcdActiveColorPickB, color);
-    _scene->set_lcd_active_on_color(color);
+    _scene->set_lcd_active_on_color(color, _emulator->running());
 
     QSettings settings;
     settings.setValue("Synth/lcd_active_color", color.name());
@@ -318,7 +321,8 @@ void GeneralSettings::_lcd_active_colorpick_clicked(void)
 
 void GeneralSettings::_lcd_inactive_colorpick_clicked(void)
 {
-  const QColor color = QColorDialog::getColor(Qt::green, this,
+  const QColor color = QColorDialog::getColor(_scene->get_lcd_inactive_on_color_reset(),
+                                              this,
 					      "Select inactive color");
 
   if (color.isValid()) {
