@@ -2,7 +2,7 @@
 
 ## Status
 
-libEmuSC is currently able to read most versions of the ROM files used by the SC-55 family of synths to reproduce similar audio output. There are however some significant refinements missing, such as proper pitch and TVF envelopes. See [current status](https://github.com/skjelten/emusc/wiki/Status) page in the wiki for more information.
+libEmuSC is currently able to read most versions of the ROM files used by the SC-55 family of synths to reproduce similar audio output. There are however some significant refinements missing, such as proper TVF envelopes. See [current status](https://github.com/skjelten/emusc/wiki/Status) page in the wiki for more information.
 
 Note that this project is in no way endorsed by or affiliated with Roland Corp.
 
