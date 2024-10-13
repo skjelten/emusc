@@ -188,8 +188,8 @@ void MainWindow::_create_actions(void)
   connect(_quitAct, &QAction::triggered, this, &QApplication::quit);
   addAction(_quitAct);
 
-  _preferencesAct = new QAction("P&references...", this);
-  _preferencesAct->setShortcut(tr("CTRL+R"));
+  _preferencesAct = new QAction("&Preferences...", this);
+  _preferencesAct->setShortcut(tr("CTRL+P"));
   _preferencesAct->setMenuRole(QAction::PreferencesRole);
   connect(_preferencesAct, &QAction::triggered,
 	  this, &MainWindow::_display_preferences_dialog);
@@ -277,7 +277,7 @@ void MainWindow::_create_actions(void)
   _GSmodeAct->setChecked(true);
 
   _panicAct = new QAction("&Panic", this);
-  _panicAct->setShortcut(tr("CTRL+P"));
+  _panicAct->setShortcut(tr("CTRL+!"));
   _panicAct->setEnabled(false);
   connect(_panicAct, &QAction::triggered,
 	  this, &MainWindow::_panic);
