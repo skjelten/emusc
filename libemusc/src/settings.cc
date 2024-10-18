@@ -773,23 +773,28 @@ int Settings::update_drum_set(uint8_t map, uint8_t bank)
     return -2;
 
   // Find index for drum set in given bank
-  const std::vector<int> &drumSetBank = _ctrlRom.drum_set_bank();
-  std::vector<int>::const_iterator it = std::find(drumSetBank.begin(),
-						  drumSetBank.end(),
-						  (int) bank);
-  if (it == drumSetBank.end())
+  const std::array<uint8_t, 128> &drumSetsLUT = _ctrlRom.get_drum_sets_LUT();
+
+  // Invalid entries in the drum sets lookup table have the value 0xff
+  if (drumSetsLUT[bank] == 0xff)
     return -1;
 
-  int index = std::distance(drumSetBank.begin(), it);
-
-  for (int i = 0; i < 12; i ++) {
-    if (i < _ctrlRom.drumSet(index).name.length())
-      _drumParams[(int) DrumParam::DrumsMapName + i |(map << 12)] =
-	_ctrlRom.drumSet(index).name[i];
-    else
-      _drumParams[(int) DrumParam::DrumsMapName + i |(map << 12)] = ' ';
+  int index = 0;
+  for (int it = 0; it < bank; it ++) {
+    if (drumSetsLUT[it] != 0xff)
+      index++;
   }
 
+  // On the original hardware both the active drum set configurations are
+  // copied from ROM to RAM where they can be modified by the user
+  for (unsigned int i = 0; i < 12; i ++) {
+    if (i < _ctrlRom.drumSet(index).name.length()) {
+      _drumParams[(int) DrumParam::DrumsMapName + i |(map << 12)] =
+	_ctrlRom.drumSet(index).name[i];
+    } else {
+      _drumParams[(int) DrumParam::DrumsMapName + i |(map << 12)] = ' ';
+    }
+  }
   for (int r = 0; r < 128; r++) {
     _drumParams[(int) DrumParam::PlayKeyNumber     | (map << 12) | r] =
       _ctrlRom.drumSet(index).key[r];

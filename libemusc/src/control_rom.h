@@ -159,7 +159,7 @@ public:
   std::string date(void) { return _date; }
   enum SynthGen generation(void) { return _synthGeneration; }
 
-  const std::vector<int>& drum_set_bank(void);
+  const std::array<uint8_t, 128>& get_drum_sets_LUT(void) { return _drumSetsLUT; }
   const uint8_t max_polyphony(void);
 
   std::vector<std::vector<std::string>> get_instruments_list(void);
@@ -201,10 +201,6 @@ private:
   static constexpr uint8_t _maxPolyphonySC55mkII = 28;
   static constexpr uint8_t _maxPolyphonySC88     = 64;
 
-  static const std::vector<int> _drumSetBankSC55;
-  static const std::vector<int> _drumSetBankSC88;
-  static const std::vector<int> _drumSetBankSC88Pro;
-
   static const std::vector<uint32_t> _banksSC55;
 
   // Only a placeholder, SC-88 layout is currently unkown
@@ -225,6 +221,8 @@ private:
   int _read_variations(std::ifstream &romFile);
   int _read_samples(std::ifstream &romFile);
   int _read_drum_sets(std::ifstream &romFile);
+
+  std::array<uint8_t, 128> _drumSetsLUT;
 
   std::vector<Instrument> _instruments;
   std::vector<Partial> _partials;

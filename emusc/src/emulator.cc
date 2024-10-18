@@ -765,13 +765,14 @@ void Emulator::select_prev_instrument()
 
   // Drum set
   } else {
-    const std::vector<int> &drumSetBank = _emuscControlRom->drum_set_bank();
-    std::vector<int>::const_iterator it = std::find(drumSetBank.begin(),
-						    drumSetBank.end(),
-						    (int) index);
-    if (it != drumSetBank.begin())
-      _set_instrument(drumSetBank[std::distance(drumSetBank.begin(), it) - 1],
-		      0, true);
+    const std::array<uint8_t, 128> &drumSetsLUT = _emuscControlRom->get_drum_sets_LUT();
+
+    for (int i = index - 1; i >= 0; i--) {
+      if (drumSetsLUT[i] != 0xff) {
+        _set_instrument(i, 0, true);
+        break;
+      }
+    }
   }
 }
 
@@ -790,7 +791,7 @@ void Emulator::select_next_instrument()
   // Instrument
   if (!_emuscSynth->get_param(EmuSC::PatchParam::UseForRhythm, _selectedPart)) {
     const std::array<uint16_t, 128> &var = _emuscControlRom->variation(bank);
-    for (int i = index + 1; i < var.size(); i++) {
+    for (int i = index + 1; i < (int) var.size(); i++) {
       if (var[i] != 0xffff) {
 	_set_instrument(i, bank, true);
 	break;
@@ -799,13 +800,14 @@ void Emulator::select_next_instrument()
 
   // Drum set
   } else {
-    const std::vector<int> &drumSetBank = _emuscControlRom->drum_set_bank();
-    std::vector<int>::const_iterator it = std::find(drumSetBank.begin(),
-						    drumSetBank.end(),
-						    (int) toneNumber[1]);
-    if (it != drumSetBank.end() - 1)
-      _set_instrument(drumSetBank[std::distance(drumSetBank.begin(), it) + 1],
-		      0, true);
+    const std::array<uint8_t, 128> &drumSetsLUT = _emuscControlRom->get_drum_sets_LUT();
+
+    for (int i = index + 1; i < (int) drumSetsLUT.size(); i++) {
+      if (drumSetsLUT[i] != 0xff) {
+        _set_instrument(i, 0, true);
+        break;
+      }
+    }
   }
 }
 

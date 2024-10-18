@@ -33,20 +33,13 @@
 
 namespace EmuSC {
 
-const std::vector<int> ControlRom::_drumSetBankSC55 =
-  { 0, 8, 16, 24, 25, 32, 40, 48, 56, 127 };
-const std::vector<int> ControlRom::_drumSetBankSC88 =
-  { 0, 1, 8, 16, 24, 25, 26, 32, 40, 48, 49, 50, 56, 57};
-const std::vector<int> ControlRom::_drumSetBankSC88Pro =
-  { 0, 1, 2, 8, 9, 10, 11, 16, 24, 25, 26, 27, 28, 29, 30, 31, 32, 40, 48,
-    49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62 };
 
 const std::vector<uint32_t> ControlRom::_banksSC55 =
-  { 0x10000, 0x1BD00, 0x1DEC0, 0x20000, 0x2BD00, 0x2DEC0, 0x30000, 0x38080 };
+  { 0x10000, 0x1BD00, 0x1DEC0, 0x20000, 0x2BD00, 0x2DEC0, 0x30000, 0x38000 };
 
 // Only a placeholder, SC-88 layout is currently unkown
 const std::vector<uint32_t> ControlRom::_banksSC88 =
-  { 0x10000, 0x1BD00, 0x1DEC0, 0x20000, 0x2BD00, 0x2DEC0, 0x30000, 0x38080 };
+  { 0x10000, 0x1BD00, 0x1DEC0, 0x20000, 0x2BD00, 0x2DEC0, 0x30000, 0x38000 };
 
 ControlRom::ControlRom(std::string romPath)
   : _romPath(romPath)
@@ -453,11 +446,14 @@ int ControlRom::_read_drum_sets(std::ifstream &romFile)
   // ROM is split in 8 banks
   const std::vector<uint32_t> &banks = _banks();
 
-  // The drum set is in bank 7, a total of 14 drums in 1164 byte blocks 
-  for (int32_t x = banks[7]; x < 0x03c028; x += 1164) {
+  // The drum sets are defined in bank 7, starting with a 128 byte lookup table
+  int32_t x = banks[7];
+  romFile.seekg(x);
+  romFile.read(reinterpret_cast<char*>(_drumSetsLUT.data()), 128);
 
-    char data[128];
-    romFile.seekg(x);
+  // After the map array there are 14 drum set definitions in 1164 byte blocks 
+  char data[128];
+  for (x = banks[7] + 128; x < 0x03c028; x += 1164) {
     struct DrumSet d;
 
     // First array is 16 bit instrument reference
@@ -518,26 +514,6 @@ int ControlRom::_read_lookup_tables(std::ifstream &romFile)
   }
 
   return _lookupTables.size();
-}
-
-
-const std::vector<int>& ControlRom::drum_set_bank(void)
-{
-  switch (_synthModel)
-    {
-    case sm_SC55:
-    case sm_SC55mkII:
-    case sm_SCC1:
-      return _drumSetBankSC55;
-
-    case sm_SC88:
-      return _drumSetBankSC88;
-
-    case sm_SC88Pro:
-      return _drumSetBankSC88Pro;
-    }
-
-  throw(std::string("No drum set bank defined for this model"));
 }
 
 
