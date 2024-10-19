@@ -344,13 +344,6 @@ int Synth::get_next_sample(int16_t *sampleOut)
   accumulatedSample[0] += accumulatedSysEffect[0];
   accumulatedSample[1] += accumulatedSysEffect[1];
 
-  // Apply pan
-  uint8_t pan = _settings->get_param(SystemParam::Pan);
-  if (pan > 64)
-    accumulatedSample[0] *= 1.0 - (pan - 64) / 63.0;
-  else if (pan < 64)
-    accumulatedSample[1] *= ((pan - 1) / 64.0);
-
   // Apply master volume conversion
   uint8_t volume = _settings->get_param(SystemParam::Volume);
 

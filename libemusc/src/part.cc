@@ -105,13 +105,6 @@ int Part::get_next_sample(float *sampleOut, float *sysEffect)
     // Store last (highest) value for future queries (typically for bar display)
     _lastPeakSample =
       (_lastPeakSample >= partSample[0]) ? _lastPeakSample : partSample[0];
-  
-    // Apply pan from part (MIDI Channel)
-    uint8_t panpot = _settings->get_param(PatchParam::PartPanpot, _id);
-    if (panpot > 64)
-      partSample[0] *= 1.0 - (panpot - 64) / 63.0;
-    else if (panpot < 64)
-      partSample[1] *= (panpot - 1) / 64.0;
 
     sampleOut[0] += partSample[0];
     sampleOut[1] += partSample[1];

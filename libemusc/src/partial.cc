@@ -153,12 +153,6 @@ Partial::Partial(uint8_t key, int partialId, uint16_t instrumentIndex,
   float ctrlVol = _settings->get_param(PatchParam::Acc_AmplitudeControl, _partId) / 64.0;
   _volumeCorrection = instVol * sampleVol * partialVol * drumVol * ctrlVol;
 
-  // 7. Calculate panpot (stereo positioning of sounds)
-  if (!_isDrum)
-    _panpot = (_instPartial.panpot - 0x40) / 64.0;
-  else
-    _panpot = (_settings->get_param(DrumParam::Panpot, _drumMap, _key) - 0x40) / 64.0;
-
   // 8. Create envelope classes
   // 1. Pitch: Vibrato & TVP envelope
   _tvp = new TVP(_instPartial, LFO, settings, partId);
@@ -221,7 +215,6 @@ bool Partial::get_next_sample(float *noteSample)
   double sample[2] = {0, 0};
   sample[0] = _sample * 0.65;      // Reduce audio volume to avoid overflow
 
-
   // Apply volume changes
   sample[0] *= _volumeCorrection;
 
@@ -229,15 +222,7 @@ bool Partial::get_next_sample(float *noteSample)
   sample[0] = _tvf->apply(sample[0]);
 
   // Apply TVA
-  sample[0] *= _tva->get_amplification();
-
-  // Make both channels equal before adding pan (stereo position)
-  sample[1] = sample[0];
-
-  if (_panpot < 0)
-    sample[1] *= (1 + _panpot);
-  else if (_panpot > 0)
-    sample[0] *= (1 - _panpot);
+  _tva->apply(&sample[0]);
 
   // Finally add samples to the sample pointers (always 2 channels / stereo)
   noteSample[0] += sample[0];

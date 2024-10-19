@@ -20,6 +20,7 @@
 #include "tva.h"
 
 #include <cmath>
+#include <cstdlib>
 #include <iostream>
 #include <string.h>
 
@@ -29,11 +30,15 @@ namespace EmuSC {
 
 TVA::TVA(ControlRom::InstPartial &instPartial, uint8_t key,
 	 WaveGenerator *LFO[2], Settings *settings, int8_t partId)
-  : _settings(settings),
-    _partId(partId),
-    _sampleRate(settings->get_param_uint32(SystemParam::SampleRate)),
+  : _sampleRate(settings->get_param_uint32(SystemParam::SampleRate)),
+    _key(key),
+    _drumSet(settings->get_param(PatchParam::UseForRhythm, partId)),
+    _panpotLocked(false),
+    _ahdsr(NULL),
     _finished(false),
-    _ahdsr(NULL)
+    _instPartial(instPartial),
+    _settings(settings),
+    _partId(partId)
 {
   _LFO1 = LFO[0];
   _LFO2 = LFO[1];
@@ -70,6 +75,16 @@ TVA::TVA(ControlRom::InstPartial &instPartial, uint8_t key,
   _ahdsr = new AHDSR(phaseVolume, phaseDuration, phaseShape, key,
 		     settings, partId, AHDSR::Type::TVA);
   _ahdsr->start();
+
+  // Calculate random panpot if part or drum panpot value is 0 (RND)
+  if (_settings->get_param(PatchParam::PartPanpot, partId) == 0 ||
+      (_drumSet > 0 &&
+       _settings->get_param(DrumParam::Panpot, _drumSet - 1, key) == 0)) {
+    _panpot = std::rand() % 128;                     // TODO: Add srand
+    _panpotLocked = true;
+  } else {
+    _update_panpot(false);
+  }
 }
 
 
@@ -92,7 +107,42 @@ double TVA::_convert_volume(uint8_t volume)
 }
 
 
-double TVA::get_amplification(void)
+// TODO:
+// Supposed to run approx. 100 times a second to give proper transition speed
+// Use a common timer in Partial? TVF & TVP has similar updates? Other TVA val?
+void TVA::_update_panpot(bool fade)
+{
+  if (_panpotLocked)
+    return;
+
+  int newPanpot = _instPartial.panpot +
+    _settings->get_param(PatchParam::PartPanpot, _partId) +
+    _settings->get_param(SystemParam::Pan) - 0x80;
+
+  // If partial is in a drum set we also need to add the drum's panpot setting
+  if (_drumSet > 0)
+    newPanpot +=
+      _settings->get_param(DrumParam::Panpot, _drumSet - 1, _key) - 0x40;
+
+  if (newPanpot < 0) newPanpot = 0;
+  if (newPanpot > 0x7f) newPanpot = 0x7f;
+
+  if (newPanpot == _panpot)
+    return;
+
+  if (fade == false) {
+    _panpot = newPanpot;
+
+  } else {
+    if (newPanpot > _panpot && _panpot < 0x7f)
+      _panpot ++;
+    else if(newPanpot < _panpot && _panpot > 0)
+      _panpot --;
+  }
+}
+
+
+void TVA::apply(double *sample)
 {
   // LFO1
   int LFO1DepthParam = _LFO1DepthPartial +
@@ -114,7 +164,17 @@ double TVA::get_amplification(void)
   if (_ahdsr)
     volEnvelope = _ahdsr->get_next_value();
 
-  return tremolo + volEnvelope;
+  sample[0] *= tremolo + volEnvelope;
+
+  // Panpot
+  if (!(_updateTimeout++ % 300))
+    _update_panpot();
+
+  sample[1] = sample[0];
+  if (_panpot > 64)
+    sample[0] *= 1.0 - (_panpot - 64) / 63.0;
+  else if (_panpot < 64)
+    sample[1] *= ((_panpot - 1) / 64.0);
 }
 
 

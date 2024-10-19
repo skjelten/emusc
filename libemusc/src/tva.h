@@ -41,7 +41,7 @@ public:
       Settings *settings, int8_t partId);
   ~TVA();
 
-  double get_amplification();
+  void apply(double *sample);
   void note_off();
 
   bool finished(void);
@@ -53,17 +53,26 @@ private:
   WaveGenerator *_LFO2;
   float _LFO1DepthPartial;
 
+  uint8_t _key;
+  int _drumSet;
+
+  uint8_t _panpot;
+  bool _panpotLocked;
+
   AHDSR *_ahdsr;
   bool _finished;
   
-  ControlRom::InstPartial *_instPartial;
+  ControlRom::InstPartial &_instPartial;
 
   Settings *_settings;
   int8_t _partId;
 
+  unsigned int _updateTimeout = 0;   // Temporary, move to some kind of timer
+
   TVA();
 
   double _convert_volume(uint8_t volume);
+  void _update_panpot(bool fade = true);
 
 };
 
