@@ -57,7 +57,7 @@ private:
 
   std::vector<float> *_pcmSamples;
 
-  int _lastPos;  // Last read sample position
+  int _lastPos;           // Last read sample position
   float _index;           // Sample position in number of samples from start
   bool _isLooping;        // Have we entered the loop region? Important for determining previous position
 
@@ -80,9 +80,15 @@ private:
 
   double _sample;
 
+  float _pitchOffsetHz;
+  float _pitchExp;
+
+  unsigned int _updateTimeout = 0;   // Temporary quickfix
+  int _updatePeriod;                 // samples to skip for params update
+
   bool _next_sample_from_rom(float timeStep);
   double _convert_volume(uint8_t volume);
-
+  void _update_params(void);
 };
 
 }

@@ -42,9 +42,10 @@ public:
       Settings *settings, int8_t partId);
   ~TVF();
 
-  double apply(double input);
-  void note_off();
+  void apply(double *sample);
+  void update_params(void);
 
+  void note_off();
   inline bool finished(void) { if (_ahdsr) return _ahdsr->finished(); }
 
 private:
@@ -54,8 +55,13 @@ private:
   WaveGenerator *_LFO2;
   int _LFO1DepthPartial;
 
-  Settings *_settings;
-  int8_t _partId;
+  uint8_t _accLFO1Depth;
+  uint8_t _accLFO2Depth;
+
+  uint8_t _coFreq;
+  uint8_t _res;
+
+  uint8_t _key;
 
   AHDSR *_ahdsr;
   LowPassFilter2 *_lpFilter;
@@ -63,10 +69,14 @@ private:
   uint32_t _lpBaseFrequency;
   float _lpResonance;
 
-  ControlRom::InstPartial _instPartial;
+  ControlRom::InstPartial &_instPartial;
+
+  Settings *_settings;
+  int8_t _partId;
 
   TVF();
 
+  void _init_envelope(void);
 };
 
 }

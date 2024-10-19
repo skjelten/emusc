@@ -47,34 +47,10 @@ TVA::TVA(ControlRom::InstPartial &instPartial, uint8_t key,
   //       using a static approximation.
   _LFO1DepthPartial = (instPartial.TVALFODepth & 0x7f) / 128.0;
 
-  // TVA (volume) envelope
-  double  phaseVolume[5];        // Phase volume for phase 1-5
-  uint8_t phaseDuration[5];      // Phase duration for phase 1-5
-  bool    phaseShape[5];         // Phase shape for phase 1-5
-
-  // Set adjusted values for volume (0-127) and time (seconds)
-  phaseVolume[0] = _convert_volume(instPartial.TVAVolP1);
-  phaseVolume[1] = _convert_volume(instPartial.TVAVolP2);
-  phaseVolume[2] = _convert_volume(instPartial.TVAVolP3);
-  phaseVolume[3] = _convert_volume(instPartial.TVAVolP4);
-  phaseVolume[4] = 0;
-
-  phaseDuration[0] = instPartial.TVALenP1 & 0x7F;
-  phaseDuration[1] = instPartial.TVALenP2 & 0x7F;
-  phaseDuration[2] = instPartial.TVALenP3 & 0x7F;
-  phaseDuration[3] = instPartial.TVALenP4 & 0x7F;
-  phaseDuration[4] = instPartial.TVALenP5 & 0x7F;
-  phaseDuration[4] *= (instPartial.TVALenP5 & 0x80) ? 2 : 1;
-
-  phaseShape[0] = (instPartial.TVALenP1 & 0x80) ? 0 : 1;
-  phaseShape[1] = (instPartial.TVALenP2 & 0x80) ? 0 : 1;
-  phaseShape[2] = (instPartial.TVALenP3 & 0x80) ? 0 : 1;
-  phaseShape[3] = (instPartial.TVALenP4 & 0x80) ? 0 : 1;
-  phaseShape[4] = (instPartial.TVALenP5 & 0x80) ? 0 : 1;
-
-  _ahdsr = new AHDSR(phaseVolume, phaseDuration, phaseShape, key,
-		     settings, partId, AHDSR::Type::TVA);
-  _ahdsr->start();
+  // TVA / volume envelope
+  _init_envelope();
+  if (_ahdsr)
+    _ahdsr->start();
 
   // Calculate random panpot if part or drum panpot value is 0 (RND)
   if (_settings->get_param(PatchParam::PartPanpot, partId) == 0 ||
@@ -82,9 +58,9 @@ TVA::TVA(ControlRom::InstPartial &instPartial, uint8_t key,
        _settings->get_param(DrumParam::Panpot, _drumSet - 1, key) == 0)) {
     _panpot = std::rand() % 128;                     // TODO: Add srand
     _panpotLocked = true;
-  } else {
-    _update_panpot(false);
   }
+
+  update_params(true);
 }
 
 
@@ -107,11 +83,80 @@ double TVA::_convert_volume(uint8_t volume)
 }
 
 
-// TODO:
-// Supposed to run approx. 100 times a second to give proper transition speed
-// Use a common timer in Partial? TVF & TVP has similar updates? Other TVA val?
-void TVA::_update_panpot(bool fade)
+void TVA::_init_envelope(void)
 {
+  double  phaseVolume[5];        // Phase volume for phase 1-5
+  uint8_t phaseDuration[5];      // Phase duration for phase 1-5
+  bool    phaseShape[5];         // Phase shape for phase 1-5
+
+  // Set adjusted values for volume (0-127) and time (seconds)
+  phaseVolume[0] = _convert_volume(_instPartial.TVAVolP1);
+  phaseVolume[1] = _convert_volume(_instPartial.TVAVolP2);
+  phaseVolume[2] = _convert_volume(_instPartial.TVAVolP3);
+  phaseVolume[3] = _convert_volume(_instPartial.TVAVolP4);
+  phaseVolume[4] = 0;
+
+  phaseDuration[0] = _instPartial.TVALenP1 & 0x7F;
+  phaseDuration[1] = _instPartial.TVALenP2 & 0x7F;
+  phaseDuration[2] = _instPartial.TVALenP3 & 0x7F;
+  phaseDuration[3] = _instPartial.TVALenP4 & 0x7F;
+  phaseDuration[4] = _instPartial.TVALenP5 & 0x7F;
+  phaseDuration[4] *= (_instPartial.TVALenP5 & 0x80) ? 2 : 1;
+
+  phaseShape[0] = (_instPartial.TVALenP1 & 0x80) ? 0 : 1;
+  phaseShape[1] = (_instPartial.TVALenP2 & 0x80) ? 0 : 1;
+  phaseShape[2] = (_instPartial.TVALenP3 & 0x80) ? 0 : 1;
+  phaseShape[3] = (_instPartial.TVALenP4 & 0x80) ? 0 : 1;
+  phaseShape[4] = (_instPartial.TVALenP5 & 0x80) ? 0 : 1;
+
+  _ahdsr = new AHDSR(phaseVolume, phaseDuration, phaseShape, _key,
+                    _settings, _partId, AHDSR::Type::TVA);
+}
+
+
+void TVA::apply(double *sample)
+{
+  // Tremolo
+  double tremolo = (_LFO1->value() * 0.005 * (float) _accLFO1Depth) +
+    (_LFO2->value() * 0.005 * (float) _accLFO2Depth);
+
+  // Volume envelope
+  double volEnvelope = 0;
+  if (_ahdsr)
+    volEnvelope = _ahdsr->get_next_value();
+
+  sample[0] *= tremolo + volEnvelope;
+
+  // Panpot
+  sample[1] = sample[0];
+  if (_panpot > 64)
+    sample[0] *= 1.0 - (_panpot - 64) / 63.0;
+  else if (_panpot < 64)
+    sample[1] *= ((_panpot - 1) / 64.0);
+}
+
+
+void TVA::note_off()
+{
+  if (_ahdsr)
+    _ahdsr->release();
+  else
+    _finished = true;
+}
+
+
+// TODO: Figure out how often this update is supposed to happen (new thread?)
+void TVA::update_params(bool reset)
+{
+  // Update LFO inputs
+  int newDepth = _LFO1DepthPartial +
+    _settings->get_param(PatchParam::Acc_LFO1TVADepth, _partId);
+  _accLFO1Depth = newDepth > 0 ? (uint8_t) newDepth : 0;
+
+  newDepth = _settings->get_param(PatchParam::Acc_LFO2TVADepth, _partId);
+  _accLFO2Depth = newDepth > 0 ? (uint8_t) newDepth : 0;
+
+  // Update panpot if not locked in random mode
   if (_panpotLocked)
     return;
 
@@ -130,7 +175,7 @@ void TVA::_update_panpot(bool fade)
   if (newPanpot == _panpot)
     return;
 
-  if (fade == false) {
+  if (reset == true) {
     _panpot = newPanpot;
 
   } else {
@@ -139,51 +184,6 @@ void TVA::_update_panpot(bool fade)
     else if(newPanpot < _panpot && _panpot > 0)
       _panpot --;
   }
-}
-
-
-void TVA::apply(double *sample)
-{
-  // LFO1
-  int LFO1DepthParam = _LFO1DepthPartial +
-    _settings->get_param(PatchParam::Acc_LFO1TVADepth, _partId);
-  float lfo1Depth = LFO1DepthParam * 0.005;         // TODO: Find correct factor
-  if (lfo1Depth < 0) lfo1Depth = 0;
-
-  // LFO2
-  int LFO2DepthParam = _settings->get_param(PatchParam::Acc_LFO2TVADepth,
-					    _partId);
-  float lfo2Depth = LFO2DepthParam * 0.005;         // TODO: Find correct factor
-  if (lfo2Depth < 0) lfo2Depth = 0;
-
-  // Tremolo
-  double tremolo = (_LFO1->value() * lfo1Depth) + (_LFO2->value() * lfo2Depth);
-
-  // Volume envelope
-  double volEnvelope = 0;
-  if (_ahdsr)
-    volEnvelope = _ahdsr->get_next_value();
-
-  sample[0] *= tremolo + volEnvelope;
-
-  // Panpot
-  if (!(_updateTimeout++ % 300))
-    _update_panpot();
-
-  sample[1] = sample[0];
-  if (_panpot > 64)
-    sample[0] *= 1.0 - (_panpot - 64) / 63.0;
-  else if (_panpot < 64)
-    sample[1] *= ((_panpot - 1) / 64.0);
-}
-
-
-void TVA::note_off()
-{
-  if (_ahdsr)
-    _ahdsr->release();
-  else
-    _finished = true;
 }
 
 

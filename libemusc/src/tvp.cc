@@ -53,6 +53,7 @@ TVP::TVP(ControlRom::InstPartial &instPartial, WaveGenerator *LFO[2],
     _LFO1DepthPartial(instPartial.TVPLFODepth & 0x7f),
     _ahdsr(NULL),
     _multiplier(instPartial.pitchMult & 0x7f),
+    _instPartial(instPartial),
     _settings(settings),
     _partId(partId)
 {
@@ -63,28 +64,11 @@ TVP::TVP(ControlRom::InstPartial &instPartial, WaveGenerator *LFO[2],
        !instPartial.pitchDurP5))
     return;
 
-  int phasePitchInit;           // Initial pitch for phase 1
-  double phasePitch[5];         // Target phase pitch for phase 1-5
-  uint8_t phaseDuration[5];     // Phase duration for phase 1-5
+  _init_envelope();
+  if (_ahdsr)
+    _ahdsr->start();
 
-  phasePitchInit = instPartial.pitchLvlP0 - 0x40;
-  phasePitch[0] = instPartial.pitchLvlP1 - 0x40;
-  phasePitch[1] = instPartial.pitchLvlP2 - 0x40;
-  phasePitch[2] = instPartial.pitchLvlP3 - 0x40;
-  phasePitch[3] = instPartial.pitchLvlP4 - 0x40;
-  phasePitch[4] = 0;
-
-  phaseDuration[0] = instPartial.pitchDurP1 & 0x7F;
-  phaseDuration[1] = instPartial.pitchDurP2 & 0x7F;
-  phaseDuration[2] = instPartial.pitchDurP3 & 0x7F;
-  phaseDuration[3] = instPartial.pitchDurP4 & 0x7F;
-  phaseDuration[4] = instPartial.pitchDurP5 & 0x7F;
-
-  bool phaseShape[5] = { 0, 0, 0, 0, 0 };
-
-  _ahdsr = new AHDSR(phasePitch, phaseDuration, phaseShape, 0,
-		     settings, partId, AHDSR::Type::TVP, phasePitchInit);
-  _ahdsr->start();
+  update_params();
 }
 
 
@@ -96,21 +80,8 @@ TVP::~TVP()
 
 double TVP::get_pitch()
 {
-  // LFO1
-  int lfo1DepthParam = _LFO1DepthPartial +
-    _settings->get_param(PatchParam::VibratoDepth, _partId) - 0x40 +
-    _settings->get_param(PatchParam::Acc_LFO1PitchDepth, _partId);
-  float lfo1Depth = lfo1DepthParam * 0.0011;
-  if (lfo1Depth < 0) lfo1Depth = 0;
-
-  // LFO2
-  int lfo2DepthParam = _settings->get_param(PatchParam::Acc_LFO2PitchDepth,
-					    _partId);
-  float lfo2Depth = lfo2DepthParam * 0.0011;
-  if (lfo2Depth < 0) lfo2Depth = 0;
-
-  double vibrato = (1 + (_LFO1->value() * lfo1Depth)) *
-                   (1 + (_LFO2->value() * lfo2Depth));
+  double vibrato = (1 + (_LFO1->value() * _accLFO1Depth * 0.0011)) *
+                   (1 + (_LFO2->value() * _accLFO2Depth * 0.0011));
 
   // TODO: Delay function -> seconds
   // sec = 0.5 * exp(_LFODelay * log(10.23 / 0.5) / 50)
@@ -131,6 +102,45 @@ void TVP::note_off()
 {
   if (_ahdsr)
     _ahdsr->release();
+}
+
+
+void TVP::update_params(void)
+{
+  // LFOs
+  int lfoDepth = _LFO1DepthPartial +
+    _settings->get_param(PatchParam::VibratoDepth, _partId) - 0x40 +
+    _settings->get_param(PatchParam::Acc_LFO1PitchDepth, _partId);
+  _accLFO1Depth = (lfoDepth > 0) ? (uint8_t) lfoDepth : 0;
+
+  lfoDepth = _settings->get_param(PatchParam::Acc_LFO2PitchDepth, _partId);
+  _accLFO2Depth = (lfoDepth > 0) ? (uint8_t) lfoDepth : 0;
+}
+
+
+void TVP::_init_envelope(void)
+{
+  int phasePitchInit;           // Initial pitch for phase 1
+  double phasePitch[5];         // Target phase pitch for phase 1-5
+  uint8_t phaseDuration[5];     // Phase duration for phase 1-5
+
+  phasePitchInit = _instPartial.pitchLvlP0 - 0x40;
+  phasePitch[0] = _instPartial.pitchLvlP1 - 0x40;
+  phasePitch[1] = _instPartial.pitchLvlP2 - 0x40;
+  phasePitch[2] = _instPartial.pitchLvlP3 - 0x40;
+  phasePitch[3] = _instPartial.pitchLvlP4 - 0x40;
+  phasePitch[4] = 0;
+
+  phaseDuration[0] = _instPartial.pitchDurP1 & 0x7F;
+  phaseDuration[1] = _instPartial.pitchDurP2 & 0x7F;
+  phaseDuration[2] = _instPartial.pitchDurP3 & 0x7F;
+  phaseDuration[3] = _instPartial.pitchDurP4 & 0x7F;
+  phaseDuration[4] = _instPartial.pitchDurP5 & 0x7F;
+
+  bool phaseShape[5] = { 0, 0, 0, 0, 0 };
+
+  _ahdsr = new AHDSR(phasePitch, phaseDuration, phaseShape, 0,
+		     _settings, _partId, AHDSR::Type::TVP, phasePitchInit);
 }
 
 }

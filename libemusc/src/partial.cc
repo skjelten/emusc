@@ -37,6 +37,7 @@
 //   change over the time of a partial.
 // - No key shifts affects drum parts on SC-55 (SC-55 OM page 17 & 24), but
 //   part key shift affects drum parts on SC-55mk2+ (SC-55mkII OM page 21)
+// - Pitch corrections in this class should perhaps be moved to the TVP class
 
 
 #include "partial.h"
@@ -70,18 +71,19 @@ Partial::Partial(uint8_t key, int partialId, uint16_t instrumentIndex,
 		 ControlRom &ctrlRom, PcmRom &pcmRom, WaveGenerator *LFO[2],
 		 Settings *settings, int8_t partId)
   : _key(key),
+    _keyFreq(440 * exp(log(2) * (key - 69) / 12)),
     _instPartial(ctrlRom.instrument(instrumentIndex).partials[partialId]),
+    _lastPos(0),
     _index(0),
     _isLooping(false),
-    _sample(0),
+    _expFactor(log(2) / 12000),
     _settings(settings),
     _partId(partId),
-    _keyFreq(440 * exp(log(2) * (key - 69) / 12)),
-    _expFactor(log(2) / 12000),
-    _lastPos(0),
     _tvp(NULL),
     _tvf(NULL),
-    _tva(NULL)
+    _tva(NULL),
+    _sample(0),
+    _updatePeriod(settings->get_param_uint32(SystemParam::SampleRate) / 128)
 {
   _isDrum = settings->get_param(PatchParam::UseForRhythm, partId);
 
@@ -153,14 +155,9 @@ Partial::Partial(uint8_t key, int partialId, uint16_t instrumentIndex,
   float ctrlVol = _settings->get_param(PatchParam::Acc_AmplitudeControl, _partId) / 64.0;
   _volumeCorrection = instVol * sampleVol * partialVol * drumVol * ctrlVol;
 
-  // 8. Create envelope classes
-  // 1. Pitch: Vibrato & TVP envelope
+  // 7. Create TVP/F/A & envelope classes
   _tvp = new TVP(_instPartial, LFO, settings, partId);
-
-  // 2. Filter: ?wah? & TVF envelope
   _tvf = new TVF(_instPartial, key, LFO, settings, partId);
-
-  // 3. Volume: Tremolo & TVA envelope
   _tva = new TVA(_instPartial, key, LFO, settings, partId);
 }
 
@@ -193,18 +190,12 @@ bool Partial::get_next_sample(float *noteSample)
   if  (_tva->finished())
     return 1;
 
-  float freqKeyTuned = _keyFreq +
-    (_settings->get_param_nib16(PatchParam::PitchOffsetFine,_partId) -0x080)/10;
-  float pitchOffsetHz = freqKeyTuned / _keyFreq;
+  // TODO: Figure out how often this should be executed (new thread?)
+  if (!(_updateTimeout++ % _updatePeriod))
+    _update_params();
 
-  float pitchExp = _settings->get_param_32nib(SystemParam::Tune) - 0x400 +
-                   (_settings->get_patch_param((int) PatchParam::ScaleTuningC +
-					       (_key % 12), _partId) - 0x40)*10+
-                   ((_settings->get_param_uint16(PatchParam::PitchFineTune,
-						 _partId) - 16384) / 16.384);
-
-  float pitchAdj = exp(pitchExp * _expFactor) *
-                   pitchOffsetHz *
+  float pitchAdj = exp(_pitchExp * _expFactor) *
+                   _pitchOffsetHz *
                    _settings->get_pitchBend_factor(_partId) *
                    _staticPitchTune *
                    _tvp->get_pitch();
@@ -219,7 +210,7 @@ bool Partial::get_next_sample(float *noteSample)
   sample[0] *= _volumeCorrection;
 
   // Apply TVF
-  sample[0] = _tvf->apply(sample[0]);
+  _tvf->apply(&sample[0]);
 
   // Apply TVA
   _tva->apply(&sample[0]);
@@ -230,6 +221,7 @@ bool Partial::get_next_sample(float *noteSample)
 
   return 0;
 }
+
 
 bool Partial::_next_sample_from_rom(float timeStep)
 {
@@ -297,6 +289,24 @@ bool Partial::_next_sample_from_rom(float timeStep)
 double Partial::_convert_volume(uint8_t volume)
 {
   return (0.1 * pow(2.0, (double)(volume) / 36.7111) - 0.1);
+}
+
+
+void Partial::_update_params(void)
+{
+  float freqKeyTuned = _keyFreq +
+    (_settings->get_param_nib16(PatchParam::PitchOffsetFine,_partId) -0x080)/10;
+  _pitchOffsetHz = freqKeyTuned / _keyFreq;
+
+  _pitchExp = _settings->get_param_32nib(SystemParam::Tune) - 0x400 +
+    (_settings->get_patch_param((int) PatchParam::ScaleTuningC + (_key % 12),
+                                _partId) - 0x40) * 10 +
+    ((_settings->get_param_uint16(PatchParam::PitchFineTune, _partId) - 16384)
+     / 16.384);
+
+  if (_tvp) _tvp->update_params();
+  if (_tvf) _tvf->update_params();
+  if (_tva) _tva->update_params();
 }
 
 }

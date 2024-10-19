@@ -42,8 +42,9 @@ public:
   ~TVA();
 
   void apply(double *sample);
-  void note_off();
+  void update_params(bool reset = false);
 
+  void note_off();
   bool finished(void);
 
 private:
@@ -52,6 +53,9 @@ private:
   WaveGenerator *_LFO1;
   WaveGenerator *_LFO2;
   float _LFO1DepthPartial;
+
+  uint8_t _accLFO1Depth;
+  uint8_t _accLFO2Depth;
 
   uint8_t _key;
   int _drumSet;
@@ -67,12 +71,10 @@ private:
   Settings *_settings;
   int8_t _partId;
 
-  unsigned int _updateTimeout = 0;   // Temporary, move to some kind of timer
-
   TVA();
 
   double _convert_volume(uint8_t volume);
-  void _update_panpot(bool fade = true);
+  void _init_envelope(void);
 
 };
 

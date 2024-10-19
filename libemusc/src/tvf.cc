@@ -50,36 +50,19 @@ TVF::TVF(ControlRom::InstPartial &instPartial, uint8_t key,
   : _sampleRate(settings->get_param_uint32(SystemParam::SampleRate)),
     _LFO1(LFO[0]),
     _LFO2(LFO[1]),
-    _settings(settings),
-    _partId(partId),
+    _key(key),
     _ahdsr(NULL),
     _lpFilter(NULL),
-    _instPartial(instPartial)
+    _instPartial(instPartial),
+    _settings(settings),
+    _partId(partId)
 {
   // If any of the TVF envelope phase duraions != 0 we have an envelope to run
   if (!(!instPartial.TVFDurP1 && !instPartial.TVFDurP2 && !instPartial.TVFDurP3
 	&& !instPartial.TVFDurP4 && !instPartial.TVFDurP5)) {
-    double phaseLevel[5];
-    uint8_t phaseDuration[5];
-
-    // Set adjusted values for frequencies (0-127) and time (seconds)
-    phaseLevel[0] = instPartial.TVFLvlP1;
-    phaseLevel[1] = instPartial.TVFLvlP2;
-    phaseLevel[2] = instPartial.TVFLvlP3;
-    phaseLevel[3] = instPartial.TVFLvlP4;
-    phaseLevel[4] = instPartial.TVFLvlP5;
-
-    phaseDuration[0] = instPartial.TVFDurP1 & 0x7F;
-    phaseDuration[1] = instPartial.TVFDurP2 & 0x7F;
-    phaseDuration[2] = instPartial.TVFDurP3 & 0x7F;
-    phaseDuration[3] = instPartial.TVFDurP4 & 0x7F;
-    phaseDuration[4] = instPartial.TVFDurP5 & 0x7F;
-
-    bool phaseShape[5] = { 0, 0, 0, 0, 0 };
-
-    _ahdsr = new AHDSR(phaseLevel, phaseDuration, phaseShape, key,
-		       settings, partId, AHDSR::Type::TVF, 0x40);
-    _ahdsr->start();
+    _init_envelope();
+    if (_ahdsr)
+      _ahdsr->start();
 
   } else if (instPartial.TVFBaseFlt == 0) {
     // If no envelope nor base filter is specified the entire TVF is disabled
@@ -88,6 +71,7 @@ TVF::TVF(ControlRom::InstPartial &instPartial, uint8_t key,
 
   _LFO1DepthPartial = instPartial.TVFLFODepth & 0x7f;
   _lpResonance =  instPartial.TVFResonance & 0x7f;
+  update_params();
 
   _lpFilter = new LowPassFilter2(_sampleRate);
 }
@@ -103,26 +87,11 @@ TVF::~TVF()
 }
 
 
-double TVF::apply(double input)
+void TVF::apply(double *sample)
 {
   // Skip filter calculation if filter is disabled for this partial 
   if (_instPartial.TVFBaseFlt == 0)
-    return input;
-
-  // LFO1
-  int lfo1DepthParam = _LFO1DepthPartial +
-    _settings->get_param(PatchParam::Acc_LFO1TVFDepth, _partId);
-  float lfo1Depth = lfo1DepthParam * 0.26;
-  if (lfo1Depth < 0) lfo1Depth = 0;
-
-  // LFO2
-  int lfo2DepthParam = _settings->get_param(PatchParam::Acc_LFO2TVFDepth,
-					    _partId);
-  float lfo2Depth = lfo2DepthParam * 0.26;
-  if (lfo2Depth < 0) lfo2Depth = 0;
-
-  int coFreq = _settings->get_param(PatchParam::TVFCutoffFreq, _partId) - 0x40;
-  int tvfRes = _settings->get_param(PatchParam::TVFResonance, _partId);
+    return;
 
   int noteFreq;
   float filterFreq;
@@ -134,7 +103,7 @@ double TVF::apply(double input)
     envelopeDiff = ((float) _instPartial.TVFLvlInit / 64.0) * envelope;
   }
 
-  float note = _instPartial.TVFBaseFlt + coFreq + envelopeDiff;
+  float note = _instPartial.TVFBaseFlt + _coFreq + envelopeDiff;
   if (note > 127)
     note = 127;
   else if (note < 0)
@@ -142,17 +111,17 @@ double TVF::apply(double input)
 
   noteFreq = 25 + note * 0.66;  // FIXME: Figure out scaling + TVF key follow
   filterFreq = 440.0 * (double) exp((((float) noteFreq - 69) +
-				     (_LFO1->value() * lfo1Depth) +
-				     (_LFO2->value() * lfo2Depth)) / 12);
+				     (_LFO1->value() * _accLFO1Depth * 0.26) +
+				     (_LFO2->value() * _accLFO2Depth * 0.26)) / 12);
 
   // Resonance. NEEDS FIXING
   // resonance = _lpResonance + sRes * 0.02;
-  filterRes = (tvfRes / 64.0) * 0.5;            // Logaritmic?
+  filterRes = (_res / 64.0) * 0.5;            // Logaritmic?
   if (filterRes < 0.01) filterRes = 0.01;
 
   _lpFilter->calculate_coefficients(filterFreq, filterRes);
 
-  return _lpFilter->apply(input);
+  *sample = _lpFilter->apply(*sample);
 }
 
 
@@ -160,6 +129,46 @@ void TVF::note_off()
 {
   if (_ahdsr)
     _ahdsr->release();
+}
+
+
+void TVF::update_params(void)
+{
+  // LFOs
+  int lfoDepth = _LFO1DepthPartial +
+    _settings->get_param(PatchParam::Acc_LFO1TVFDepth, _partId);
+  _accLFO1Depth = (lfoDepth > 0) ? (uint8_t) lfoDepth : 0;
+
+  lfoDepth = _settings->get_param(PatchParam::Acc_LFO2TVFDepth, _partId);
+  _accLFO2Depth = (lfoDepth > 0) ? (uint8_t) lfoDepth : 0;
+
+  _coFreq = _settings->get_param(PatchParam::TVFCutoffFreq, _partId) - 0x40;
+  _res = _settings->get_param(PatchParam::TVFResonance, _partId);
+}
+
+
+void TVF::_init_envelope(void)
+{
+  double phaseLevel[5];
+  uint8_t phaseDuration[5];
+
+  // Set adjusted values for frequencies (0-127) and time (seconds)
+  phaseLevel[0] = _instPartial.TVFLvlP1;
+  phaseLevel[1] = _instPartial.TVFLvlP2;
+  phaseLevel[2] = _instPartial.TVFLvlP3;
+  phaseLevel[3] = _instPartial.TVFLvlP4;
+  phaseLevel[4] = _instPartial.TVFLvlP5;
+
+  phaseDuration[0] = _instPartial.TVFDurP1 & 0x7F;
+  phaseDuration[1] = _instPartial.TVFDurP2 & 0x7F;
+  phaseDuration[2] = _instPartial.TVFDurP3 & 0x7F;
+  phaseDuration[3] = _instPartial.TVFDurP4 & 0x7F;
+  phaseDuration[4] = _instPartial.TVFDurP5 & 0x7F;
+
+  bool phaseShape[5] = { 0, 0, 0, 0, 0 };
+
+  _ahdsr = new AHDSR(phaseLevel, phaseDuration, phaseShape, _key,
+                     _settings, _partId, AHDSR::Type::TVF, 0x40);
 }
 
 }

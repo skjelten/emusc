@@ -42,8 +42,9 @@ public:
   ~TVP();
 
   double get_pitch(void);
-  void note_off();
+  void update_params(void);
 
+  void note_off();
   inline bool finished(void) { if (_ahdsr) return _ahdsr->finished(); }
 
 private:
@@ -53,16 +54,20 @@ private:
   WaveGenerator *_LFO2;
   int _LFO1DepthPartial;
 
+  uint8_t _accLFO1Depth;
+  uint8_t _accLFO2Depth;
+
   AHDSR *_ahdsr;
   int _multiplier;
 
-  ControlRom::InstPartial *_instPartial;
+  ControlRom::InstPartial &_instPartial;
 
   Settings *_settings;
   int8_t _partId;
 
   TVP();
 
+  void _init_envelope(void);
 };
 
 }
