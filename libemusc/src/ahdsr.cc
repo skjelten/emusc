@@ -118,7 +118,10 @@ void AHDSR::_init_new_phase(enum Phase newPhase)
   if (durationTotal < 0) durationTotal = 0;
   if (durationTotal > 127) durationTotal = 127;
 
-  double phaseDurationSec = _convert_time_to_sec((int8_t) durationTotal, _key);
+  double phaseDurationSec = (_key < 0) ?
+    _convert_time_to_sec_LUT[durationTotal] :
+    _convert_time_to_sec_LUT[durationTotal] * (1 - (_key / 128.0));
+
   _phaseSampleLen = round(phaseDurationSec * _sampleRate);
 
   _phaseSampleIndex = 0;
@@ -137,17 +140,6 @@ void AHDSR::_init_new_phase(enum Phase newPhase)
 	      << " val = " << _phaseInitValue << " -> " << _phaseValue[_phase]
 	      << std::endl;
   }
-}
-
-
-// TODO: Change this to use the LUT found in the control ROM
-// The function used instead is a good approximation proposed by Kitrinx
-double AHDSR::_convert_time_to_sec(uint8_t time, int key)
-{
-  if (key < 0)
-    return (pow(2.0, (double)(time) / 18.0) / 5.45 - 0.183);
-
-  return (pow(2.0, (double)(time) / 18.0) / 5.45 - 0.183) * (1 - (key / 128.0));
 }
 
 
