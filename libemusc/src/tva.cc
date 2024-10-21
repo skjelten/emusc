@@ -38,7 +38,9 @@ TVA::TVA(ControlRom::InstPartial &instPartial, uint8_t key,
     _finished(false),
     _instPartial(instPartial),
     _settings(settings),
-    _partId(partId)
+    _partId(partId),
+    _drumMap(settings->get_param(PatchParam::UseForRhythm, partId)),
+    _drumVol(1)
 {
   _LFO1 = LFO[0];
   _LFO2 = LFO[1];
@@ -71,18 +73,6 @@ TVA::~TVA()
 }
 
 
-double TVA::_convert_volume(uint8_t volume)
-{
-  double res = (0.1 * pow(2.0, (double)(volume) / 36.7111) - 0.1);
-  if (res > 1)
-    res = 1;
-  else if (res < 0)
-    res = 0;
-
-  return res;
-}
-
-
 void TVA::_init_envelope(void)
 {
   double  phaseVolume[5];        // Phase volume for phase 1-5
@@ -90,10 +80,10 @@ void TVA::_init_envelope(void)
   bool    phaseShape[5];         // Phase shape for phase 1-5
 
   // Set adjusted values for volume (0-127) and time (seconds)
-  phaseVolume[0] = _convert_volume(_instPartial.TVAVolP1);
-  phaseVolume[1] = _convert_volume(_instPartial.TVAVolP2);
-  phaseVolume[2] = _convert_volume(_instPartial.TVAVolP3);
-  phaseVolume[3] = _convert_volume(_instPartial.TVAVolP4);
+  phaseVolume[0] = _convert_volume_LUT[_instPartial.TVAVolP1];
+  phaseVolume[1] = _convert_volume_LUT[_instPartial.TVAVolP2];
+  phaseVolume[2] = _convert_volume_LUT[_instPartial.TVAVolP3];
+  phaseVolume[3] = _convert_volume_LUT[_instPartial.TVAVolP4];
   phaseVolume[4] = 0;
 
   phaseDuration[0] = _instPartial.TVALenP1 & 0x7F;
@@ -126,6 +116,7 @@ void TVA::apply(double *sample)
     volEnvelope = _ahdsr->get_next_value();
 
   sample[0] *= tremolo + volEnvelope;
+  sample[0] *= _drumVol * _ctrlVol;             // Volume corrections
 
   // Panpot
   sample[1] = sample[0];
@@ -155,6 +146,14 @@ void TVA::update_params(bool reset)
 
   newDepth = _settings->get_param(PatchParam::Acc_LFO2TVADepth, _partId);
   _accLFO2Depth = newDepth > 0 ? (uint8_t) newDepth : 0;
+
+  // Update volume inputs
+  // TODO: Move more of volume control here
+  if (_drumMap > 0)
+    _drumVol = _convert_volume_LUT[_settings->get_param(DrumParam::Level,
+                                                        _drumMap - 1, _key)];
+  _ctrlVol =
+    _settings->get_param(PatchParam::Acc_AmplitudeControl, _partId) / 64.0;
 
   // Update panpot if not locked in random mode
   if (_panpotLocked)

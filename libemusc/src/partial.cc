@@ -143,17 +143,12 @@ Partial::Partial(uint8_t key, int partialId, uint16_t instrumentIndex,
 	 * log(2) / 1200))
     * 32000.0 / settings->get_param_uint32(SystemParam::SampleRate);
 
-  // 6. Calculate volume correction
+  // 6. Calculate static volume correction
   double instVol = _convert_volume(ctrlRom.instrument(instrumentIndex).volume);
   double sampleVol = _convert_volume(_ctrlSample->volume +
 				     ((_ctrlSample->fineVolume- 1024) /1000.0));
   double partialVol = _convert_volume(_instPartial.volume);
-  double drumVol = 1;
-  if (_isDrum)
-    drumVol = _convert_volume(_settings->get_param(DrumParam::Level, _drumMap,
-						   _key));
-  float ctrlVol = _settings->get_param(PatchParam::Acc_AmplitudeControl, _partId) / 64.0;
-  _volumeCorrection = instVol * sampleVol * partialVol * drumVol * ctrlVol;
+  _volumeCorrection = instVol * sampleVol * partialVol;
 
   // 7. Create TVP/F/A & envelope classes
   _tvp = new TVP(_instPartial, LFO, settings, partId);
@@ -194,7 +189,7 @@ bool Partial::get_next_sample(float *noteSample)
   if (!(_updateTimeout++ % _updatePeriod))
     _update_params();
 
-  float pitchAdj = exp(_pitchExp * _expFactor) *
+  float pitchAdj = _pitchExp *
                    _pitchOffsetHz *
                    _settings->get_pitchBend_factor(_partId) *
                    _staticPitchTune *
@@ -209,10 +204,7 @@ bool Partial::get_next_sample(float *noteSample)
   // Apply volume changes
   sample[0] *= _volumeCorrection;
 
-  // Apply TVF
   _tvf->apply(&sample[0]);
-
-  // Apply TVA
   _tva->apply(&sample[0]);
 
   // Finally add samples to the sample pointers (always 2 channels / stereo)
@@ -298,11 +290,13 @@ void Partial::_update_params(void)
     (_settings->get_param_nib16(PatchParam::PitchOffsetFine,_partId) -0x080)/10;
   _pitchOffsetHz = freqKeyTuned / _keyFreq;
 
-  _pitchExp = _settings->get_param_32nib(SystemParam::Tune) - 0x400 +
-    (_settings->get_patch_param((int) PatchParam::ScaleTuningC + (_key % 12),
-                                _partId) - 0x40) * 10 +
-    ((_settings->get_param_uint16(PatchParam::PitchFineTune, _partId) - 16384)
-     / 16.384);
+  _pitchExp = exp((_settings->get_param_32nib(SystemParam::Tune) - 0x400 +
+                   (_settings->get_patch_param((int) PatchParam::ScaleTuningC +
+                                               (_key % 12),_partId) - 0x40)*10 +
+                   ((_settings->get_param_uint16(PatchParam::PitchFineTune,
+                                                 _partId) - 16384)
+                    / 16.384)) *
+                  _expFactor);
 
   if (_tvp) _tvp->update_params();
   if (_tvf) _tvf->update_params();
