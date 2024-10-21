@@ -37,7 +37,7 @@ namespace EmuSC {
 class TVP
 {
 public:
-  TVP(ControlRom::InstPartial &instPartial, WaveGenerator *LFO[2],
+  TVP(ControlRom::InstPartial &instPartial, uint8_t key, WaveGenerator *LFO[2],
       Settings *settings, int8_t partId);
   ~TVP();
 
@@ -50,12 +50,19 @@ public:
 private:
   uint32_t _sampleRate;
 
+  uint8_t _key;                 // MIDI key number
+  float _keyFreq;               // Frequency of current MIDI key
+
   WaveGenerator *_LFO1;
   WaveGenerator *_LFO2;
   int _LFO1DepthPartial;
 
   uint8_t _accLFO1Depth;
   uint8_t _accLFO2Depth;
+
+  const float _expFactor;       // log(2) / 12000
+  float _pitchOffsetHz;
+  float _pitchExp;
 
   AHDSR *_ahdsr;
   int _multiplier;

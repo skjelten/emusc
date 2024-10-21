@@ -45,12 +45,15 @@
 namespace EmuSC {
 
 
-TVP::TVP(ControlRom::InstPartial &instPartial, WaveGenerator *LFO[2],
-	 Settings *settings,int8_t partId)
+TVP::TVP(ControlRom::InstPartial &instPartial, uint8_t key,
+         WaveGenerator *LFO[2], Settings *settings,int8_t partId)
   : _sampleRate(settings->get_param_uint32(SystemParam::SampleRate)),
+    _key(key),
+    _keyFreq(440 * exp(log(2) * (key - 69) / 12)),
     _LFO1(LFO[0]),
     _LFO2(LFO[1]),
     _LFO1DepthPartial(instPartial.TVPLFODepth & 0x7f),
+    _expFactor(log(2) / 12000),
     _ahdsr(NULL),
     _multiplier(instPartial.pitchMult & 0x7f),
     _instPartial(instPartial),
@@ -80,6 +83,8 @@ TVP::~TVP()
 
 double TVP::get_pitch()
 {
+  float pitchAdj = _pitchOffsetHz * _pitchExp;
+
   double vibrato = (1 + (_LFO1->value() * _accLFO1Depth * 0.0011)) *
                    (1 + (_LFO2->value() * _accLFO2Depth * 0.0011));
 
@@ -88,13 +93,13 @@ double TVP::get_pitch()
 
   // Return only vibrato if pitch envelope is not present in this partial
   if (!_ahdsr)
-    return vibrato;
+    return pitchAdj * vibrato;
 
   // TODO: Make this calculation more CPU efficient
   float envelope = exp(_ahdsr->get_next_value() * 0.3 * _multiplier *
 		       (log(2) / 1200.0));
 
-  return vibrato * envelope;
+  return pitchAdj * vibrato * envelope;
 }
 
 
@@ -115,6 +120,19 @@ void TVP::update_params(void)
 
   lfoDepth = _settings->get_param(PatchParam::Acc_LFO2PitchDepth, _partId);
   _accLFO2Depth = (lfoDepth > 0) ? (uint8_t) lfoDepth : 0;
+
+  float freqKeyTuned = _keyFreq +
+    (_settings->get_param_nib16(PatchParam::PitchOffsetFine,_partId) -0x080)/10;
+  _pitchOffsetHz = freqKeyTuned / _keyFreq;
+
+  _pitchExp = exp((_settings->get_param_32nib(SystemParam::Tune) - 0x400 +
+                   (_settings->get_patch_param((int) PatchParam::ScaleTuningC +
+                                               (_key % 12),_partId) - 0x40)*10 +
+                   ((_settings->get_param_uint16(PatchParam::PitchFineTune,
+                                                 _partId) - 16384)
+                    / 16.384)) *
+                  _expFactor);
+
 }
 
 

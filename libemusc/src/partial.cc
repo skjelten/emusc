@@ -71,12 +71,10 @@ Partial::Partial(uint8_t key, int partialId, uint16_t instrumentIndex,
 		 ControlRom &ctrlRom, PcmRom &pcmRom, WaveGenerator *LFO[2],
 		 Settings *settings, int8_t partId)
   : _key(key),
-    _keyFreq(440 * exp(log(2) * (key - 69) / 12)),
     _instPartial(ctrlRom.instrument(instrumentIndex).partials[partialId]),
     _lastPos(0),
     _index(0),
     _isLooping(false),
-    _expFactor(log(2) / 12000),
     _settings(settings),
     _partId(partId),
     _tvp(NULL),
@@ -151,7 +149,7 @@ Partial::Partial(uint8_t key, int partialId, uint16_t instrumentIndex,
   _volumeCorrection = instVol * sampleVol * partialVol;
 
   // 7. Create TVP/F/A & envelope classes
-  _tvp = new TVP(_instPartial, LFO, settings, partId);
+  _tvp = new TVP(_instPartial, key, LFO, settings, partId);
   _tvf = new TVF(_instPartial, key, LFO, settings, partId);
   _tva = new TVA(_instPartial, key, LFO, settings, partId);
 }
@@ -189,9 +187,7 @@ bool Partial::get_next_sample(float *noteSample)
   if (!(_updateTimeout++ % _updatePeriod))
     _update_params();
 
-  float pitchAdj = _pitchExp *
-                   _pitchOffsetHz *
-                   _settings->get_pitchBend_factor(_partId) *
+  float pitchAdj = _settings->get_pitchBend_factor(_partId) *
                    _staticPitchTune *
                    _tvp->get_pitch();
 
@@ -286,18 +282,6 @@ double Partial::_convert_volume(uint8_t volume)
 
 void Partial::_update_params(void)
 {
-  float freqKeyTuned = _keyFreq +
-    (_settings->get_param_nib16(PatchParam::PitchOffsetFine,_partId) -0x080)/10;
-  _pitchOffsetHz = freqKeyTuned / _keyFreq;
-
-  _pitchExp = exp((_settings->get_param_32nib(SystemParam::Tune) - 0x400 +
-                   (_settings->get_patch_param((int) PatchParam::ScaleTuningC +
-                                               (_key % 12),_partId) - 0x40)*10 +
-                   ((_settings->get_param_uint16(PatchParam::PitchFineTune,
-                                                 _partId) - 16384)
-                    / 16.384)) *
-                  _expFactor);
-
   if (_tvp) _tvp->update_params();
   if (_tvf) _tvf->update_params();
   if (_tva) _tva->update_params();

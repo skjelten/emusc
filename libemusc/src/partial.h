@@ -48,7 +48,6 @@ public:
 
 private:
   uint8_t _key;           // MIDI key number for note on
-  float _keyFreq;         // Frequency of current MIDI key
   float _keyDiff;         // Difference in number of keys from original tone
                           // If pitchKeyFollow is used, keyDiff is adjusted
 
@@ -60,8 +59,6 @@ private:
   int _lastPos;           // Last read sample position
   float _index;           // Sample position in number of samples from start
   bool _isLooping;        // Have we entered the loop region? Important for determining previous position
-
-  float _expFactor;       // log(2) / 12000
 
   float _staticPitchTune;
 
@@ -79,9 +76,6 @@ private:
   TVA *_tva;
 
   double _sample;
-
-  float _pitchOffsetHz;
-  float _pitchExp;
 
   unsigned int _updateTimeout = 0;   // Temporary quickfix
   int _updatePeriod;                 // samples to skip for params update
