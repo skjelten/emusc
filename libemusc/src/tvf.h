@@ -58,7 +58,7 @@ private:
   uint8_t _accLFO1Depth;
   uint8_t _accLFO2Depth;
 
-  uint8_t _coFreq;
+  int8_t _coFreq;
   uint8_t _res;
 
   uint8_t _key;
