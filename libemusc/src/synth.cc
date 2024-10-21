@@ -313,9 +313,7 @@ void Synth::midi_input_sysex(uint8_t *data, uint16_t length)
 int Synth::get_next_sample(int16_t *sampleOut)
 {
   float partSample[2];
-  float partSysEffect[2];
   float accumulatedSample[2] = { 0, 0 };
-  float accumulatedSysEffect[2] = { 0, 0 };
 
   // Write silence
   for (int i = 0; i < _channels; i++) {
@@ -327,22 +325,14 @@ int Synth::get_next_sample(int16_t *sampleOut)
   // Iterate all parts and ask for next sample
   for (auto &p : _parts) {
     partSample[0] = partSample[1] = 0;
-    partSysEffect[0] = partSysEffect[1] = 0;
-    p.get_next_sample(partSample, partSysEffect);
+    p.get_next_sample(partSample);
 
     accumulatedSample[0] += partSample[0];
     accumulatedSample[1] += partSample[1];
-
-    accumulatedSysEffect[0] += partSysEffect[0];
-    accumulatedSysEffect[1] += partSysEffect[1];
   }
 
   // Finished working MIDI data
   midiMutex.unlock();
-
-  // Apply sample effects that applies to "system" level (all parts & notes)
-  accumulatedSample[0] += accumulatedSysEffect[0];
-  accumulatedSample[1] += accumulatedSysEffect[1];
 
   // Apply master volume conversion
   uint8_t volume = _settings->get_param(SystemParam::Volume);

@@ -40,6 +40,8 @@ add_library(emusc
   settings.h
   synth.cc
   synth.h
+  system_effects.cc
+  system_effects.h
   tva.cc
   tva.h
   tvf.cc
