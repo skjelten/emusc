@@ -42,6 +42,8 @@ public:
 private:
   Settings *_settings;
   const uint8_t _partId;
+
+  int _sampleRate;
   
   Chorus *_chorus;
   Reverb *_reverb;
@@ -55,6 +57,21 @@ private:
 
   float _cLevel;
   float _rLevel;
+
+  float _chorusOutput[2][2];
+  float _reverbOutput[2][2];
+  bool _outputIndex;
+
+  bool _chorusDisabled;
+  bool _reverbDisabled;
+
+  unsigned int _applyCounter = 0;
+  const double _approxZero = 1e-10;
+
+  SystemEffects();
+
+  void _disable_unused_effects(void);
+
 };
 
 }

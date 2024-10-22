@@ -43,8 +43,13 @@ SystemEffects::SystemEffects(Settings *settings, uint8_t partId)
   : _settings(settings),
     _partId(partId),
     _chorus(NULL),
-    _reverb(NULL)
+    _reverb(NULL),
+    _outputIndex(0),
+    _chorusDisabled(true),
+    _reverbDisabled(true)
 {
+  _sampleRate = settings->get_param_uint32(SystemParam::SampleRate);
+
   _chorus = new Chorus(settings);
   _reverb = new Reverb(settings);
 
@@ -64,20 +69,32 @@ SystemEffects::~SystemEffects()
 int SystemEffects::apply(float *sample)
 {
   float cSample[2] = { 0, 0 };
-  float sysEffect[2] = { 0, 0 };
 
-  // Apply chorus system effect if both global & part chorus levels > 0
-  if (_chorusLevel && _chorusSendLevel) {
+  // Check regularly if we can disable system effects to save CPU when silent
+  if (++_applyCounter % _sampleRate == 0 && sample[0] == 0 && sample[1] == 0)
+    _disable_unused_effects();
+  if (_chorusDisabled && (sample[0] != 0 || sample[1] != 0))
+    _chorusDisabled = false;
+  if (_reverbDisabled && (sample[0] != 0 || sample[1] != 0))
+    _reverbDisabled = false;
+
+  _outputIndex = !_outputIndex;
+  _chorusOutput[_outputIndex][0] = 0;
+  _chorusOutput[_outputIndex][1] = 0;
+  _reverbOutput[_outputIndex][0] = 0;
+  _reverbOutput[_outputIndex][1] = 0;
+
+  // Apply chorus
+  if (!_chorusDisabled && _chorusLevel && _chorusSendLevel) {
     float cInput = ((sample[0] + sample[1]) / 2) * _cLevel;
-    _chorus->process_sample(cInput, cSample);
 
-    // TODO: Need an audio compressor to compensate for additive audio signals
-    sysEffect[0] += cSample[0] * (_chorusLevel / 127.0);
-    sysEffect[1] += cSample[1] * (_chorusLevel / 127.0);
+    _chorus->process_sample(cInput, cSample);
+    _chorusOutput[_outputIndex][0] += cSample[0] * (_chorusLevel / 127.0);
+    _chorusOutput[_outputIndex][1] += cSample[1] * (_chorusLevel / 127.0);
   }
 
-  // Apply reverb system effect if both global & part reverb levels > 0
-  if (_reverbLevel && _reverbSendLevel) {
+  // Apply reverb
+  if (!_reverbDisabled && _reverbLevel && _reverbSendLevel) {
     float rSample[2] = { 0, 0 };
 
     // TODO: Figure out if the reverb has mono or stereo input
@@ -87,14 +104,13 @@ int SystemEffects::apply(float *sample)
       ((cSample[0] + cSample[1]) / 2) * (float) _chorusSendLevelToReverb /127.0;
 
     _reverb->process_sample(rInput, rSample);
-
-    // TODO: Need an audio compressor to compensate for additive audio signals
-    sysEffect[0] += rSample[0] * (_reverbLevel / 127.0);
-    sysEffect[1] += rSample[1] * (_reverbLevel / 127.0);
+    _reverbOutput[_outputIndex][0] += rSample[0] * (_reverbLevel / 127.0);
+    _reverbOutput[_outputIndex][1] += rSample[1] * (_reverbLevel / 127.0);
   }
 
-  sample[0] += sysEffect[0];
-  sample[1] += sysEffect[1];
+  // Do we need an audio compressor to compensate for additive audio signals?
+  sample[0] += _chorusOutput[_outputIndex][0] + _reverbOutput[_outputIndex][0];
+  sample[1] += _chorusOutput[_outputIndex][1] + _reverbOutput[_outputIndex][1];
 
   return 0;
 }
@@ -102,16 +118,35 @@ int SystemEffects::apply(float *sample)
 
 void SystemEffects::update_params(void)
 {
-  _chorusLevel = _settings->get_param(PatchParam::ChorusLevel, _partId);
+  _chorusLevel = _settings->get_param(PatchParam::ChorusLevel);
   _chorusSendLevel= _settings->get_param(PatchParam::ChorusSendLevel, _partId);
-  _chorusSendLevelToReverb= _settings->get_param(PatchParam::ChorusSendToReverb,
-                                                 _partId);
+  _chorusSendLevelToReverb=_settings->get_param(PatchParam::ChorusSendToReverb);
 
-  _reverbLevel= _settings->get_param(PatchParam::ReverbLevel, _partId);
-  _reverbSendLevel= _settings->get_param(PatchParam::ReverbSendLevel, _partId);
+  _reverbLevel = _settings->get_param(PatchParam::ReverbLevel);
+  _reverbSendLevel = _settings->get_param(PatchParam::ReverbSendLevel, _partId);
 
   _cLevel = _chorusSendLevel / 127.0;
   _rLevel = _reverbSendLevel / 127.0;
+}
+
+
+void SystemEffects::_disable_unused_effects(void)
+{
+  if (!_chorusDisabled) {
+    if (_chorusOutput[0][0] == 0 && _chorusOutput[0][1] == 0 &&
+        _chorusOutput[1][0] == 0 && _chorusOutput[1][1] == 0) {
+      _chorusDisabled = true;
+//      std::cout << "Chorus disabled in part " << (int) _partId << std::endl;
+    }
+  }
+
+  if (!_reverbDisabled) {
+    if (_reverbOutput[0][0] == 0 && _reverbOutput[0][1] == 0 &&
+        _reverbOutput[1][0] == 0 && _reverbOutput[1][1] == 0)  {
+      _reverbDisabled = true;
+//      std::cout << "Reverb disabled in part " << (int)  _partId << std::endl;
+    }
+  }
 }
 
 }
