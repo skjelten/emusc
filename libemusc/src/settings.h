@@ -95,7 +95,6 @@ public:
   void update_pitchBend_factor(int8_t part);
   float get_pitchBend_factor(int8_t part) { return _PBController[part]; }
 
-  static int8_t convert_to_roland_part_id(int8_t part);
   static int8_t convert_from_roland_part_id(int8_t part);
 
 private:
@@ -128,6 +127,12 @@ private:
 
   // Temporary storage for pitchbend
   float _PBController[16];
+
+  static constexpr std::array<uint8_t, 16> _convert_to_roland_part_id_LUT =
+    { 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 10, 11, 12, 13, 14, 15 };
+  static constexpr std::array<uint8_t, 16> _convert_from_roland_part_id_LUT =
+    { 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15 };
+
 };
 
 }

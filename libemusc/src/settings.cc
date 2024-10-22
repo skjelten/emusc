@@ -26,6 +26,7 @@
 #include <vector>
 #include <algorithm>
 #include <iterator>
+
 namespace EmuSC {
 
 
@@ -78,7 +79,7 @@ uint16_t Settings::get_param_32nib(enum SystemParam sp)
 
 uint8_t Settings::get_param(enum PatchParam pp, int8_t part)
 {
-  int8_t rolandPart = convert_to_roland_part_id(part);
+  int8_t rolandPart = _convert_to_roland_part_id_LUT[part];
 
   if (rolandPart < 0)
     return (uint8_t) _patchParams[(int) pp];
@@ -89,7 +90,7 @@ uint8_t Settings::get_param(enum PatchParam pp, int8_t part)
 
 uint8_t* Settings::get_param_ptr(enum PatchParam pp, int8_t part)
 {
-  int8_t rolandPart = convert_to_roland_part_id(part);
+  int8_t rolandPart = _convert_to_roland_part_id_LUT[part];
   int address = (int) pp;
 
   if (rolandPart < 0)
@@ -101,7 +102,7 @@ uint8_t* Settings::get_param_ptr(enum PatchParam pp, int8_t part)
 
 uint16_t Settings::get_param_uint14(enum PatchParam pp, int8_t part)
 {
-  int8_t rolandPart = convert_to_roland_part_id(part);
+  int8_t rolandPart = _convert_to_roland_part_id_LUT[part];
   int address = (int) pp;
 
   if (rolandPart < 0)
@@ -113,7 +114,7 @@ uint16_t Settings::get_param_uint14(enum PatchParam pp, int8_t part)
 
 uint16_t Settings::get_param_uint16(enum PatchParam pp, int8_t part)
 {
-  int8_t rolandPart = convert_to_roland_part_id(part);
+  int8_t rolandPart = _convert_to_roland_part_id_LUT[part];
   int address = (int) pp;
 
   if (rolandPart < 0)
@@ -125,7 +126,7 @@ uint16_t Settings::get_param_uint16(enum PatchParam pp, int8_t part)
 
 uint8_t Settings::get_param_nib16(enum PatchParam pp, int8_t part)
 {
-  int8_t rolandPart = convert_to_roland_part_id(part);
+  int8_t rolandPart = _convert_to_roland_part_id_LUT[part];
   if (rolandPart < 0)
     rolandPart = 0;
 
@@ -136,7 +137,7 @@ uint8_t Settings::get_param_nib16(enum PatchParam pp, int8_t part)
 
 uint8_t Settings::get_patch_param(uint16_t address, int8_t part)
 {
-  int8_t rolandPart = convert_to_roland_part_id(part);
+  int8_t rolandPart = _convert_to_roland_part_id_LUT[part];
 
   if (rolandPart < 0)
     return (uint8_t) _patchParams[address];
@@ -213,7 +214,7 @@ void Settings::set_system_param(uint16_t address, uint8_t *value, uint8_t size)
 
 void Settings::set_param(enum PatchParam pp, uint8_t value, int8_t part)
 {
-  int8_t rolandPart = convert_to_roland_part_id(part);
+  int8_t rolandPart = _convert_to_roland_part_id_LUT[part];
 
   if (rolandPart < 0)
     _patchParams[(int) pp] = value;
@@ -236,7 +237,7 @@ void Settings::set_param(enum PatchParam pp, uint8_t value, int8_t part)
 void Settings::set_param(enum PatchParam pp, uint8_t *data, uint8_t size,
 			 int8_t part)
 {
-  int8_t rolandPart = convert_to_roland_part_id(part);
+  int8_t rolandPart = _convert_to_roland_part_id_LUT[part];
 
   for (int i = 0; i < size; i++) {
     if (rolandPart < 0)
@@ -249,7 +250,7 @@ void Settings::set_param(enum PatchParam pp, uint8_t *data, uint8_t size,
 
 void Settings::set_param_uint14(enum PatchParam pp, uint16_t value, int8_t part)
 {
-  int8_t rolandPart = convert_to_roland_part_id(part);
+  int8_t rolandPart = _convert_to_roland_part_id_LUT[part];
   if (rolandPart < 0)
     rolandPart == 0;
 
@@ -266,7 +267,7 @@ void Settings::set_param_uint14(enum PatchParam pp, uint16_t value, int8_t part)
 
 void Settings::set_param_nib16(enum PatchParam pp, uint8_t value, int8_t part)
 {
-  int8_t rolandPart = convert_to_roland_part_id(part);
+  int8_t rolandPart = _convert_to_roland_part_id_LUT[part];
   if (rolandPart < 0)
     rolandPart == 0;
 
@@ -297,7 +298,7 @@ void Settings::set_patch_param(uint16_t address, uint8_t *data, uint8_t size)
 
 void Settings::set_patch_param(uint16_t address, uint8_t value, int8_t part)
 {
-  int8_t rolandPart = convert_to_roland_part_id(part);
+  int8_t rolandPart = _convert_to_roland_part_id_LUT[part];
 
   if (rolandPart < 0)
     _patchParams[address] = value;
@@ -335,21 +336,6 @@ void Settings::set_drum_param(uint16_t address, uint8_t *data, uint8_t size)
 
   for (int i = 0; i < size; i++)
     _drumParams[address + i] = data[i];
-}
-
-
-// What on earth did Roland employees smoke to come up with this?
-int8_t Settings::convert_to_roland_part_id(int8_t part)
-{
-  if (part < 0 || part > 15)  // TODO: Check for SC-88 and adjust max parts
-    return -1;
-
-  if (part == 9)
-    return 0;
-  else if (part < 9)
-    return part + 1;
-
-  return part; 
 }
 
 
@@ -435,9 +421,9 @@ void Settings::_initialize_patch_params(enum Mode m)
   _patchParams[(int) PatchParam::ChorusDepth] =         0x13;
   _patchParams[(int) PatchParam::ChorusSendToReverb] =  0x00;
 
-  // Remaining paramters are separate for each part
+  // Remaining parameters are separate for each part
   for (int p = 0; p < 16; p ++) {           // TODO: Support SC-88 with 32 parts
-    uint8_t partAddr = convert_to_roland_part_id(p);
+    uint8_t partAddr = _convert_to_roland_part_id_LUT[p];
 
     _patchParams[(int) PatchParam::ToneNumber      | (partAddr << 8)] = 0;
     _patchParams[(int) PatchParam::ToneNumber + 1  | (partAddr << 8)] = 0;
@@ -695,7 +681,7 @@ void Settings::_initialize_drumSet_params(void)
 void Settings::set_gm_mode(void)
 {
   for (int p = 0; p < 16; p ++) {           // TODO: Support SC-88 with 32 parts
-    uint8_t partAddr = convert_to_roland_part_id(p);
+    uint8_t partAddr = _convert_to_roland_part_id_LUT[p];
     _patchParams[(int) PatchParam::RxNRPN       | (partAddr << 8)] = 0x0;
     _patchParams[(int) PatchParam::RxBankSelect | (partAddr << 8)] = 0x0;
   }
@@ -704,62 +690,62 @@ void Settings::set_gm_mode(void)
 
 void Settings::set_map_mt32(void)
 {
-  uint8_t partAddr = convert_to_roland_part_id(0);
+  uint8_t partAddr = _convert_to_roland_part_id_LUT[0];
   _patchParams[(int) PatchParam::ToneNumber      | (partAddr << 8)] = 0x7f;
   _patchParams[(int) PatchParam::ToneNumber + 1  | (partAddr << 8)] = 0x00;
   _patchParams[(int) PatchParam::PartPanpot      | (partAddr << 8)] = 0x40;
   _patchParams[(int) PatchParam::ReverbSendLevel | (partAddr << 8)] = 0x40;
 
-  partAddr = convert_to_roland_part_id(1);
+  partAddr = _convert_to_roland_part_id_LUT[1];
   _patchParams[(int) PatchParam::ToneNumber      | (partAddr << 8)] = 0x7f;
   _patchParams[(int) PatchParam::ToneNumber + 1  | (partAddr << 8)] = 0x44;
   _patchParams[(int) PatchParam::PartPanpot      | (partAddr << 8)] = 0x36;
   _patchParams[(int) PatchParam::ReverbSendLevel | (partAddr << 8)] = 0x40;
 
-  partAddr = convert_to_roland_part_id(2);
+  partAddr = _convert_to_roland_part_id_LUT[2];
   _patchParams[(int) PatchParam::ToneNumber      | (partAddr << 8)] = 0x7f;
   _patchParams[(int) PatchParam::ToneNumber + 1  | (partAddr << 8)] = 0x30;
   _patchParams[(int) PatchParam::PartPanpot      | (partAddr << 8)] = 0x36;
   _patchParams[(int) PatchParam::ReverbSendLevel | (partAddr << 8)] = 0x40;
 
-  partAddr = convert_to_roland_part_id(3);
+  partAddr = _convert_to_roland_part_id_LUT[3];
   _patchParams[(int) PatchParam::ToneNumber      | (partAddr << 8)] = 0x7f;
   _patchParams[(int) PatchParam::ToneNumber + 1  | (partAddr << 8)] = 0x5f;
   _patchParams[(int) PatchParam::PartPanpot      | (partAddr << 8)] = 0x36;
   _patchParams[(int) PatchParam::ReverbSendLevel | (partAddr << 8)] = 0x40;
 
-  partAddr = convert_to_roland_part_id(4);
+  partAddr = _convert_to_roland_part_id_LUT[4];
   _patchParams[(int) PatchParam::ToneNumber      | (partAddr << 8)] = 0x7f;
   _patchParams[(int) PatchParam::ToneNumber + 1  | (partAddr << 8)] = 0x4e;
   _patchParams[(int) PatchParam::PartPanpot      | (partAddr << 8)] = 0x36;
   _patchParams[(int) PatchParam::ReverbSendLevel | (partAddr << 8)] = 0x40;
 
-  partAddr = convert_to_roland_part_id(5);
+  partAddr = _convert_to_roland_part_id_LUT[5];
   _patchParams[(int) PatchParam::ToneNumber      | (partAddr << 8)] = 0x7f;
   _patchParams[(int) PatchParam::ToneNumber + 1  | (partAddr << 8)] = 0x29;
   _patchParams[(int) PatchParam::PartPanpot      | (partAddr << 8)] = 0x12;
   _patchParams[(int) PatchParam::ReverbSendLevel | (partAddr << 8)] = 0x40;
 
-  partAddr = convert_to_roland_part_id(6);
+  partAddr = _convert_to_roland_part_id_LUT[6];
   _patchParams[(int) PatchParam::ToneNumber      | (partAddr << 8)] = 0x7f;
   _patchParams[(int) PatchParam::ToneNumber + 1  | (partAddr << 8)] = 0x03;
   _patchParams[(int) PatchParam::PartPanpot      | (partAddr << 8)] = 0x5b;
   _patchParams[(int) PatchParam::ReverbSendLevel | (partAddr << 8)] = 0x40;
 
-  partAddr = convert_to_roland_part_id(7);
+  partAddr = _convert_to_roland_part_id_LUT[7];
   _patchParams[(int) PatchParam::ToneNumber      | (partAddr << 8)] = 0x7f;
   _patchParams[(int) PatchParam::ToneNumber + 1  | (partAddr << 8)] = 0x6e;
   _patchParams[(int) PatchParam::PartPanpot      | (partAddr << 8)] = 0x01;
   _patchParams[(int) PatchParam::ReverbSendLevel | (partAddr << 8)] = 0x40;
 
-  partAddr = convert_to_roland_part_id(8);
+  partAddr = _convert_to_roland_part_id_LUT[8];
   _patchParams[(int) PatchParam::ToneNumber      | (partAddr << 8)] = 0x7f;
   _patchParams[(int) PatchParam::ToneNumber + 1  | (partAddr << 8)] = 0x7a;
   _patchParams[(int) PatchParam::PartPanpot      | (partAddr << 8)] = 0x7f;
   _patchParams[(int) PatchParam::ReverbSendLevel | (partAddr << 8)] = 0x40;
 
   int dsIndex = update_drum_set(0, 127);
-  partAddr = convert_to_roland_part_id(9);
+  partAddr = _convert_to_roland_part_id_LUT[9];
   _patchParams[(int) PatchParam::ToneNumber      | (partAddr << 8)] = dsIndex;
   _patchParams[(int) PatchParam::ToneNumber + 1  | (partAddr << 8)] = 0x7f;
   _patchParams[(int) PatchParam::PartPanpot      | (partAddr << 8)] = 0x40;
@@ -1016,7 +1002,7 @@ void Settings::_run_macro_reverb(uint8_t value)
 void Settings::_update_controller_input(enum PatchParam pp, uint8_t value,
 					int8_t part)
 {
-  uint8_t partAddr = convert_to_roland_part_id(part);
+  uint8_t partAddr = _convert_to_roland_part_id_LUT[part];
   int ctrlId;
 
   switch ((int) pp)
@@ -1087,7 +1073,7 @@ void Settings::_update_controller_input(enum PatchParam pp, uint8_t value,
 // TODO: Remove pp if not needed by pitch bend
 void Settings::_update_controller_input_acc(enum PatchParam pp, int8_t part)
 {
-  uint8_t partAddr = convert_to_roland_part_id(part);
+  uint8_t partAddr = _convert_to_roland_part_id_LUT[part];
 
   // TODO: Add support for pitch bend
 
@@ -1128,7 +1114,7 @@ void Settings::_accumulate_controller_values(enum PatchParam ctm,
 					     enum PatchParam acc,
 					     int8_t part, int min, int max, bool center)
 {
-  uint8_t partAddr = convert_to_roland_part_id(part);
+  uint8_t partAddr = _convert_to_roland_part_id_LUT[part];
   int accValue = 0;
 
   // Assuming we recieve the PatchParam from the first controller, and that each
