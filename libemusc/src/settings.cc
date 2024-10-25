@@ -79,10 +79,10 @@ uint16_t Settings::get_param_32nib(enum SystemParam sp)
 
 uint8_t Settings::get_param(enum PatchParam pp, int8_t part)
 {
-  int8_t rolandPart = _convert_to_roland_part_id_LUT[part];
-
-  if (rolandPart < 0)
+  if (part < 0 || part > 15)
     return (uint8_t) _patchParams[(int) pp];
+
+  int8_t rolandPart = _convert_to_roland_part_id_LUT[part];
 
   return (uint8_t) _patchParams[(((int) pp) | (rolandPart << 8))];
 }
@@ -90,11 +90,12 @@ uint8_t Settings::get_param(enum PatchParam pp, int8_t part)
 
 uint8_t* Settings::get_param_ptr(enum PatchParam pp, int8_t part)
 {
-  int8_t rolandPart = _convert_to_roland_part_id_LUT[part];
   int address = (int) pp;
 
-  if (rolandPart < 0)
+  if (part < 0 || part > 15)
     return  &_patchParams[address];
+
+  int8_t rolandPart = _convert_to_roland_part_id_LUT[part];
 
   return &_patchParams[(address | (rolandPart << 8))];
 }
@@ -102,11 +103,12 @@ uint8_t* Settings::get_param_ptr(enum PatchParam pp, int8_t part)
 
 uint16_t Settings::get_param_uint14(enum PatchParam pp, int8_t part)
 {
-  int8_t rolandPart = _convert_to_roland_part_id_LUT[part];
   int address = (int) pp;
 
-  if (rolandPart < 0)
+  if (part < 0 || part > 15)
     return  _to_native_endian_uint14(&_patchParams[address]);
+
+  int8_t rolandPart = _convert_to_roland_part_id_LUT[part];
 
   return _to_native_endian_uint14(&_patchParams[(address | (rolandPart << 8))]);
 }
@@ -114,11 +116,12 @@ uint16_t Settings::get_param_uint14(enum PatchParam pp, int8_t part)
 
 uint16_t Settings::get_param_uint16(enum PatchParam pp, int8_t part)
 {
-  int8_t rolandPart = _convert_to_roland_part_id_LUT[part];
   int address = (int) pp;
 
-  if (rolandPart < 0)
+  if (part < 0 || part > 15)
     return  _to_native_endian_uint16(&_patchParams[address]);
+
+  int8_t rolandPart = _convert_to_roland_part_id_LUT[part];
 
   return _to_native_endian_uint16(&_patchParams[(address | (rolandPart << 8))]);
 }
@@ -126,21 +129,24 @@ uint16_t Settings::get_param_uint16(enum PatchParam pp, int8_t part)
 
 uint8_t Settings::get_param_nib16(enum PatchParam pp, int8_t part)
 {
-  int8_t rolandPart = _convert_to_roland_part_id_LUT[part];
-  if (rolandPart < 0)
-    rolandPart = 0;
-
+  int8_t rolandPart;
   int address = (int) pp;
+
+  if (part < 0 || part > 15)
+    rolandPart = 0;
+  else
+    rolandPart = _convert_to_roland_part_id_LUT[part];
+
   return _to_native_endian_nib16(&_patchParams[(address | (rolandPart << 8))]);
 }
 
 
 uint8_t Settings::get_patch_param(uint16_t address, int8_t part)
 {
-  int8_t rolandPart = _convert_to_roland_part_id_LUT[part];
-
-  if (rolandPart < 0)
+  if (part < 0 || part > 15)
     return (uint8_t) _patchParams[address];
+
+  int8_t rolandPart = _convert_to_roland_part_id_LUT[part];
 
   return (uint8_t) _patchParams[(address | (rolandPart << 8))];
 }
@@ -214,12 +220,12 @@ void Settings::set_system_param(uint16_t address, uint8_t *value, uint8_t size)
 
 void Settings::set_param(enum PatchParam pp, uint8_t value, int8_t part)
 {
-  int8_t rolandPart = _convert_to_roland_part_id_LUT[part];
-
-  if (rolandPart < 0)
+  if (part < 0 || part > 15) {
     _patchParams[(int) pp] = value;
-  else
+  } else {
+    int8_t rolandPart = _convert_to_roland_part_id_LUT[part];
     _patchParams[(((int) pp) | (rolandPart << 8))] = value;
+  }
 
   if (pp == EmuSC::PatchParam::ChorusMacro) {
     _run_macro_chorus(value);
@@ -240,19 +246,22 @@ void Settings::set_param(enum PatchParam pp, uint8_t *data, uint8_t size,
   int8_t rolandPart = _convert_to_roland_part_id_LUT[part];
 
   for (int i = 0; i < size; i++) {
-    if (rolandPart < 0)
+    if (part < 0 || part > 15) {
       _patchParams[(int) pp + i] = data[i];
-    else
+    } else {
+      int8_t rolandPart = _convert_to_roland_part_id_LUT[part];
       _patchParams[(((int) pp) | (rolandPart << 8)) + i] = data[i];   
+    }
   }
 }
 
 
 void Settings::set_param_uint14(enum PatchParam pp, uint16_t value, int8_t part)
 {
-  int8_t rolandPart = _convert_to_roland_part_id_LUT[part];
-  if (rolandPart < 0)
-    rolandPart == 0;
+  int8_t rolandPart = 0;
+
+  if (part >= 0 && part <= 15)
+    rolandPart = _convert_to_roland_part_id_LUT[part];
 
   if (_le_native()) {
     _patchParams[(int) pp | (rolandPart << 8) + 0] = (value >> 7) & 0x7f;
@@ -267,9 +276,10 @@ void Settings::set_param_uint14(enum PatchParam pp, uint16_t value, int8_t part)
 
 void Settings::set_param_nib16(enum PatchParam pp, uint8_t value, int8_t part)
 {
-  int8_t rolandPart = _convert_to_roland_part_id_LUT[part];
-  if (rolandPart < 0)
-    rolandPart == 0;
+  int8_t rolandPart = 0;
+
+  if (part >= 0 && part <= 15)
+    rolandPart = _convert_to_roland_part_id_LUT[part];
 
   int address = (int) pp | (rolandPart << 8);
   if (_le_native()) {
@@ -298,12 +308,12 @@ void Settings::set_patch_param(uint16_t address, uint8_t *data, uint8_t size)
 
 void Settings::set_patch_param(uint16_t address, uint8_t value, int8_t part)
 {
-  int8_t rolandPart = _convert_to_roland_part_id_LUT[part];
-
-  if (rolandPart < 0)
+  if (part < 0 || part > 15) {
     _patchParams[address] = value;
-
-  _patchParams[(address | (rolandPart << 8))] = value;
+  } else {
+    int8_t rolandPart = _convert_to_roland_part_id_LUT[part];
+    _patchParams[(address | (rolandPart << 8))] = value;
+  }
 }
 
 
@@ -356,6 +366,11 @@ int8_t Settings::convert_from_roland_part_id(int8_t part)
 // TODO: Evaluate this solution with other controllers
 void Settings::update_pitchBend_factor(int8_t part)
 {
+  if (part < 0 || part > 15)
+    return;
+
+  // TODO: Convert to roland part?
+
   uint8_t pbRng = get_param(PatchParam::PB_PitchControl, part) - 0x40;
   uint16_t pbIn = get_param_uint16(PatchParam::PitchBend, part);
   _PBController[part] = exp(((pbIn - 8192) / 8192.0) * pbRng * (log(2) / 12));
@@ -1076,6 +1091,7 @@ void Settings::_update_controller_input_acc(enum PatchParam pp, int8_t part)
   uint8_t partAddr = _convert_to_roland_part_id_LUT[part];
 
   // TODO: Add support for pitch bend
+  // FIXME: part? Not use partAddr?
 
   _accumulate_controller_values(PatchParam::CtM_TVFCutoffControl,
 				PatchParam::Acc_TVFCutoffControl,
@@ -1114,6 +1130,9 @@ void Settings::_accumulate_controller_values(enum PatchParam ctm,
 					     enum PatchParam acc,
 					     int8_t part, int min, int max, bool center)
 {
+  if (part < 0 || part > 15)
+    return;
+
   uint8_t partAddr = _convert_to_roland_part_id_LUT[part];
   int accValue = 0;
 
