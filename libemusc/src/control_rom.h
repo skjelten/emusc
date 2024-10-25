@@ -118,9 +118,10 @@ public:
     std::string name;
 
     uint8_t volume;       // Volume attenuation (0x7f - 0)
-    uint8_t LFO1Rate;
+    uint8_t LFO1Rate;     // LFO frequency in 0.1 Hz
     uint8_t LFO1Delay;
     uint8_t LFO1Fade;
+    uint8_t partialsUsed; // Bit 0 & 1 => which of the two partials are in use
 
     struct InstPartial partials[2];
   };

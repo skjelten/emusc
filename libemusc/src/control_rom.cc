@@ -243,11 +243,11 @@ int ControlRom::_read_instruments(std::ifstream &romFile)
     i.name.assign(data, 12);
     i.name.erase(i.name.find_last_not_of(' ') + 1);
 
-    // Note: only 4 out of 20 bytes have been identified
-    i.volume    = data[12];
-    i.LFO1Rate  = data[15];
-    i.LFO1Delay = data[16];
-    i.LFO1Fade  = data[17];
+    i.volume       = data[12];
+    i.LFO1Rate     = data[15];
+    i.LFO1Delay    = data[16];
+    i.LFO1Fade     = data[17];
+    i.partialsUsed = data[18];
 
     // We have 2 partial parameters sets; starting in bank position 34 & 126
     for (int p = 0; p < 2; p++) {

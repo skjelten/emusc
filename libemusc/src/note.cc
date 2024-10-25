@@ -19,6 +19,7 @@
 
 #include "note.h"
 
+#include <bitset>
 #include <iostream>
 
 namespace EmuSC {
@@ -61,15 +62,14 @@ Note::Note(uint8_t key, uint8_t velocity, ControlRom &ctrlRom, PcmRom &pcmRom,
 					 _partId) - 0x40);
   _LFO[0]->set_fade(ctrlRom.instrument(instrumentIndex).LFO1Fade);
 
-  // Every Sound Canvas uses either 1 or 2 partials for each instrument
-  for (int i = 0; i < 2; i ++) {
-    uint16_t pIndex = ctrlRom.instrument(instrumentIndex).partials[i].partialIndex;
-    if (pIndex == 0xffff)        // Partial 1 always used, but not 2. partial
-      break;
-
-    _partial[i] = new Partial(key, i, instrumentIndex, ctrlRom, pcmRom, _LFO,
-			      settings, partId);
-  }
+  // Every instrument in the Sound Canvas line has up to two partials
+  std::bitset<2> partialBits(ctrlRom.instrument(instrumentIndex).partialsUsed);
+  if (partialBits.test(0))
+    _partial[0] = new Partial(key, 0, instrumentIndex, ctrlRom, pcmRom, _LFO,
+                              settings, partId);
+  if (partialBits.test(1))
+    _partial[1] = new Partial(key, 1, instrumentIndex, ctrlRom, pcmRom, _LFO,
+                              settings, partId);
 }
 
 
@@ -141,14 +141,10 @@ bool Note::get_next_sample(float *partSample)
 
   // Iterate both partials
   for (int p = 0; p < 2; p ++) {
-
-    // Skip this iteration if the partial in not used
-    if  (_partial[p] == NULL) {
+    if  (_partial[p] == NULL)
       finished[p] = 1;
-      continue;
-    }
-
-    finished[p] = _partial[p]->get_next_sample(sample);
+    else
+      finished[p] = _partial[p]->get_next_sample(sample);
   }
 
   if (finished[0] == true && finished[1] == true)
