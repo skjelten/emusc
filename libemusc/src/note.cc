@@ -51,16 +51,10 @@ Note::Note(uint8_t key, uint8_t velocity, ControlRom &ctrlRom, PcmRom &pcmRom,
     return;
 
   // 2. Setup LFOs
-  int sampleRate = settings->get_param_uint32(SystemParam::SampleRate);
-  _LFO[0] = new WaveGenerator(WaveGenerator::Waveform::sine, sampleRate,
-			      ctrlRom.instrument(instrumentIndex).LFO1Rate);
-  _LFO[1] = new WaveGenerator(WaveGenerator::Waveform::sine, sampleRate);
-
-  // LFO delay and fade time are set only upon note start
-  _LFO[0]->set_delay(ctrlRom.instrument(instrumentIndex).LFO1Delay +
-		     settings->get_param(PatchParam::VibratoDelay,
-					 _partId) - 0x40);
-  _LFO[0]->set_fade(ctrlRom.instrument(instrumentIndex).LFO1Fade);
+  // Note: LFO delay and fade parameters are set only upon note start and
+  //       cannot change during a note
+  _LFO[0] = new WaveGenerator(0, ctrlRom.instrument(instrumentIndex), settings, partId);
+  _LFO[1] = new WaveGenerator(1, ctrlRom.instrument(instrumentIndex), settings, partId);
 
   // Every instrument in the Sound Canvas line has up to two partials
   std::bitset<2> partialBits(ctrlRom.instrument(instrumentIndex).partialsUsed);
@@ -127,12 +121,6 @@ bool Note::get_next_sample(float *partSample)
   bool finished[2] = {0, 0};
 
   // Iterate both LFOs
-  _LFO[0]->update_frequency(_settings->get_param(PatchParam::Acc_LFO1RateControl,
-						_partId) - 0x40 +
-			   _settings->get_param(PatchParam::VibratoRate,
-						_partId) - 0x40);
-  _LFO[1]->update_frequency(_settings->get_param(PatchParam::Acc_LFO2RateControl,
-						_partId) - 0x40);
   _LFO[0]->next();
   _LFO[1]->next();
 

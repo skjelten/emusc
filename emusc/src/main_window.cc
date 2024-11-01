@@ -18,6 +18,7 @@
 
 
 #include "main_window.h"
+#include "lfo_dialog.h"
 #include "preferences_dialog.h"
 #include "control_rom_info_dialog.h"
 #include "scene.h"
@@ -247,6 +248,10 @@ void MainWindow::_create_actions(void)
   connect(_viewCtrlRomDataAct, &QAction::triggered,
 	  this, &MainWindow::_display_control_rom_info);
 
+  _viewLFOsChartAct = new QAction("&Monitor LFOs", this);
+  connect(_viewLFOsChartAct, &QAction::triggered,
+	  this, &MainWindow::_display_lfo_dialog);
+
   _synthSettingsAct = new QAction("&Settings...", this);
   _synthSettingsAct->setShortcut(tr("CTRL+S"));
   _synthSettingsAct->setMenuRole(QAction::NoRole);
@@ -318,6 +323,10 @@ void MainWindow::_create_menus(void)
   _toolsMenu = menuBar()->addMenu("&Tools");
   _toolsMenu->addAction(_dumpSongsAct);
   _toolsMenu->addAction(_viewCtrlRomDataAct);
+#ifdef __USE_QTCHARTS__
+  _toolsMenu->addSeparator();
+  _toolsMenu->addAction(_viewLFOsChartAct);
+#endif
 
   _synthMenu = menuBar()->addMenu("&Synth");
   _synthMenu->addAction(_synthSettingsAct);
@@ -401,6 +410,15 @@ void MainWindow::_display_synth_dialog()
   _synthDialog = new SynthDialog(_emulator, _scene, this);
   _synthDialog->setModal(false);
   _synthDialog->show();
+}
+
+
+void MainWindow::_display_lfo_dialog()
+{
+#ifdef __USE_QTCHARTS__
+  LFODialog *dialog = new LFODialog(_emulator, _scene, this);
+  dialog->show();
+#endif
 }
 
 

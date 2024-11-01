@@ -21,6 +21,9 @@
 #define __WAVE_GENERATOR_H__
 
 
+#include "control_rom.h"
+#include "settings.h"
+
 #include <array>
 
 #include <stdint.h>
@@ -28,23 +31,20 @@
 
 namespace EmuSC {
 
-
 class WaveGenerator
 {
 public:
   enum class Waveform {
-    sine,
-    triangle
+    Sine     = 0,
+    Square   = 1,
+    Sawtooth = 2,
+    Triangle = 3,
+    Random   = 8
   };
 
-  WaveGenerator(enum Waveform waveForm, uint32_t sampleRate, uint8_t baseFreq=0,
-		bool lut = true, bool interpolate = true);
+  WaveGenerator(bool id, struct ControlRom::Instrument &instrument,
+                Settings *settings, int partId);
   ~WaveGenerator();
-
-  void set_delay(int delay);
-  void set_fade(int fade);
-
-  void update_frequency(int changeRate);
 
   void next(void);
   inline double value() { return _currentValue; }
@@ -52,21 +52,30 @@ public:
 private:
   WaveGenerator();
 
+  void _update_params(void);
+
+  bool _id;
   enum Waveform _waveForm;
-  uint32_t _sampleRate;
+  int _sampleRate;
   float _sampleFactor;
 
-  uint8_t _baseFrequency;          // LFO base frequency for instrument (ROM)
-  float _frequency;                // LFO frequency in Hz
-  int _delay;                      // Delay time in number of samples
-  int _fade;                       // Fade time in number of samples
+  int _rate;
+  int _rateChange;            // Change in rate due to controller input etc.
+  int _delay;                 // Delay time in number of samples
+  int _fade;                  // Fade time in number of samples
   int _fadeMax;
 
   double _currentValue;
+  double _random;
+
+  Settings *_settings;
+  int _partId;
 
   bool _useLUT;
   float _index;
   bool _interpolate;               // Linear interpolation
+
+  unsigned int _updateParams = 0;
 
   // LFO delay times measured on an SC-55mkII
   static constexpr std::array<float, 128> _delayTable = {

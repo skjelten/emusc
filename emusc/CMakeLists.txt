@@ -20,12 +20,19 @@ set(ALSA_MIDI  "no")
 set(CORE_MIDI  "no")
 set(WIN32_MIDI "no")
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Widgets Gui OPTIONAL_COMPONENTS Multimedia)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Widgets Gui OPTIONAL_COMPONENTS Multimedia)
+set(USE_QTCHARTS "no")
+
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Widgets Gui OPTIONAL_COMPONENTS Multimedia Charts)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Widgets Gui OPTIONAL_COMPONENTS Multimedia Charts)
 
 if (Qt${QT_VERSION_MAJOR}Multimedia_FOUND)
   add_definitions(-D__QT_AUDIO__)
   set(QT_AUDIO "yes")
+endif()
+
+if (Qt${QT_VERSION_MAJOR}Charts_FOUND)
+  add_definitions(-D__USE_QTCHARTS__)
+  set(USE_QTCHARTS "yes")
 endif()
 
 # TODO: Find libemusc with option to look for system or local
@@ -132,6 +139,7 @@ endif()
 
 message(STATUS "")
 message(STATUS "Qt version: Qt${QT_VERSION_MAJOR}")
+message(STATUS "QtCharts: ${USE_QTCHARTS}")
 
 message(STATUS "")
 message(STATUS "Audio APIs:")

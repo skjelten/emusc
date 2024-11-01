@@ -244,6 +244,7 @@ int ControlRom::_read_instruments(std::ifstream &romFile)
     i.name.erase(i.name.find_last_not_of(' ') + 1);
 
     i.volume       = data[12];
+    i.LFO1Waveform = data[14];
     i.LFO1Rate     = data[15];
     i.LFO1Delay    = data[16];
     i.LFO1Fade     = data[17];

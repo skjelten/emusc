@@ -40,6 +40,7 @@
 #include "midi_input_core.h"
 #include "midi_input_win32.h"
 
+#include "lfo_dialog.h"
 
 Emulator::Emulator(Scene *scene)
   : _scene(scene),
@@ -270,6 +271,22 @@ void Emulator::lcd_display_init_complete(void)
   _emuscSynth->add_part_midi_mod_callback(std::bind(&Emulator::_part_mod_callback,
 						    this,
 						    std::placeholders::_1));
+}
+
+
+void Emulator::set_lfo_callback(int partId, LFODialog *dialog)
+{
+  _emuscSynth->add_part_lfo_callback(partId,
+                                     std::bind(&LFODialog::lfo_callback,
+                                               dialog,
+                                               std::placeholders::_1,
+                                               std::placeholders::_2));
+}
+
+
+void Emulator::clear_lfo_callback(int partId)
+{
+  _emuscSynth->clear_part_lfo_callback(partId);
 }
 
 

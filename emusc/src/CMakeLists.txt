@@ -42,6 +42,8 @@ add_executable(emusc-client
   control_rom_info_dialog.h
   lcd_display.cc
   lcd_display.h
+  lfo_dialog.cc
+  lfo_dialog.h
   main_window.cc
   main_window.h
   midi_input.cc
@@ -74,6 +76,10 @@ target_link_libraries(emusc-client Qt${QT_VERSION_MAJOR}::Gui)
 
 if (Qt${QT_VERSION_MAJOR}Multimedia_FOUND)
   target_link_libraries(emusc-client Qt${QT_VERSION_MAJOR}::Multimedia)
+endif()
+
+if (Qt${QT_VERSION_MAJOR}Charts_FOUND)
+  target_link_libraries(emusc-client Qt${QT_VERSION_MAJOR}::Charts)
 endif()
 
 target_link_libraries (emusc-client ${EXTERNAL_LIBRARIES})

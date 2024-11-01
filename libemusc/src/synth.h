@@ -108,6 +108,9 @@ public:
   void add_part_midi_mod_callback(std::function<void(const int)> callback);
   void clear_part_midi_mod_callback(void);
 
+  void add_part_lfo_callback(int partId,std::function<void(const float, const float)> callback);
+  void clear_part_lfo_callback(int partId);
+
   // EmuSC clients methods for getting synth paramters
   uint8_t  get_param(enum SystemParam sp);
   uint8_t* get_param_ptr(enum SystemParam sp);

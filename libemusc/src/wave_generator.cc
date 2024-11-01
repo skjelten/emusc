@@ -16,19 +16,23 @@
  *  along with libEmuSC. If not, see <http://www.gnu.org/licenses/>.
  */
 
-// This wave generation class is used to generate low frequency oscialltor
-// (LFO) signals. The waveforms used by the SC-55 seems to be:
-// - sine     for vibrato, TVF and TVA
-// - triangle for chorus
-//
-// The exact way the SC-55 generates the wave forms is unknown, but EmuSC is
-// currently using either a simple lookup table or direct calculation.
+// Wave generator class used to generate low frequency oscialltors (LFOs).
+// The SC-55 uses only a few LFO waveforms to generate instrument audio,
+// but reverse engineering has shown that the hardware at least supports:
+// 0: Sine
+// 1: Square
+// 2: Sawtooth
+// 3: Triangle
+// 8: Random
+
+// The exact way the SC-55 generates the waveforms is currently unknown.
 
 
 #include "wave_generator.h"
 
 #include <algorithm>
 #include <cmath>
+#include <cstdlib>
 #include <iostream>
 
 #include <stdint.h>
@@ -40,25 +44,51 @@
 
 namespace EmuSC {
 
-
 // Make Clang compiler happy
 constexpr std::array<float, 128> WaveGenerator::_delayTable;
 constexpr std::array<float, 256> WaveGenerator::_sineTable;
 
 
-WaveGenerator::WaveGenerator(enum Waveform waveForm, uint32_t sampleRate,
-			     uint8_t baseFrequency, bool useLUT, bool interpolate)
-  : _waveForm(waveForm),
-    _sampleRate(sampleRate),
-    _baseFrequency(baseFrequency),
-    _useLUT(useLUT),
-    _interpolate(interpolate),
-    _frequency(0),
-    _delay(0),
-    _fade(0),
+WaveGenerator::WaveGenerator(bool id, struct ControlRom::Instrument &instrument,
+                             Settings *settings, int partId)
+  : _id(id),
+    _settings(settings),
+    _partId(partId),
     _index(0)
 {
-  _sampleFactor = 1.0 / sampleRate;
+  _sampleRate = settings->get_param_uint32(SystemParam::SampleRate);
+  _sampleFactor = 1.0 / (_sampleRate * 10.0);
+
+  if (id == 0) {        // Initialize LFO1
+    _waveForm = (enum Waveform) instrument.LFO1Waveform;
+    _rate = instrument.LFO1Rate;
+
+    if (instrument.LFO1Delay < _delayTable.size()) {
+      _delay = _delayTable[(int) instrument.LFO1Delay] * _sampleRate;
+    } else {
+      std::cerr << "libEmuSC internal error: LFO delay set to illegal value ("
+                << instrument.LFO1Delay << ")" << std::endl;
+      _delay = 0;
+    }
+
+    _fade = instrument.LFO1Fade * 0.01 * _sampleRate;
+    _fadeMax = _fade;
+
+  } else {              // Initialize LFO2
+    // LFO2 initialization is not found in the control ROM yet, but some
+    // instruments seems to have specific configuration also for LFO2.
+    // Just adding some common defaults for now.
+    _waveForm = Waveform::Sine;
+    _rate = 0;
+    _delay = 0;
+    _fade = 0;
+    _fadeMax = _fade;
+  }
+
+  _useLUT = true;
+  _interpolate = false;
+
+  _update_params();
 }
 
 
@@ -66,36 +96,16 @@ WaveGenerator::~WaveGenerator()
 {}
 
 
-void WaveGenerator::update_frequency(int changeRate)
-{
-  int newRate = std::min(std::max(_baseFrequency + changeRate, 0), 127);
-  _frequency = newRate / 10.0;
-}
-
-
-void WaveGenerator::set_delay(int newDelay)
-{
-  newDelay = std::min(std::max(newDelay, 0), 127);
-  _delay = _delayTable[newDelay] * _sampleRate;
-}
-
-
-void WaveGenerator::set_fade(int newFade)
-{
-  newFade = std::min(std::max(newFade, 0), 127);
-  _fade = newFade * 0.01 * _sampleRate;
-  _fadeMax = _fade;
-}
-
-
 void WaveGenerator::next(void)
 {
-  if (_frequency <= 0) {                     // 0 freq => no output
-    _currentValue = 0;
+  if (++_updateParams % 100 == 0)
+    _update_params();
+
+  if (_rate + _rateChange <= 0) {       // rate = 0 Hz => keep previous output
     return;
   }
 
-  if (_delay > 0) {                          // delay > 0 => no output
+  if (_delay > 0) {                     // delay > 0 => no output
     _delay--;
     _currentValue = 0;
     return;
@@ -103,15 +113,15 @@ void WaveGenerator::next(void)
 
   // Calculate waveform value
   double LFOValue;
-  if (_waveForm == Waveform::sine) {
+  if (_waveForm == Waveform::Sine) {
     if (!_useLUT) {
-      _index += (float) _frequency * _sampleFactor;
+      _index += (float) (_rate + _rateChange) * _sampleFactor;
       while (_index > 2.0 * M_PI) _index -=  2.0 * M_PI;
 
       LFOValue = std::sin(2.0 * M_PI * _index);
 
     } else {
-      _index += (float) _sineTable.size() * _frequency * _sampleFactor;
+      _index += (float) _sineTable.size() * (_rate + _rateChange)*_sampleFactor;
 
       while (_index >= _sineTable.size())
 	_index -= _sineTable.size();
@@ -132,10 +142,48 @@ void WaveGenerator::next(void)
       }
     }
 
-  } else {     // TODO: Triangle waveform
+  } else if (_waveForm == Waveform::Square) {
+    _index += (float) _sineTable.size() * (_rate + _rateChange) * _sampleFactor;
+    while (_index >= _sineTable.size())
+      _index -= _sineTable.size();
 
+    LFOValue = (_sineTable[(int) _index] > 0) ? 1.0 : -1.0;
 
+  // TODO: 180 deg phase shift on sawtooth?
+  } else if (_waveForm == Waveform::Sawtooth) {
+    double period = _sampleRate * 10 / (_rate + _rateChange);
+    double pos = fmod(_index, period);
 
+    LFOValue = (pos / period) * 2 - 1.0;
+
+    _index = (_index + 1.0 < period) ? _index + 1 : 0;
+
+  } else if (_waveForm == Waveform::Triangle) {
+    double period = _sampleRate * 10 / (_rate + _rateChange);
+    double pos = _index / period;
+
+    if (pos < 0.25)
+      LFOValue = pos * 4;
+    else if (pos < 0.75)
+      LFOValue = 2.0 - (pos * 4.0);
+    else
+      LFOValue = pos * 4 - 4.0;
+
+    _index = (_index + 1.0 < period) ? _index + 1 : 0;
+
+  // Random is observed to be square waveform with random amplitude changes
+  } else if (_waveForm == Waveform::Random) {
+    double period = _sampleRate * 10 / (_rate + _rateChange);
+    double pos1 = _index / period;
+    double pos2 = (_index + 1) / period;
+
+    // Random changes twice per l
+    if (_index == 0 || (pos1 <= 0.5 && pos2 > 0.5))
+      _random = -1+ static_cast<float>(rand()) / static_cast<float>(RAND_MAX/2);
+
+    LFOValue = _random;
+
+    _index = (_index + 1.0 < period) ? _index + 1 : 0;
   }
 
   // Apply fade
@@ -145,6 +193,22 @@ void WaveGenerator::next(void)
 
   } else {
     _currentValue = LFOValue;
+  }
+
+//  std::cout << "LFO" << (int) _id << " rate=" << (float) (_rate + _rateChange) / 10 << " value=" << _currentValue << std::endl;
+}
+
+
+void WaveGenerator::_update_params(void)
+{
+  if (_id == 0) {
+    _rateChange =
+      _settings->get_param(PatchParam::Acc_LFO1RateControl, _partId) - 0x40 +
+      _settings->get_param(PatchParam::VibratoRate, _partId) - 0x40;
+
+  } else {
+    _rateChange =
+      _settings->get_param(PatchParam::Acc_LFO2RateControl, _partId) - 0x40;
   }
 }
 

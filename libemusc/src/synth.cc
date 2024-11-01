@@ -22,6 +22,7 @@
 #include "settings.h"
 
 #include <cstring>
+#include <ctime>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -45,6 +46,8 @@ Synth::Synth(ControlRom &controlRom, PcmRom &pcmRom, SoundMap map)
     _ctrlRom(controlRom),
     _pcmRom(pcmRom)
 {
+  srand (static_cast<unsigned>(time(0)));
+
   _settings = new Settings(controlRom);
 
   _parts.reserve(16);
@@ -420,6 +423,18 @@ void Synth::add_part_midi_mod_callback(std::function<void(const int)> callback)
 void Synth::clear_part_midi_mod_callback(void)
 {
   _partMidiModCallbacks.clear();
+}
+
+
+void Synth::add_part_lfo_callback(int partId,
+                                  std::function<void(const float, const float)> callback)
+{
+  _parts[partId].add_lfo_callback(callback);
+}
+
+void Synth::clear_part_lfo_callback(int partId)
+{
+  _parts[partId].clear_lfo_callback();
 }
 
 

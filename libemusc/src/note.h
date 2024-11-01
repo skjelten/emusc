@@ -48,6 +48,8 @@ public:
   bool get_next_sample(float *sampleOut);
   int get_num_partials(void);
 
+  float get_current_lfo(bool lfoId) { return _LFO[(int) lfoId]->value(); }
+
 private:
   uint8_t _key;
   uint8_t _velocity;

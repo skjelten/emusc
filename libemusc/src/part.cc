@@ -89,6 +89,11 @@ int Part::get_next_sample(float *sampleOut)
       }
     }
 
+    // Export LFOs to external client
+    if (_lfoCallback && !_notes.empty() && _sampleCounter % 100 == 0)
+      _lfoCallback(_notes.front()->get_current_lfo(0),
+                   _notes.front()->get_current_lfo(1));
+
     _notesMutex->unlock();
 
     // Apply volume from part (MIDI channel) and expression (CM11)
@@ -107,7 +112,7 @@ int Part::get_next_sample(float *sampleOut)
   }
 
   // Final stage is to add System Effects
-  if (_sampleCounter % 350 == 0)
+  if (_sampleCounter++ % 350 == 0)
     _systemEffects->update_params();
 
   _systemEffects->apply(sampleOut);
@@ -535,6 +540,18 @@ int Part::set_program(uint8_t index, int8_t bank, bool ignRxFlags)
   }
 
   return 1;
+}
+
+
+void Part::add_lfo_callback(std::function<void(const float, const float)> cb)
+{
+  _lfoCallback = cb;
+}
+
+
+void Part::clear_lfo_callback(void)
+{
+  _lfoCallback = NULL;
 }
 
 }

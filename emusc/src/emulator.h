@@ -38,6 +38,7 @@
 
 #include <inttypes.h>
 
+class LFODialog;
 
 class Emulator : public QObject
 {
@@ -112,6 +113,8 @@ public:
   void set_param(enum EmuSC::DrumParam dp, uint8_t map, uint8_t *data,
 		 uint8_t length);
 
+  void set_lfo_callback(int partId, LFODialog *dialog);
+  void clear_lfo_callback(int partId);
 
 signals:
   void bar_display_update(QVector<bool>*);
