@@ -22,8 +22,9 @@ set(WIN32_MIDI "no")
 
 set(USE_QTCHARTS "no")
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Widgets Gui OPTIONAL_COMPONENTS Multimedia Charts)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Widgets Gui OPTIONAL_COMPONENTS Multimedia Charts)
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Widgets Gui)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Widgets Gui)
+find_package(Qt${QT_VERSION_MAJOR} QUIET OPTIONAL_COMPONENTS Multimedia Charts)
 
 if (Qt${QT_VERSION_MAJOR}Multimedia_FOUND)
   add_definitions(-D__QT_AUDIO__)
