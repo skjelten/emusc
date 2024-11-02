@@ -276,7 +276,7 @@ void Emulator::lcd_display_init_complete(void)
 
 void Emulator::set_lfo_callback(int partId, LFODialog *dialog)
 {
-#ifdef __USE_QTCHART__
+#ifdef __USE_QTCHARTS__
   _emuscSynth->add_part_lfo_callback(partId,
                                      std::bind(&LFODialog::lfo_callback,
                                                dialog,

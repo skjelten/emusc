@@ -38,6 +38,10 @@
 #include <QtCharts/QLineSeries>
 #include <QtCharts/QValueAxis>
 
+#if QT_VERSION < QT_VERSION_CHECK(6,0,0)
+using namespace QtCharts;
+#endif
+
 
 class LFODialog : public QDialog
 {
