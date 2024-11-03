@@ -19,6 +19,7 @@
 
 #include "main_window.h"
 #include "lfo_dialog.h"
+#include "envelope_dialog.h"
 #include "preferences_dialog.h"
 #include "control_rom_info_dialog.h"
 #include "scene.h"
@@ -251,6 +252,9 @@ void MainWindow::_create_actions(void)
   _viewLFOsChartAct = new QAction("&Monitor LFOs", this);
   connect(_viewLFOsChartAct, &QAction::triggered,
 	  this, &MainWindow::_display_lfo_dialog);
+  _viewEnvelopesChartAct = new QAction("&Monitor envelopes", this);
+  connect(_viewEnvelopesChartAct, &QAction::triggered,
+	  this, &MainWindow::_display_envelope_dialog);
 
   _synthSettingsAct = new QAction("&Settings...", this);
   _synthSettingsAct->setShortcut(tr("CTRL+S"));
@@ -326,6 +330,7 @@ void MainWindow::_create_menus(void)
 #ifdef __USE_QTCHARTS__
   _toolsMenu->addSeparator();
   _toolsMenu->addAction(_viewLFOsChartAct);
+  _toolsMenu->addAction(_viewEnvelopesChartAct);
 #endif
 
   _synthMenu = menuBar()->addMenu("&Synth");
@@ -417,6 +422,15 @@ void MainWindow::_display_lfo_dialog()
 {
 #ifdef __USE_QTCHARTS__
   LFODialog *dialog = new LFODialog(_emulator, _scene, this);
+  dialog->show();
+#endif
+}
+
+
+void MainWindow::_display_envelope_dialog()
+{
+#ifdef __USE_QTCHARTS__
+  EnvelopeDialog *dialog = new EnvelopeDialog(_emulator, _scene, this);
   dialog->show();
 #endif
 }

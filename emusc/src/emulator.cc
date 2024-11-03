@@ -40,7 +40,10 @@
 #include "midi_input_core.h"
 #include "midi_input_win32.h"
 
+
+#include "envelope_dialog.h"
 #include "lfo_dialog.h"
+
 
 Emulator::Emulator(Scene *scene)
   : _scene(scene),
@@ -271,6 +274,28 @@ void Emulator::lcd_display_init_complete(void)
   _emuscSynth->add_part_midi_mod_callback(std::bind(&Emulator::_part_mod_callback,
 						    this,
 						    std::placeholders::_1));
+}
+
+
+void Emulator::set_envelope_callback(int partId, EnvelopeDialog *dialog)
+{
+#ifdef __USE_QTCHARTS__
+  _emuscSynth->set_part_envelope_callback(partId,
+                                          std::bind(&EnvelopeDialog::envelope_callback,
+                                                    dialog,
+                                                    std::placeholders::_1,
+                                                    std::placeholders::_2,
+                                                    std::placeholders::_3,
+                                                    std::placeholders::_4,
+                                                    std::placeholders::_5,
+                                                    std::placeholders::_6));
+#endif
+}
+
+
+void Emulator::clear_envelope_callback(int partId)
+{
+  _emuscSynth->clear_part_envelope_callback(partId);
 }
 
 

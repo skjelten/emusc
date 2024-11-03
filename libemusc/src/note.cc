@@ -160,4 +160,31 @@ int Note::get_num_partials()
   return numPartials;
 }
 
+
+float Note::get_current_tvp(bool partial)
+{
+  if (!_partial[partial])
+    return 0;
+
+  return _partial[partial]->get_current_tvp();
+}
+
+
+float Note::get_current_tvf(bool partial)
+{
+  if (!_partial[partial])
+    return 0;
+
+  return _partial[partial]->get_current_tvf();
+}
+
+
+float Note::get_current_tva(bool partial)
+{
+  if (!_partial[partial])
+    return 0;
+
+  return _partial[partial]->get_current_tva();
+}
+
 }

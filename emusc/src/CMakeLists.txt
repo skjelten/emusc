@@ -38,6 +38,8 @@ add_executable(emusc-client
   emulator.cc
   emulator.h
   emusc.cc
+  envelope_dialog.cc
+  envelope_dialog.h
   control_rom_info_dialog.cc
   control_rom_info_dialog.h
   lcd_display.cc

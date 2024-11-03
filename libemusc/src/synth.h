@@ -108,6 +108,11 @@ public:
   void add_part_midi_mod_callback(std::function<void(const int)> callback);
   void clear_part_midi_mod_callback(void);
 
+  void set_part_envelope_callback(int partId,
+                                  std::function<void(const float, const float,
+                                                     const float, const float,
+                                                     const float, const float)> callback);
+  void clear_part_envelope_callback(int partId);
   void add_part_lfo_callback(int partId,std::function<void(const float, const float)> callback);
   void clear_part_lfo_callback(int partId);
 

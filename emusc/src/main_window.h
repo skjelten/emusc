@@ -62,6 +62,7 @@ private:
   QAction *_dumpSongsAct;
   QAction *_viewCtrlRomDataAct;
   QAction *_viewLFOsChartAct;
+  QAction *_viewEnvelopesChartAct;
   QAction *_synthSettingsAct;
   QAction *_GSmodeAct;
   QAction *_GMmodeAct;
@@ -107,6 +108,7 @@ private slots:
 
   void _display_welcome_dialog(void);
   void _display_lfo_dialog(void);
+  void _display_envelope_dialog(void);
   void _display_preferences_dialog(void);
   void _display_synth_dialog(void);
   void _display_about_dialog(void);

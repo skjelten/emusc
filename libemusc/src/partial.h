@@ -46,6 +46,13 @@ public:
   void stop(void);
   bool get_next_sample(float *sampleOut);
 
+  float get_current_tvp(void)
+  { if (_tvp) return _tvp->get_current_value(); return 0;}
+  float get_current_tvf(void)
+  { if (_tvf) return _tvf->get_current_value(); return 0;}
+  float get_current_tva(void)
+  { if (_tva) return _tva->get_current_value(); return 0;}
+
 private:
   uint8_t _key;           // MIDI key number for note on
   float _keyDiff;         // Difference in number of keys from original tone

@@ -426,6 +426,18 @@ void Synth::clear_part_midi_mod_callback(void)
 }
 
 
+void Synth::set_part_envelope_callback(int partId,
+                                       std::function<void(const float, const float, const float, const float, const float, const float)> callback)
+{
+  _parts[partId].set_envelope_callback(callback);
+}
+
+void Synth::clear_part_envelope_callback(int partId)
+{
+  _parts[partId].clear_envelope_callback();
+}
+
+
 void Synth::add_part_lfo_callback(int partId,
                                   std::function<void(const float, const float)> callback)
 {

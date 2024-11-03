@@ -44,6 +44,8 @@ public:
 
   void start(void);
   double get_next_value(void);
+  double get_current_value(void) { return _currentValue; }
+
   void release(void);
 
   inline bool finished(void) { return _finished; }

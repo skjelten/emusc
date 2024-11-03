@@ -89,7 +89,14 @@ int Part::get_next_sample(float *sampleOut)
       }
     }
 
-    // Export LFOs to external client
+    // Export envelopes and LFOs to external client
+    if (_envelopeCallback && !_notes.empty() && _sampleCounter % 100 == 0)
+      _envelopeCallback(_notes.front()->get_current_tvp(0),
+                        _notes.front()->get_current_tvp(1),
+                        _notes.front()->get_current_tvf(0),
+                        _notes.front()->get_current_tvf(1),
+                        _notes.front()->get_current_tva(0),
+                        _notes.front()->get_current_tva(1));
     if (_lfoCallback && !_notes.empty() && _sampleCounter % 100 == 0)
       _lfoCallback(_notes.front()->get_current_lfo(0),
                    _notes.front()->get_current_lfo(1));
@@ -540,6 +547,20 @@ int Part::set_program(uint8_t index, int8_t bank, bool ignRxFlags)
   }
 
   return 1;
+}
+
+
+void Part::set_envelope_callback(std::function<void(const float, const float,
+                                                    const float, const float,
+                                                    const float, const float)> cb)
+{
+  _envelopeCallback = cb;
+}
+
+
+void Part::clear_envelope_callback(void)
+{
+  _envelopeCallback = NULL;
 }
 
 

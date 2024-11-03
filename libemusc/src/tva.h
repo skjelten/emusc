@@ -47,6 +47,9 @@ public:
   void note_off();
   bool finished(void);
 
+  float get_current_value()
+  { if (_ahdsr) return _ahdsr->get_current_value(); return 0; }
+
 private:
   uint32_t _sampleRate;
 

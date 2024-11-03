@@ -70,6 +70,10 @@ public:
 
   uint8_t midi_channel(void) { return _settings->get_param(PatchParam::RxChannel, _id); }
 
+  void set_envelope_callback(std::function<void(const float, const float,
+                                                const float, const float,
+                                                const float, const float)> cb);
+  void clear_envelope_callback(void);
   void add_lfo_callback(std::function<void(const float, const float)> cb);
   void clear_lfo_callback(void);
 
@@ -110,7 +114,10 @@ private:
   // TODO: Find a better solution to having this updated at a different interval
   unsigned int _sampleCounter = 0;
 
-  // LFOs callback for external clients
+  // Envelopes and LFOs callback for external clients
+  std::function<void(const float, const float,
+                     const float, const float,
+                     const float, const float)> _envelopeCallback = NULL;
   std::function<void(const float, const float)> _lfoCallback = NULL;
 
 };

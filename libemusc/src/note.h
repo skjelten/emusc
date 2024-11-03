@@ -48,6 +48,9 @@ public:
   bool get_next_sample(float *sampleOut);
   int get_num_partials(void);
 
+  float get_current_tvp(bool partial);
+  float get_current_tvf(bool partial);
+  float get_current_tva(bool partial);
   float get_current_lfo(bool lfoId) { return _LFO[(int) lfoId]->value(); }
 
 private:
