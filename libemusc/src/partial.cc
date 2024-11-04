@@ -68,7 +68,7 @@ namespace EmuSC {
 
 
 Partial::Partial(uint8_t key, int partialId, uint16_t instrumentIndex,
-		 ControlRom &ctrlRom, PcmRom &pcmRom, WaveGenerator *LFO[2],
+		 ControlRom &ctrlRom, PcmRom &pcmRom, WaveGenerator *LFO1,
 		 Settings *settings, int8_t partId)
   : _key(key),
     _instPartial(ctrlRom.instrument(instrumentIndex).partials[partialId]),
@@ -77,6 +77,7 @@ Partial::Partial(uint8_t key, int partialId, uint16_t instrumentIndex,
     _isLooping(false),
     _settings(settings),
     _partId(partId),
+    _LFO2(NULL),
     _tvp(NULL),
     _tvf(NULL),
     _tva(NULL),
@@ -148,10 +149,13 @@ Partial::Partial(uint8_t key, int partialId, uint16_t instrumentIndex,
   double partialVol = _convert_volume(_instPartial.volume);
   _volumeCorrection = instVol * sampleVol * partialVol;
 
-  // 7. Create TVP/F/A & envelope classes
-  _tvp = new TVP(_instPartial, key, LFO, settings, partId);
-  _tvf = new TVF(_instPartial, key, LFO, settings, partId);
-  _tva = new TVA(_instPartial, key, LFO, settings, partId);
+  // 7. Partial specific LFO2
+  _LFO2 = new WaveGenerator(_instPartial, settings, partId);
+
+  // 8. Create TVP/F/A & envelope classes
+  _tvp = new TVP(_instPartial, key, LFO1, _LFO2, settings, partId);
+  _tvf = new TVF(_instPartial, key, LFO1, _LFO2, settings, partId);
+  _tva = new TVA(_instPartial, key, LFO1, _LFO2, settings, partId);
 }
 
 
@@ -160,6 +164,8 @@ Partial::~Partial()
   delete _tvp;
   delete _tvf;
   delete _tva;
+
+  delete _LFO2;
 }
 
 
@@ -186,6 +192,9 @@ bool Partial::get_next_sample(float *noteSample)
   // TODO: Figure out how often this should be executed (new thread?)
   if (!(_updateTimeout++ % _updatePeriod))
     _update_params();
+
+  // Iterate LFO2
+  _LFO2->next();
 
   float pitchAdj = _settings->get_pitchBend_factor(_partId) *
                    _staticPitchTune *

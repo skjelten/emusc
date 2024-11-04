@@ -45,14 +45,15 @@
 namespace EmuSC {
 
 
-TVP::TVP(ControlRom::InstPartial &instPartial, uint8_t key,
-         WaveGenerator *LFO[2], Settings *settings,int8_t partId)
+TVP::TVP(ControlRom::InstPartial &instPartial, uint8_t key, WaveGenerator *LFO1,
+         WaveGenerator *LFO2, Settings *settings,int8_t partId)
   : _sampleRate(settings->get_param_uint32(SystemParam::SampleRate)),
     _key(key),
     _keyFreq(440 * exp(log(2) * (key - 69) / 12)),
-    _LFO1(LFO[0]),
-    _LFO2(LFO[1]),
-    _LFO1DepthPartial(instPartial.TVPLFODepth & 0x7f),
+    _LFO1(LFO1),
+    _LFO2(LFO2),
+    _LFO1Depth(instPartial.TVPLFO1Depth & 0x7f),
+    _LFO2Depth(instPartial.TVPLFO2Depth & 0x7f),
     _expFactor(log(2) / 12000),
     _ahdsr(NULL),
     _multiplier(instPartial.pitchMult & 0x7f),
@@ -113,12 +114,13 @@ void TVP::note_off()
 void TVP::update_params(void)
 {
   // LFOs
-  int lfoDepth = _LFO1DepthPartial +
+  int lfoDepth = _LFO1Depth +
     _settings->get_param(PatchParam::VibratoDepth, _partId) - 0x40 +
     _settings->get_param(PatchParam::Acc_LFO1PitchDepth, _partId);
   _accLFO1Depth = (lfoDepth > 0) ? (uint8_t) lfoDepth : 0;
 
-  lfoDepth = _settings->get_param(PatchParam::Acc_LFO2PitchDepth, _partId);
+  lfoDepth = _LFO2Depth +
+    _settings->get_param(PatchParam::Acc_LFO2PitchDepth, _partId);
   _accLFO2Depth = (lfoDepth > 0) ? (uint8_t) lfoDepth : 0;
 
   float freqKeyTuned = _keyFreq +

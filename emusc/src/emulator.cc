@@ -302,11 +302,12 @@ void Emulator::clear_envelope_callback(int partId)
 void Emulator::set_lfo_callback(int partId, LFODialog *dialog)
 {
 #ifdef __USE_QTCHARTS__
-  _emuscSynth->add_part_lfo_callback(partId,
+  _emuscSynth->set_part_lfo_callback(partId,
                                      std::bind(&LFODialog::lfo_callback,
                                                dialog,
                                                std::placeholders::_1,
-                                               std::placeholders::_2));
+                                               std::placeholders::_2,
+                                               std::placeholders::_3));
 #endif
 }
 

@@ -257,12 +257,17 @@ int ControlRom::_read_instruments(std::ifstream &romFile)
       i.partials[p].partialIndex = _native_endian_uint16((uint8_t *) data);
 
       romFile.read(data, 88);
+      i.partials[p].LFO2Waveform= data[0];
+      i.partials[p].LFO2Rate    = data[1];
+      i.partials[p].LFO2Delay   = data[2];
+      i.partials[p].LFO2Fade    = data[3];
       i.partials[p].panpot      = data[5];
       i.partials[p].coarsePitch = data[6];
       i.partials[p].finePitch   = data[7];
       i.partials[p].randPitch   = data[8];
       i.partials[p].pitchKeyFlw = data[9];
-      i.partials[p].TVPLFODepth = data[10];
+      i.partials[p].TVPLFO1Depth= data[10];
+      i.partials[p].TVPLFO2Depth= data[11];
       i.partials[p].pitchMult   = data[12];
       i.partials[p].pitchLvlP0  = data[14];
       i.partials[p].pitchLvlP1  = data[15];

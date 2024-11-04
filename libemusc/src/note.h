@@ -51,7 +51,7 @@ public:
   float get_current_tvp(bool partial);
   float get_current_tvf(bool partial);
   float get_current_tva(bool partial);
-  float get_current_lfo(bool lfoId) { return _LFO[(int) lfoId]->value(); }
+  float get_current_lfo(int lfo);
 
 private:
   uint8_t _key;
@@ -62,7 +62,7 @@ private:
 
   const double _7bScale;     // Constant: 1 / 127
 
-  WaveGenerator *_LFO[2];
+  WaveGenerator *_LFO1;
 
   struct Partial *_partial[2];
 

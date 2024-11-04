@@ -99,7 +99,8 @@ int Part::get_next_sample(float *sampleOut)
                         _notes.front()->get_current_tva(1));
     if (_lfoCallback && !_notes.empty() && _sampleCounter % 100 == 0)
       _lfoCallback(_notes.front()->get_current_lfo(0),
-                   _notes.front()->get_current_lfo(1));
+                   _notes.front()->get_current_lfo(1),
+                   _notes.front()->get_current_lfo(2));
 
     _notesMutex->unlock();
 
@@ -564,7 +565,8 @@ void Part::clear_envelope_callback(void)
 }
 
 
-void Part::add_lfo_callback(std::function<void(const float, const float)> cb)
+void Part::set_lfo_callback(std::function<void(const float, const float,
+                                               const float)> cb)
 {
   _lfoCallback = cb;
 }

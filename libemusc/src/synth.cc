@@ -438,10 +438,11 @@ void Synth::clear_part_envelope_callback(int partId)
 }
 
 
-void Synth::add_part_lfo_callback(int partId,
-                                  std::function<void(const float, const float)> callback)
+void Synth::set_part_lfo_callback(int partId,
+                                  std::function<void(const float, const float,
+                                                     const float)> callback)
 {
-  _parts[partId].add_lfo_callback(callback);
+  _parts[partId].set_lfo_callback(callback);
 }
 
 void Synth::clear_part_lfo_callback(int partId)

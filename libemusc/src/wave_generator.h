@@ -42,7 +42,12 @@ public:
     Random   = 8
   };
 
-  WaveGenerator(bool id, struct ControlRom::Instrument &instrument,
+  // LFO1 is defined in the Instrument section
+  WaveGenerator(struct ControlRom::Instrument &instrument,
+                Settings *settings, int partId);
+
+  // LFO2s are defined in the Instrument Partial section
+  WaveGenerator(struct ControlRom::InstPartial &instPartial,
                 Settings *settings, int partId);
   ~WaveGenerator();
 

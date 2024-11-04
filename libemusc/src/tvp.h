@@ -37,8 +37,8 @@ namespace EmuSC {
 class TVP
 {
 public:
-  TVP(ControlRom::InstPartial &instPartial, uint8_t key, WaveGenerator *LFO[2],
-      Settings *settings, int8_t partId);
+  TVP(ControlRom::InstPartial &instPartial, uint8_t key, WaveGenerator *LFO1,
+      WaveGenerator *LFO2, Settings *settings, int8_t partId);
   ~TVP();
 
   double get_pitch(void);
@@ -58,7 +58,8 @@ private:
 
   WaveGenerator *_LFO1;
   WaveGenerator *_LFO2;
-  int _LFO1DepthPartial;
+  int _LFO1Depth;
+  int _LFO2Depth;
 
   uint8_t _accLFO1Depth;
   uint8_t _accLFO2Depth;

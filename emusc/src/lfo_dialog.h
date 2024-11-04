@@ -51,7 +51,7 @@ public:
   LFODialog(Emulator *emulator, Scene *scene, QWidget *parent = nullptr);
   virtual ~LFODialog();
 
-  void lfo_callback(const float lfo1, const float lfo2);
+  void lfo_callback(const float lfo1, const float lfo2p1, const float lfo2p2);
 
 public slots:
   void chart_timeout(void);
@@ -67,15 +67,17 @@ private:
   QTimer _chartTimer;
   QMutex _dataMutex;
 
-  QVector<float> _lfoData1;
-  QVector<float> _lfoData2;
+  QVector<float> _lfo1Data;
+  QVector<float> _lfo2p1Data;
+  QVector<float> _lfo2p2Data;
 
   QChart *_chart;
   QValueAxis *_xAxis;
   QValueAxis *_yAxis;
 
   QLineSeries *_LFO1Series;
-  QLineSeries *_LFO2Series;
+  QLineSeries *_LFO2P1Series;
+  QLineSeries *_LFO2P2Series;
 
   QComboBox *_partCB;
   QPushButton *_pausePB;

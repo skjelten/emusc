@@ -21,6 +21,7 @@
 
 #include <bitset>
 #include <iostream>
+#include <cmath>
 
 namespace EmuSC {
 
@@ -50,19 +51,16 @@ Note::Note(uint8_t key, uint8_t velocity, ControlRom &ctrlRom, PcmRom &pcmRom,
   if (instrumentIndex == 0xffff)        // Ignore undefined instruments / drums
     return;
 
-  // 2. Setup LFOs
-  // Note: LFO delay and fade parameters are set only upon note start and
-  //       cannot change during a note
-  _LFO[0] = new WaveGenerator(0, ctrlRom.instrument(instrumentIndex), settings, partId);
-  _LFO[1] = new WaveGenerator(1, ctrlRom.instrument(instrumentIndex), settings, partId);
+  // LFO1 is shared between partials
+  _LFO1 = new WaveGenerator(ctrlRom.instrument(instrumentIndex), settings, partId);
 
   // Every instrument in the Sound Canvas line has up to two partials
   std::bitset<2> partialBits(ctrlRom.instrument(instrumentIndex).partialsUsed);
   if (partialBits.test(0))
-    _partial[0] = new Partial(key, 0, instrumentIndex, ctrlRom, pcmRom, _LFO,
+    _partial[0] = new Partial(key, 0, instrumentIndex, ctrlRom, pcmRom, _LFO1,
                               settings, partId);
   if (partialBits.test(1))
-    _partial[1] = new Partial(key, 1, instrumentIndex, ctrlRom, pcmRom, _LFO,
+    _partial[1] = new Partial(key, 1, instrumentIndex, ctrlRom, pcmRom, _LFO1,
                               settings, partId);
 }
 
@@ -72,8 +70,7 @@ Note::~Note()
   delete _partial[0];
   delete _partial[1];
 
-  delete _LFO[0];
-  delete _LFO[1];
+  delete _LFO1;
 }
 
 
@@ -120,9 +117,8 @@ bool Note::get_next_sample(float *partSample)
 {
   bool finished[2] = {0, 0};
 
-  // Iterate both LFOs
-  _LFO[0]->next();
-  _LFO[1]->next();
+  // Iterate LFO1
+  _LFO1->next();
 
   // Temporary samples for LEFT and RIGHT channel
   float sample[2] = {0, 0};
@@ -158,6 +154,19 @@ int Note::get_num_partials()
     numPartials ++;
 
   return numPartials;
+}
+
+
+float Note::get_current_lfo(int lfo)
+{
+  if (lfo == 0)
+    return _LFO1->value();
+  if (lfo == 1 && _partial[0])
+    return _partial[0]->get_current_lfo();
+  if (lfo == 2 && _partial[1])
+    return _partial[1]->get_current_lfo();
+
+  return std::nanf("");
 }
 
 

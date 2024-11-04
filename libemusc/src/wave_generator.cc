@@ -17,15 +17,28 @@
  */
 
 // Wave generator class used to generate low frequency oscialltors (LFOs).
-// The SC-55 uses only a few LFO waveforms to generate instrument audio,
-// but reverse engineering has shown that the hardware at least supports:
+// All models in the Sound Canvas line has 2 LFOs:
+//  - LFO1 is definde per instrument and is shared with both partials
+//  - LFO2 is defined per instrument partial
+// This gives a maximum of 3 separate LFOs per note
+
+// Each LFO has 4 parameters defined in the control ROM:
+//   - Waveform
+//   - Rate
+//   - Delay
+//   - Fade
+// LFO rate, delay and fade parameters can be changed by clients or SysEx
+// messages, but only rate can be changed after a "note on" event.
+
+// The exact way the Sound Canvas produces LFO signals is currently unknown,
+// but we know that at least the following waveforms are used:
 // 0: Sine
 // 1: Square
 // 2: Sawtooth
 // 3: Triangle
 // 8: Random
-
-// The exact way the SC-55 generates the waveforms is currently unknown.
+// In addition there are a few more waveforms used in the control ROM that
+// currently are not understood / implemented.
 
 
 #include "wave_generator.h"
@@ -49,9 +62,9 @@ constexpr std::array<float, 128> WaveGenerator::_delayTable;
 constexpr std::array<float, 256> WaveGenerator::_sineTable;
 
 
-WaveGenerator::WaveGenerator(bool id, struct ControlRom::Instrument &instrument,
+WaveGenerator::WaveGenerator(struct ControlRom::Instrument &instrument,
                              Settings *settings, int partId)
-  : _id(id),
+  : _id(0),
     _settings(settings),
     _partId(partId),
     _index(0)
@@ -59,31 +72,50 @@ WaveGenerator::WaveGenerator(bool id, struct ControlRom::Instrument &instrument,
   _sampleRate = settings->get_param_uint32(SystemParam::SampleRate);
   _sampleFactor = 1.0 / (_sampleRate * 10.0);
 
-  if (id == 0) {        // Initialize LFO1
-    _waveForm = (enum Waveform) instrument.LFO1Waveform;
-    _rate = instrument.LFO1Rate;
+  _waveForm = (enum Waveform) instrument.LFO1Waveform;
+  _rate = instrument.LFO1Rate;
 
-    if (instrument.LFO1Delay < _delayTable.size()) {
-      _delay = _delayTable[(int) instrument.LFO1Delay] * _sampleRate;
-    } else {
-      std::cerr << "libEmuSC internal error: LFO delay set to illegal value ("
-                << instrument.LFO1Delay << ")" << std::endl;
-      _delay = 0;
-    }
-
-    _fade = instrument.LFO1Fade * 0.01 * _sampleRate;
-    _fadeMax = _fade;
-
-  } else {              // Initialize LFO2
-    // LFO2 initialization is not found in the control ROM yet, but some
-    // instruments seems to have specific configuration also for LFO2.
-    // Just adding some common defaults for now.
-    _waveForm = Waveform::Sine;
-    _rate = 0;
+  if (instrument.LFO1Delay < _delayTable.size()) {
+    _delay = _delayTable[(int) instrument.LFO1Delay] * _sampleRate;
+  } else {
+    std::cerr << "libEmuSC internal error: LFO delay set to illegal value ("
+              << instrument.LFO1Delay << ")" << std::endl;
     _delay = 0;
-    _fade = 0;
-    _fadeMax = _fade;
   }
+
+  _fade = instrument.LFO1Fade * 0.01 * _sampleRate;
+  _fadeMax = _fade;
+
+  _useLUT = true;
+  _interpolate = false;
+
+  _update_params();
+}
+
+
+WaveGenerator::WaveGenerator(struct ControlRom::InstPartial &instPartial,
+                             Settings *settings, int partId)
+  : _id(1),
+    _settings(settings),
+    _partId(partId),
+    _index(0)
+{
+  _sampleRate = settings->get_param_uint32(SystemParam::SampleRate);
+  _sampleFactor = 1.0 / (_sampleRate * 10.0);
+
+  _waveForm = (enum Waveform) instPartial.LFO2Waveform;
+  _rate = instPartial.LFO2Rate;
+
+  if (instPartial.LFO2Delay < _delayTable.size()) {
+    _delay = _delayTable[(int) instPartial.LFO2Delay] * _sampleRate;
+  } else {
+    std::cerr << "libEmuSC internal error: LFO delay set to illegal value ("
+              << instPartial.LFO2Delay << ")" << std::endl;
+    _delay = 0;
+  }
+
+  _fade = instPartial.LFO2Fade * 0.01 * _sampleRate;
+  _fadeMax = _fade;
 
   _useLUT = true;
   _interpolate = false;
@@ -194,8 +226,6 @@ void WaveGenerator::next(void)
   } else {
     _currentValue = LFOValue;
   }
-
-//  std::cout << "LFO" << (int) _id << " rate=" << (float) (_rate + _rateChange) / 10 << " value=" << _currentValue << std::endl;
 }
 
 

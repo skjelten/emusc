@@ -45,11 +45,11 @@
 namespace EmuSC {
 
 
-TVF::TVF(ControlRom::InstPartial &instPartial, uint8_t key,
-	 WaveGenerator *LFO[2], Settings *settings, int8_t partId)
+TVF::TVF(ControlRom::InstPartial &instPartial, uint8_t key, WaveGenerator *LFO1,
+	 WaveGenerator *LFO2, Settings *settings, int8_t partId)
   : _sampleRate(settings->get_param_uint32(SystemParam::SampleRate)),
-    _LFO1(LFO[0]),
-    _LFO2(LFO[1]),
+    _LFO1(LFO1),
+    _LFO2(LFO2),
     _key(key),
     _ahdsr(NULL),
     _lpFilter(NULL),

@@ -28,11 +28,13 @@
 namespace EmuSC {
 
 
-TVA::TVA(ControlRom::InstPartial &instPartial, uint8_t key,
-	 WaveGenerator *LFO[2], Settings *settings, int8_t partId)
+TVA::TVA(ControlRom::InstPartial &instPartial, uint8_t key, WaveGenerator *LFO1,
+         WaveGenerator *LFO2, Settings *settings, int8_t partId)
   : _sampleRate(settings->get_param_uint32(SystemParam::SampleRate)),
     _key(key),
     _drumSet(settings->get_param(PatchParam::UseForRhythm, partId)),
+    _LFO1(LFO1),
+    _LFO2(LFO2),
     _panpotLocked(false),
     _ahdsr(NULL),
     _finished(false),
@@ -42,9 +44,6 @@ TVA::TVA(ControlRom::InstPartial &instPartial, uint8_t key,
     _drumMap(settings->get_param(PatchParam::UseForRhythm, partId)),
     _drumVol(1)
 {
-  _LFO1 = LFO[0];
-  _LFO2 = LFO[1];
-
   // TODO: Find LUT or formula for using amplitude LFO Depth. For now just
   //       using a static approximation.
   _LFO1DepthPartial = (instPartial.TVALFODepth & 0x7f) / 128.0;

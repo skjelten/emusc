@@ -64,6 +64,11 @@ public:
   };                      // and above corresponds to breakpoints
 
   struct InstPartial {    // 92 bytes in total
+    uint8_t LFO2Waveform;
+    uint8_t LFO2Rate;     // LFO frequency in 0.1 Hz
+    uint8_t LFO2Delay;
+    uint8_t LFO2Fade;
+
     uint16_t partialIndex;// Partial table index, 0xFFFF for unused
     int8_t panpot;        // [-64, 64]. Default 0x40 (0-127)
     int8_t coarsePitch;   // Shifts pitch in semitones. Default 0x40
@@ -72,7 +77,8 @@ public:
     int8_t volume;        // Volume attenuation (0x7f - 0)
     int8_t pitchKeyFlw;
 
-    uint8_t TVPLFODepth;
+    uint8_t TVPLFO1Depth;
+    uint8_t TVPLFO2Depth;
     uint8_t pitchMult;
     uint8_t pitchLvlP0;
     uint8_t pitchLvlP1;
@@ -118,7 +124,7 @@ public:
     std::string name;
 
     uint8_t volume;       // Volume attenuation (0x7f - 0)
-    uint8_t LFO1Waveform; // LFO frequency in 0.1 Hz
+    uint8_t LFO1Waveform;
     uint8_t LFO1Rate;     // LFO frequency in 0.1 Hz
     uint8_t LFO1Delay;
     uint8_t LFO1Fade;

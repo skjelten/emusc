@@ -29,6 +29,7 @@
 #include "tvp.h"
 #include "wave_generator.h"
 
+#include <cmath>
 #include <stdint.h>
 
 
@@ -39,13 +40,15 @@ class Partial
 {
 public:
   Partial(uint8_t key, int partialId, uint16_t instrumentIndex,
-	  ControlRom &controlRom, PcmRom &pcmRom, WaveGenerator *LFO[2],
+	  ControlRom &controlRom, PcmRom &pcmRom, WaveGenerator *LFO1,
 	  Settings *settings, int8_t partId);
   ~Partial();
 
   void stop(void);
   bool get_next_sample(float *sampleOut);
 
+  inline float get_current_lfo(void)
+  { if (_LFO2) return (float) _LFO2->value(); return std::nanf("");}
   float get_current_tvp(void)
   { if (_tvp) return _tvp->get_current_value(); return 0;}
   float get_current_tvf(void)
@@ -77,6 +80,8 @@ private:
 
   bool _isDrum;
   int _drumMap;
+
+  WaveGenerator *_LFO2;
 
   TVP *_tvp;
   TVF *_tvf;

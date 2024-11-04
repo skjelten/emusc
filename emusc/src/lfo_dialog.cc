@@ -40,7 +40,8 @@ LFODialog::LFODialog(Emulator *emulator, Scene *scene, QWidget *parent)
     _emulator(emulator),
     _scene(scene),
     _LFO1Series(0),
-    _LFO2Series(0),
+    _LFO2P1Series(0),
+    _LFO2P2Series(0),
     _timePeriod(5),
     _partId(0),
     _xPos(0),
@@ -54,9 +55,11 @@ LFODialog::LFODialog(Emulator *emulator, Scene *scene, QWidget *parent)
   _chart = new QChart();
 
   _LFO1Series = new QLineSeries(this);
-  _LFO2Series = new QLineSeries(this);
+  _LFO2P1Series = new QLineSeries(this);
+  _LFO2P2Series = new QLineSeries(this);
   _chart->addSeries(_LFO1Series);
-  _chart->addSeries(_LFO2Series);
+  _chart->addSeries(_LFO2P1Series);
+  _chart->addSeries(_LFO2P2Series);
 
   _xAxis = new QValueAxis();
   _yAxis = new QValueAxis();
@@ -71,15 +74,14 @@ LFODialog::LFODialog(Emulator *emulator, Scene *scene, QWidget *parent)
 
   _LFO1Series->attachAxis(_xAxis);
   _LFO1Series->attachAxis(_yAxis);
-  _LFO2Series->attachAxis(_xAxis);
-  _LFO2Series->attachAxis(_yAxis);
+  _LFO2P1Series->attachAxis(_xAxis);
+  _LFO2P1Series->attachAxis(_yAxis);
+  _LFO2P2Series->attachAxis(_xAxis);
+  _LFO2P2Series->attachAxis(_yAxis);
 
   _LFO1Series->setName("LFO1");
-  _LFO2Series->setName("LFO2");
-
-  QPen green(Qt::red);
-  green.setWidth(3);
-  _LFO1Series->setPen(green);
+  _LFO2P1Series->setName("LFO2 P1");
+  _LFO2P2Series->setName("LFO2 P2");
 
   _chart->setAnimationOptions(QChart::GridAxisAnimations);
 
@@ -165,32 +167,47 @@ void LFODialog::chart_timeout(void)
 {
   if (_iteration % (_timePeriod * 10) == 0) {
     _LFO1Series->clear();
-    _LFO2Series->clear();
+    _LFO2P1Series->clear();
+    _LFO2P2Series->clear();
     _chart->scroll(_chart->plotArea().width(), 0);
   }
 
   _dataMutex.lock();
 
-  if (_lfoData1.isEmpty()) {
+  if (_lfo1Data.isEmpty()) {
     _LFO1Series->append(_xPos, 0);
   } else {  
-    float dX = 0.1 / _lfoData1.size();
+    float dX = 0.1 / _lfo1Data.size();
     int i = 0;
-    for (auto &value : _lfoData1)
-      _LFO1Series->append(_xPos + (float) i++ * dX, value);
+    for (auto &value : _lfo1Data)
+      if (value == value)
+        _LFO1Series->append(_xPos + (float) i++ * dX, value);
 
-    _lfoData1.clear();
+    _lfo1Data.clear();
   }
 
-  if (_lfoData2.isEmpty()) {
-    _LFO2Series->append(_xPos, 0);
-  } else {  
-    float dX = 0.1 / _lfoData2.size();
+  if (_lfo2p1Data.isEmpty()) {
+    _LFO2P1Series->append(_xPos, 0);
+  } else {
+    float dX = 0.1 / _lfo2p1Data.size();
     int i = 0;
-    for (auto &value : _lfoData2)
-      _LFO2Series->append(_xPos + (float) i++ * dX, value);
+    for (auto &value : _lfo2p1Data)
+      if (value == value)
+        _LFO2P1Series->append(_xPos + (float) i++ * dX, value);
 
-    _lfoData2.clear();
+    _lfo2p1Data.clear();
+  }
+
+  if (_lfo2p2Data.isEmpty()) {
+    _LFO2P2Series->append(_xPos, 0);
+  } else {
+    float dX = 0.1 / _lfo2p2Data.size();
+    int i = 0;
+    for (auto &value : _lfo2p2Data)
+      if (value == value)
+        _LFO2P2Series->append(_xPos + (float) i++ * dX, value);
+
+    _lfo2p2Data.clear();
   }
 
   _dataMutex.unlock();
@@ -200,12 +217,14 @@ void LFODialog::chart_timeout(void)
 }
 
 
-void LFODialog::lfo_callback(const float lfo1, const float lfo2)
+void LFODialog::lfo_callback(const float lfo1,
+                             const float lfo2p1, const float lfo2p2)
 {
   _dataMutex.lock();
 
-  _lfoData1.push_back(lfo1);
-  _lfoData2.push_back(lfo2);
+  _lfo1Data.push_back(lfo1);
+  _lfo2p1Data.push_back(lfo2p1);
+  _lfo2p2Data.push_back(lfo2p2);
 
   _dataMutex.unlock();
 }

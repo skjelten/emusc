@@ -113,7 +113,9 @@ public:
                                                      const float, const float,
                                                      const float, const float)> callback);
   void clear_part_envelope_callback(int partId);
-  void add_part_lfo_callback(int partId,std::function<void(const float, const float)> callback);
+  void set_part_lfo_callback(int partId,
+                             std::function<void(const float, const float,
+                                                const float)> callback);
   void clear_part_lfo_callback(int partId);
 
   // EmuSC clients methods for getting synth paramters

@@ -37,8 +37,8 @@ namespace EmuSC {
 class TVA
 {
 public:
-  TVA(ControlRom::InstPartial &instPartial, uint8_t key, WaveGenerator *LFO[2],
-      Settings *settings, int8_t partId);
+  TVA(ControlRom::InstPartial &instPartial, uint8_t key, WaveGenerator *LFO1,
+      WaveGenerator *LFO2, Settings *settings, int8_t partId);
   ~TVA();
 
   void apply(double *sample);

@@ -74,7 +74,8 @@ public:
                                                 const float, const float,
                                                 const float, const float)> cb);
   void clear_envelope_callback(void);
-  void add_lfo_callback(std::function<void(const float, const float)> cb);
+  void set_lfo_callback(std::function<void(const float, const float,
+                                           const float)> cb);
   void clear_lfo_callback(void);
 
 private:
@@ -118,7 +119,7 @@ private:
   std::function<void(const float, const float,
                      const float, const float,
                      const float, const float)> _envelopeCallback = NULL;
-  std::function<void(const float, const float)> _lfoCallback = NULL;
+  std::function<void(const float, const float, const float)> _lfoCallback =NULL;
 
 };
 
