@@ -75,13 +75,12 @@ WaveGenerator::WaveGenerator(struct ControlRom::Instrument &instrument,
   _waveForm = (enum Waveform) instrument.LFO1Waveform;
   _rate = instrument.LFO1Rate;
 
-  if (instrument.LFO1Delay < _delayTable.size()) {
-    _delay = _delayTable[(int) instrument.LFO1Delay] * _sampleRate;
-  } else {
-    std::cerr << "libEmuSC internal error: LFO delay set to illegal value ("
-              << instrument.LFO1Delay << ")" << std::endl;
-    _delay = 0;
-  }
+  // Note: Vibrato Delay equals the double in ROM values
+  int delayInput = instrument.LFO1Delay +
+    (settings->get_param(PatchParam::VibratoDelay, _partId) - 0x40) * 2;
+  if (delayInput < 0) delayInput = 0;
+  if (delayInput > 127) delayInput = 127;
+  _delay = _delayTable[delayInput] * _sampleRate;
 
   _fade = instrument.LFO1Fade * 0.01 * _sampleRate;
   _fadeMax = _fade;
@@ -106,13 +105,9 @@ WaveGenerator::WaveGenerator(struct ControlRom::InstPartial &instPartial,
   _waveForm = (enum Waveform) instPartial.LFO2Waveform;
   _rate = instPartial.LFO2Rate;
 
-  if (instPartial.LFO2Delay < _delayTable.size()) {
-    _delay = _delayTable[(int) instPartial.LFO2Delay] * _sampleRate;
-  } else {
-    std::cerr << "libEmuSC internal error: LFO delay set to illegal value ("
-              << instPartial.LFO2Delay << ")" << std::endl;
-    _delay = 0;
-  }
+  uint8_t delayInput = instPartial.LFO2Delay;
+  if (delayInput > 127) delayInput = 127;
+  _delay = _delayTable[(int) delayInput] * _sampleRate;
 
   _fade = instPartial.LFO2Fade * 0.01 * _sampleRate;
   _fadeMax = _fade;
