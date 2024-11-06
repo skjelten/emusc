@@ -1,4 +1,3 @@
-
 /*
  *  This file is part of EmuSC, a Sound Canvas emulator
  *  Copyright (C) 2022-2024  Håkon Skjelten
@@ -24,8 +23,10 @@
 #include "envelope_dialog.h"
 
 #include <iostream>
+#include <vector>
 
 #include <QApplication>
+#include <QDateTime>
 #include <QDialogButtonBox>
 #include <QLabel>
 #include <QHBoxLayout>
@@ -39,8 +40,6 @@ EnvelopeDialog::EnvelopeDialog(Emulator *emulator, Scene *scene, QWidget *parent
     _scene(scene),
     _timePeriod(10),
     _partId(0),
-    _xPos(0),
-    _iteration(1),
     _callbackReceived(0),
     _reset(0)
 {
@@ -202,7 +201,6 @@ void EnvelopeDialog::done(int res)
 void EnvelopeDialog::chart_timeout(void)
 {
   if (!_callbackReceived) {
-    _xPos = 0;
     _reset = true;
     return;
 
@@ -210,91 +208,51 @@ void EnvelopeDialog::chart_timeout(void)
     if (_reset) {
       _clear_series();
       _reset = false;
+      _timeStart = QDateTime::currentMSecsSinceEpoch();
     }
   }
 
-  float stepX = 1.0 / _timePeriod;
-
+  // Copy all the data to a temporary buffer to let the audio thread run
   _dataMutex.lock();
 
-  // TVP partial 1
-  if (_tvpData1.isEmpty()) {
-    _tvpP1Series->append(_xPos, 0);
-  } else {
-    float dX = stepX / _tvpData1.size();
-    int i = 0;
-    for (auto &value : _tvpData1) {
-      _tvpP1Series->append(_xPos + (float) i++ * dX, value);}
-  
-    _tvpData1.clear();
-  }
+  std::vector<std::pair<float, qint64>> tvpData1(_tvpData1.constBegin(),
+                                                 _tvpData1.constEnd());
+  std::vector<std::pair<float, qint64>> tvpData2(_tvpData2.constBegin(),
+                                                 _tvpData2.constEnd());
+  std::vector<std::pair<float, qint64>> tvfData1(_tvfData1.constBegin(),
+                                                 _tvfData1.constEnd());
+  std::vector<std::pair<float, qint64>> tvfData2(_tvfData2.constBegin(),
+                                                 _tvfData2.constEnd());
+  std::vector<std::pair<float, qint64>> tvaData1(_tvaData1.constBegin(),
+                                                 _tvaData1.constEnd());
+  std::vector<std::pair<float, qint64>> tvaData2(_tvaData2.constBegin(),
+                                                 _tvaData2.constEnd());
 
-  // TVP partial 2
-  if (_tvpData2.isEmpty()) {
-    _tvpP2Series->append(_xPos, 0);
-  } else {
-    float dX = stepX / _tvpData2.size();
-    int i = 0;
-    for (auto &value : _tvpData2) {
-      _tvpP2Series->append(_xPos + (float) i++ * dX, value);}
-    
-    _tvpData2.clear();
-  }
-  
-  // TVF partial 1
-  if (_tvfData1.isEmpty()) {
-    _tvfP1Series->append(_xPos, 0);
-  } else {
-    float dX = stepX / _tvfData1.size();
-    int i = 0;
-    for (auto &value : _tvfData1) {
-      _tvfP1Series->append(_xPos + (float) i++ * dX, value);}
-    
-    _tvfData1.clear();
-  }
+  _tvpData1.clear();
+  _tvpData2.clear();
+  _tvfData1.clear();
+  _tvfData2.clear();
+  _tvaData1.clear();
+  _tvaData2.clear();
 
-  // TVF partial 2
-  if (_tvfData2.isEmpty()) {
-    _tvfP2Series->append(_xPos, 0);
-  } else {
-    float dX = stepX / _tvfData2.size();
-    int i = 0;
-    for (auto &value : _tvfData2) {
-      _tvfP2Series->append(_xPos + (float) i++ * dX, value);}
-
-    _tvfData2.clear();
-  }
-
-  // TVA partial 1
-  if (_tvaData1.isEmpty()) {
-    _tvaP1Series->append(_xPos, 0);
-  } else {
-    float dX = stepX / _tvaData1.size();
-    int i = 0;
-    for (auto &value : _tvaData1) {
-      _tvaP1Series->append(_xPos + (float) i++ * dX, value);}
-    
-    _tvaData1.clear();
-  }
-
-  // TVA partial 2
-  if (_tvaData2.isEmpty()) {
-    _tvaP2Series->append(_xPos, 0);
-  } else {
-    float dX = stepX / _tvaData2.size();
-    int i = 0;
-    for (auto &value : _tvaData2) {
-      _tvaP2Series->append(_xPos + (float) i++ * dX, value);}
-    
-    _tvaData2.clear();
-  }
+  _callbackReceived = false;
 
   _dataMutex.unlock();
 
-  _xPos += stepX;
-  _iteration++;
+  for (auto &value : tvpData1)
+    _tvpP1Series->append((value.second - _timeStart) / 1000.0, value.first);
+  for (auto &value : tvpData2)
+    _tvpP2Series->append((value.second - _timeStart) / 1000.0, value.first);
 
-  _callbackReceived = false;
+  for (auto &value : tvfData1)
+    _tvfP1Series->append((value.second - _timeStart) / 1000.0, value.first);
+  for (auto &value : tvfData2)
+    _tvfP2Series->append((value.second - _timeStart) / 1000.0, value.first);
+
+  for (auto &value : tvaData1)
+    _tvaP1Series->append((value.second - _timeStart) / 1000.0, value.first);
+  for (auto &value : tvaData2)
+    _tvaP2Series->append((value.second - _timeStart) / 1000.0, value.first);
 }
 
 
@@ -302,14 +260,16 @@ void EnvelopeDialog::envelope_callback(const float tvp1, const float tvp2,
                                        const float tvf1, const float tvf2,
                                        const float tva1, const float tva2)
 {
+  qint64 time = QDateTime::currentMSecsSinceEpoch();
+
   _dataMutex.lock();
 
-  _tvpData1.push_back(tvp1);
-  _tvpData2.push_back(tvp2);
-  _tvfData1.push_back(tvf1);
-  _tvfData2.push_back(tvf2);
-  _tvaData1.push_back(tva1);
-  _tvaData2.push_back(tva2);
+  _tvpData1.push_back(std::pair(tvp1, time));
+  _tvpData2.push_back(std::pair(tvp2, time));
+  _tvfData1.push_back(std::pair(tvf1, time));
+  _tvfData2.push_back(std::pair(tvf2, time));
+  _tvaData1.push_back(std::pair(tva1, time));
+  _tvaData2.push_back(std::pair(tva2, time));
 
   _dataMutex.unlock();
 
@@ -333,11 +293,10 @@ void EnvelopeDialog::keyReleaseEvent(QKeyEvent *keyEvent)
 
 void EnvelopeDialog::_partCB_changed(int value)
 {
-  std::cout << "Change part" << std::endl;
   _emulator->clear_envelope_callback(_partId);
 
   _partId = value;
-  
+
   _partCB->setCurrentIndex(_partId);
   _emulator->set_envelope_callback(_partId, this);
 }

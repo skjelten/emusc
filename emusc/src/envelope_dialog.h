@@ -27,13 +27,15 @@
 #include "emulator.h"
 #include "scene.h"
 
+#include <utility>
+
 #include <QVector>
 #include <QPushButton>
 #include <QComboBox>
 #include <QDialog>
-#include <QTimer>
-#include <QMutex>
 #include <QKeyEvent>
+#include <QMutex>
+#include <QTimer>
 #include <QtCharts/QChart>
 #include <QtCharts/QLineSeries>
 #include <QtCharts/QValueAxis>
@@ -68,13 +70,13 @@ private:
   QTimer _chartTimer;
   QMutex _dataMutex;
 
-  QVector<float> _tvpData1;
-  QVector<float> _tvpData2;
-  QVector<float> _tvfData1;
-  QVector<float> _tvfData2;
-  QVector<float> _tvaData1;
-  QVector<float> _tvaData2;
-  
+  QList<std::pair<float, qint64>> _tvpData1;
+  QList<std::pair<float, qint64>> _tvpData2;
+  QList<std::pair<float, qint64>> _tvfData1;
+  QList<std::pair<float, qint64>> _tvfData2;
+  QList<std::pair<float, qint64>> _tvaData1;
+  QList<std::pair<float, qint64>> _tvaData2;
+
   QChart *_tvpChart;
   QChart *_tvfChart;
   QChart *_tvaChart;
@@ -85,7 +87,7 @@ private:
   QValueAxis *_tvpYAxis;
   QValueAxis *_tvfYAxis;
   QValueAxis *_tvaYAxis;
-  
+
   QLineSeries *_tvpP1Series;
   QLineSeries *_tvpP2Series;
   QLineSeries *_tvfP1Series;
@@ -98,8 +100,7 @@ private:
   int _partId;
 
   int _timePeriod;
-  unsigned int _iteration;
-  float _xPos;
+  qint64 _timeStart;
 
   bool _callbackReceived;
   bool _reset;

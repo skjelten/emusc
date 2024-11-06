@@ -90,7 +90,7 @@ int Part::get_next_sample(float *sampleOut)
     }
 
     // Export envelopes and LFOs to external client
-    if (_envelopeCallback && !_notes.empty() && _sampleCounter % 100 == 0)
+    if (_envelopeCallback && !_notes.empty() && _sampleCounter % 150 == 0)
       _envelopeCallback(_notes.front()->get_current_tvp(0),
                         _notes.front()->get_current_tvp(1),
                         _notes.front()->get_current_tvf(0),

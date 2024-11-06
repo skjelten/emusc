@@ -24,6 +24,7 @@
 #include "lfo_dialog.h"
 
 #include <iostream>
+#include <vector>
 
 #include <QDialogButtonBox>
 #include <QHBoxLayout>
@@ -174,43 +175,45 @@ void LFODialog::chart_timeout(void)
 
   _dataMutex.lock();
 
-  if (_lfo1Data.isEmpty()) {
-    _LFO1Series->append(_xPos, 0);
-  } else {  
-    float dX = 0.1 / _lfo1Data.size();
-    int i = 0;
-    for (auto &value : _lfo1Data)
-      if (value == value)
-        _LFO1Series->append(_xPos + (float) i++ * dX, value);
+  std::vector<float> lfo1Data(_lfo1Data.constBegin(), _lfo1Data.constEnd());
+  std::vector<float> lfo2p1Data(_lfo2p1Data.constBegin(), _lfo2p1Data.constEnd());
+  std::vector<float> lfo2p2Data(_lfo2p2Data.constBegin(), _lfo2p2Data.constEnd());
 
-    _lfo1Data.clear();
-  }
-
-  if (_lfo2p1Data.isEmpty()) {
-    _LFO2P1Series->append(_xPos, 0);
-  } else {
-    float dX = 0.1 / _lfo2p1Data.size();
-    int i = 0;
-    for (auto &value : _lfo2p1Data)
-      if (value == value)
-        _LFO2P1Series->append(_xPos + (float) i++ * dX, value);
-
-    _lfo2p1Data.clear();
-  }
-
-  if (_lfo2p2Data.isEmpty()) {
-    _LFO2P2Series->append(_xPos, 0);
-  } else {
-    float dX = 0.1 / _lfo2p2Data.size();
-    int i = 0;
-    for (auto &value : _lfo2p2Data)
-      if (value == value)
-        _LFO2P2Series->append(_xPos + (float) i++ * dX, value);
-
-    _lfo2p2Data.clear();
-  }
+  _lfo1Data.clear();
+  _lfo2p1Data.clear();
+  _lfo2p2Data.clear();
 
   _dataMutex.unlock();
+
+  if (lfo1Data.empty()) {
+    _LFO1Series->append(_xPos, 0);
+  } else {  
+    float dX = 0.1 / lfo1Data.size();
+    int i = 0;
+    for (auto &value : lfo1Data)
+      if (value == value)
+        _LFO1Series->append(_xPos + (float) i++ * dX, value);
+  }
+
+  if (lfo2p1Data.empty()) {
+    _LFO2P1Series->append(_xPos, 0);
+  } else {
+    float dX = 0.1 / lfo2p1Data.size();
+    int i = 0;
+    for (auto &value : lfo2p1Data)
+      if (value == value)
+        _LFO2P1Series->append(_xPos + (float) i++ * dX, value);
+  }
+
+  if (lfo2p2Data.empty()) {
+    _LFO2P2Series->append(_xPos, 0);
+  } else {
+    float dX = 0.1 / lfo2p2Data.size();
+    int i = 0;
+    for (auto &value : lfo2p2Data)
+      if (value == value)
+        _LFO2P2Series->append(_xPos + (float) i++ * dX, value);
+  }
 
   _xPos += 0.1;
   _iteration++;
