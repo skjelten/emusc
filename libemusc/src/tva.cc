@@ -44,10 +44,6 @@ TVA::TVA(ControlRom::InstPartial &instPartial, uint8_t key, WaveGenerator *LFO1,
     _drumMap(settings->get_param(PatchParam::UseForRhythm, partId)),
     _drumVol(1)
 {
-  // TODO: Find LUT or formula for using amplitude LFO Depth. For now just
-  //       using a static approximation.
-  _LFO1DepthPartial = (instPartial.TVALFODepth & 0x7f) / 128.0;
-
   // TVA / volume envelope
   _init_envelope();
   if (_ahdsr)
@@ -106,8 +102,8 @@ void TVA::_init_envelope(void)
 void TVA::apply(double *sample)
 {
   // Tremolo
-  double tremolo = (_LFO1->value() * 0.005 * (float) _accLFO1Depth) +
-    (_LFO2->value() * 0.005 * (float) _accLFO2Depth);
+  double tremolo = (_LFO1->value() * 0.01 * (float) _accLFO1Depth) +
+    (_LFO2->value() * 0.01 * (float) _accLFO2Depth);
 
   // Volume envelope
   double volEnvelope = 0;
@@ -139,12 +135,17 @@ void TVA::note_off()
 void TVA::update_params(bool reset)
 {
   // Update LFO inputs
-  int newDepth = _LFO1DepthPartial +
+  int newLFODepth = (_instPartial.TVALFO1Depth & 0x7f) +
     _settings->get_param(PatchParam::Acc_LFO1TVADepth, _partId);
-  _accLFO1Depth = newDepth > 0 ? (uint8_t) newDepth : 0;
+  if (newLFODepth < 0) newLFODepth = 0;
+  if (newLFODepth > 127) newLFODepth = 127;
+  _accLFO1Depth = newLFODepth;
 
-  newDepth = _settings->get_param(PatchParam::Acc_LFO2TVADepth, _partId);
-  _accLFO2Depth = newDepth > 0 ? (uint8_t) newDepth : 0;
+  newLFODepth = (_instPartial.TVALFO2Depth & 0x7f) +
+    _settings->get_param(PatchParam::Acc_LFO2TVADepth, _partId);
+  if (newLFODepth < 0) newLFODepth = 0;
+  if (newLFODepth > 127) newLFODepth = 127;
+  _accLFO2Depth = newLFODepth;
 
   // Update volume inputs
   // TODO: Move more of volume control here

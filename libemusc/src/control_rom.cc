@@ -295,7 +295,8 @@ int ControlRom::_read_instruments(std::ifstream &romFile)
       i.partials[p].TVFDurP4    = data[49];
       i.partials[p].TVFDurP5    = data[50];
       i.partials[p].volume      = data[65];
-      i.partials[p].TVALFODepth = data[68];
+      i.partials[p].TVALFO1Depth= data[68];
+      i.partials[p].TVALFO2Depth= data[69];
       i.partials[p].TVAVolP1    = data[70];
       i.partials[p].TVAVolP2    = data[71];
       i.partials[p].TVAVolP3    = data[72];

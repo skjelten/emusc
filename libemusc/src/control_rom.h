@@ -108,7 +108,8 @@ public:
     uint8_t TVFDurP4;
     uint8_t TVFDurP5;
 
-    uint8_t TVALFODepth;  // TVA LFO Depth
+    uint8_t TVALFO1Depth;
+    uint8_t TVALFO2Depth;
     uint8_t TVAVolP1;     // TVA level phase 1 (Attack)     Default 0x7f
     uint8_t TVAVolP2;     // TVA level phase 2 (Hold)       Default 0x7f
     uint8_t TVAVolP3;     // TVA level phase 3 (Decay)      Default 0x7f

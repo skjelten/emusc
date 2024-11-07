@@ -55,7 +55,6 @@ private:
 
   WaveGenerator *_LFO1;
   WaveGenerator *_LFO2;
-  float _LFO1DepthPartial;
 
   uint8_t _accLFO1Depth;
   uint8_t _accLFO2Depth;
