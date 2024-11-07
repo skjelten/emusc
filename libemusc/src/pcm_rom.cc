@@ -74,7 +74,7 @@ PcmRom::PcmRom(std::vector<std::string> romPath, ControlRom &ctrlRom)
   _sampleSets.reserve(ctrlRom.numSampleSets());
 
   for (int i = 0; i < ctrlRom.numSampleSets(); i ++)
-    _read_samples(romData, ctrlRom.sample(i));
+    _read_samples(romData, ctrlRom.sample(i), ctrlRom.generation());
 
   _version = std::string(&romData[0x1c], 4);
   _date = std::string(&romData[0x30], 10);
@@ -117,15 +117,24 @@ int8_t PcmRom::_unscramble_data(int8_t byte)
 }
 
 
-uint32_t PcmRom::_find_samples_rom_address(uint32_t address)
+uint32_t PcmRom::_find_samples_rom_address(uint32_t address,
+                                           enum ControlRom::SynthGen synthGen)
 {
   uint32_t bank = 0;
   switch ((address & 0x700000) >> 20)
     {
-    case 0: bank = 0x000000; break;
-    case 1: bank = 0x100000; break;               // Used in SC-55mkII / SCB
-    case 2: bank = 0x100000; break;
-    case 4: bank = 0x200000; break;
+    case 0:
+      bank = 0x000000;
+      break;
+    case 1:
+      bank = 0x100000;
+      break;
+    case 2:
+      bank = (synthGen == ControlRom::SynthGen::SC55mk2) ? 0x200000 : 0x100000;
+      break;
+    case 4:
+      bank = 0x200000;
+      break;
     default:
       throw(std::string("Unknown bank ID in PcmRom::get_sample(): ") +
 	    std::to_string(address & 0x700000));
@@ -135,9 +144,11 @@ uint32_t PcmRom::_find_samples_rom_address(uint32_t address)
 }
 
 
-int PcmRom::_read_samples(std::vector<char> &romData, struct ControlRom::Sample &ctrlSample)
+int PcmRom::_read_samples(std::vector<char> &romData,
+                          struct ControlRom::Sample &ctrlSample,
+                          enum ControlRom::SynthGen synthGen)
 {
-  uint32_t romAddress = _find_samples_rom_address(ctrlSample.address);
+  uint32_t romAddress = _find_samples_rom_address(ctrlSample.address, synthGen);
 
   float sample = 0;
   struct Samples s;
