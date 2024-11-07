@@ -95,7 +95,8 @@ public:
     int8_t TVFResonance;
     int8_t LowVelClear;
 
-    uint8_t TVFLFODepth;  // TVF LFO Depth
+    uint8_t TVFLFO1Depth;
+    uint8_t TVFLFO2Depth;
     uint8_t TVFLvlInit;
     uint8_t TVFLvlP1;
     uint8_t TVFLvlP2;

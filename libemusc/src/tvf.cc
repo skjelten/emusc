@@ -69,8 +69,6 @@ TVF::TVF(ControlRom::InstPartial &instPartial, uint8_t key, WaveGenerator *LFO1,
     return;
   }
 
-  _LFO1DepthPartial = instPartial.TVFLFODepth & 0x7f;
-  _lpResonance =  instPartial.TVFResonance & 0x7f;
   update_params();
 
   _lpFilter = new LowPassFilter2(_sampleRate);
@@ -110,9 +108,13 @@ void TVF::apply(double *sample)
     note = 0;
 
   noteFreq = 25 + note * 0.66;  // FIXME: Figure out scaling + TVF key follow
-  filterFreq = 440.0 * (double) exp((((float) noteFreq - 69) +
-				     (_LFO1->value() * _accLFO1Depth * 0.26) +
-				     (_LFO2->value() * _accLFO2Depth * 0.26)) / 12);
+  filterFreq = 440.0 * (double) exp((((float) noteFreq - 69))/12);// +
+
+  // FIXME: LFO modulation temporarily disabled due to clipping on instruments
+  //        with high LFOx TVF depth. Needs to find out how to properly apply
+  //        filter effect.
+  //				     (_LFO1->value() * _accLFO1Depth * 0.26) +
+//				     (_LFO2->value() * _accLFO2Depth * 0.26)) / 12);
 
   // Resonance. NEEDS FIXING
   // resonance = _lpResonance + sRes * 0.02;
@@ -134,13 +136,18 @@ void TVF::note_off()
 
 void TVF::update_params(void)
 {
-  // LFOs
-  int lfoDepth = _LFO1DepthPartial +
+  // Update LFOs
+  int newLFODepth = (_instPartial.TVFLFO1Depth & 0x7f) +
     _settings->get_param(PatchParam::Acc_LFO1TVFDepth, _partId);
-  _accLFO1Depth = (lfoDepth > 0) ? (uint8_t) lfoDepth : 0;
+  if (newLFODepth < 0) newLFODepth = 0;
+  if (newLFODepth > 127) newLFODepth = 127;
+  _accLFO1Depth = newLFODepth;
 
-  lfoDepth = _settings->get_param(PatchParam::Acc_LFO2TVFDepth, _partId);
-  _accLFO2Depth = (lfoDepth > 0) ? (uint8_t) lfoDepth : 0;
+  newLFODepth = (_instPartial.TVFLFO2Depth & 0x7f) +
+    _settings->get_param(PatchParam::Acc_LFO2TVFDepth, _partId);
+  if (newLFODepth < 0) newLFODepth = 0;
+  if (newLFODepth > 127) newLFODepth = 127;
+  _accLFO2Depth = newLFODepth;
 
   _coFreq = _settings->get_param(PatchParam::TVFCutoffFreq, _partId) - 0x40;
   _res = _settings->get_param(PatchParam::TVFResonance, _partId);

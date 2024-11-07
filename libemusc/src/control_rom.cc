@@ -282,7 +282,8 @@ int ControlRom::_read_instruments(std::ifstream &romFile)
       i.partials[p].TVFBaseFlt  = data[33];
       i.partials[p].TVFResonance= data[34];
       i.partials[p].LowVelClear = data[35];
-      i.partials[p].TVFLFODepth = data[38];
+      i.partials[p].TVFLFO1Depth= data[38];
+      i.partials[p].TVFLFO2Depth= data[39];
       i.partials[p].TVFLvlInit  = data[40];
       i.partials[p].TVFLvlP1    = data[41];
       i.partials[p].TVFLvlP2    = data[42];

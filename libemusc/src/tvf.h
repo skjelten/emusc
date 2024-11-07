@@ -38,7 +38,7 @@ namespace EmuSC {
 class TVF
 {
 public:
-  TVF(ControlRom::InstPartial &instPartial, uint8_t key, WaveGenerator *_LFO1,
+  TVF(ControlRom::InstPartial &instPartial, uint8_t key, WaveGenerator *LFO1,
       WaveGenerator *LFO2, Settings *settings, int8_t partId);
   ~TVF();
 
@@ -56,7 +56,6 @@ private:
 
   WaveGenerator *_LFO1;
   WaveGenerator *_LFO2;
-  int _LFO1DepthPartial;
 
   uint8_t _accLFO1Depth;
   uint8_t _accLFO2Depth;
@@ -68,9 +67,6 @@ private:
 
   AHDSR *_ahdsr;
   LowPassFilter2 *_lpFilter;
-
-  uint32_t _lpBaseFrequency;
-  float _lpResonance;
 
   ControlRom::InstPartial &_instPartial;
 
