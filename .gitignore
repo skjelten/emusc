@@ -2,6 +2,9 @@
 CMakeCache.txt
 CMakeFiles/
 cmake_install.cmake
+CPackConfig.cmake
+CPackSourceConfig.cmake
+_CPack_Packages/
 Makefile
 
 emusc/src/*.cc~
@@ -13,11 +16,19 @@ emusc/src/emusc.app/
 emusc/src/emusc-client_autogen/
 emusc/src/include/
 
+libemusc/emusc.pc
 libemusc/src/*.cc~
 libemusc/src/*.h~
 libemusc/src/config.h
-libemusc/src/libemusc.so
+libemusc/src/libemusc.so*
 libemusc/src/libemusc.dll
 libemusc/src/libemusc.dynlib
 
 .qt/
+
+install_manifest*.txt
+emusc*.deb
+libemusc*.deb
+emusc*.rpm
+libemusc*.rpm
+emusc*.exe
