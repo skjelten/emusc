@@ -27,6 +27,9 @@
 
 namespace EmuSC {
 
+// Make Clang compiler happy
+constexpr std::array<float, 128> TVA::_convert_volume_LUT;
+
 
 TVA::TVA(ControlRom::InstPartial &instPartial, uint8_t key, WaveGenerator *LFO1,
          WaveGenerator *LFO2, Settings *settings, int8_t partId)

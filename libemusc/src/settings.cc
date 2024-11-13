@@ -29,6 +29,10 @@
 
 namespace EmuSC {
 
+// Make Clang compiler happy
+constexpr std::array<uint8_t, 16> Settings::_convert_to_roland_part_id_LUT;
+constexpr std::array<uint8_t, 16> Settings::_convert_from_roland_part_id_LUT;
+
 
 Settings::Settings(ControlRom &ctrlRom)
   : _ctrlRom(ctrlRom)
