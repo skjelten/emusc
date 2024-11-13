@@ -177,6 +177,7 @@ void Emulator::start(void)
 		       settings.value("Synth/startup_animations").toString());
 
   _running = true;
+  emit(started());
 }
 
 
@@ -198,6 +199,7 @@ void Emulator::stop(void)
   }
 
   _running = false;
+  emit(stopped());
 }
 
 
@@ -295,7 +297,8 @@ void Emulator::set_envelope_callback(int partId, EnvelopeDialog *dialog)
 
 void Emulator::clear_envelope_callback(int partId)
 {
-  _emuscSynth->clear_part_envelope_callback(partId);
+  if (_emuscSynth)
+    _emuscSynth->clear_part_envelope_callback(partId);
 }
 
 
@@ -314,7 +317,8 @@ void Emulator::set_lfo_callback(int partId, LFODialog *dialog)
 
 void Emulator::clear_lfo_callback(int partId)
 {
-  _emuscSynth->clear_part_lfo_callback(partId);
+  if (_emuscSynth)
+    _emuscSynth->clear_part_lfo_callback(partId);
 }
 
 

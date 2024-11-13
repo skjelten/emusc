@@ -122,8 +122,8 @@ public:
 signals:
   void bar_display_update(QVector<bool>*);
 
-  void emulator_started(void);
-  void emulator_stopped(void);
+  void started(void);
+  void stopped(void);
 
   void new_bar_display(QVector<bool>*);
   void display_part_updated(QString text);

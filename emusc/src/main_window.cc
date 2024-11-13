@@ -54,12 +54,12 @@
 
 MainWindow::MainWindow(QWidget *parent)
   : QMainWindow(parent),
-    _emulator(NULL),
-    _scene(NULL),
     _powerState(0),
-    _hasMovedEvent(false),
+    _emulator(nullptr),
+    _scene(nullptr),
+    _resizeTimer(nullptr),
     _aspectRatio(1150/258.0),
-    _resizeTimer(nullptr)
+    _hasMovedEvent(false)
 {
   // TODO: Update minumum size based on *bars and compact mode state
   setMinimumSize(300, 120);
@@ -88,8 +88,7 @@ MainWindow::MainWindow(QWidget *parent)
   _resizeTimer = new QTimer();
   _resizeTimer->setSingleShot(true);
   _resizeTimer->setTimerType(Qt::CoarseTimer);
-  connect(_resizeTimer, SIGNAL(timeout()),
-	  this, SLOT(resize_timeout()));
+  connect(_resizeTimer, SIGNAL(timeout()), this, SLOT(resize_timeout()));
 
   QSettings settings;
   if (settings.value("remember_layout").toBool()) {
@@ -423,6 +422,8 @@ void MainWindow::_display_lfo_dialog()
 #ifdef __USE_QTCHARTS__
   LFODialog *dialog = new LFODialog(_emulator, _scene, this);
   dialog->show();
+
+  connect(_emulator, SIGNAL(stopped()), dialog, SLOT(reject()));
 #endif
 }
 
@@ -432,6 +433,8 @@ void MainWindow::_display_envelope_dialog()
 #ifdef __USE_QTCHARTS__
   EnvelopeDialog *dialog = new EnvelopeDialog(_emulator, _scene, this);
   dialog->show();
+
+  connect(_emulator, SIGNAL(stopped()), dialog, SLOT(reject()));
 #endif
 }
 
