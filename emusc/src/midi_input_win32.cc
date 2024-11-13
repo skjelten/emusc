@@ -191,7 +191,7 @@ QStringList MidiInputWin32::get_available_devices(void)
     MIDIINCAPS caps;
     MMRESULT res = midiInGetDevCaps(i, &caps, sizeof(MIDIINCAPS));
     if (res == MMSYSERR_NOERROR)
-      deviceList << caps.szPname;
+      deviceList << QString::fromWCharArray(caps.szPname);
   }
 
   return deviceList;
