@@ -441,6 +441,15 @@ void MainWindow::_display_envelope_dialog()
 }
 
 
+void MainWindow::_display_control_rom_info(void)
+{
+  ControlRomInfoDialog *dialog = new ControlRomInfoDialog(_emulator);
+  dialog->show();
+
+  connect(_emulator, SIGNAL(stopped()), dialog, SLOT(accept()));
+}
+
+
 void MainWindow::_display_about_dialog()
 {
   QString libemuscVersion(EmuSC::Synth::version().c_str());
@@ -525,12 +534,6 @@ void MainWindow::_dump_demo_songs(void)
 			 tr("Demo songs"),
 			 tr("No demo songs found in control ROM"),
 			 QMessageBox::Close);
-}
-
-void MainWindow::_display_control_rom_info(void)
-{
-  ControlRomInfoDialog *dialog = new ControlRomInfoDialog(_emulator);
-  dialog->show();
 }
 
 

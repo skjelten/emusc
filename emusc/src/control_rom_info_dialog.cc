@@ -58,13 +58,21 @@ ControlRomInfoDialog::ControlRomInfoDialog(Emulator *emulator, QWidget *parent)
   setLayout(mainLayout);
 
   setWindowTitle(tr("Control ROM information"));
-  setModal(true);
+  setModal(false);
   resize(500, 600);
+
+  show();
 }
 
 
 ControlRomInfoDialog::~ControlRomInfoDialog()
 {}
+
+
+void ControlRomInfoDialog::accept()
+{
+  delete this;
+}
 
 
 void ControlRomInfoDialog::setTabIndex(QString index)

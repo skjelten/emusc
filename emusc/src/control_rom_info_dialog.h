@@ -48,6 +48,7 @@ private:
   QTabWidget *_tabWidget;
 
 public slots:
+  void accept(void);
   void setTabIndex(QString index);
 };
 
