@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.8...3.24)
+cmake_minimum_required(VERSION 3.8...3.30)
 
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
@@ -100,4 +100,24 @@ if (APPLE)
 elseif(WIN32)
   set(APP_ICON_RESOURCE_WINDOWS "${CMAKE_CURRENT_SOURCE_DIR}/../res/emusc-win32.rc")
   target_sources(emusc-client PRIVATE ${APP_ICON_RESOURCE_WINDOWS})
+
+  # On Windows we need to deploy QT together with all other dependent shared
+  # libraries (DLLs) to create a self contained installer package.
+  # This seems to be surprisingly hard to do properly with cmake on Windows,
+  # but we hack around this problem by calling a shell script in the utils
+  # directory to extract the relevant files and then add them to the install.
+  # Note that this hack only works for MSYS2 based installation environments in
+  # Windows, i.e. Visual Studio users needs to find another solution to this
+  # problem. There is also no logic to select the correct DLLs, e.g. debug vs
+  # release etc. A better solution might be to use
+  # $<TARGET_RUNTIME_DLLS:${TARGET}> in the future (requires CMake > 3.21).
+  if(MINGW)
+    # Copy all DLLs and QT plugins that emusc.exe and libemusc.dll depends on
+    # in a separate directory
+    add_custom_command(TARGET emusc-client POST_BUILD
+      COMMAND bash -c "${CMAKE_CURRENT_SOURCE_DIR}/../utils/msys_copy_all_dlls.sh ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/../DLLs")
+
+    # Include all DLLs and QT plugins to bin
+    install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../DLLs/" DESTINATION bin COMPONENT bin)
+  endif()
 endif()

@@ -1,10 +1,12 @@
-cmake_minimum_required(VERSION 3.8...3.24)
+cmake_minimum_required(VERSION 3.12...3.30)
 
-project(emusc-client VERSION 0.2.0 LANGUAGES CXX)
+project(
+  emusc-client
+  VERSION 0.2.0
+  HOMEPAGE_URL "https://github.com/skjelten/emusc"
+  LANGUAGES CXX)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
-
-include(GNUInstallDirs)
 
 set(USE_MACOS_BUNDLE "no")
 
@@ -102,6 +104,10 @@ find_library(COREMIDI_LIBRARY CoreMIDI)
 
 endif()
 
+# Hack to make CPACK_DEBIAN_BIN_PACKAGE_SHLIBDEPS work properly (CMAKE < 3.20)
+#set(CMAKE_INSTALL_RPATH "../lib/usr/lib")
+#set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+
 add_subdirectory(src)
 
 if(APPLE)
@@ -117,46 +123,60 @@ endif()
 set(WAV_AUDIO "yes")
 target_compile_definitions(emusc-client PUBLIC __WAV_AUDIO__)
 
-install(TARGETS emusc-client DESTINATION ${CMAKE_INSTALL_BINDIR})
-install(FILES AUTHORS ChangeLog COPYING NEWS README.md
-  DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/doc/emusc)
+include(GNUInstallDirs)
 
-message(STATUS "")
-message(STATUS " EmuSC client interface summary: ")
-message(STATUS "-===============================-")
-message(STATUS "")
+install(TARGETS emusc-client DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT bin)
+install(FILES AUTHORS ChangeLog COPYING NEWS README.md
+  DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/doc/emusc COMPONENT bin)
+
+if(UNIX AND NOT APPLE)
+  install(FILES res/emusc.desktop DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/applications COMPONENT bin)
+  foreach(EMUSC_ICON_RESOLUTION 16x16;32x32;128x128;256x256;512x512)
+    install(FILES res/icons/${EMUSC_ICON_RESOLUTION}/emusc.png DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/${EMUSC_ICON_RESOLUTION}/apps COMPONENT bin)
+  endforeach(EMUSC_ICON_RESOLUTION)
+endif(UNIX AND NOT APPLE)
+
+message("\n"
+        " EmuSC client summary:\n"
+        "-=====================-\n")
 
 if(APPLE)
-  message(STATUS "Platform: macOS")
-  message(STATUS " * Build bundle: ${USE_MACOS_BUNDLE}")
+  message(" Platform: macOS")
 elseif(UNIX)
-  message(STATUS "Platform: UNIX")
+  message(" Platform: UNIX")
 elseif(WIN32)
-  message(STATUS "Platform: Windows")
-  message(STATUS " * Debug console: ${WIN32_EXECUTABLE}")
+  message(" Platform: Windows\n"
+          "  * Debug console: ${WIN32_EXECUTABLE}")
 else()
-  message(STATUS "Platform: unkown")  
+  message(" Platform: unkown")
 endif()
 
-message(STATUS "")
-message(STATUS "Qt version: Qt${QT_VERSION_MAJOR}")
-message(STATUS "QtCharts: ${USE_QTCHARTS}")
+message("\n"
+        " Qt version: Qt${QT_VERSION_MAJOR}\n"
+        " QtCharts: ${USE_QTCHARTS}\n"
+        "\n"
+        " Audio APIs:\n"
+        "  * ALSA  : ${ALSA_AUDIO}\n"
+        "  * Core  : ${CORE_AUDIO}\n"
+        "  * Jack  : ${JACK_AUDIO}\n"
+        "  * Null  : yes\n"
+        "  * Pulse : ${PULSE_AUDIO}\n"
+        "  * Qt    : ${QT_AUDIO}\n"
+        "  * WAV   : ${WAV_AUDIO}\n"
+        "  * Win32 : ${WIN32_AUDIO}\n"
+        "\n"
+        " MIDI APIs:\n"
+        "  * ALSA  : ${ALSA_MIDI}\n"
+        "  * Core  : ${CORE_MIDI}\n"
+        "  * Win32 : ${WIN32_MIDI}\n"
+        "\n"
+        " Make sure all needed APIs are found before you continue\n"
+        "\n")
 
-message(STATUS "")
-message(STATUS "Audio APIs:")
-message(STATUS " * ALSA  : ${ALSA_AUDIO}")
-message(STATUS " * Core  : ${CORE_AUDIO}")
-message(STATUS " * Jack  : ${JACK_AUDIO}")
-message(STATUS " * Null  : yes")
-message(STATUS " * Pulse : ${PULSE_AUDIO}")
-message(STATUS " * Qt    : ${QT_AUDIO}")
-message(STATUS " * WAV   : ${WAV_AUDIO}")
-message(STATUS " * Win32 : ${WIN32_AUDIO}")
-message(STATUS "")
-message(STATUS "MIDI APIs:")
-message(STATUS " * ALSA  : ${ALSA_MIDI}")
-message(STATUS " * Core  : ${CORE_MIDI}")
-message(STATUS " * Win32 : ${WIN32_MIDI}")
-message(STATUS "")
-message(STATUS "Make sure all needed APIs are found before you continue")
-message(STATUS "")
+# CPack support
+set(CMAKE_INSTALL_UCRT_LIBRARIES TRUE)
+
+if(CMAKE_CURRENT_BINARY_DIR STREQUAL CMAKE_BINARY_DIR)
+  include(CPack)
+endif()
+

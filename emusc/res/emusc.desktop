@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=EmuSC
+Comment=Roland SC-55 synth emulator
+Exec=emusc
+Icon=emusc
+NoDisplay=false
+Terminal=false
+Type=Application
+Categories=AudioVideo;Audio;Midi;
+Keywords=Midi;Music;Synth;Emulator;SoundCanvas;SC-55;

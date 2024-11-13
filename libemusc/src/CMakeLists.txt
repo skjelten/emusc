@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.8...3.24)
+cmake_minimum_required(VERSION 3.8...3.30)
 
 configure_file(config.h.in config.h)
 
@@ -54,4 +54,4 @@ add_library(emusc
 
 target_compile_features(emusc PUBLIC cxx_std_11)
 target_include_directories(emusc PUBLIC "${CMAKE_CURRENT_BINARY_DIR}")
-set_target_properties(emusc PROPERTIES CXX_EXTENSIONS OFF)
+set_target_properties(emusc PROPERTIES CXX_EXTENSIONS OFF VERSION ${CMAKE_PROJECT_VERSION} SOVERSION ${CMAKE_PROJECT_VERSION_MAJOR})
