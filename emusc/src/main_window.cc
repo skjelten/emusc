@@ -329,7 +329,9 @@ void MainWindow::_create_menus(void)
 #ifdef __USE_QTCHARTS__
   _toolsMenu->addSeparator();
   _toolsMenu->addAction(_viewLFOsChartAct);
+  _viewLFOsChartAct->setDisabled(true);
   _toolsMenu->addAction(_viewEnvelopesChartAct);
+  _viewEnvelopesChartAct->setDisabled(true);
 #endif
 
   _synthMenu = menuBar()->addMenu("&Synth");
@@ -476,6 +478,11 @@ void MainWindow::power_switch(int newPowerState)
     _viewCtrlRomDataAct->setEnabled(true);
     _synthModeMenu->setEnabled(false);
 
+#ifdef __USE_QTCHARTS__
+    _viewLFOsChartAct->setEnabled(true);
+    _viewEnvelopesChartAct->setEnabled(true);
+#endif
+
     _powerState = 1;
 
   } else if ((newPowerState == 0 && _powerState == 1) ||
@@ -490,6 +497,11 @@ void MainWindow::power_switch(int newPowerState)
     _synthSettingsAct->setDisabled(true);
     _viewCtrlRomDataAct->setDisabled(true);
     _synthModeMenu->setDisabled(false);
+
+#ifdef __USE_QTCHARTS__
+    _viewLFOsChartAct->setDisabled(true);
+    _viewEnvelopesChartAct->setDisabled(true);
+#endif
   }
 }
 
