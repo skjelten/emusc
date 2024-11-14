@@ -23,6 +23,7 @@
 
 #include "control_rom.h"
 #include "pcm_rom.h"
+#include "resample.h"
 #include "settings.h"
 #include "tva.h"
 #include "tvf.h"
@@ -87,6 +88,7 @@ private:
   TVF *_tvf;
   TVA *_tva;
 
+  enum InterpMode _interpMode;
   double _sample;
 
   unsigned int _updateTimeout = 0;   // Temporary quickfix

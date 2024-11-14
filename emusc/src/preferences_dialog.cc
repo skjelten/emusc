@@ -481,12 +481,28 @@ AudioSettings::AudioSettings(Emulator *emulator, QWidget *parent)
   _fileDialogTB->setToolButtonStyle(Qt::ToolButtonTextOnly);
   _fileDialogTB->setText("...");
   gridLayout->addWidget(_fileDialogTB, 8, 4);
+
+  gridLayout->setRowMinimumHeight(9, 15);
+
+  gridLayout->addWidget(new QLabel("Interpolation"), 10, 0);
+  _interpolBox = new QComboBox();
+  _interpolBox->addItem("Nearest", 0);
+  _interpolBox->addItem("Linear", 1);
+  _interpolBox->addItem("Cubic", 2);
+
+  QHBoxLayout *interpolLayout = new QHBoxLayout();
+  interpolLayout->addWidget(_interpolBox);
+  interpolLayout->addWidget(new QLabel("Default: Cubic"));
+  interpolLayout->addStretch();
+  gridLayout->addLayout(interpolLayout, 10, 1);
+
   vboxLayout->addLayout(gridLayout);
   vboxLayout->addSpacing(15);
 
   _reverseStereo = new QCheckBox("Reverse Stereo");
   _reverseStereo->setEnabled(false);             // TODO: Not implemented yet
   vboxLayout->addWidget(_reverseStereo);
+
   vboxLayout->addStretch(0);
 
   if (_emulator->running()) {
@@ -537,12 +553,12 @@ AudioSettings::AudioSettings(Emulator *emulator, QWidget *parent)
 
   bool stereo = settings.value("Audio/stereo").toBool();
 
-
   _bufferTimeSB->setValue(bufferTime);
   _periodTimeSB->setValue(periodTime);
   _sampleRateSB->setValue(sampleRate);
 //  _channelsCB->setCurrentIndex((int) stereo);
   _filePathLE->setText(settings.value("Audio/wav_file_path").toString());
+  _interpolBox->setCurrentText(settings.value("Audio/interpolation").toString());
 
   connect(_fileDialogTB, SIGNAL(clicked()),
 	  this, SLOT(_open_file_path_dialog()));
@@ -560,6 +576,8 @@ AudioSettings::AudioSettings(Emulator *emulator, QWidget *parent)
 	  this, SLOT(_filePathLE_changed()));
 //  connect(_channelsCB, SIGNAL(currentIndexChanged(int)),
 //	  this, SLOT(_channels_box_changed(int)));
+  connect(_interpolBox, SIGNAL(currentIndexChanged(int)),
+	  this, SLOT(_interpolation_box_changed(int)));
 
   vboxLayout->addStretch(0);
   vboxLayout->insertSpacing(1, 15);
@@ -574,6 +592,7 @@ void AudioSettings::reset(void)
   _periodTimeSB->setValue(_defaultPeriodTime);
   _sampleRateSB->setValue(_defaultSampleRate);
 //  _channelsCB->setCurrentIndex(1);                              // Stereo
+  _interpolBox->setCurrentIndex(2);                              // Cubic
 
   QSettings settings;
   settings.setValue("Audio/buffer_time", _defaultBufferTime);
@@ -772,6 +791,14 @@ void AudioSettings::_open_file_path_dialog(void)
     fileNames = dialog.selectedFiles();
     _filePathLE->setText(fileNames[0]);
   }
+}
+
+
+void AudioSettings::_interpolation_box_changed(int index)
+{
+  QSettings settings;
+  settings.setValue("Audio/interpolation", _interpolBox->currentText());
+  _emulator->set_param(EmuSC::SystemParam::ResampleInterpol, (uint8_t) index);
 }
 
 

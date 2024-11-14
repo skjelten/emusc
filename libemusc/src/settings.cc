@@ -395,6 +395,7 @@ void Settings::_initialize_system_params(enum Mode m)
   // Non-SysEx configuration settings
   _systemParams[(int) SystemParam::SampleRate] = 0;
   _systemParams[(int) SystemParam::Channels] = 2;
+  _systemParams[(int) SystemParam::ResampleInterpol] = 2;
 
   _systemParams[(int) SystemParam::RxSysEx] = 1;
   _systemParams[(int) SystemParam::RxGMOn] = 1;

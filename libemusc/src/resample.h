@@ -24,9 +24,9 @@
 
 // Interpolation modes
 enum class InterpMode {
-  Nearest,
-  Linear,
-  Cubic
+  Nearest = 0,
+  Linear  = 1,
+  Cubic   = 2
 };
 
 namespace EmuSC {

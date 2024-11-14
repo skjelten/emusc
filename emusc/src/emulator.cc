@@ -176,6 +176,14 @@ void Emulator::start(void)
   _lcdDisplay->turn_on(control_rom_changed(),
 		       settings.value("Synth/startup_animations").toString());
 
+  QString interpol = settings.value("Audio/interpolation").toString();
+  if (!interpol.compare("Nearest", Qt::CaseInsensitive))
+    set_param(EmuSC::SystemParam::ResampleInterpol, (uint8_t) 0);
+  else if (!interpol.compare("Linear", Qt::CaseInsensitive))
+    set_param(EmuSC::SystemParam::ResampleInterpol, (uint8_t) 1);
+  else if (!interpol.compare("Cubic", Qt::CaseInsensitive))
+    set_param(EmuSC::SystemParam::ResampleInterpol, (uint8_t) 2);
+
   _running = true;
   emit(started());
 }

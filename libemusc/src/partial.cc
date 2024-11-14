@@ -41,7 +41,6 @@
 
 
 #include "partial.h"
-#include "resample.h"
 
 #include <iostream>
 #include <cmath>
@@ -81,6 +80,7 @@ Partial::Partial(uint8_t key, int partialId, uint16_t instrumentIndex,
     _tvp(NULL),
     _tvf(NULL),
     _tva(NULL),
+    _interpMode(static_cast<InterpMode>(settings->get_param(SystemParam::ResampleInterpol))),
     _sample(0),
     _updatePeriod(settings->get_param_uint32(SystemParam::SampleRate) / 128)
 {
@@ -242,9 +242,7 @@ bool Partial::_next_sample_from_rom(float timeStep)
   int idx0 = (int) floor(_index);
   float frac = _index - floor(_index);
 
-  // TODO: Make interpolation mode configurable.
-  InterpMode interpMode = InterpMode::Cubic;
-  switch (interpMode) {
+  switch (_interpMode) {
     case InterpMode::Nearest: {
       // Nearest neighbor
       _sample = _pcmSamples->at(idx0);
