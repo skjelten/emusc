@@ -310,7 +310,9 @@ void MainWindow::_create_menus(void)
 #endif
 
   _viewMenu = menuBar()->addMenu("&View");
-  _viewMenu->addAction(_viewMenubarAct);
+  if (!menuBar()->isNativeMenuBar()) {
+    _viewMenu->addAction(_viewMenubarAct);
+  }
   _viewMenu->addAction(_viewStatusbarAct);
 
   _viewLayoutMenu = _viewMenu->addMenu("Layout");
