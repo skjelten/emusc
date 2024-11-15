@@ -111,8 +111,15 @@ endif()
 add_subdirectory(src)
 
 if(APPLE)
-  set_target_properties(emusc-client PROPERTIES MACOSX_BUNDLE TRUE)
-  set(USE_MACOS_BUNDLE "yes")
+  if(MACOS_BUNDLE)
+    set_target_properties(emusc-client PROPERTIES
+      MACOSX_BUNDLE TRUE
+      MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION}
+      MACOSX_BUNDLE_LONG_VERSION_STRING ${PROJECT_VERSION})
+    set(USE_MACOS_BUNDLE "yes")
+  else()
+    set_target_properties(emusc-client PROPERTIES MACOSX_BUNDLE FALSE)
+  endif()
 
 elseif(WIN32)
   option(BUILD_WIN32_EXECUTABLE "Build executable without debug console" ON)
@@ -125,9 +132,14 @@ target_compile_definitions(emusc-client PUBLIC __WAV_AUDIO__)
 
 include(GNUInstallDirs)
 
-install(TARGETS emusc-client DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT bin)
-install(FILES AUTHORS ChangeLog COPYING NEWS README.md
-  DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/doc/emusc COMPONENT bin)
+install(TARGETS emusc-client
+  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT bin
+  BUNDLE DESTINATION . COMPONENT bin)
+
+if(NOT APPLE AND NOT MACOS_BUNDLE)
+  install(FILES AUTHORS ChangeLog COPYING NEWS README.md
+    DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/doc/emusc COMPONENT bin)
+endif()
 
 if(UNIX AND NOT APPLE)
   install(FILES res/emusc.desktop DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/applications COMPONENT bin)
@@ -141,7 +153,8 @@ message("\n"
         "-=====================-\n")
 
 if(APPLE)
-  message(" Platform: macOS")
+  message(" Platform: macOS\n"
+          "  * Build bundle: ${USE_MACOS_BUNDLE}")
 elseif(UNIX)
   message(" Platform: UNIX")
 elseif(WIN32)
@@ -176,7 +189,13 @@ message("\n"
 # CPack support
 set(CMAKE_INSTALL_UCRT_LIBRARIES TRUE)
 
+if(APPLE AND MACOS_BUNDLE)
+  set(CPACK_PACKAGE_NAME "EmuSC")
+  set(CPACK_DMG_VOLUME_NAME "EmuSC")
+  set(CPACK_DMG_BACKGROUND_IMAGE "${CMAKE_CURRENT_SOURCE_DIR}/res/images/installers/dmg_background.png")
+  set(CPACK_DMG_DS_STORE_SETUP_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/utils/CMake_DMG_setup.scpt")
+endif()
+
 if(CMAKE_CURRENT_BINARY_DIR STREQUAL CMAKE_BINARY_DIR)
   include(CPack)
 endif()
-

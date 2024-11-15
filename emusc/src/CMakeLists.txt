@@ -97,6 +97,26 @@ if (APPLE)
   set_source_files_properties(${APP_ICON_MACOS} PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
   target_sources(emusc-client PRIVATE ${APP_ICON_MACOS})
 
+  # When packing self contained bundles on macOS we need to add all dynamic
+  # libraries and frameworks to the package. This is especially tricky with
+  # QT based applications. QT has released a nice CMake based solution to this
+  # in Qt 6.5, but that is too recent to depend on. Instead we use a hack to
+  # solve this for now by using the program 'macdeployqt' (part of Qt).
+  if(MACOS_BUNDLE)
+    find_program(MACDEPLOYQT NAMES macdeployqt PATHS ${MACDEPLOYQT_BIN_PATH})
+    if(NOT MACDEPLOYQT)
+      message(FATAL_ERROR "macdeployqt not found! This application is distributed as part of the QT library and needed to create a self contained macOS bundle. Either add the application path to \$PATH or use the MACDEPLOYQT_BIN_PATH variable.")
+    endif()
+    install(CODE "
+     execute_process(COMMAND sh -c \"${MACDEPLOYQT} ${CMAKE_CURRENT_SOURCE_DIR}/EmuSC.app\")")
+  endif()
+
+  # Using fixup_bundle does not solve all the quirks for Qt (plugins)
+  #  install(CODE "
+  #     include(BundleUtilities)
+  #     fixup_bundle(\"${CMAKE_CURRENT_SOURCE_DIR}/EmuSC.app\" \"\" \"\")"
+  #    COMPONENT bin)
+
 elseif(WIN32)
   set(APP_ICON_RESOURCE_WINDOWS "${CMAKE_CURRENT_SOURCE_DIR}/../res/emusc-win32.rc")
   target_sources(emusc-client PRIVATE ${APP_ICON_RESOURCE_WINDOWS})
