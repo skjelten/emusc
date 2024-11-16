@@ -264,12 +264,12 @@ void EnvelopeDialog::envelope_callback(const float tvp1, const float tvp2,
 
   _dataMutex.lock();
 
-  _tvpData1.push_back(std::pair(tvp1, time));
-  _tvpData2.push_back(std::pair(tvp2, time));
-  _tvfData1.push_back(std::pair(tvf1, time));
-  _tvfData2.push_back(std::pair(tvf2, time));
-  _tvaData1.push_back(std::pair(tva1, time));
-  _tvaData2.push_back(std::pair(tva2, time));
+  _tvpData1.push_back(std::make_pair(tvp1, time));
+  _tvpData2.push_back(std::make_pair(tvp2, time));
+  _tvfData1.push_back(std::make_pair(tvf1, time));
+  _tvfData2.push_back(std::make_pair(tvf2, time));
+  _tvaData1.push_back(std::make_pair(tva1, time));
+  _tvaData2.push_back(std::make_pair(tva2, time));
 
   _dataMutex.unlock();
 
