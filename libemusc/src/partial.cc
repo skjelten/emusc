@@ -84,11 +84,13 @@ Partial::Partial(uint8_t key, int partialId, uint16_t instrumentIndex,
     _sample(0),
     _updatePeriod(settings->get_param_uint32(SystemParam::SampleRate) / 128)
 {
-  _isDrum = settings->get_param(PatchParam::UseForRhythm, partId);
+  _drumSet = settings->get_param(PatchParam::UseForRhythm, partId);
+  if (_drumSet)
+    _drumRxNoteOff = _settings->get_param(DrumParam::RxNoteOff,_drumSet-1,_key);
 
-  // 1: Find static coarse tuning => key shifts
+  // Find static coarse tuning (key shift) as this affects sample selection
   int keyShift = settings->get_param(PatchParam::PitchCoarseTune, partId) -0x40;
-  if (!_isDrum) {
+  if (!_drumSet) {
     keyShift += settings->get_param(SystemParam::KeyShift) - 0x40 +
                 settings->get_param(PatchParam::PitchKeyShift, partId) - 0x40;
 
@@ -97,7 +99,7 @@ Partial::Partial(uint8_t key, int partialId, uint16_t instrumentIndex,
       keyShift += settings->get_param(PatchParam::PitchKeyShift, partId) - 0x40;
   }
 
-  // 2: Find sample index from break table while adjusting key with key shifts
+  // Find sample index from break table while adjusting key with key shift
   uint16_t sampleIndex;
   uint16_t pIndex =
     ctrlRom.instrument(instrumentIndex).partials[partialId].partialIndex;
@@ -114,35 +116,11 @@ Partial::Partial(uint8_t key, int partialId, uint16_t instrumentIndex,
     }
   }
 
-  // 3. Update internal class data pointers
+  // Update internal class data pointers
   _pcmSamples = &pcmRom.samples(sampleIndex).samplesF;
   _ctrlSample = &ctrlRom.sample(sampleIndex);
 
-  // 4. Find actual difference in key between NoteOn and sample
-  if (_isDrum) {
-    _drumMap = settings->get_param(PatchParam::UseForRhythm, partId) - 1;
-    _keyDiff = keyShift + settings->get_param(DrumParam::PlayKeyNumber,
-					      _drumMap, key) - 0x3c;
-
-  } else {                                        // Regular instrument
-    _keyDiff = key + keyShift - _ctrlSample->rootKey;
-  }
-
-  // 5. Calculate pitch key follow
-  float pitchKeyFollow = 1;
-  if (_instPartial.pitchKeyFlw - 0x40 != 10)
-    pitchKeyFollow += ((float) _instPartial.pitchKeyFlw - 0x4a) / 10.0;
-
-  _staticPitchTune =
-    (exp(((_instPartial.coarsePitch - 0x40 +
-	   _keyDiff * pitchKeyFollow +
-	   (60 - _ctrlSample->rootKey) * (1 - pitchKeyFollow)) * 100 +
-	  _instPartial.finePitch - 0x40 +
-	  ((_ctrlSample->pitch - 1024) / 16))
-	 * log(2) / 1200))
-    * 32000.0 / settings->get_param_uint32(SystemParam::SampleRate);
-
-  // 6. Calculate static volume correction
+  // Calculate static volume correction --> TVA?
   double instVol = _convert_volume(ctrlRom.instrument(instrumentIndex).volume);
   double sampleVol = _convert_volume(_ctrlSample->volume +
 				     ((_ctrlSample->fineVolume- 1024) /1000.0));
@@ -153,7 +131,8 @@ Partial::Partial(uint8_t key, int partialId, uint16_t instrumentIndex,
   _LFO2 = new WaveGenerator(_instPartial, settings, partId);
 
   // 8. Create TVP/F/A & envelope classes
-  _tvp = new TVP(_instPartial, key, LFO1, _LFO2, settings, partId);
+  _tvp = new TVP(_instPartial, key, keyShift, _ctrlSample, LFO1, _LFO2,
+                 settings, partId);
   _tvf = new TVF(_instPartial, key, LFO1, _LFO2, settings, partId);
   _tva = new TVA(_instPartial, key, LFO1, _LFO2, settings, partId);
 }
@@ -172,8 +151,7 @@ Partial::~Partial()
 void Partial::stop(void)
 {
   // Ignore note off for uninterruptible drums (set by drum set flag)
-  if (!(_isDrum &&
-	!(_settings->get_param(DrumParam::RxNoteOff,_drumMap,_key)))) {
+  if (!(_drumSet && !_drumRxNoteOff)) {
     if (_tvp) _tvp->note_off();
     if (_tvf) _tvf->note_off();
     if (_tva) _tva->note_off();
@@ -196,9 +174,7 @@ bool Partial::get_next_sample(float *noteSample)
   // Iterate LFO2
   _LFO2->next();
 
-  float pitchAdj = _settings->get_pitchBend_factor(_partId) *
-                   _staticPitchTune *
-                   _tvp->get_pitch();
+  float pitchAdj = _settings->get_pitchBend_factor(_partId) * _tvp->get_next_value();
 
   if (_next_sample_from_rom(pitchAdj))
     return 1;
@@ -289,7 +265,7 @@ double Partial::_convert_volume(uint8_t volume)
 
 void Partial::_update_params(void)
 {
-  if (_tvp) _tvp->update_params();
+  if (_tvp) _tvp->update_dynamic_params();
   if (_tvf) _tvf->update_params();
   if (_tva) _tva->update_params();
 }

@@ -37,16 +37,17 @@ namespace EmuSC {
 class TVP
 {
 public:
-  TVP(ControlRom::InstPartial &instPartial, uint8_t key, WaveGenerator *LFO1,
-      WaveGenerator *LFO2, Settings *settings, int8_t partId);
+  TVP(ControlRom::InstPartial &instPartial, uint8_t key, int keyShift,
+      ControlRom::Sample *ctrlSample, WaveGenerator *LFO1, WaveGenerator *LFO2,
+      Settings *settings, int8_t partId);
   ~TVP();
 
-  double get_pitch(void);
-  void update_params(void);
+  void update_dynamic_params(void);
 
   void note_off();
   inline bool finished(void) { if (_ahdsr) return _ahdsr->finished(); }
 
+  double get_next_value(void);
   float get_current_value(void)
   { if (_ahdsr) return _ahdsr->get_current_value(); return 0; }
 
@@ -55,6 +56,8 @@ private:
 
   uint8_t _key;                 // MIDI key number
   float _keyFreq;               // Frequency of current MIDI key
+
+  float _staticPitchCorr;       // Accumulated static corrections
 
   WaveGenerator *_LFO1;
   WaveGenerator *_LFO2;
@@ -79,6 +82,7 @@ private:
   TVP();
 
   void _init_envelope(void);
+  void _set_static_params(int keyShift, ControlRom::Sample *ctrlSample);
 };
 
 }

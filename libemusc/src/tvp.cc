@@ -16,16 +16,14 @@
  *  along with libEmuSC. If not, see <http://www.gnu.org/licenses/>.
  */
 
+// The pitch corrections for each sample can be diveded into 4 components:
+//  - Static pitch corrections. Does not change and calculated once.
+//  - Dynamic parameters. E.g. pitch bend and LFO rate. Updated approx 100Hz.
+//  - Pitch modulation by LFOs (vibrato). Adjusted by dynamic paramters.
+//  - Pitch envelope. Also adjusted by dynamic paramters.
+
 // NOTES:
-// Study of the output from a SC-55mkII shows that vibrato rate patch parameter
-// modifies the LFO rate with 1/10 Hz, so that e.g. +10 increases LFO with 1 Hz.
-// This is linear up to at least 9Hz before it becomes an exponential increase.
-
-// Vibrato delay is hard to accurately measure. Seems to suppress the LFO
-// following an exponential function, and then fade in from 0 to full depth
-// over a period of 4 LFO frequency periods.
-
-// Vibrato depth seems to be a linear function of vibrato depth in partial
+// Pitch depth seems to be a linear function of vibrato depth in partial
 // definition + vibrato depth in patch parameters up to the sum of 55.
 //   Pitch adj(vibrato depth) = 0.0011 * (VD partial + VD patch param)
 // When accumulated sum of vibrato depth exceeds 55, it seems to start following
@@ -33,6 +31,7 @@
 
 // Pitch envelopes have a linear correlation between pitch envelope value and
 // multiplier value: Pitch change in cents = 0.3 * multiplier * phase value
+
 
 
 #include "tvp.h"
@@ -45,8 +44,9 @@
 namespace EmuSC {
 
 
-TVP::TVP(ControlRom::InstPartial &instPartial, uint8_t key, WaveGenerator *LFO1,
-         WaveGenerator *LFO2, Settings *settings,int8_t partId)
+TVP::TVP(ControlRom::InstPartial &instPartial, uint8_t key, int keyShift,
+         ControlRom::Sample *ctrlSample,WaveGenerator *LFO1,WaveGenerator *LFO2,
+         Settings *settings,int8_t partId)
   : _sampleRate(settings->get_param_uint32(SystemParam::SampleRate)),
     _key(key),
     _keyFreq(440 * exp(log(2) * (key - 69) / 12)),
@@ -61,6 +61,9 @@ TVP::TVP(ControlRom::InstPartial &instPartial, uint8_t key, WaveGenerator *LFO1,
     _settings(settings),
     _partId(partId)
 {
+  _set_static_params(keyShift, ctrlSample);
+  update_dynamic_params();
+
   // If TVP envelope phase durations are all 0 we only have a static filter
   // TODO: Verify that this is correct - what to do when P1-5 value != 0?
   if ((!instPartial.pitchDurP1 && !instPartial.pitchDurP2 &&
@@ -71,8 +74,6 @@ TVP::TVP(ControlRom::InstPartial &instPartial, uint8_t key, WaveGenerator *LFO1,
   _init_envelope();
   if (_ahdsr)
     _ahdsr->start();
-
-  update_params();
 }
 
 
@@ -82,21 +83,16 @@ TVP::~TVP()
 }
 
 
-double TVP::get_pitch()
+double TVP::get_next_value()
 {
-  float pitchAdj = _pitchOffsetHz * _pitchExp;
+  float pitchAdj = _staticPitchCorr * _pitchOffsetHz * _pitchExp;
 
   double vibrato = (1 + (_LFO1->value() * _accLFO1Depth * 0.0011)) *
                    (1 + (_LFO2->value() * _accLFO2Depth * 0.0011));
 
-  // TODO: Delay function -> seconds
-  // sec = 0.5 * exp(_LFODelay * log(10.23 / 0.5) / 50)
-
-  // Return only vibrato if pitch envelope is not present in this partial
   if (!_ahdsr)
     return pitchAdj * vibrato;
 
-  // TODO: Make this calculation more CPU efficient
   float envelope = exp(_ahdsr->get_next_value() * 0.3 * _multiplier *
 		       (log(2) / 1200.0));
 
@@ -111,9 +107,8 @@ void TVP::note_off()
 }
 
 
-void TVP::update_params(void)
+void TVP::update_dynamic_params(void)
 {
-  // LFOs
   int lfoDepth = _LFO1Depth +
     _settings->get_param(PatchParam::VibratoDepth, _partId) - 0x40 +
     _settings->get_param(PatchParam::Acc_LFO1PitchDepth, _partId);
@@ -134,7 +129,48 @@ void TVP::update_params(void)
                                                  _partId) - 16384)
                     / 16.384)) *
                   _expFactor);
+}
 
+
+void TVP::_set_static_params(int keyShift, ControlRom::Sample *ctrlSample)
+{
+  int drumSet = _settings->get_param(PatchParam::UseForRhythm, _partId);
+
+  int randomPitchDepth = 0;
+  if (_instPartial.randPitch != 0) {
+    randomPitchDepth =
+      std::rand() % (_instPartial.randPitch * 2 + 1) - _instPartial.randPitch;
+    if (randomPitchDepth < -100) randomPitchDepth = -100;
+    if (randomPitchDepth > 100) randomPitchDepth = 100;
+  }
+
+  float pitchKeyFollow = 1;
+  if (_instPartial.pitchKeyFlw - 0x40 != 10)
+    pitchKeyFollow += ((float) _instPartial.pitchKeyFlw - 0x4a) / 10.0;
+
+  // Find actual difference in key between NoteOn and sample
+  int keyDiff = 0;
+  if (drumSet) {
+    keyDiff = keyShift + _settings->get_param(DrumParam::PlayKeyNumber,
+                                              drumSet - 1, _key) - 0x3c;
+
+  } else {                                        // Regular instrument
+    keyDiff = _key + keyShift - ctrlSample->rootKey;
+  }
+
+  _staticPitchCorr =
+    (exp(
+         ( // Corrections in octaves (100 cents)
+           ( _instPartial.coarsePitch - 0x40 +
+             (float) keyDiff * pitchKeyFollow +
+             (60 - ctrlSample->rootKey) * (1 - pitchKeyFollow) ) * 100 +
+
+           // Correction in cents
+           _instPartial.finePitch - 0x40 +
+           randomPitchDepth +
+           ((ctrlSample->pitch - 1024) / 16)
+         ) * log(2) / 1200)
+    ) * 32000.0 / _settings->get_param_uint32(SystemParam::SampleRate);
 }
 
 

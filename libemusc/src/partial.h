@@ -71,16 +71,14 @@ private:
   float _index;           // Sample position in number of samples from start
   bool _isLooping;        // Have we entered the loop region? Important for determining previous position
 
-  float _staticPitchTune;
-
   double _volumeCorrection;
   double _panpot;
 
   Settings *_settings;
   int8_t _partId;
 
-  bool _isDrum;
-  int _drumMap;
+  int _drumSet;           // 0 = Not a drumset, 1 & 2 is drumset 0 & 1
+  bool _drumRxNoteOff;    // Static parameter (cannot change during a note)
 
   WaveGenerator *_LFO2;
 
