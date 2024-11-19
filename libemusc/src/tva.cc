@@ -31,43 +31,153 @@ namespace EmuSC {
 constexpr std::array<float, 128> TVA::_convert_volume_LUT;
 
 
-TVA::TVA(ControlRom::InstPartial &instPartial, uint8_t key, WaveGenerator *LFO1,
-         WaveGenerator *LFO2, Settings *settings, int8_t partId)
+TVA::TVA(ControlRom::InstPartial &instPartial, uint8_t key,
+         ControlRom::Sample *ctrlSample,WaveGenerator *LFO1,WaveGenerator *LFO2,
+         Settings *settings, int8_t partId, int instVolAtt)
   : _sampleRate(settings->get_param_uint32(SystemParam::SampleRate)),
-    _key(key),
-    _drumSet(settings->get_param(PatchParam::UseForRhythm, partId)),
     _LFO1(LFO1),
     _LFO2(LFO2),
+    _key(key),
+    _drumSet(settings->get_param(PatchParam::UseForRhythm, partId)),
     _panpotLocked(false),
     _ahdsr(NULL),
     _finished(false),
     _instPartial(instPartial),
     _settings(settings),
     _partId(partId),
-    _drumMap(settings->get_param(PatchParam::UseForRhythm, partId)),
     _drumVol(1)
 {
-  // TVA / volume envelope
+  _set_static_params(ctrlSample, instVolAtt);
+  update_dynamic_params(true);
+
+  // All instruments must have a TVA envelope defined
   _init_envelope();
   if (_ahdsr)
     _ahdsr->start();
-
-  // Calculate random panpot if part or drum panpot value is 0 (RND)
-  if (_settings->get_param(PatchParam::PartPanpot, partId) == 0 ||
-      (_drumSet > 0 &&
-       _settings->get_param(DrumParam::Panpot, _drumSet - 1, key) == 0)) {
-    _panpot = std::rand() % 128;                     // TODO: Add srand
-    _panpotLocked = true;
-  }
-
-  update_params(true);
 }
 
 
 TVA::~TVA()
 {
+  delete _ahdsr;
+}
+
+
+void TVA::apply(double *sample)
+{
+  // Tremolo
+  double tremolo = (_LFO1->value() * 0.01 * (float) _accLFO1Depth) +
+    (_LFO2->value() * 0.01 * (float) _accLFO2Depth);
+
+  // Volume envelope
+  double volEnvelope = 0;
   if (_ahdsr)
-    delete _ahdsr;
+    volEnvelope = _ahdsr->get_next_value();
+
+  // Apply all volume corrections
+  sample[0] *= _staticVolCorr * _drumVol * _ctrlVol;
+  sample[0] *= tremolo + volEnvelope;
+
+  // Panpot
+  sample[1] = sample[0];
+  if (_panpot > 64)
+    sample[0] *= 1.0 - (_panpot - 64) / 63.0;
+  else if (_panpot < 64)
+    sample[1] *= ((_panpot - 1) / 64.0);
+}
+
+
+void TVA::note_off()
+{
+  if (_ahdsr)
+    _ahdsr->release();
+  else
+    _finished = true;
+}
+
+
+// TODO: Figure out how often this update is supposed to happen (new thread?)
+void TVA::update_dynamic_params(bool reset)
+{
+  // Update LFO inputs
+  int newLFODepth = (_instPartial.TVALFO1Depth & 0x7f) +
+    _settings->get_param(PatchParam::Acc_LFO1TVADepth, _partId);
+  if (newLFODepth < 0) newLFODepth = 0;
+  if (newLFODepth > 127) newLFODepth = 127;
+  _accLFO1Depth = newLFODepth;
+
+  newLFODepth = (_instPartial.TVALFO2Depth & 0x7f) +
+    _settings->get_param(PatchParam::Acc_LFO2TVADepth, _partId);
+  if (newLFODepth < 0) newLFODepth = 0;
+  if (newLFODepth > 127) newLFODepth = 127;
+  _accLFO2Depth = newLFODepth;
+
+  // Drum volume is dynamic
+  if (_drumSet)
+    _drumVol = _convert_volume_LUT[_settings->get_param(DrumParam::Level,
+                                                        _drumSet - 1, _key)];
+
+  // Accumulated volume control from controllers
+  _ctrlVol =
+    _settings->get_param(PatchParam::Acc_AmplitudeControl, _partId) / 64.0;
+
+  // Update panpot if not locked in random mode
+  if (_panpotLocked)
+    return;
+
+  int newPanpot = _instPartial.panpot +
+    _settings->get_param(PatchParam::PartPanpot, _partId) +
+    _settings->get_param(SystemParam::Pan) - 0x80;
+
+  // Drum panpot is also dynamic
+  if (_drumSet)
+    newPanpot +=
+      _settings->get_param(DrumParam::Panpot, _drumSet - 1, _key) - 0x40;
+
+  if (newPanpot < 0) newPanpot = 0;
+  if (newPanpot > 0x7f) newPanpot = 0x7f;
+
+  if (newPanpot == _panpot)
+    return;
+
+  if (reset == true) {
+    _panpot = newPanpot;
+
+  } else {
+    if (newPanpot > _panpot && _panpot < 0x7f)
+      _panpot ++;
+    else if(newPanpot < _panpot && _panpot > 0)
+      _panpot --;
+  }
+}
+
+
+bool TVA::finished(void)
+{
+  if (_ahdsr)
+    return _ahdsr->finished();
+
+  return _finished;
+}
+
+
+void TVA::_set_static_params(ControlRom::Sample *ctrlSample, int instVolAtt)
+{
+  // Calculate static volume corrections
+  double instVol = _convert_volume_LUT[instVolAtt];
+  double sampleVol = _convert_volume_LUT[ctrlSample->volume +
+                                         (ctrlSample->fineVolume -1024)/1000.0];
+  double partialVol = _convert_volume_LUT[_instPartial.volume];
+
+  _staticVolCorr = instVol * sampleVol * partialVol;
+
+  // Calculate random pan if part pan or drum pan value is 0 (RND)
+  if (_settings->get_param(PatchParam::PartPanpot, _partId) == 0 ||
+      (_drumSet &&
+       _settings->get_param(DrumParam::Panpot, _drumSet - 1, _key) == 0)) {
+    _panpot = std::rand() % 128;
+    _panpotLocked = true;
+  }
 }
 
 
@@ -99,102 +209,6 @@ void TVA::_init_envelope(void)
 
   _ahdsr = new AHDSR(phaseVolume, phaseDuration, phaseShape, _key,
                     _settings, _partId, AHDSR::Type::TVA);
-}
-
-
-void TVA::apply(double *sample)
-{
-  // Tremolo
-  double tremolo = (_LFO1->value() * 0.01 * (float) _accLFO1Depth) +
-    (_LFO2->value() * 0.01 * (float) _accLFO2Depth);
-
-  // Volume envelope
-  double volEnvelope = 0;
-  if (_ahdsr)
-    volEnvelope = _ahdsr->get_next_value();
-
-  sample[0] *= tremolo + volEnvelope;
-  sample[0] *= _drumVol * _ctrlVol;             // Volume corrections
-
-  // Panpot
-  sample[1] = sample[0];
-  if (_panpot > 64)
-    sample[0] *= 1.0 - (_panpot - 64) / 63.0;
-  else if (_panpot < 64)
-    sample[1] *= ((_panpot - 1) / 64.0);
-}
-
-
-void TVA::note_off()
-{
-  if (_ahdsr)
-    _ahdsr->release();
-  else
-    _finished = true;
-}
-
-
-// TODO: Figure out how often this update is supposed to happen (new thread?)
-void TVA::update_params(bool reset)
-{
-  // Update LFO inputs
-  int newLFODepth = (_instPartial.TVALFO1Depth & 0x7f) +
-    _settings->get_param(PatchParam::Acc_LFO1TVADepth, _partId);
-  if (newLFODepth < 0) newLFODepth = 0;
-  if (newLFODepth > 127) newLFODepth = 127;
-  _accLFO1Depth = newLFODepth;
-
-  newLFODepth = (_instPartial.TVALFO2Depth & 0x7f) +
-    _settings->get_param(PatchParam::Acc_LFO2TVADepth, _partId);
-  if (newLFODepth < 0) newLFODepth = 0;
-  if (newLFODepth > 127) newLFODepth = 127;
-  _accLFO2Depth = newLFODepth;
-
-  // Update volume inputs
-  // TODO: Move more of volume control here
-  if (_drumMap > 0)
-    _drumVol = _convert_volume_LUT[_settings->get_param(DrumParam::Level,
-                                                        _drumMap - 1, _key)];
-  _ctrlVol =
-    _settings->get_param(PatchParam::Acc_AmplitudeControl, _partId) / 64.0;
-
-  // Update panpot if not locked in random mode
-  if (_panpotLocked)
-    return;
-
-  int newPanpot = _instPartial.panpot +
-    _settings->get_param(PatchParam::PartPanpot, _partId) +
-    _settings->get_param(SystemParam::Pan) - 0x80;
-
-  // If partial is in a drum set we also need to add the drum's panpot setting
-  if (_drumSet > 0)
-    newPanpot +=
-      _settings->get_param(DrumParam::Panpot, _drumSet - 1, _key) - 0x40;
-
-  if (newPanpot < 0) newPanpot = 0;
-  if (newPanpot > 0x7f) newPanpot = 0x7f;
-
-  if (newPanpot == _panpot)
-    return;
-
-  if (reset == true) {
-    _panpot = newPanpot;
-
-  } else {
-    if (newPanpot > _panpot && _panpot < 0x7f)
-      _panpot ++;
-    else if(newPanpot < _panpot && _panpot > 0)
-      _panpot --;
-  }
-}
-
-
-bool TVA::finished(void)
-{
-  if (_ahdsr)
-    return _ahdsr->finished();
-
-  return _finished;
 }
 
 }

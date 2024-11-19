@@ -69,8 +69,7 @@ namespace EmuSC {
 Partial::Partial(uint8_t key, int partialId, uint16_t instrumentIndex,
 		 ControlRom &ctrlRom, PcmRom &pcmRom, WaveGenerator *LFO1,
 		 Settings *settings, int8_t partId)
-  : _key(key),
-    _instPartial(ctrlRom.instrument(instrumentIndex).partials[partialId]),
+  : _instPartial(ctrlRom.instrument(instrumentIndex).partials[partialId]),
     _lastPos(0),
     _index(0),
     _isLooping(false),
@@ -86,7 +85,7 @@ Partial::Partial(uint8_t key, int partialId, uint16_t instrumentIndex,
 {
   _drumSet = settings->get_param(PatchParam::UseForRhythm, partId);
   if (_drumSet)
-    _drumRxNoteOff = _settings->get_param(DrumParam::RxNoteOff,_drumSet-1,_key);
+    _drumRxNoteOff = _settings->get_param(DrumParam::RxNoteOff, _drumSet-1,key);
 
   // Find static coarse tuning (key shift) as this affects sample selection
   int keyShift = settings->get_param(PatchParam::PitchCoarseTune, partId) -0x40;
@@ -120,13 +119,6 @@ Partial::Partial(uint8_t key, int partialId, uint16_t instrumentIndex,
   _pcmSamples = &pcmRom.samples(sampleIndex).samplesF;
   _ctrlSample = &ctrlRom.sample(sampleIndex);
 
-  // Calculate static volume correction --> TVA?
-  double instVol = _convert_volume(ctrlRom.instrument(instrumentIndex).volume);
-  double sampleVol = _convert_volume(_ctrlSample->volume +
-				     ((_ctrlSample->fineVolume- 1024) /1000.0));
-  double partialVol = _convert_volume(_instPartial.volume);
-  _volumeCorrection = instVol * sampleVol * partialVol;
-
   // 7. Partial specific LFO2
   _LFO2 = new WaveGenerator(_instPartial, settings, partId);
 
@@ -134,7 +126,8 @@ Partial::Partial(uint8_t key, int partialId, uint16_t instrumentIndex,
   _tvp = new TVP(_instPartial, key, keyShift, _ctrlSample, LFO1, _LFO2,
                  settings, partId);
   _tvf = new TVF(_instPartial, key, LFO1, _LFO2, settings, partId);
-  _tva = new TVA(_instPartial, key, LFO1, _LFO2, settings, partId);
+  _tva = new TVA(_instPartial, key, _ctrlSample, LFO1, _LFO2, settings, partId,
+                 ctrlRom.instrument(instrumentIndex).volume);
 }
 
 
@@ -145,17 +138,6 @@ Partial::~Partial()
   delete _tva;
 
   delete _LFO2;
-}
-
-
-void Partial::stop(void)
-{
-  // Ignore note off for uninterruptible drums (set by drum set flag)
-  if (!(_drumSet && !_drumRxNoteOff)) {
-    if (_tvp) _tvp->note_off();
-    if (_tvf) _tvf->note_off();
-    if (_tva) _tva->note_off();
-  }
 }
 
 
@@ -180,10 +162,7 @@ bool Partial::get_next_sample(float *noteSample)
     return 1;
 
   double sample[2] = {0, 0};
-  sample[0] = _sample * 0.65;      // Reduce audio volume to avoid overflow
-
-  // Apply volume changes
-  sample[0] *= _volumeCorrection;
+  sample[0] = _sample * 0.5;      // Reduce audio volume to avoid overflow
 
   _tvf->apply(&sample[0]);
   _tva->apply(&sample[0]);
@@ -257,9 +236,15 @@ bool Partial::_next_sample_from_rom(float timeStep)
 }
 
 
-double Partial::_convert_volume(uint8_t volume)
+
+void Partial::stop(void)
 {
-  return (0.1 * pow(2.0, (double)(volume) / 36.7111) - 0.1);
+  // Ignore note off for uninterruptible drums (set by drum set flag)
+  if (!(_drumSet && !_drumRxNoteOff)) {
+    if (_tvp) _tvp->note_off();
+    if (_tvf) _tvf->note_off();
+    if (_tva) _tva->note_off();
+  }
 }
 
 
@@ -267,7 +252,7 @@ void Partial::_update_params(void)
 {
   if (_tvp) _tvp->update_dynamic_params();
   if (_tvf) _tvf->update_params();
-  if (_tva) _tva->update_params();
+  if (_tva) _tva->update_dynamic_params();
 }
 
 }

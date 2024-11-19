@@ -37,18 +37,19 @@ namespace EmuSC {
 class TVA
 {
 public:
-  TVA(ControlRom::InstPartial &instPartial, uint8_t key, WaveGenerator *LFO1,
-      WaveGenerator *LFO2, Settings *settings, int8_t partId);
+  TVA(ControlRom::InstPartial &instPartial, uint8_t key,
+      ControlRom::Sample *ctrlSample, WaveGenerator *LFO1, WaveGenerator *LFO2,
+      Settings *settings, int8_t partId, int instVolAtt);
   ~TVA();
 
+  void update_dynamic_params(bool reset = false);
+
   void apply(double *sample);
-  void update_params(bool reset = false);
+  float get_current_value()
+  { if (_ahdsr) return _ahdsr->get_current_value(); return 0; }
 
   void note_off();
   bool finished(void);
-
-  float get_current_value()
-  { if (_ahdsr) return _ahdsr->get_current_value(); return 0; }
 
 private:
   uint32_t _sampleRate;
@@ -74,12 +75,14 @@ private:
   int8_t _partId;
 
   // Dynamic volume controls
-  int _drumMap;
   float _drumVol;
   float _ctrlVol;
 
+  double _staticVolCorr;
+
   TVA();
 
+  void _set_static_params(ControlRom::Sample *ctrlSample, int instVolAtt);
   void _init_envelope(void);
 
   static constexpr std::array<float, 128> _convert_volume_LUT = {

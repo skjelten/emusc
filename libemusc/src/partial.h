@@ -58,10 +58,6 @@ public:
   { if (_tva) return _tva->get_current_value(); return 0;}
 
 private:
-  uint8_t _key;           // MIDI key number for note on
-  float _keyDiff;         // Difference in number of keys from original tone
-                          // If pitchKeyFollow is used, keyDiff is adjusted
-
   struct ControlRom::InstPartial &_instPartial;
   struct ControlRom::Sample *_ctrlSample;
 
@@ -70,9 +66,6 @@ private:
   int _lastPos;           // Last read sample position
   float _index;           // Sample position in number of samples from start
   bool _isLooping;        // Have we entered the loop region? Important for determining previous position
-
-  double _volumeCorrection;
-  double _panpot;
 
   Settings *_settings;
   int8_t _partId;
@@ -93,7 +86,7 @@ private:
   int _updatePeriod;                 // samples to skip for params update
 
   bool _next_sample_from_rom(float timeStep);
-  double _convert_volume(uint8_t volume);
+
   void _update_params(void);
 };
 
