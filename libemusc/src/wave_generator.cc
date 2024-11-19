@@ -65,6 +65,7 @@ constexpr std::array<float, 256> WaveGenerator::_sineTable;
 WaveGenerator::WaveGenerator(struct ControlRom::Instrument &instrument,
                              Settings *settings, int partId)
   : _id(0),
+    _currentValue(0),
     _settings(settings),
     _partId(partId),
     _index(0)
@@ -95,6 +96,7 @@ WaveGenerator::WaveGenerator(struct ControlRom::Instrument &instrument,
 WaveGenerator::WaveGenerator(struct ControlRom::InstPartial &instPartial,
                              Settings *settings, int partId)
   : _id(1),
+    _currentValue(0),
     _settings(settings),
     _partId(partId),
     _index(0)
