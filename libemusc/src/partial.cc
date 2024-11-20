@@ -128,6 +128,17 @@ Partial::Partial(uint8_t key, int partialId, uint16_t instrumentIndex,
   _tvf = new TVF(_instPartial, key, LFO1, _LFO2, settings, partId);
   _tva = new TVA(_instPartial, key, _ctrlSample, LFO1, _LFO2, settings, partId,
                  ctrlRom.instrument(instrumentIndex).volume);
+
+  // FIXME: A few sample definitions in the SC-55 ROM have loop length >
+  // sample length. This makes EmuSC crash as it loops outside range. The
+  // following hack prevents a crash, but audio is wrong for these samples.
+  // TODO: Figure out why this works on the real hardware.
+  // Example: Concert Cym. (Con_sym), #59 of Orchestra drumkit
+  if (_ctrlSample->loopLen > _ctrlSample->sampleLen) {
+    std::cerr << "libEmuSC: Internal error, loop length > sample length!"
+              << std::endl << " => loop length = sample length" << std::endl;
+    _ctrlSample->loopLen = _ctrlSample->sampleLen;
+  }
 }
 
 
