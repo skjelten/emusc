@@ -40,10 +40,6 @@ enum class SystemParam : int {
   ResetGSstandardMode = 0x007f,    // No data stored, but triggers a reset event
 
   // Part 2: Settings outside SysEx chart
-  SampleRate          = 0x0080,    // 4B: [32000 - 96000 : 44100]
-  Channels            = 0x0084,    // [1 - 2 : 2]
-  ResampleInterpol    = 0x0085,    // [0 - 2 : 2] 0=nearest, 1=linear, 2=cubic
-
   RxSysEx             = 0x0090,    // [0 - 1 : 1]
   RxGMOn              = 0x0091,    // [0 - 1 : 1]
   RxGSReset           = 0x0092,    // [0 - 1 : 1]

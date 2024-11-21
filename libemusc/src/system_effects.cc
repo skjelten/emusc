@@ -48,7 +48,7 @@ SystemEffects::SystemEffects(Settings *settings, uint8_t partId)
     _chorusDisabled(true),
     _reverbDisabled(true)
 {
-  _sampleRate = settings->get_param_uint32(SystemParam::SampleRate);
+  _sampleRate = settings->sample_rate();
 
   _chorus = new Chorus(settings);
   _reverb = new Reverb(settings);

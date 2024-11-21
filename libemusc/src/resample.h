@@ -22,12 +22,6 @@
 #define EMUSC_INTERP_MAX 256
 #define emusc_float_to_row(_x) ((unsigned int)((_x) * EMUSC_INTERP_MAX))
 
-// Interpolation modes
-enum class InterpMode {
-  Nearest = 0,
-  Linear  = 1,
-  Cubic   = 2
-};
 
 namespace EmuSC {
 extern double interp_coeff_cubic[EMUSC_INTERP_MAX][4];

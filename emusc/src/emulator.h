@@ -119,6 +119,8 @@ public:
   void set_lfo_callback(int partId, LFODialog *dialog);
   void clear_lfo_callback(int partId);
 
+  void set_interpolation_mode(int mode);
+
 signals:
   void bar_display_update(QVector<bool>*);
 

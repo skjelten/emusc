@@ -70,7 +70,7 @@ WaveGenerator::WaveGenerator(struct ControlRom::Instrument &instrument,
     _partId(partId),
     _index(0)
 {
-  _sampleRate = settings->get_param_uint32(SystemParam::SampleRate);
+  _sampleRate = settings->sample_rate();
   _sampleFactor = 1.0 / (_sampleRate * 10.0);
 
   _waveForm = (enum Waveform) instrument.LFO1Waveform;
@@ -101,7 +101,7 @@ WaveGenerator::WaveGenerator(struct ControlRom::InstPartial &instPartial,
     _partId(partId),
     _index(0)
 {
-  _sampleRate = settings->get_param_uint32(SystemParam::SampleRate);
+  _sampleRate = settings->sample_rate();
   _sampleFactor = 1.0 / (_sampleRate * 10.0);
 
   _waveForm = (enum Waveform) instPartial.LFO2Waveform;

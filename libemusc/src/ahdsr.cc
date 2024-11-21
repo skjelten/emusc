@@ -33,7 +33,7 @@ constexpr std::array<float, 128> AHDSR::_convert_time_to_sec_LUT;
 AHDSR::AHDSR(double value[5], uint8_t duration[5], bool shape[5], int key,
 	     Settings *settings, int8_t partId, enum Type type, int initValue)
   : _finished(false),
-    _sampleRate(settings->get_param_uint32(SystemParam::SampleRate)),
+    _sampleRate(settings->sample_rate()),
     _currentValue(initValue),
     _phase(ahdsr_Off),
     _key(key),

@@ -38,13 +38,20 @@ public:
   Settings(ControlRom & ctrlRom);
   ~Settings();
 
-  // Sound Canvas Modes
+  // Sound Canvas modes
   enum class Mode {
     GS,                  // Standard GS mode. Default.
     MT32,                // MT32 mode
     SC55                 // SC-55 mode for SC-88     TODO
 
     // TODO: What about GM mode?
+  };
+
+  // Interpolation modes
+  enum class InterpMode {
+    Nearest = 0,
+    Linear  = 1,
+    Cubic   = 2
   };
 
   // Retrieve settings from Config paramters
@@ -97,12 +104,26 @@ public:
 
   static int8_t convert_from_roland_part_id(int8_t part);
 
+  void set_sample_rate(int sampleRate) { _sampleRate = sampleRate; }
+  inline int sample_rate(void) { return _sampleRate; }
+
+  void set_channels(int channels) { _channels = channels; }
+  inline int channels(void) { return _channels; }
+
+  void set_interpolation_mode(enum InterpMode im) { _interpMode = im; }
+  inline enum InterpMode interpolation_mode(void) { return _interpMode; }
+
 private:
   std::array<uint8_t, 0x0100> _systemParams;  // Both SysEx and non-SysEx data
   std::array<uint8_t, 0x4000> _patchParams;
   std::array<uint8_t, 0x2000> _drumParams;
 
   ControlRom &_ctrlRom;
+
+  // Non-native parameters
+  int _sampleRate;
+  int _channels;
+  InterpMode _interpMode;
 
   void _initialize_system_params(enum Mode = Mode::GS);
   void _initialize_patch_params(enum Mode = Mode::GS);

@@ -38,7 +38,7 @@ namespace EmuSC {
 Reverb::Reverb(Settings *settings)
   : _settings(settings),
     _effectMix(0.3),
-    _sampleRate(settings->get_param_uint32(SystemParam::SampleRate)),
+    _sampleRate(settings->sample_rate()),
     _time(1.0),
     _panning(0),
     _lp1Filter(_sampleRate),

@@ -34,7 +34,7 @@ constexpr std::array<float, 128> TVA::_convert_volume_LUT;
 TVA::TVA(ControlRom::InstPartial &instPartial, uint8_t key,
          ControlRom::Sample *ctrlSample,WaveGenerator *LFO1,WaveGenerator *LFO2,
          Settings *settings, int8_t partId, int instVolAtt)
-  : _sampleRate(settings->get_param_uint32(SystemParam::SampleRate)),
+  : _sampleRate(settings->sample_rate()),
     _LFO1(LFO1),
     _LFO2(LFO2),
     _key(key),

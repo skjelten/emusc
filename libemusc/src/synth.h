@@ -79,6 +79,7 @@ public:
 
   // Setting audio properties (default is 44100, 2)
   void set_audio_format(uint32_t sampleRate, uint8_t channels);
+  void set_interpolation_mode(int mode);
 
   void reset(SoundMap sm, bool resetParts = false);
 

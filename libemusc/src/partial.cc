@@ -79,9 +79,9 @@ Partial::Partial(uint8_t key, int partialId, uint16_t instrumentIndex,
     _tvp(NULL),
     _tvf(NULL),
     _tva(NULL),
-    _interpMode(static_cast<InterpMode>(settings->get_param(SystemParam::ResampleInterpol))),
+    _interpMode(static_cast<Settings::InterpMode>(settings->interpolation_mode())),
     _sample(0),
-    _updatePeriod(settings->get_param_uint32(SystemParam::SampleRate) / 128)
+    _updatePeriod(settings->sample_rate() / 128)
 {
   _drumSet = settings->get_param(PatchParam::UseForRhythm, partId);
   if (_drumSet)
@@ -209,12 +209,12 @@ bool Partial::_next_sample_from_rom(float timeStep)
   float frac = _index - floor(_index);
 
   switch (_interpMode) {
-    case InterpMode::Nearest: {
+    case Settings::InterpMode::Nearest: {
       // Nearest neighbor
       _sample = _pcmSamples->at(idx0);
       break;
     }
-    case InterpMode::Linear: {
+    case Settings::InterpMode::Linear: {
       // Linear interpolation
       int idx1 = idx0 + 1;
       if (idx1 > (int) loopEnd) {
@@ -226,7 +226,7 @@ bool Partial::_next_sample_from_rom(float timeStep)
                 coeffs[1] * _pcmSamples->at(idx1);
       break;
     }
-    case InterpMode::Cubic: {
+    case Settings::InterpMode::Cubic: {
       // Cubic interpolation
       auto indexes = get_cubic_indexes(idx0,
                                        _ctrlSample->sampleLen - _ctrlSample->loopLen,

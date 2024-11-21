@@ -178,11 +178,11 @@ void Emulator::start(void)
 
   QString interpol = settings.value("Audio/interpolation").toString();
   if (!interpol.compare("Nearest", Qt::CaseInsensitive))
-    set_param(EmuSC::SystemParam::ResampleInterpol, (uint8_t) 0);
+    _emuscSynth->set_interpolation_mode(0);
   else if (!interpol.compare("Linear", Qt::CaseInsensitive))
-    set_param(EmuSC::SystemParam::ResampleInterpol, (uint8_t) 1);
+    _emuscSynth->set_interpolation_mode(1);
   else if (!interpol.compare("Cubic", Qt::CaseInsensitive))
-    set_param(EmuSC::SystemParam::ResampleInterpol, (uint8_t) 2);
+    _emuscSynth->set_interpolation_mode(2);
 
   _running = true;
   emit(started());
@@ -1417,6 +1417,13 @@ void Emulator::set_param(enum EmuSC::DrumParam dp, uint8_t map, uint8_t *data,
 			 uint8_t length)
 {
   _emuscSynth->set_param(dp, map, data, length);
+}
+
+
+void Emulator::set_interpolation_mode(int mode)
+{
+  if (_emuscSynth)
+    _emuscSynth->set_interpolation_mode(mode);
 }
 
 

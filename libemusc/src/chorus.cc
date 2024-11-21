@@ -35,7 +35,7 @@ namespace EmuSC {
 
 Chorus::Chorus(Settings *settings)
   : _settings(settings),
-    _sampleRate(settings->get_param_uint32(SystemParam::SampleRate)),
+    _sampleRate(settings->sample_rate()),
     _stereoWidth(0.5),
     _lfoPhase(0),
     _lp1Filter(_sampleRate),

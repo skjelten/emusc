@@ -79,7 +79,7 @@ private:
   TVF *_tvf;
   TVA *_tva;
 
-  enum InterpMode _interpMode;
+  enum Settings::InterpMode _interpMode;
   double _sample;
 
   unsigned int _updateTimeout = 0;   // Temporary quickfix

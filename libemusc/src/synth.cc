@@ -375,13 +375,20 @@ std::array<float, 16> Synth::get_parts_last_peak_sample(void)
 
 void Synth::set_audio_format(uint32_t sampleRate, uint8_t channels)
 {
-  _settings->set_param_uint32(SystemParam::SampleRate, sampleRate);
-  _settings->set_param(SystemParam::Channels, channels);
+  _settings->set_sample_rate(sampleRate);
+  _settings->set_channels(channels);
 
   _sampleRate = sampleRate;
   _channels = channels;
 
   _init_parts();
+}
+
+
+void Synth::set_interpolation_mode(int mode)
+{
+  if (mode >= 0 && mode <= 2)
+    _settings->set_interpolation_mode(static_cast<Settings::InterpMode>(mode));
 }
 
 

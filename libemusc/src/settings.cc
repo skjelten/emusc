@@ -35,7 +35,10 @@ constexpr std::array<uint8_t, 16> Settings::_convert_from_roland_part_id_LUT;
 
 
 Settings::Settings(ControlRom &ctrlRom)
-  : _ctrlRom(ctrlRom)
+  : _ctrlRom(ctrlRom),
+    _sampleRate(44100),
+    _channels(2),
+    _interpMode(InterpMode::Cubic)
 {
   // TODO: Add SC-55/88 to master settings
   _initialize_system_params();
@@ -393,10 +396,6 @@ void Settings::_initialize_system_params(enum Mode m)
   _systemParams[(int) SystemParam::Pan] = 0x40;
 
   // Non-SysEx configuration settings
-  _systemParams[(int) SystemParam::SampleRate] = 0;
-  _systemParams[(int) SystemParam::Channels] = 2;
-  _systemParams[(int) SystemParam::ResampleInterpol] = 2;
-
   _systemParams[(int) SystemParam::RxSysEx] = 1;
   _systemParams[(int) SystemParam::RxGMOn] = 1;
   _systemParams[(int) SystemParam::RxGSReset] = 1;

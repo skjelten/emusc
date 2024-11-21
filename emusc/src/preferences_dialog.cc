@@ -598,6 +598,7 @@ void AudioSettings::reset(void)
   settings.setValue("Audio/buffer_time", _defaultBufferTime);
   settings.setValue("Audio/period_time", _defaultPeriodTime);
   settings.setValue("Audio/sample_rate", _defaultSampleRate);
+  settings.setValue("Audio/interpolation", "Cubic");
 }
 
 
@@ -798,7 +799,7 @@ void AudioSettings::_interpolation_box_changed(int index)
 {
   QSettings settings;
   settings.setValue("Audio/interpolation", _interpolBox->currentText());
-  _emulator->set_param(EmuSC::SystemParam::ResampleInterpol, (uint8_t) index);
+  _emulator->set_interpolation_mode(index);
 }
 
 

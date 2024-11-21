@@ -47,7 +47,7 @@ namespace EmuSC {
 TVP::TVP(ControlRom::InstPartial &instPartial, uint8_t key, int keyShift,
          ControlRom::Sample *ctrlSample,WaveGenerator *LFO1,WaveGenerator *LFO2,
          Settings *settings,int8_t partId)
-  : _sampleRate(settings->get_param_uint32(SystemParam::SampleRate)),
+  : _sampleRate(settings->sample_rate()),
     _key(key),
     _keyFreq(440 * exp(log(2) * (key - 69) / 12)),
     _LFO1(LFO1),
@@ -170,7 +170,7 @@ void TVP::_set_static_params(int keyShift, ControlRom::Sample *ctrlSample)
            randomPitchDepth +
            ((ctrlSample->pitch - 1024) / 16)
          ) * log(2) / 1200)
-    ) * 32000.0 / _settings->get_param_uint32(SystemParam::SampleRate);
+    ) * 32000.0 / _settings->sample_rate();
 }
 
 
