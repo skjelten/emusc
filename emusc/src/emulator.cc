@@ -163,8 +163,6 @@ void Emulator::start(void)
     _start_audio_subsystem();
     _start_midi_subsystem();
 
-    // TODO: Set audio format -> _emuscSynth->set_audio_format(44100, 2);
-
   } catch (QString errorMsg) {
     stop();
     throw(errorMsg);
