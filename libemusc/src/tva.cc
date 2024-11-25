@@ -31,7 +31,7 @@ namespace EmuSC {
 constexpr std::array<float, 128> TVA::_convert_volume_LUT;
 
 
-TVA::TVA(ControlRom::InstPartial &instPartial, uint8_t key,
+TVA::TVA(ControlRom::InstPartial &instPartial, uint8_t key, uint8_t velocity,
          ControlRom::Sample *ctrlSample,WaveGenerator *LFO1,WaveGenerator *LFO2,
          Settings *settings, int8_t partId, int instVolAtt)
   : _sampleRate(settings->sample_rate()),

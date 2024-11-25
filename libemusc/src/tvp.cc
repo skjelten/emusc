@@ -44,8 +44,9 @@
 namespace EmuSC {
 
 
-TVP::TVP(ControlRom::InstPartial &instPartial, uint8_t key, int keyShift,
-         ControlRom::Sample *ctrlSample,WaveGenerator *LFO1,WaveGenerator *LFO2,
+TVP::TVP(ControlRom::InstPartial &instPartial, uint8_t key, uint8_t velocity,
+	 int keyShift, ControlRom::Sample *ctrlSample,
+	 WaveGenerator *LFO1, WaveGenerator *LFO2,
          Settings *settings,int8_t partId)
   : _sampleRate(settings->sample_rate()),
     _key(key),

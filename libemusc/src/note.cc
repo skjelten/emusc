@@ -57,11 +57,11 @@ Note::Note(uint8_t key, uint8_t velocity, ControlRom &ctrlRom, PcmRom &pcmRom,
   // Every instrument in the Sound Canvas line has up to two partials
   std::bitset<2> partialBits(ctrlRom.instrument(instrumentIndex).partialsUsed);
   if (partialBits.test(0))
-    _partial[0] = new Partial(key, 0, instrumentIndex, ctrlRom, pcmRom, _LFO1,
-                              settings, partId);
+    _partial[0] = new Partial(0, key, velocity, instrumentIndex, ctrlRom,
+			      pcmRom, _LFO1, settings, partId);
   if (partialBits.test(1))
-    _partial[1] = new Partial(key, 1, instrumentIndex, ctrlRom, pcmRom, _LFO1,
-                              settings, partId);
+    _partial[1] = new Partial(1, key, velocity, instrumentIndex, ctrlRom,
+			      pcmRom, _LFO1, settings, partId);
 }
 
 

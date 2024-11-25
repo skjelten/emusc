@@ -38,8 +38,9 @@ namespace EmuSC {
 class TVF
 {
 public:
-  TVF(ControlRom::InstPartial &instPartial, uint8_t key, WaveGenerator *LFO1,
-      WaveGenerator *LFO2, Settings *settings, int8_t partId);
+  TVF(ControlRom::InstPartial &instPartial, uint8_t key, uint8_t velocity,
+      WaveGenerator *LFO1, WaveGenerator *LFO2,
+      Settings *settings, int8_t partId);
   ~TVF();
 
   void apply(double *sample);

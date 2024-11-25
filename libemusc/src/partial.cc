@@ -66,9 +66,9 @@ static InterpIndexes get_cubic_indexes(int i, int loopStart, int loopEnd, bool i
 namespace EmuSC {
 
 
-Partial::Partial(uint8_t key, int partialId, uint16_t instrumentIndex,
-		 ControlRom &ctrlRom, PcmRom &pcmRom, WaveGenerator *LFO1,
-		 Settings *settings, int8_t partId)
+Partial::Partial(int partialId, uint8_t key, uint8_t velocity,
+		 uint16_t instrumentIndex, ControlRom &ctrlRom, PcmRom &pcmRom,
+		 WaveGenerator *LFO1, Settings *settings, int8_t partId)
   : _instPartial(ctrlRom.instrument(instrumentIndex).partials[partialId]),
     _lastPos(0),
     _index(0),
@@ -123,11 +123,11 @@ Partial::Partial(uint8_t key, int partialId, uint16_t instrumentIndex,
   _LFO2 = new WaveGenerator(_instPartial, settings, partId);
 
   // 8. Create TVP/F/A & envelope classes
-  _tvp = new TVP(_instPartial, key, keyShift, _ctrlSample, LFO1, _LFO2,
-                 settings, partId);
-  _tvf = new TVF(_instPartial, key, LFO1, _LFO2, settings, partId);
-  _tva = new TVA(_instPartial, key, _ctrlSample, LFO1, _LFO2, settings, partId,
-                 ctrlRom.instrument(instrumentIndex).volume);
+  _tvp = new TVP(_instPartial, key, velocity, keyShift, _ctrlSample, LFO1,
+		 _LFO2, settings, partId);
+  _tvf = new TVF(_instPartial, key, velocity, LFO1, _LFO2, settings, partId);
+  _tva = new TVA(_instPartial, key, velocity, _ctrlSample, LFO1, _LFO2,
+		 settings, partId, ctrlRom.instrument(instrumentIndex).volume);
 
   // FIXME: A few sample definitions in the SC-55 ROM have loop length >
   // sample length. This makes EmuSC crash as it loops outside range. The

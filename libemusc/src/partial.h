@@ -40,9 +40,9 @@ namespace EmuSC {
 class Partial
 {
 public:
-  Partial(uint8_t key, int partialId, uint16_t instrumentIndex,
-	  ControlRom &controlRom, PcmRom &pcmRom, WaveGenerator *LFO1,
-	  Settings *settings, int8_t partId);
+  Partial(int partialId, uint8_t key, uint8_t velocity,
+	  uint16_t instrumentIndex, ControlRom &controlRom, PcmRom &pcmRom,
+	  WaveGenerator *LFO1, Settings *settings, int8_t partId);
   ~Partial();
 
   void stop(void);
