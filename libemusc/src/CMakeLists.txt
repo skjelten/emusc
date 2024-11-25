@@ -3,8 +3,6 @@ cmake_minimum_required(VERSION 3.8...3.30)
 configure_file(config.h.in config.h)
 
 add_library(emusc
-  ahdsr.cc
-  ahdsr.h
   allpass_filter.cc
   allpass_filter.h
   biquad_filter.cc
@@ -17,6 +15,8 @@ add_library(emusc
   control_rom.h
   delay.cc
   delay.h
+  envelope.cc
+  envelope.h
   highpass_filter2.cc
   highpass_filter2.h
   lowpass_filter1.cc

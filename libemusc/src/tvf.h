@@ -22,8 +22,8 @@
 
 
 #include "control_rom.h"
+#include "envelope.h"
 #include "lowpass_filter2.h"
-#include "ahdsr.h"
 #include "settings.h"
 #include "wave_generator.h"
 
@@ -46,10 +46,10 @@ public:
   void update_params(void);
 
   void note_off();
-  inline bool finished(void) { if (_ahdsr) return _ahdsr->finished(); }
+  inline bool finished(void) { if (_envelope) return _envelope->finished(); }
 
   float get_current_value()
-  { if (_ahdsr) return _ahdsr->get_current_value(); return 0; }
+  { if (_envelope) return _envelope->get_current_value(); return 0; }
 
 private:
   uint32_t _sampleRate;
@@ -65,7 +65,7 @@ private:
 
   uint8_t _key;
 
-  AHDSR *_ahdsr;
+  Envelope *_envelope;
   LowPassFilter2 *_lpFilter;
 
   ControlRom::InstPartial &_instPartial;

@@ -21,8 +21,8 @@
 #define __TVP_H__
 
 
-#include "ahdsr.h"
 #include "control_rom.h"
+#include "envelope.h"
 #include "settings.h"
 #include "wave_generator.h"
 
@@ -45,11 +45,11 @@ public:
   void update_dynamic_params(void);
 
   void note_off();
-  inline bool finished(void) { if (_ahdsr) return _ahdsr->finished(); }
+  inline bool finished(void) { if (_envelope) return _envelope->finished(); }
 
   double get_next_value(void);
   float get_current_value(void)
-  { if (_ahdsr) return _ahdsr->get_current_value(); return 0; }
+  { if (_envelope) return _envelope->get_current_value(); return 0; }
 
 private:
   uint32_t _sampleRate;
@@ -71,7 +71,7 @@ private:
   float _pitchOffsetHz;
   float _pitchExp;
 
-  AHDSR *_ahdsr;
+  Envelope *_envelope;
   int _multiplier;
 
   ControlRom::InstPartial &_instPartial;

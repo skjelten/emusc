@@ -55,7 +55,7 @@ TVP::TVP(ControlRom::InstPartial &instPartial, uint8_t key, int keyShift,
     _LFO1Depth(instPartial.TVPLFO1Depth & 0x7f),
     _LFO2Depth(instPartial.TVPLFO2Depth & 0x7f),
     _expFactor(log(2) / 12000),
-    _ahdsr(NULL),
+    _envelope(NULL),
     _multiplier(instPartial.pitchMult & 0x7f),
     _instPartial(instPartial),
     _settings(settings),
@@ -72,14 +72,14 @@ TVP::TVP(ControlRom::InstPartial &instPartial, uint8_t key, int keyShift,
     return;
 
   _init_envelope();
-  if (_ahdsr)
-    _ahdsr->start();
+  if (_envelope)
+    _envelope->start();
 }
 
 
 TVP::~TVP()
 {
-  delete _ahdsr;
+  delete _envelope;
 }
 
 
@@ -90,10 +90,10 @@ double TVP::get_next_value()
   double vibrato = (1 + (_LFO1->value() * _accLFO1Depth * 0.0011)) *
                    (1 + (_LFO2->value() * _accLFO2Depth * 0.0011));
 
-  if (!_ahdsr)
+  if (!_envelope)
     return pitchAdj * vibrato;
 
-  float envelope = exp(_ahdsr->get_next_value() * 0.3 * _multiplier *
+  float envelope = exp(_envelope->get_next_value() * 0.3 * _multiplier *
 		       (log(2) / 1200.0));
 
   return pitchAdj * vibrato * envelope;
@@ -102,8 +102,8 @@ double TVP::get_next_value()
 
 void TVP::note_off()
 {
-  if (_ahdsr)
-    _ahdsr->release();
+  if (_envelope)
+    _envelope->release();
 }
 
 
@@ -195,8 +195,9 @@ void TVP::_init_envelope(void)
 
   bool phaseShape[5] = { 0, 0, 0, 0, 0 };
 
-  _ahdsr = new AHDSR(phasePitch, phaseDuration, phaseShape, 0,
-		     _settings, _partId, AHDSR::Type::TVP, phasePitchInit);
+  _envelope = new Envelope(phasePitch, phaseDuration, phaseShape, 0,
+			   _settings, _partId, Envelope::Type::TVP,
+			   phasePitchInit);
 }
 
 }

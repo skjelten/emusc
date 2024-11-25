@@ -21,8 +21,8 @@
 #define __TVA_H__
 
 
-#include "ahdsr.h"
 #include "control_rom.h"
+#include "envelope.h"
 #include "settings.h"
 #include "wave_generator.h"
 
@@ -46,7 +46,7 @@ public:
 
   void apply(double *sample);
   float get_current_value()
-  { if (_ahdsr) return _ahdsr->get_current_value(); return 0; }
+  { if (_envelope) return _envelope->get_current_value(); return 0; }
 
   void note_off();
   bool finished(void);
@@ -66,7 +66,7 @@ private:
   uint8_t _panpot;
   bool _panpotLocked;
 
-  AHDSR *_ahdsr;
+  Envelope *_envelope;
   bool _finished;
   
   ControlRom::InstPartial &_instPartial;

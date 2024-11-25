@@ -17,8 +17,8 @@
  */
 
 
-#ifndef __AHDSR_H__
-#define __AHDSR_H__
+#ifndef __ENVELOPE_H__
+#define __ENVELOPE_H__
 
 
 #include "settings.h"
@@ -29,7 +29,7 @@
 namespace EmuSC {
 
 
-class AHDSR
+class Envelope
 {
 public:
   enum class Type {
@@ -38,9 +38,9 @@ public:
     TVP
   };
 
-  AHDSR(double value[5], uint8_t duration[5], bool shape[5], int key,
+  Envelope(double value[5], uint8_t duration[5], bool shape[5], int key,
 	Settings *settings, int8_t partId, enum Type type, int initValue = 0);
-  ~AHDSR();
+  ~Envelope();
 
   void start(void);
   double get_next_value(void);
@@ -53,7 +53,7 @@ public:
 private:
   double  _phaseValue[5];
   uint8_t _phaseDuration[5];
-  bool    _phaseShape[5];        // Phase 0 = linear, 1 = logarithmic
+  bool    _phaseShape[5];       // Phase 0 = linear, 1 = logarithmic
 
   bool _finished;               // Flag indicating whether enveolope is finished
 
@@ -66,13 +66,13 @@ private:
   double _phaseInitValue;
   double _currentValue;
 
-  enum Phase {
-    ahdsr_Off     = -1,
-    ahdsr_Attack  =  0,
-    ahdsr_Hold    =  1,
-    ahdsr_Decay   =  2,
-    ahdsr_Sustain =  3,
-    ahdsr_Release =  4
+  enum class Phase {
+    Off     = -1,
+    Attack  =  0,
+    Hold    =  1,
+    Decay   =  2,
+    Sustain =  3,
+    Release =  4
   };
   enum Phase _phase;
 
@@ -85,12 +85,9 @@ private:
   const char *_phaseName[5] = { "Attack", "Hold", "Decay",
 				"Sustain", "Release" };
 
-  AHDSR();
+  Envelope();
 
   void _init_new_phase(enum Phase newPhase);
-
-//  uint32_t _sampleNum;
-//  std::ofstream _ofs;
 
   // Create a calculated LUT since we are still unable to read this from ROM
   static constexpr std::array<float, 128> _convert_time_to_sec_LUT = {
@@ -119,4 +116,4 @@ private:
 
 }
 
-#endif  // __AHDSR_H__
+#endif  // __ENVELOPE_H__

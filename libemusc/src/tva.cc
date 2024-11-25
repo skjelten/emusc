@@ -40,7 +40,7 @@ TVA::TVA(ControlRom::InstPartial &instPartial, uint8_t key,
     _key(key),
     _drumSet(settings->get_param(PatchParam::UseForRhythm, partId)),
     _panpotLocked(false),
-    _ahdsr(NULL),
+    _envelope(NULL),
     _finished(false),
     _instPartial(instPartial),
     _settings(settings),
@@ -52,14 +52,14 @@ TVA::TVA(ControlRom::InstPartial &instPartial, uint8_t key,
 
   // All instruments must have a TVA envelope defined
   _init_envelope();
-  if (_ahdsr)
-    _ahdsr->start();
+  if (_envelope)
+    _envelope->start();
 }
 
 
 TVA::~TVA()
 {
-  delete _ahdsr;
+  delete _envelope;
 }
 
 
@@ -71,8 +71,8 @@ void TVA::apply(double *sample)
 
   // Volume envelope
   double volEnvelope = 0;
-  if (_ahdsr)
-    volEnvelope = _ahdsr->get_next_value();
+  if (_envelope)
+    volEnvelope = _envelope->get_next_value();
 
   // Apply all volume corrections
   sample[0] *= _staticVolCorr * _drumVol * _ctrlVol;
@@ -89,8 +89,8 @@ void TVA::apply(double *sample)
 
 void TVA::note_off()
 {
-  if (_ahdsr)
-    _ahdsr->release();
+  if (_envelope)
+    _envelope->release();
   else
     _finished = true;
 }
@@ -154,8 +154,8 @@ void TVA::update_dynamic_params(bool reset)
 
 bool TVA::finished(void)
 {
-  if (_ahdsr)
-    return _ahdsr->finished();
+  if (_envelope)
+    return _envelope->finished();
 
   return _finished;
 }
@@ -207,8 +207,8 @@ void TVA::_init_envelope(void)
   phaseShape[3] = (_instPartial.TVALenP4 & 0x80) ? 0 : 1;
   phaseShape[4] = (_instPartial.TVALenP5 & 0x80) ? 0 : 1;
 
-  _ahdsr = new AHDSR(phaseVolume, phaseDuration, phaseShape, _key,
-                    _settings, _partId, AHDSR::Type::TVA);
+  _envelope = new Envelope(phaseVolume, phaseDuration, phaseShape, _key,
+			   _settings, _partId, Envelope::Type::TVA);
 }
 
 }

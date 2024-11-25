@@ -17,7 +17,7 @@
  */
 
 
-#include "ahdsr.h"
+#include "envelope.h"
 
 #include <cmath>
 #include <iostream>
@@ -27,15 +27,15 @@
 namespace EmuSC {
 
 // Make Clang compiler happy
-constexpr std::array<float, 128> AHDSR::_convert_time_to_sec_LUT;
+constexpr std::array<float, 128> Envelope::_convert_time_to_sec_LUT;
 
 
-AHDSR::AHDSR(double value[5], uint8_t duration[5], bool shape[5], int key,
-	     Settings *settings, int8_t partId, enum Type type, int initValue)
+Envelope::Envelope(double value[5], uint8_t duration[5], bool shape[5], int key,
+	       Settings *settings, int8_t partId, enum Type type, int initValue)
   : _finished(false),
     _sampleRate(settings->sample_rate()),
     _currentValue(initValue),
-    _phase(ahdsr_Off),
+    _phase(Phase::Off),
     _key(key),
     _settings(settings),
     _partId(partId),
@@ -53,7 +53,7 @@ AHDSR::AHDSR(double value[5], uint8_t duration[5], bool shape[5], int key,
     else if (type == Type::TVF) envType = "TVF";
     else envType = "Pitch";
 
-    std::cout << "\nNew AHDSR envelope: " << envType << std::endl << std::dec
+    std::cout << "\nNew " << envType << " envelope" << std::endl << std::dec
 	      << " Attack:  -> V=" << (double) _phaseValue[0]
 	      << " T=" << (float) _phaseDuration[0]
 	      << " S=" << _phaseShape[0]
@@ -76,26 +76,22 @@ AHDSR::AHDSR(double value[5], uint8_t duration[5], bool shape[5], int key,
 	      << std::endl
 	      << " Key=" << key << std::endl;
   }
-  // Debug output for plotting in Octave
-  // _sampleNum = 0; _ofs.open("/tmp/TVA.txt", std::ios_base::trunc);
 }
 
 
-AHDSR::~AHDSR()
-{
-//  _ofs.close();
-}
+Envelope::~Envelope()
+{}
 
 
-void AHDSR::start(void)
+void Envelope::start(void)
 {
-  _init_new_phase(ahdsr_Attack);
+  _init_new_phase(Phase::Attack);
 }
 
   
-void AHDSR::_init_new_phase(enum Phase newPhase)
+void Envelope::_init_new_phase(enum Phase newPhase)
 {
-  if (newPhase == ahdsr_Off) {
+  if (newPhase == Phase::Off) {
     std::cerr << "libEmuSC: Internal error, envelope in illegal state"
 	      << std::endl;
     return;
@@ -103,16 +99,16 @@ void AHDSR::_init_new_phase(enum Phase newPhase)
 
   _phaseInitValue = _currentValue;
 
-  int durationTotal = _phaseDuration[newPhase];
-  if (newPhase == ahdsr_Attack || newPhase == ahdsr_Hold) {
+  int durationTotal = _phaseDuration[static_cast<int>(newPhase)];
+  if (newPhase == Phase::Attack || newPhase == Phase::Hold) {
     durationTotal += _settings->get_param(PatchParam::TVFAEnvAttack, _partId)
                      - 0x40;
 
-  } else if (newPhase == ahdsr_Decay) {
+  } else if (newPhase == Phase::Decay) {
     durationTotal += _settings->get_param(PatchParam::TVFAEnvDecay, _partId)
                      - 0x40;
 
-  } else if (newPhase == ahdsr_Release) {
+  } else if (newPhase == Phase::Release) {
     durationTotal += _settings->get_param(PatchParam::TVFAEnvRelease, _partId)
                      - 0x40;
   }
@@ -136,44 +132,44 @@ void AHDSR::_init_new_phase(enum Phase newPhase)
     else if (_type == Type::TVF) envType = "TVF";
     else envType = "Pitch";
 
-    std::cout << "New " << envType << " envelope phase: -> " << _phase
-	      << " (" << _phaseName[_phase] << ")"
+    std::cout << "New " << envType << " envelope phase: -> " << static_cast<int>(_phase)
+	      << " (" << _phaseName[static_cast<int>(_phase)] << ")"
 	      << ": len = " << phaseDurationSec << "s"
 	      << " (" << _phaseSampleLen << " samples)"
-	      << " val = " << _phaseInitValue << " -> " << _phaseValue[_phase]
+	      << " val = " << _phaseInitValue << " -> " << _phaseValue[static_cast<int>(_phase)]
 	      << std::endl;
   }
 }
 
 
-double AHDSR::get_next_value(void)
+double Envelope::get_next_value(void)
 {
-  if (_phase == ahdsr_Off) {
+  if (_phase == Phase::Off) {
     std::cerr << "libEmuSC: Internal error, envelope used in Off phase"
 	      << std::endl; 
     return 0;
 
-  } else if (_phase == ahdsr_Attack) {
+  } else if (_phase == Phase::Attack) {
     if (_phaseSampleIndex > _phaseSampleLen)
-      _init_new_phase(ahdsr_Hold);
+      _init_new_phase(Phase::Hold);
 
-  } else if (_phase == ahdsr_Hold) {
+  } else if (_phase == Phase::Hold) {
     if (_phaseSampleIndex > _phaseSampleLen)
-      _init_new_phase(ahdsr_Decay);
+      _init_new_phase(Phase::Decay);
 
-  } else if (_phase == ahdsr_Decay) {
+  } else if (_phase == Phase::Decay) {
     if (_phaseSampleIndex > _phaseSampleLen)
-      _init_new_phase(ahdsr_Sustain);
+      _init_new_phase(Phase::Sustain);
 
-  } else if (_phase == ahdsr_Sustain) {
+  } else if (_phase == Phase::Sustain) {
     if (_phaseSampleIndex > _phaseSampleLen) {
-      if (_phaseValue[ahdsr_Sustain] == 0)
-	_init_new_phase(ahdsr_Release);
+      if (_phaseValue[static_cast<int>(Phase::Sustain)] == 0)
+	_init_new_phase(Phase::Release);
       else
 	return _currentValue;                  // Sustain can last forever
     }
 
-  } else if (_phase == ahdsr_Release) {
+  } else if (_phase == Phase::Release) {
     if (_phaseSampleIndex > _phaseSampleLen) {
       _finished = true;
       return 0;
@@ -181,27 +177,15 @@ double AHDSR::get_next_value(void)
   }
 
   if (_phaseSampleLen <= 0)
-    _currentValue = _phaseValue[_phase];
-  else if (_phaseShape[_phase - 1] == 0)            // Linear
+    _currentValue = _phaseValue[static_cast<int>(_phase)];
+  else if (_phaseShape[static_cast<int>(_phase) - 1] == 0)            // Linear
     _currentValue = _phaseInitValue +
-      (_phaseValue[_phase] - _phaseInitValue) *
+      (_phaseValue[static_cast<int>(_phase)] - _phaseInitValue) *
       ((double) _phaseSampleIndex / (double) _phaseSampleLen);
   else
     _currentValue = _phaseInitValue +                // Concave / convex
-      (_phaseValue[_phase] - _phaseInitValue) *
+      (_phaseValue[static_cast<int>(_phase)] - _phaseInitValue) *
       (log(10.0 * _phaseSampleIndex / _phaseSampleLen + 1) / log(10.0 + 1));
-
-  /*
-  // Debug output to file for plotting in Octave
-  char number[24];
-  setlocale(LC_ALL, "POSIX");
-  snprintf(number, 24, "%f ", (float) _sampleNum/_sampleRate);
-  _ofs.write(&number[0], strlen(number));
-  snprintf(number, 24, "%f", (float) (_currentValue));
-  _ofs.write(&number[0], strlen(number));
-  _ofs.write("\n", 1);
-  _sampleNum ++;
-  */
 
   _phaseSampleIndex ++;
 
@@ -209,12 +193,12 @@ double AHDSR::get_next_value(void)
 }
 
 
-void AHDSR::release()
+void Envelope::release()
 {
-  if (_phase == ahdsr_Release)
+  if (_phase == Phase::Release)
     return;
 
-  _init_new_phase(ahdsr_Release);
+  _init_new_phase(Phase::Release);
 }
 
 }

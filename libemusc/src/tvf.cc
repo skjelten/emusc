@@ -51,7 +51,7 @@ TVF::TVF(ControlRom::InstPartial &instPartial, uint8_t key, WaveGenerator *LFO1,
     _LFO1(LFO1),
     _LFO2(LFO2),
     _key(key),
-    _ahdsr(NULL),
+    _envelope(NULL),
     _lpFilter(NULL),
     _instPartial(instPartial),
     _settings(settings),
@@ -61,8 +61,8 @@ TVF::TVF(ControlRom::InstPartial &instPartial, uint8_t key, WaveGenerator *LFO1,
   if (!(!instPartial.TVFDurP1 && !instPartial.TVFDurP2 && !instPartial.TVFDurP3
 	&& !instPartial.TVFDurP4 && !instPartial.TVFDurP5)) {
     _init_envelope();
-    if (_ahdsr)
-      _ahdsr->start();
+    if (_envelope)
+      _envelope->start();
 
   } else if (instPartial.TVFBaseFlt == 0) {
     // If no envelope nor base filter is specified the entire TVF is disabled
@@ -77,8 +77,8 @@ TVF::TVF(ControlRom::InstPartial &instPartial, uint8_t key, WaveGenerator *LFO1,
 
 TVF::~TVF()
 {
-  if (_ahdsr)
-    delete _ahdsr;
+  if (_envelope)
+    delete _envelope;
 
   if (_lpFilter)
     delete _lpFilter;
@@ -96,8 +96,8 @@ void TVF::apply(double *sample)
   float filterRes;
 
   float envelopeDiff = 0.0;
-  if (_ahdsr) {
-    int envelope = _ahdsr->get_next_value() - 0x40;
+  if (_envelope) {
+    int envelope = _envelope->get_next_value() - 0x40;
     envelopeDiff = ((float) _instPartial.TVFLvlInit / 64.0) * envelope;
   }
 
@@ -129,8 +129,8 @@ void TVF::apply(double *sample)
 
 void TVF::note_off()
 {
-  if (_ahdsr)
-    _ahdsr->release();
+  if (_envelope)
+    _envelope->release();
 }
 
 
@@ -174,8 +174,8 @@ void TVF::_init_envelope(void)
 
   bool phaseShape[5] = { 0, 0, 0, 0, 0 };
 
-  _ahdsr = new AHDSR(phaseLevel, phaseDuration, phaseShape, _key,
-                     _settings, _partId, AHDSR::Type::TVF, 0x40);
+  _envelope = new Envelope(phaseLevel, phaseDuration, phaseShape, _key,
+			   _settings, _partId, Envelope::Type::TVF, 0x40);
 }
 
 }
