@@ -50,10 +50,15 @@ public:
 
   inline bool finished(void) { return _finished; }
 
+  void set_time_correction_t1_t4(float time);
+  void set_time_correction_t5(float time);
+
 private:
   double  _phaseValue[5];
   uint8_t _phaseDuration[5];
   bool    _phaseShape[5];       // Phase 0 = linear, 1 = logarithmic
+
+  float _expDecayRate;
 
   bool _finished;               // Flag indicating whether enveolope is finished
 
@@ -62,16 +67,16 @@ private:
   uint32_t _phaseSampleIndex;
   uint32_t _phaseSampleNum;
   uint32_t _phaseSampleLen;
-  
+
   double _phaseInitValue;
   double _currentValue;
 
   enum class Phase {
     Off     = -1,
-    Attack  =  0,
-    Hold    =  1,
-    Decay   =  2,
-    Sustain =  3,
+    Attack1 =  0,
+    Attack2 =  1,
+    Decay1  =  2,
+    Decay2  =  3,
     Release =  4
   };
   enum Phase _phase;
@@ -81,9 +86,12 @@ private:
   Settings *_settings;
   int8_t _partId;
 
+  float _timeCorrT1T4;
+  float _timeCorrT5;
+
   enum Type _type;
-  const char *_phaseName[5] = { "Attack", "Hold", "Decay",
-				"Sustain", "Release" };
+  const char *_phaseName[5] = { "Attack 1", "Attack 2", "Decay 1",
+				"Decay 2 (S)", "Release" };
 
   Envelope();
 

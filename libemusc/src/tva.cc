@@ -16,6 +16,8 @@
  *  along with libEmuSC. If not, see <http://www.gnu.org/licenses/>.
  */
 
+// TVA: Controlling volume changes and stereo positioning over time
+
 
 #include "tva.h"
 
@@ -199,7 +201,6 @@ void TVA::_init_envelope(void)
   phaseDuration[2] = _instPartial.TVALenP3 & 0x7F;
   phaseDuration[3] = _instPartial.TVALenP4 & 0x7F;
   phaseDuration[4] = _instPartial.TVALenP5 & 0x7F;
-  phaseDuration[4] *= (_instPartial.TVALenP5 & 0x80) ? 2 : 1;
 
   phaseShape[0] = (_instPartial.TVALenP1 & 0x80) ? 0 : 1;
   phaseShape[1] = (_instPartial.TVALenP2 & 0x80) ? 0 : 1;
@@ -209,6 +210,34 @@ void TVA::_init_envelope(void)
 
   _envelope = new Envelope(phaseVolume, phaseDuration, phaseShape, _key,
 			   _settings, _partId, Envelope::Type::TVA);
+
+  // Adjust time for T1 - T4 (Attacks & Decays)
+  int key;
+  if (_instPartial.TVAETKeyA14 == 1)
+    key = 127 - _key;
+  else if (_instPartial.TVAETKeyA14 == 2)
+    key = 127;
+  else
+    key = _key;
+
+  int tkf = _instPartial.TVAETKeyF14 - 0x40;
+  _envelope->set_time_correction_t1_t4(pow(0.87075, tkf) *
+                                       exp(0.0021586 * tkf * key));
+
+  // Adjust time for T5 (Release)
+  if (_instPartial.TVAETKeyA5 == 1)
+    key = 127 - _key;
+  else if (_instPartial.TVAETKeyA5 == 2)
+    key = 127;
+  else
+    key = _key;
+
+  tkf = _instPartial.TVAETKeyF5 - 0x40;
+  _envelope->set_time_correction_t5(pow(0.87075, tkf) *
+                                    exp(0.0021586 * tkf * key));
+
+  // Adjust level
+  // TBD
 }
 
 }

@@ -16,6 +16,30 @@
  *  along with libEmuSC. If not, see <http://www.gnu.org/licenses/>.
  */
 
+// Envelopes in the Sound Canvas have 5 phases:
+//  - Phase 1 and 2 are the "Attack" phases
+//  - Phase 3 and 4 are the "Decay" phases
+//  - If the level in phase 4 (L4) is non-zero the value is sustained
+//  - Phase 5 is the "Release" phase triggered by a note off event
+//
+//  |  | T1 | T2 |T3|T4| (Sustain)  | T5 |
+//  |  |    |    |  |  |            |    |
+//  |  |  L1|____|L2|  |            |    |
+//  |  |    /    \  |  |____________|    |
+//  |  |   /      \ | /L4           |\   |
+//  |  |  /        \|/              | \  |
+//  |  | /          L3              |  \ |
+//  |__|/___________________________|___\|___
+//     ^L0                          ^    L5
+//  Note on                      Note off
+//
+// Some notes:
+// * Sound Canvas line has 3 similar envelopes available: Pitch, TVF and TVA
+// * TVA have both linear and expoential curves, pitch and TVF only linear
+// * In TVA envelopes L0 and L5 are not specified as they are always 0
+
+// TODO: Phase duration adjustments are dynamically updated
+
 
 #include "envelope.h"
 
@@ -39,6 +63,8 @@ Envelope::Envelope(double value[5], uint8_t duration[5], bool shape[5], int key,
     _key(key),
     _settings(settings),
     _partId(partId),
+    _timeCorrT1T4(1.0),
+    _timeCorrT5(1.0),
     _type(type)
 {
   for (int i = 0; i < 5; i++) {
@@ -52,28 +78,30 @@ Envelope::Envelope(double value[5], uint8_t duration[5], bool shape[5], int key,
     if (type == Type::TVA) envType = "TVA";
     else if (type == Type::TVF) envType = "TVF";
     else envType = "Pitch";
+    std::array<std::string, 2> shape = { "Linear", "Exponential" };
 
     std::cout << "\nNew " << envType << " envelope" << std::endl << std::dec
-	      << " Attack:  -> V=" << (double) _phaseValue[0]
+	      << " Attack 1: -> L=" << (double) _phaseValue[0]
 	      << " T=" << (float) _phaseDuration[0]
-	      << " S=" << _phaseShape[0]
-	      << std::endl
-	      << " Hold:    -> V=" << (double) _phaseValue[1]
+	      << " S=" << shape[_phaseShape[0]] << std::endl
+	      << " Attack 2: -> L=" << (double) _phaseValue[1]
 	      << " T=" << (float) _phaseDuration[1]
-	      << " S=" << _phaseShape[1]
-	      << std::endl
-	      << " Decay:   -> V=" << (double) _phaseValue[2]
+	      << " S=" << shape[_phaseShape[1]] << std::endl
+	      << " Decay 1:  -> L=" << (double) _phaseValue[2]
 	      << " T=" << (float) _phaseDuration[2]
-	      << " S=" << _phaseShape[2]
-	      << std::endl
-	      << " Sustain: -> V=" << (double) _phaseValue[3]
+	      << " S=" << shape[_phaseShape[2]] << std::endl
+	      << " Decay 2:  -> L=" << (double) _phaseValue[3]
 	      << " T=" << (float) _phaseDuration[3]
-	      << " S=" << _phaseShape[3]
-	      << std::endl
-	      << " Release: -> V=" << (double) _phaseValue[4]
+	      << " S=" << shape[_phaseShape[3]] << std::endl;
+
+    if (_phaseValue[3] != 0)
+      std::cout << "   > Sustain -> L=" << (double) _phaseValue[3] << std::endl;
+    else
+      std::cout << "   > No sustain" << std::endl;
+
+    std::cout << " Release:  -> L=" << (double) _phaseValue[4]
 	      << " T=" << (float) _phaseDuration[4]
-	      << " S=" << _phaseShape[4]
-	      << std::endl
+	      << " S=" << shape[_phaseShape[4]] << std::endl
 	      << " Key=" << key << std::endl;
   }
 }
@@ -85,7 +113,7 @@ Envelope::~Envelope()
 
 void Envelope::start(void)
 {
-  _init_new_phase(Phase::Attack);
+  _init_new_phase(Phase::Attack1);
 }
 
   
@@ -100,11 +128,11 @@ void Envelope::_init_new_phase(enum Phase newPhase)
   _phaseInitValue = _currentValue;
 
   int durationTotal = _phaseDuration[static_cast<int>(newPhase)];
-  if (newPhase == Phase::Attack || newPhase == Phase::Hold) {
+  if (newPhase == Phase::Attack1 || newPhase == Phase::Attack2) {
     durationTotal += _settings->get_param(PatchParam::TVFAEnvAttack, _partId)
                      - 0x40;
 
-  } else if (newPhase == Phase::Decay) {
+  } else if (newPhase == Phase::Decay1 || newPhase == Phase::Decay2) {
     durationTotal += _settings->get_param(PatchParam::TVFAEnvDecay, _partId)
                      - 0x40;
 
@@ -117,14 +145,31 @@ void Envelope::_init_new_phase(enum Phase newPhase)
   if (durationTotal < 0) durationTotal = 0;
   if (durationTotal > 127) durationTotal = 127;
 
-  double phaseDurationSec = (_key < 0) ?
-    _convert_time_to_sec_LUT[durationTotal] :
-    _convert_time_to_sec_LUT[durationTotal] * (1 - (_key / 128.0));
+  double phaseDurationSec = _convert_time_to_sec_LUT[durationTotal];
+
+  // FIXME: Find out when this should be used and re-enable it
+  //(_key < 0) ?
+  //    _convert_time_to_sec_LUT[durationTotal] :
+  //    _convert_time_to_sec_LUT[durationTotal] * (1 - (_key / 128.0));
+
+  if (newPhase != Phase::Release)
+    phaseDurationSec *= _timeCorrT1T4;
+  else
+    phaseDurationSec *= _timeCorrT5;
 
   _phaseSampleLen = round(phaseDurationSec * _sampleRate);
 
   _phaseSampleIndex = 0;
   _phase = newPhase;
+
+  // Exponential decay: y(x) = y0 * exp(-k*x)
+  // k (_expDecayRate) = 0.00025 * (1 + a * (60 – key) / 60.0) / t
+  // 0.00025 is pretty good estimation for 1 second of key C4
+  // "a" is the scaling factor for key value compensation. Should be approx.
+  // 0.45, but this creates instability in volume level for high pitches.
+  // TODO: Investigate how "a" can be decreased without affecting volume
+  if (_phaseShape[static_cast<int>(_phase)] == 1)
+    _expDecayRate = 0.00025 * (1 + 0.48 * (60 - _key) / 60.0) /phaseDurationSec;
 
   if (0) {
     std::string envType;
@@ -133,11 +178,10 @@ void Envelope::_init_new_phase(enum Phase newPhase)
     else envType = "Pitch";
 
     std::cout << "New " << envType << " envelope phase: -> " << static_cast<int>(_phase)
-	      << " (" << _phaseName[static_cast<int>(_phase)] << ")"
-	      << ": len = " << phaseDurationSec << "s"
-	      << " (" << _phaseSampleLen << " samples)"
-	      << " val = " << _phaseInitValue << " -> " << _phaseValue[static_cast<int>(_phase)]
-	      << std::endl;
+	      << " (" << _phaseName[static_cast<int>(_phase)] << "): Level = "
+              << _phaseInitValue << " -> " << _phaseValue[static_cast<int>(_phase)]
+	      << " Time = " << phaseDurationSec << "s"
+	      << " (" << _phaseSampleLen << " samples)" << std::endl;
   }
 }
 
@@ -149,21 +193,21 @@ double Envelope::get_next_value(void)
 	      << std::endl; 
     return 0;
 
-  } else if (_phase == Phase::Attack) {
+  } else if (_phase == Phase::Attack1) {
     if (_phaseSampleIndex > _phaseSampleLen)
-      _init_new_phase(Phase::Hold);
+      _init_new_phase(Phase::Attack2);
 
-  } else if (_phase == Phase::Hold) {
+  } else if (_phase == Phase::Attack2) {
     if (_phaseSampleIndex > _phaseSampleLen)
-      _init_new_phase(Phase::Decay);
+      _init_new_phase(Phase::Decay1);
 
-  } else if (_phase == Phase::Decay) {
+  } else if (_phase == Phase::Decay1) {
     if (_phaseSampleIndex > _phaseSampleLen)
-      _init_new_phase(Phase::Sustain);
+      _init_new_phase(Phase::Decay2);
 
-  } else if (_phase == Phase::Sustain) {
+  } else if (_phase == Phase::Decay2) {
     if (_phaseSampleIndex > _phaseSampleLen) {
-      if (_phaseValue[static_cast<int>(Phase::Sustain)] == 0)
+      if (_phaseValue[static_cast<int>(Phase::Decay2)] == 0)
 	_init_new_phase(Phase::Release);
       else
 	return _currentValue;                  // Sustain can last forever
@@ -176,16 +220,14 @@ double Envelope::get_next_value(void)
     }
   }
 
-  if (_phaseSampleLen <= 0)
-    _currentValue = _phaseValue[static_cast<int>(_phase)];
-  else if (_phaseShape[static_cast<int>(_phase) - 1] == 0)            // Linear
+  if (_phaseShape[static_cast<int>(_phase)] == 0) {       // Linear decay
     _currentValue = _phaseInitValue +
       (_phaseValue[static_cast<int>(_phase)] - _phaseInitValue) *
       ((double) _phaseSampleIndex / (double) _phaseSampleLen);
-  else
-    _currentValue = _phaseInitValue +                // Concave / convex
-      (_phaseValue[static_cast<int>(_phase)] - _phaseInitValue) *
-      (log(10.0 * _phaseSampleIndex / _phaseSampleLen + 1) / log(10.0 + 1));
+
+  } else {                                                // Exponential decay
+    _currentValue = _phaseInitValue * exp(-_expDecayRate * _phaseSampleIndex);
+  }
 
   _phaseSampleIndex ++;
 
@@ -199,6 +241,18 @@ void Envelope::release()
     return;
 
   _init_new_phase(Phase::Release);
+}
+
+
+void Envelope::set_time_correction_t1_t4(float time)
+{
+  _timeCorrT1T4 = time;
+}
+
+
+void Envelope::set_time_correction_t5(float time)
+{
+  _timeCorrT5 = time;
 }
 
 }
