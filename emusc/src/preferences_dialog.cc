@@ -1015,7 +1015,7 @@ RomSettings::RomSettings(Emulator *emulator, QWidget *parent)
 	      << "GS version" << "SHA256";
   _ctrlModel->setHorizontalHeaderLabels(ctrlHeaders);
   _ctrlTableView->setModel(_ctrlModel);
-  _ctrlTableView->setSizeAdjustPolicy(QAbstractScrollArea::AdjustToContents);
+  _ctrlTableView->setSizeAdjustPolicy(QAbstractScrollArea::AdjustToContentsOnFirstShow);
 
   ctrlGridLayout->addWidget(_ctrlTableView, 2, 0, 1, 3);
 
@@ -1042,7 +1042,7 @@ RomSettings::RomSettings(Emulator *emulator, QWidget *parent)
   pcmHeaders << " Model " << "Generation" << "Version" << "Date" << "Index" << "SHA256";
   _pcmModel->setHorizontalHeaderLabels(pcmHeaders);
   _pcmTableView->setModel(_pcmModel);
-  _pcmTableView->setSizeAdjustPolicy(QAbstractScrollArea::AdjustToContents);
+  _pcmTableView->setSizeAdjustPolicy(QAbstractScrollArea::AdjustToContentsOnFirstShow);
 
   _pcmRomFilePaths << settings.value("Rom/pcm1").toString()
 		   << settings.value("Rom/pcm2").toString()
