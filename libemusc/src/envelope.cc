@@ -226,7 +226,9 @@ double Envelope::get_next_value(void)
       ((double) _phaseSampleIndex / (double) _phaseSampleLen);
 
   } else {                                                // Exponential decay
-    _currentValue = _phaseInitValue * exp(-_expDecayRate * _phaseSampleIndex);
+    _currentValue = _phaseValue[static_cast<int>(_phase)] +
+      (_phaseInitValue - _phaseValue[static_cast<int>(_phase)]) *
+      exp(-_expDecayRate * _phaseSampleIndex);
   }
 
   _phaseSampleIndex ++;
