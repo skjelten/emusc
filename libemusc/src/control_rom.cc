@@ -307,10 +307,12 @@ int ControlRom::_read_instruments(std::ifstream &romFile)
       i.partials[p].TVALenP3    = data[76];
       i.partials[p].TVALenP4    = data[77];
       i.partials[p].TVALenP5    = data[78];
-      i.partials[p].TVAETKeyA14 = data[81];
-      i.partials[p].TVAETKeyA5  = data[82];
+      i.partials[p].TVAETKeyP14 = data[81];
+      i.partials[p].TVAETKeyP5  = data[82];
       i.partials[p].TVAETKeyF14 = data[83];
       i.partials[p].TVAETKeyF5  = data[84];
+      i.partials[p].TVAETVSens14= data[85];
+      i.partials[p].TVAETVSens5 = data[86];
     }
 
     _instruments.push_back(i);

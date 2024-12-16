@@ -83,7 +83,7 @@ private:
   TVA();
 
   void _set_static_params(ControlRom::Sample *ctrlSample, int instVolAtt);
-  void _init_envelope(void);
+  void _init_envelope(uint8_t velocity);
 
   static constexpr std::array<float, 128> _convert_volume_LUT = {
     0,        0.001906, 0.003848, 0.005827, 0.007844, 0.009900, 0.011995,

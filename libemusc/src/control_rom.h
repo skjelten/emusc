@@ -121,10 +121,12 @@ public:
     uint8_t TVALenP4;     // TVA duration phase 4 (Decay2)  Default 0
     uint8_t TVALenP5;     // TVA duration phase 5 (Release) Default 0x09
 
-    uint8_t TVAETKeyA14;  // TVA Envelope Time Key Adjust (T1 - T4)
-    uint8_t TVAETKeyA5;   // TVA Envelope Time Key Adjust (T5)
+    uint8_t TVAETKeyP14;  // TVA Envelope Time Key Presets (T1 - T4)
+    uint8_t TVAETKeyP5;   // TVA Envelope Time Key Presets (T5)
     uint8_t TVAETKeyF14;  // TVA Envelope Time Key Follow (T1 - T4)
     uint8_t TVAETKeyF5;   // TVA Envelope Time Key Follow (T5)
+    uint8_t TVAETVSens14; // TVA Envelope Time Velocity Sensitivity (T1 - T4)
+    uint8_t TVAETVSens5;  // TVA Envelope Time Velocity Sensitivity (T5)
   };
 
   struct Instrument {     // 204 bytes in total

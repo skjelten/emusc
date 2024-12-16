@@ -53,7 +53,7 @@ TVA::TVA(ControlRom::InstPartial &instPartial, uint8_t key, uint8_t velocity,
   update_dynamic_params(true);
 
   // All instruments must have a TVA envelope defined
-  _init_envelope();
+  _init_envelope(velocity);
   if (_envelope)
     _envelope->start();
 }
@@ -183,7 +183,7 @@ void TVA::_set_static_params(ControlRom::Sample *ctrlSample, int instVolAtt)
 }
 
 
-void TVA::_init_envelope(void)
+void TVA::_init_envelope(uint8_t velocity)
 {
   double  phaseVolume[5];        // Phase volume for phase 1-5
   uint8_t phaseDuration[5];      // Phase duration for phase 1-5
@@ -211,30 +211,58 @@ void TVA::_init_envelope(void)
   _envelope = new Envelope(phaseVolume, phaseDuration, phaseShape, _key,
 			   _settings, _partId, Envelope::Type::TVA);
 
+  // Adjust envelope phase durations.
+  // The Sound Canvas has three parameters for tuning the TVA durations:
+  // - TVA Envelope Time Key Presets
+  // - TVA Envelope Time Key Follow
+  // - TVA Envelope Time Velocity Sensitivity
+  // All three parameters have separate parameter for attacks & decays (T1-T4)
+  // and for the release phase (T5).
+
   // Adjust time for T1 - T4 (Attacks & Decays)
   int key;
-  if (_instPartial.TVAETKeyA14 == 1)
+  if (_instPartial.TVAETKeyP14 == 1)
     key = 127 - _key;
-  else if (_instPartial.TVAETKeyA14 == 2)
+  else if (_instPartial.TVAETKeyP14 == 2)
     key = 127;
   else
     key = _key;
 
   int tkf = _instPartial.TVAETKeyF14 - 0x40;
-  _envelope->set_time_correction_t1_t4(pow(0.87075, tkf) *
-                                       exp(0.0021586 * tkf * key));
+  float taKeyFollow = pow(0.87075, tkf) * exp(0.0021586 * tkf * key);
+
+  float taVelSens = 1;
+  if (_instPartial.TVAETVSens14 < 0x40) {
+    taVelSens = -((_instPartial.TVAETVSens14 - 0x40) * velocity) / 1270.0 +
+      1 + ((_instPartial.TVAETVSens14 - 0x40) / 10.0);
+  } else if (_instPartial.TVAETVSens14 > 0x40) {
+    std::cerr << "Positive TVA envelope V-sensitivity not implemented yet"
+              << std::endl;
+  }
+
+  _envelope->set_time_correction_t1_t4(taKeyFollow * taVelSens);
 
   // Adjust time for T5 (Release)
-  if (_instPartial.TVAETKeyA5 == 1)
+  if (_instPartial.TVAETKeyP5 == 1)
     key = 127 - _key;
-  else if (_instPartial.TVAETKeyA5 == 2)
+  else if (_instPartial.TVAETKeyP5 == 2)
     key = 127;
   else
     key = _key;
 
   tkf = _instPartial.TVAETKeyF5 - 0x40;
-  _envelope->set_time_correction_t5(pow(0.87075, tkf) *
-                                    exp(0.0021586 * tkf * key));
+  taKeyFollow = pow(0.87075, tkf) * exp(0.0021586 * tkf * key);
+
+  taVelSens = 1;
+  if (_instPartial.TVAETVSens5 < 0x40) {
+    taVelSens = -((_instPartial.TVAETVSens5 - 0x40) * velocity) / 1270.0 +
+      1 + ((_instPartial.TVAETVSens5 - 0x40) / 10.0);
+  } else if (_instPartial.TVAETVSens5 > 0x40) {
+    std::cerr << "Positive TVA envelope V-sensitivity not implemented yet"
+              << std::endl;
+  }
+
+  _envelope->set_time_correction_t5(taKeyFollow * taVelSens);
 
   // Adjust level
   // TBD
