@@ -30,6 +30,8 @@
 namespace EmuSC {
 
 // Make Clang compiler happy
+constexpr std::array<float, 128> TVA::_convert_LFO_depth_high_LUT;
+constexpr std::array<float, 128> TVA::_convert_LFO_depth_low_LUT;
 constexpr std::array<float, 128> TVA::_convert_volume_LUT;
 
 
@@ -67,18 +69,30 @@ TVA::~TVA()
 
 void TVA::apply(double *sample)
 {
-  // Tremolo
-  double tremolo = (_LFO1->value() * 0.01 * (float) _accLFO1Depth) +
-    (_LFO2->value() * 0.01 * (float) _accLFO2Depth);
-
-  // Volume envelope
-  double volEnvelope = 0;
-  if (_envelope)
-    volEnvelope = _envelope->get_next_value();
-
-  // Apply all volume corrections
+  // Apply static volume corrections
   sample[0] *= _staticVolCorr * _drumVol * _ctrlVol;
-  sample[0] *= tremolo + volEnvelope;
+
+  // Apply tremolo (LFOs)
+  if (_accLFO1Depth > 0) {
+    float high = _convert_LFO_depth_high_LUT[_accLFO1Depth];
+    float low =  _convert_LFO_depth_low_LUT[_accLFO1Depth];
+    if (_instPartial.TVALFO1Depth & 0x80)
+      sample[0] *= ((_LFO1->value() * -1) + 1) * 0.5 * (high - low) + low;
+    else
+      sample[0] *= (_LFO1->value() + 1) * 0.5 * (high - low) + low;
+  }
+  if (_accLFO2Depth > 0) {
+    float high = _convert_LFO_depth_high_LUT[_accLFO2Depth];
+    float low =  _convert_LFO_depth_low_LUT[_accLFO2Depth];
+    if (_instPartial.TVALFO2Depth & 0x80)
+      sample[0] *= ((_LFO2->value() * -1) + 1) * 0.5 * (high - low) + low;
+    else
+      sample[0] *= (_LFO2->value() + 1) * 0.5 * (high - low) + low;
+  }
+
+  // Apply volume envelope
+  if (_envelope)
+    sample[0] *= _envelope->get_next_value();
 
   // Panpot
   sample[1] = sample[0];
