@@ -31,14 +31,16 @@
 // messages, but only rate can be changed after a "note on" event.
 
 // The exact way the Sound Canvas produces LFO signals is currently unknown,
-// but we know that at least the following waveforms are used:
-// 0: Sine
-// 1: Square
-// 2: Sawtooth
-// 3: Triangle
-// 8: Random
-// In addition there are a few more waveforms used in the control ROM that
-// currently are not understood / implemented.
+// but we know that the following waveforms are used:
+//  0: Sine
+//  1: Square
+//  2: Sawtooth
+//  3: Triangle
+//  8: Random Level
+//  9: Random Slope
+
+// In addition there are waveform 16 (sounds exactly like sine) and 67
+// (diamond shaped curve) being used in the SC-55 ROM 1.2
 
 
 #include "wave_generator.h"
@@ -66,6 +68,7 @@ WaveGenerator::WaveGenerator(struct ControlRom::Instrument &instrument,
                              Settings *settings, int partId)
   : _id(0),
     _currentValue(0),
+    _randomStart(-1),
     _settings(settings),
     _partId(partId),
     _index(0)
@@ -73,7 +76,7 @@ WaveGenerator::WaveGenerator(struct ControlRom::Instrument &instrument,
   _sampleRate = settings->sample_rate();
   _sampleFactor = 1.0 / (_sampleRate * 10.0);
 
-  _waveForm = (enum Waveform) instrument.LFO1Waveform;
+  _waveForm = (enum Waveform) (instrument.LFO1Waveform & 0x0f);
   _rate = instrument.LFO1Rate;
 
   // Note: Vibrato Delay equals the double in ROM values
@@ -97,6 +100,7 @@ WaveGenerator::WaveGenerator(struct ControlRom::InstPartial &instPartial,
                              Settings *settings, int partId)
   : _id(1),
     _currentValue(0),
+    _randomStart(-1),
     _settings(settings),
     _partId(partId),
     _index(0)
@@ -104,7 +108,7 @@ WaveGenerator::WaveGenerator(struct ControlRom::InstPartial &instPartial,
   _sampleRate = settings->sample_rate();
   _sampleFactor = 1.0 / (_sampleRate * 10.0);
 
-  _waveForm = (enum Waveform) instPartial.LFO2Waveform;
+  _waveForm = (enum Waveform) (instPartial.LFO2Waveform & 0x0f);
   _rate = instPartial.LFO2Rate;
 
   uint8_t delayInput = instPartial.LFO2Delay;
@@ -200,17 +204,33 @@ void WaveGenerator::next(void)
 
     _index = (_index + 1.0 < period) ? _index + 1 : 0;
 
-  // Random is observed to be square waveform with random amplitude changes
-  } else if (_waveForm == Waveform::Random) {
-    double period = _sampleRate * 10 / (_rate + _rateChange);
-    double pos1 = _index / period;
-    double pos2 = (_index + 1) / period;
+  } else if (_waveForm == Waveform::RandomLevel) {
+    double period = _sampleRate * 5 / (_rate + _rateChange); // Half period!
 
-    // Random changes twice per l
-    if (_index == 0 || (pos1 <= 0.5 && pos2 > 0.5))
+    // Random changes twice per LFO period
+    if (_index == 0)
       _random = -1+ static_cast<float>(rand()) / static_cast<float>(RAND_MAX/2);
 
     LFOValue = _random;
+    _index = (_index + 1.0 < period) ? _index + 1 : 0;
+
+  } else if (_waveForm == Waveform::RandomSlope) {
+    double period = _sampleRate * 5 / (_rate + _rateChange); // Half period!
+
+    // Random changes twice per LFO period
+    if (_index == 0) {
+      if (_randomStart < 0)
+        _randomStart = static_cast<float>(rand()) /static_cast<float>(RAND_MAX);
+      else
+        _randomStart = _random;
+
+      _random = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
+    }
+
+    if (_random > _randomStart)
+      LFOValue = _randomStart + _index * ((_random - _randomStart) / period);
+    else
+      LFOValue = _randomStart - _index * ((_randomStart - _random) / period);
 
     _index = (_index + 1.0 < period) ? _index + 1 : 0;
   }

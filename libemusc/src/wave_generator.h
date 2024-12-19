@@ -35,11 +35,12 @@ class WaveGenerator
 {
 public:
   enum class Waveform {
-    Sine     = 0,
-    Square   = 1,
-    Sawtooth = 2,
-    Triangle = 3,
-    Random   = 8
+    Sine        = 0,
+    Square      = 1,
+    Sawtooth    = 2,
+    Triangle    = 3,
+    RandomLevel = 8,
+    RandomSlope = 9,
   };
 
   // LFO1 is defined in the Instrument section
@@ -70,8 +71,9 @@ private:
   int _fade;                  // Fade time in number of samples
   int _fadeMax;
 
-  double _currentValue;
-  double _random;
+  float _currentValue;
+  float _random;
+  float _randomStart;
 
   Settings *_settings;
   int _partId;
