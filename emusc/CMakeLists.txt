@@ -164,10 +164,15 @@ else()
   message(" Platform: unkown")
 endif()
 
+message("\n Qt version: Qt${QT_VERSION_MAJOR}")
+
+if(NOT USE_QTCHARTS)
+  message(" QtCharts: ${USE_QTCHARTS}")
+else()
+  message(" QtCharts: ${USE_QTCHARTS} (License => GPLv3)")
+endif()
+
 message("\n"
-        " Qt version: Qt${QT_VERSION_MAJOR}\n"
-        " QtCharts: ${USE_QTCHARTS}\n"
-        "\n"
         " Audio APIs:\n"
         "  * ALSA  : ${ALSA_AUDIO}\n"
         "  * Core  : ${CORE_AUDIO}\n"
