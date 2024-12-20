@@ -59,6 +59,7 @@ private:
   WaveGenerator();
 
   void _update_params(void);
+  float _phase_shift_to_index(int phaseShift);
 
   bool _id;
   enum Waveform _waveForm;
@@ -79,8 +80,10 @@ private:
   int _partId;
 
   bool _useLUT;
-  float _index;
-  bool _interpolate;               // Linear interpolation
+  bool _interpolate;          // Linear interpolation
+
+  int _index;                 // Sample index
+  int _period;                // Number of samples in one period (2*pi)
 
   unsigned int _updateParams = 0;
 

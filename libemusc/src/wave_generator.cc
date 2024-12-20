@@ -23,7 +23,7 @@
 // This gives a maximum of 3 separate LFOs per note
 
 // Each LFO has 4 parameters defined in the control ROM:
-//   - Waveform
+//   - Waveform and phase shift
 //   - Rate
 //   - Delay
 //   - Fade
@@ -36,11 +36,10 @@
 //  1: Square
 //  2: Sawtooth
 //  3: Triangle
-//  8: Random Level
+//  8: Random Level (S&H)
 //  9: Random Slope
 
-// In addition there are waveform 16 (sounds exactly like sine) and 67
-// (diamond shaped curve) being used in the SC-55 ROM 1.2
+// All waveforms can be 0, 90, 180 or 270 degrees phase shifted.
 
 
 #include "wave_generator.h"
@@ -68,10 +67,10 @@ WaveGenerator::WaveGenerator(struct ControlRom::Instrument &instrument,
                              Settings *settings, int partId)
   : _id(0),
     _currentValue(0),
-    _randomStart(-1),
+    _random(std::nanf("")),
+    _randomStart(std::nanf("")),
     _settings(settings),
-    _partId(partId),
-    _index(0)
+    _partId(partId)
 {
   _sampleRate = settings->sample_rate();
   _sampleFactor = 1.0 / (_sampleRate * 10.0);
@@ -93,6 +92,8 @@ WaveGenerator::WaveGenerator(struct ControlRom::Instrument &instrument,
   _interpolate = false;
 
   _update_params();
+
+  _index = _phase_shift_to_index((instrument.LFO1Waveform & 0xf0) >> 4);
 }
 
 
@@ -100,10 +101,10 @@ WaveGenerator::WaveGenerator(struct ControlRom::InstPartial &instPartial,
                              Settings *settings, int partId)
   : _id(1),
     _currentValue(0),
-    _randomStart(-1),
+    _random(std::nanf("")),
+    _randomStart(std::nanf("")),
     _settings(settings),
-    _partId(partId),
-    _index(0)
+    _partId(partId)
 {
   _sampleRate = settings->sample_rate();
   _sampleFactor = 1.0 / (_sampleRate * 10.0);
@@ -122,6 +123,8 @@ WaveGenerator::WaveGenerator(struct ControlRom::InstPartial &instPartial,
   _interpolate = false;
 
   _update_params();
+
+  _index = _phase_shift_to_index((instPartial.LFO2Waveform & 0xf0) >> 4);
 }
 
 
@@ -144,23 +147,16 @@ void WaveGenerator::next(void)
     return;
   }
 
-  // Calculate waveform value
+  _index = (_index + 1 < _period) ? _index + 1 : 0;
+
   double LFOValue;
   if (_waveForm == Waveform::Sine) {
     if (!_useLUT) {
-      _index += (float) (_rate + _rateChange) * _sampleFactor;
-      while (_index > 2.0 * M_PI) _index -=  2.0 * M_PI;
-
-      LFOValue = std::sin(2.0 * M_PI * _index);
+      LFOValue = std::sin(_index * 2.0 * M_PI / (float) _period);
 
     } else {
-      _index += (float) _sineTable.size() * (_rate + _rateChange)*_sampleFactor;
-
-      while (_index >= _sineTable.size())
-	_index -= _sineTable.size();
-
       if (!_interpolate) {
-	LFOValue = _sineTable[(int) _index];
+	LFOValue = _sineTable[(int) _index * _sineTable.size() /(float)_period];
 
       } else {
 	int nextIndex = (int) _index + 1;
@@ -176,24 +172,13 @@ void WaveGenerator::next(void)
     }
 
   } else if (_waveForm == Waveform::Square) {
-    _index += (float) _sineTable.size() * (_rate + _rateChange) * _sampleFactor;
-    while (_index >= _sineTable.size())
-      _index -= _sineTable.size();
+    LFOValue = _sineTable[(int) _index * _sineTable.size() /(float)_period] > 0 ? 1.0 : -1.0;
 
-    LFOValue = (_sineTable[(int) _index] > 0) ? 1.0 : -1.0;
-
-  // TODO: 180 deg phase shift on sawtooth?
   } else if (_waveForm == Waveform::Sawtooth) {
-    double period = _sampleRate * 10 / (_rate + _rateChange);
-    double pos = fmod(_index, period);
-
-    LFOValue = (pos / period) * 2 - 1.0;
-
-    _index = (_index + 1.0 < period) ? _index + 1 : 0;
+    LFOValue = (fmod(_index, _period) / _period) * 2 - 1.0;
 
   } else if (_waveForm == Waveform::Triangle) {
-    double period = _sampleRate * 10 / (_rate + _rateChange);
-    double pos = _index / period;
+    float pos = _index / (float) _period;
 
     if (pos < 0.25)
       LFOValue = pos * 4;
@@ -202,37 +187,38 @@ void WaveGenerator::next(void)
     else
       LFOValue = pos * 4 - 4.0;
 
-    _index = (_index + 1.0 < period) ? _index + 1 : 0;
-
   } else if (_waveForm == Waveform::RandomLevel) {
-    double period = _sampleRate * 5 / (_rate + _rateChange); // Half period!
-
     // Random changes twice per LFO period
-    if (_index == 0)
+    if (_index == 0 || _index == (std::floor(_period / 2.0)) || std::isnan(_random))
       _random = -1+ static_cast<float>(rand()) / static_cast<float>(RAND_MAX/2);
 
     LFOValue = _random;
-    _index = (_index + 1.0 < period) ? _index + 1 : 0;
 
   } else if (_waveForm == Waveform::RandomSlope) {
-    double period = _sampleRate * 5 / (_rate + _rateChange); // Half period!
+    int halfPeriod = std::floor(_period / 2.0);
 
-    // Random changes twice per LFO period
-    if (_index == 0) {
-      if (_randomStart < 0)
-        _randomStart = static_cast<float>(rand()) /static_cast<float>(RAND_MAX);
-      else
-        _randomStart = _random;
-
+    // First iteration
+    if (std::isnan(_randomStart)) {
+      _randomStart = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
       _random = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
     }
 
-    if (_random > _randomStart)
-      LFOValue = _randomStart + _index * ((_random - _randomStart) / period);
-    else
-      LFOValue = _randomStart - _index * ((_randomStart - _random) / period);
+    // Random changes twice per LFO period
+    if (_index == 0 || _index == halfPeriod) {
+      _randomStart = _random;
+      _random = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
+    }
 
-    _index = (_index + 1.0 < period) ? _index + 1 : 0;
+    float pos;
+    if (_index < halfPeriod)
+      pos = _index / (float) halfPeriod;
+    else
+      pos = (_index - halfPeriod) / (float) halfPeriod;
+
+    if (_random > _randomStart)
+      LFOValue = _randomStart + pos * (_random - _randomStart);
+    else
+      LFOValue = _randomStart - pos * (_randomStart - _random);
   }
 
   // Apply fade
@@ -257,6 +243,24 @@ void WaveGenerator::_update_params(void)
     _rateChange =
       _settings->get_param(PatchParam::Acc_LFO2RateControl, _partId) - 0x40;
   }
+
+  if (_rate + _rateChange <= 0)
+    _period = 0;
+  else
+    _period = _sampleRate * 10 / (_rate + _rateChange);
+}
+
+
+float WaveGenerator::_phase_shift_to_index(int phaseShift)
+{
+  if (phaseShift >= 0 && phaseShift < 4)
+    return 0;
+  else if (phaseShift >= 4 && phaseShift < 8)
+    return _period * 0.25;
+  else if (phaseShift >= 8 && phaseShift < 12)
+    return _period * 0.5;
+  else // (phaseShift >= 12 && phaseShift < 16)
+    return _period * 0.75;
 }
 
 }
