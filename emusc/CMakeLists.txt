@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.12...3.30)
 
 project(
   emusc-client
-  VERSION 0.2.0
+  VERSION 0.3.0
   HOMEPAGE_URL "https://github.com/skjelten/emusc"
   LANGUAGES CXX)
 
