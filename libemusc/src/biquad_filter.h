@@ -30,6 +30,8 @@ public:
   BiquadFilter();
   virtual ~BiquadFilter() = 0;
 
+  virtual void calculate_coefficients(float frequency, float q) = 0;
+
   float apply(float input);
 
 protected:

@@ -21,9 +21,9 @@
 #define __TVF_H__
 
 
+#include "biquad_filter.h"
 #include "control_rom.h"
 #include "envelope.h"
-#include "lowpass_filter2.h"
 #include "settings.h"
 #include "wave_generator.h"
 
@@ -67,12 +67,15 @@ private:
   uint8_t _key;
 
   Envelope *_envelope;
-  LowPassFilter2 *_lpFilter;
+
+  BiquadFilter *_bqFilter;
 
   ControlRom::InstPartial &_instPartial;
 
   Settings *_settings;
   int8_t _partId;
+
+  float _logSemitoneRatio;
 
   TVF();
 

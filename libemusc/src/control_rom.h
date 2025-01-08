@@ -93,7 +93,9 @@ public:
 
     int8_t TVFBaseFlt;
     int8_t TVFResonance;
-    int8_t LowVelClear;
+    int8_t TVFType;       // TVF Type [ low pass | high pass | disabled ]
+
+    uint8_t TVFCFKeyFlw;  // TVF Cutoff Frequency Key Follow
 
     uint8_t TVFLFO1Depth;
     uint8_t TVFLFO2Depth;
