@@ -410,7 +410,7 @@ int Part::control_change(uint8_t msgId, uint8_t value)
     delete_all_notes();
 
   } else if (msgId == 121) {                           // Reset All Controllers
-    pitch_bend_change(0x00, 0x20, true);
+    pitch_bend_change(0x00, 0x40, true);
     _settings->set_param(PatchParam::PolyKeyPressure, 0, (int8_t) _id);
     _settings->set_param(PatchParam::ChannelPressure, 0, (int8_t) _id);
     _settings->set_param(PatchParam::Modulation, 0, (int8_t) _id);
