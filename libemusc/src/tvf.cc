@@ -16,22 +16,26 @@
  *  along with libEmuSC. If not, see <http://www.gnu.org/licenses/>.
  */
 
-// TVF - Time Variant Filter
-// The Sound Canvas is using a 2nd. order low or high pass filter for TVF.
-// The "TVF Type" variable in partial definitions specifies the filter type or
-// whether the TVF filter is disabled.
+// NOTES:
+// The SC-55 & SC-88 are using 2nd. order lowpass filter for TVF.
 
-// If TVF filter is enabled, the "TVF Cutoff Frequency" sets the base cutoff
-// frequency, and envelope values are modifiers to this base frequency. Note
-// that the initial envelope value is a common factor for the amount of effect
-// for the 5 phases.
+// There are three possible scenarios for TVF in partials:
+// 1: No filter defined (base filter = 0 & no envelope). TVF output = input.
+// 2: Static filter with fixed cutoff frequency and resonance (no envelope)
+// 3: TVF based on base filter and modified by filter envelope
 
 // TVF cutoff frequency relative change (NRPN / SysEx) has steps of 100 cents.
+// TVF filter frequency in ROM, both for static base filter and envelope, seems
+// to be specified as note numbers.
+
+// TODO:
+// Figure out correct values and scale for resonance
+// Figure out correct frequency scaling for init value and envelope
+// Figure out correct absolute values for cutoff frequencies
+// Find & implement TVF key follow
 
 
 #include "tvf.h"
-#include "lowpass_filter2.h"
-#include "highpass_filter2.h"
 
 #include <cmath>
 #include <iostream>
@@ -49,45 +53,48 @@ TVF::TVF(ControlRom::InstPartial &instPartial, uint8_t key, uint8_t velocity,
     _LFO2(LFO2),
     _key(key),
     _envelope(NULL),
+    _lpFilter(NULL),
     _instPartial(instPartial),
     _settings(settings),
-    _partId(partId),
-    _logSemitoneRatio(log(2.0) / 12.0)
+    _partId(partId)
 {
-  if (instPartial.TVFType == 0)
-    _bqFilter = new LowPassFilter2(_sampleRate);
-  else if (instPartial.TVFType == 1)
-    _bqFilter = new HighPassFilter2(_sampleRate);
-  else
-    _bqFilter = nullptr;
-
-  if (_bqFilter != nullptr) {
+  // If any of the TVF envelope phase duraions != 0 we have an envelope to run
+  if (!(!instPartial.TVFDurP1 && !instPartial.TVFDurP2 && !instPartial.TVFDurP3
+	&& !instPartial.TVFDurP4 && !instPartial.TVFDurP5)) {
     _init_envelope();
-    _envelope->start();
+    if (_envelope)
+      _envelope->start();
 
-    update_params();
+  } else if (instPartial.TVFBaseFlt == 0) {
+    // If no envelope nor base filter is specified the entire TVF is disabled
+    return;
   }
+
+  update_params();
+
+  _lpFilter = new LowPassFilter2(_sampleRate);
 }
 
 
 TVF::~TVF()
 {
-  delete _envelope;
-  delete _bqFilter;
+  if (_envelope)
+    delete _envelope;
+
+  if (_lpFilter)
+    delete _lpFilter;
 }
 
 
-// TODO: Add suport for the following features:
-// * Cutoff freq key follow
-// * Cutoff freq V-sens
-// * TVF envelope
-// * TVF LFO modulation
-// * TVF Resonance
 void TVF::apply(double *sample)
 {
   // Skip filter calculation if filter is disabled for this partial 
-  if (_bqFilter == nullptr)
+  if (_instPartial.TVFBaseFlt == 0)
     return;
+
+  int noteFreq;
+  float filterFreq;
+  float filterRes;
 
   float envelopeDiff = 0.0;
   if (_envelope) {
@@ -95,16 +102,14 @@ void TVF::apply(double *sample)
     envelopeDiff = ((float) _instPartial.TVFLvlInit / 64.0) * envelope;
   }
 
-  float midiKey = _instPartial.TVFBaseFlt + _coFreq;// + envelopeDiff;
-  if (midiKey < 0)   midiKey = 0;
-  if (midiKey > 127) midiKey = 127;
+  float note = _instPartial.TVFBaseFlt + _coFreq + envelopeDiff;
+  if (note > 127)
+    note = 127;
+  else if (note < 0)
+    note = 0;
 
-  float filterFreq = 440.0 * exp(_logSemitoneRatio * (midiKey - 69));
-
-  // Key follow: f(p) = p/10 * ((key - 60) / 12) ??
-  // Turns out that TVF filter key follow also have a non-linear curve
-//float keyFollowST = ((_instPartial.TVFCFKeyFlw - 0x40) / 10.0) * (_key - 60);
-//float newFilterFreq = filterFreq + pow(2.0, keyFollowST / 12.0);
+  noteFreq = 25 + note * 0.66;  // FIXME: Figure out scaling + TVF key follow
+  filterFreq = 440.0 * (double) exp((((float) noteFreq - 69))/12);// +
 
   // FIXME: LFO modulation temporarily disabled due to clipping on instruments
   //        with high LFOx TVF depth. Needs to find out how to properly apply
@@ -114,11 +119,12 @@ void TVF::apply(double *sample)
 
   // Resonance. NEEDS FIXING
   // resonance = _lpResonance + sRes * 0.02;
-  float filterRes = 1; //(_res / 64.0) * 0.5;            // Logaritmic?
+  filterRes = (_res / 64.0) * 0.5;            // Logaritmic?
   if (filterRes < 0.01) filterRes = 0.01;
 
-  _bqFilter->calculate_coefficients(filterFreq, filterRes);
-  *sample = _bqFilter->apply(*sample);
+  _lpFilter->calculate_coefficients(filterFreq, filterRes);
+
+  *sample = _lpFilter->apply(*sample);
 }
 
 
