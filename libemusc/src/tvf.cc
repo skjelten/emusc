@@ -41,6 +41,9 @@
 namespace EmuSC {
 
 
+constexpr float LogSemitoneRatio = 0.0577623;               // log(2.0) / 12
+
+
 TVF::TVF(ControlRom::InstPartial &instPartial, uint8_t key, uint8_t velocity,
 	 WaveGenerator *LFO1, WaveGenerator *LFO2,
 	 Settings *settings, int8_t partId)
@@ -51,8 +54,7 @@ TVF::TVF(ControlRom::InstPartial &instPartial, uint8_t key, uint8_t velocity,
     _envelope(NULL),
     _instPartial(instPartial),
     _settings(settings),
-    _partId(partId),
-    _logSemitoneRatio(log(2.0) / 12.0)
+    _partId(partId)
 {
   if (instPartial.TVFType == 0)
     _bqFilter = new LowPassFilter2(_sampleRate);
@@ -78,7 +80,6 @@ TVF::~TVF()
 
 
 // TODO: Add suport for the following features:
-// * Cutoff freq key follow
 // * Cutoff freq V-sens
 // * TVF envelope
 // * TVF LFO modulation
@@ -99,12 +100,24 @@ void TVF::apply(double *sample)
   if (midiKey < 0)   midiKey = 0;
   if (midiKey > 127) midiKey = 127;
 
-  float filterFreq = 440.0 * exp(_logSemitoneRatio * (midiKey - 69));
+  // TVF cutoff frequency
+  float filterFreq = 440.0 * exp(LogSemitoneRatio * (midiKey - 69));
 
-  // Key follow: f(p) = p/10 * ((key - 60) / 12) ??
-  // Turns out that TVF filter key follow also have a non-linear curve
-//float keyFollowST = ((_instPartial.TVFCFKeyFlw - 0x40) / 10.0) * (_key - 60);
-//float newFilterFreq = filterFreq + pow(2.0, keyFollowST / 12.0);
+  // TVF cutoff frequency & key follow
+  // TODO: Combine exponential functions: exp(a) * exp(b) = exp(a+b)
+  float keyFollow = ((_instPartial.TVFCFKeyFlw - 0x40) / 10.0) * (_key - 60);
+  float filterFreqKF = filterFreq * std::exp(keyFollow * LogSemitoneRatio);
+
+  // TVF cutoff frequency key follow modifier
+  // TODO: Figure out the exact function for TVFCFKeyFlwM == 2 and 3
+  if (_instPartial.TVFCFKeyFlwM == 0)
+    filterFreq = filterFreqKF;
+  else if (_instPartial.TVFCFKeyFlwM == 1 && _key > 60)
+    filterFreq = filterFreqKF;
+  else if (_instPartial.TVFCFKeyFlwM == 2)  // TODO: Figure out what to do
+    filterFreq = filterFreq;
+  else if (_instPartial.TVFCFKeyFlwM == 3)  // TODO: Figure out what to do extra
+    filterFreq = filterFreqKF;
 
   // FIXME: LFO modulation temporarily disabled due to clipping on instruments
   //        with high LFOx TVF depth. Needs to find out how to properly apply
@@ -114,9 +127,10 @@ void TVF::apply(double *sample)
 
   // Resonance. NEEDS FIXING
   // resonance = _lpResonance + sRes * 0.02;
-  float filterRes = 1; //(_res / 64.0) * 0.5;            // Logaritmic?
+  float filterRes = 1; //(_res / 10.0) * 0.5;
   if (filterRes < 0.01) filterRes = 0.01;
 
+  if (filterFreq > 8000) filterFreq = 8000;
   _bqFilter->calculate_coefficients(filterFreq, filterRes);
   *sample = _bqFilter->apply(*sample);
 }

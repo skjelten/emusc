@@ -75,8 +75,6 @@ private:
   Settings *_settings;
   int8_t _partId;
 
-  float _logSemitoneRatio;
-
   TVF();
 
   void _init_envelope(void);
