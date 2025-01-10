@@ -100,24 +100,18 @@ void TVF::apply(double *sample)
   if (midiKey < 0)   midiKey = 0;
   if (midiKey > 127) midiKey = 127;
 
+  float keyFollow = 0;
+  // TODO: These are only approximations, find and use non-linear curves (S?)
+  if (_instPartial.TVFCFKeyFlwC == 0 ||
+      _instPartial.TVFCFKeyFlwC == 3 ||
+      (_instPartial.TVFCFKeyFlwC == 1 && _key > 60))
+    keyFollow = ((_instPartial.TVFCFKeyFlw - 0x40) / 10.0) * (_key - 60);
+  else if (_instPartial.TVFCFKeyFlwC == 2 && _key > 60)
+    keyFollow = ((_instPartial.TVFCFKeyFlw - 0x40) / 100.0) * (_key - 60);
+
   // TVF cutoff frequency
-  float filterFreq = 440.0 * exp(LogSemitoneRatio * (midiKey - 69));
+  float filterFreq = 440.0 * exp(LogSemitoneRatio * (midiKey - 69 + keyFollow));
 
-  // TVF cutoff frequency & key follow
-  // TODO: Combine exponential functions: exp(a) * exp(b) = exp(a+b)
-  float keyFollow = ((_instPartial.TVFCFKeyFlw - 0x40) / 10.0) * (_key - 60);
-  float filterFreqKF = filterFreq * std::exp(keyFollow * LogSemitoneRatio);
-
-  // TVF cutoff frequency key follow modifier
-  // TODO: Figure out the exact function for TVFCFKeyFlwM == 2 and 3
-  if (_instPartial.TVFCFKeyFlwM == 0)
-    filterFreq = filterFreqKF;
-  else if (_instPartial.TVFCFKeyFlwM == 1 && _key > 60)
-    filterFreq = filterFreqKF;
-  else if (_instPartial.TVFCFKeyFlwM == 2)  // TODO: Figure out what to do
-    filterFreq = filterFreq;
-  else if (_instPartial.TVFCFKeyFlwM == 3)  // TODO: Figure out what to do extra
-    filterFreq = filterFreqKF;
 
   // FIXME: LFO modulation temporarily disabled due to clipping on instruments
   //        with high LFOx TVF depth. Needs to find out how to properly apply
