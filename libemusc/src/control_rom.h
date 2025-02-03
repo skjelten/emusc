@@ -37,7 +37,7 @@ namespace EmuSC {
 class ControlRom
 {
 public:
-  ControlRom(std::string romPath);
+  ControlRom(std::string romPath, std::string cpuRomPath);
   ~ControlRom();
 
   // Internal data structures extracted from the control ROM file
@@ -157,18 +157,23 @@ public:
     std::string name;     // 12 chars
   };
 
+  struct LookupTables {
+    std::array<int, 128> envelopeTime;
+    std::array<int, 128> LFORate;
+    std::array<int, 128> LFODelayTime;
+    std::array<int, 128> LFOTVFDepth;
+    std::array<int, 128> LFOTVPDepth;
+    std::array<int, 128> TVFCutoffFreq;
+    std::array<int, 255> TVFResonance;
+  };
+  struct LookupTables lookupTables;
+
   enum class SynthGen {
     SC55    = 0,
     SC55mk2 = 1,
     SC88    = 2,
     SC88Pro = 3
   };
-
-  // TODO: define constants for lookup table dimensions
-  std::array<std::array<uint8_t, 128>, 19> _lookupTables;
-  int _read_lookup_tables(std::ifstream &romFile);
-  uint8_t lookup_table(uint8_t table, uint8_t index);
-  float lookup_table(uint8_t table, float index, int interpolate = 1);
 
   int dump_demo_songs(std::string path);
   bool intro_anim_available(void);
@@ -225,6 +230,30 @@ private:
 
   // Only a placeholder, SC-88 layout is currently unkown
   static const std::vector<uint32_t> _banksSC88;
+
+  struct _CPUMemoryMapLUT {
+    int EnvelopeTime;
+    int LFORate;
+    int LFODelayTime;
+    int LFOTVFDepth;
+    int LFOTVPDepth;
+    int TVFCutoffFreq;
+    int TVFResonance;
+  };
+
+  const _CPUMemoryMapLUT SC55_1_21_CPU_LUT {
+    0x6f12, 0x7012, 0x7112, 0x7212, 0x7312, 0x7612, 0x7715 };
+  const _CPUMemoryMapLUT SC55mkII_1_01_CPU_LUT {
+    0x6c86, 0x6486, 0x6e86, 0x6f86, 0x7086, 0x7386, 0x7489 };
+
+  int _read_lookup_tables_progrom(std::ifstream &romFile);
+  int _read_lookup_tables_cpurom(std::ifstream &romFile);
+  int _read_lut_128x16bit(std::ifstream &ifs, int pos,
+                          std::array<int, 128> &lut);
+  /*
+  uint8_t lookup_table(uint8_t table, uint8_t index);
+  float lookup_table(uint8_t table, float index, int interpolate = 1);
+  */
 
   int _identify_model(std::ifstream &romFile);
   const std::vector<uint32_t> &_banks(void);

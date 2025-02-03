@@ -52,7 +52,8 @@ Note::Note(uint8_t key, uint8_t velocity, ControlRom &ctrlRom, PcmRom &pcmRom,
     return;
 
   // LFO1 is shared between partials
-  _LFO1 = new WaveGenerator(ctrlRom.instrument(instrumentIndex), settings, partId);
+  _LFO1 = new WaveGenerator(ctrlRom.instrument(instrumentIndex),
+                            ctrlRom.lookupTables, settings, partId);
 
   // Every instrument in the Sound Canvas line has up to two partials
   std::bitset<2> partialBits(ctrlRom.instrument(instrumentIndex).partialsUsed);

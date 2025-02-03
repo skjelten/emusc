@@ -45,10 +45,12 @@ public:
 
   // LFO1 is defined in the Instrument section
   WaveGenerator(struct ControlRom::Instrument &instrument,
+                struct ControlRom::LookupTables &LUT,
                 Settings *settings, int partId);
 
   // LFO2s are defined in the Instrument Partial section
   WaveGenerator(struct ControlRom::InstPartial &instPartial,
+                struct ControlRom::LookupTables &LUT,
                 Settings *settings, int partId);
   ~WaveGenerator();
 
@@ -58,13 +60,11 @@ public:
 private:
   WaveGenerator();
 
-  void _update_params(void);
-  float _phase_shift_to_index(int phaseShift);
-
   bool _id;
   enum Waveform _waveForm;
   int _sampleRate;
-  float _sampleFactor;
+
+  struct ControlRom::LookupTables &_LUT;
 
   int _rate;
   int _rateChange;            // Change in rate due to controller input etc.
@@ -87,25 +87,10 @@ private:
 
   unsigned int _updateParams = 0;
 
-  static constexpr std::array<float, 128> _delayTable = {
-    0.001, 0.003, 0.008, 0.014, 0.021, 0.029, 0.037, 0.045,
-    0.054, 0.063, 0.072, 0.081, 0.090, 0.099, 0.108, 0.117,
-    0.126, 0.135, 0.144, 0.153, 0.162, 0.171, 0.180, 0.189,
-    0.198, 0.207, 0.217, 0.227, 0.237, 0.247, 0.257, 0.267,
-    0.277, 0.287, 0.298, 0.310, 0.322, 0.335, 0.349, 0.364,
-    0.380, 0.396, 0.413, 0.430, 0.447, 0.464, 0.481, 0.498,
-    0.515, 0.532, 0.549, 0.566, 0.583, 0.601, 0.619, 0.637,
-    0.655, 0.673, 0.691, 0.709, 0.727, 0.745, 0.763, 0.781,
-    0.799, 0.817, 0.835, 0.853, 0.871, 0.889, 0.907, 0.925,
-    0.943, 0.961, 0.979, 0.997, 1.015, 1.033, 1.051, 1.069,
-    1.088, 1.108, 1.129, 1.151, 1.174, 1.198, 1.224, 1.251,
-    1.280, 1.310, 1.341, 1.373, 1.406, 1.441, 1.477, 1.515,
-    1.555, 1.598, 1.644, 1.693, 1.746, 1.804, 1.868, 1.940,
-    2.020, 2.109, 2.208, 2.318, 2.440, 2.574, 2.721, 2.881,
-    3.055, 3.243, 3.446, 3.664, 3.898, 4.148, 4.415, 4.699,
-    5.001, 5.322, 5.667, 6.047, 6.507, 7.107, 8.000, 10.000 };
+  void _update_params(void);
+  float _phase_shift_to_index(int phaseShift);
 
-    static constexpr std::array<float, 256> _sineTable = {
+  static constexpr std::array<float, 256> _sineTable = {
     0, 0.0245412, 0.0490677, 0.0735646, 0.0980171, 0.122411, 0.14673,
     0.170962, 0.19509, 0.219101, 0.24298, 0.266713, 0.290285, 0.313682, 0.33689,
     0.359895, 0.382683, 0.405241, 0.427555, 0.449611, 0.471397, 0.492898, 0.514103,

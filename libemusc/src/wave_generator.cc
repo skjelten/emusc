@@ -27,8 +27,8 @@
 //   - Rate
 //   - Delay
 //   - Fade
-// LFO rate, delay and fade parameters can be changed by clients or SysEx
-// messages, but only rate can be changed after a "note on" event.
+// LFO rate and delay parameters can be changed by clients or SysEx messages,
+// but only rate can be changed after a "note on" event.
 
 // The exact way the Sound Canvas produces LFO signals is currently unknown,
 // but we know that the following waveforms are used:
@@ -40,6 +40,7 @@
 //  9: Random Slope
 
 // All waveforms can be 0, 90, 180 or 270 degrees phase shifted.
+// Rate, delay and fade are all defined by lookup tables in the CPU ROM.
 
 
 #include "wave_generator.h"
@@ -59,22 +60,21 @@
 namespace EmuSC {
 
 // Make Clang compiler happy
-constexpr std::array<float, 128> WaveGenerator::_delayTable;
 constexpr std::array<float, 256> WaveGenerator::_sineTable;
 
 
 WaveGenerator::WaveGenerator(struct ControlRom::Instrument &instrument,
+                             struct ControlRom::LookupTables &LUT,
                              Settings *settings, int partId)
   : _id(0),
+    _sampleRate(settings->sample_rate()),
+    _LUT(LUT),
     _currentValue(0),
     _random(std::nanf("")),
     _randomStart(std::nanf("")),
     _settings(settings),
     _partId(partId)
 {
-  _sampleRate = settings->sample_rate();
-  _sampleFactor = 1.0 / (_sampleRate * 10.0);
-
   _waveForm = (enum Waveform) (instrument.LFO1Waveform & 0x0f);
   _rate = instrument.LFO1Rate;
 
@@ -83,10 +83,18 @@ WaveGenerator::WaveGenerator(struct ControlRom::Instrument &instrument,
     (settings->get_param(PatchParam::VibratoDelay, _partId) - 0x40) * 2;
   if (delayInput < 0) delayInput = 0;
   if (delayInput > 127) delayInput = 127;
-  _delay = _delayTable[delayInput] * _sampleRate;
 
-  _fade = instrument.LFO1Fade * 0.01 * _sampleRate;
+  _delay = (32000.0 / (61 * LUT.LFODelayTime[delayInput])) * _sampleRate;
+  _fade = (32000.0 / (61 * LUT.LFODelayTime[instrument.LFO1Fade])) *_sampleRate;
   _fadeMax = _fade;
+
+  if (0)
+    std::cout << "New LFO1: delay(rom)=" << delayInput
+              << " -> " << _delay << " samples / "
+              << (float) _delay / settings->sample_rate() << "s"
+              << ", fade(rom)" << (int) instrument.LFO1Fade
+              << " -> " << _fade << " samples / "
+              << (float) _fade / settings->sample_rate() << "s" << std::endl;
 
   _useLUT = true;
   _interpolate = false;
@@ -98,26 +106,31 @@ WaveGenerator::WaveGenerator(struct ControlRom::Instrument &instrument,
 
 
 WaveGenerator::WaveGenerator(struct ControlRom::InstPartial &instPartial,
+                             struct ControlRom::LookupTables &LUT,
                              Settings *settings, int partId)
   : _id(1),
+    _sampleRate(settings->sample_rate()),
+    _LUT(LUT),
     _currentValue(0),
     _random(std::nanf("")),
     _randomStart(std::nanf("")),
     _settings(settings),
     _partId(partId)
 {
-  _sampleRate = settings->sample_rate();
-  _sampleFactor = 1.0 / (_sampleRate * 10.0);
-
   _waveForm = (enum Waveform) (instPartial.LFO2Waveform & 0x0f);
   _rate = instPartial.LFO2Rate;
 
-  uint8_t delayInput = instPartial.LFO2Delay;
-  if (delayInput > 127) delayInput = 127;
-  _delay = _delayTable[(int) delayInput] * _sampleRate;
-
-  _fade = instPartial.LFO2Fade * 0.01 * _sampleRate;
+  _delay = (32000.0 / (61 * LUT.LFODelayTime[instPartial.LFO2Delay]))*_sampleRate;
+  _fade = (32000.0 / (61 * LUT.LFODelayTime[instPartial.LFO2Fade]))*_sampleRate;
   _fadeMax = _fade;
+
+  if (0)
+    std::cout << "New LFO2: delay(rom)=" << (int) instPartial.LFO2Delay
+              << " -> " << _delay << " samples / "
+              << (float) _delay / settings->sample_rate() << "s"
+              << ", fade(rom)" << (int) instPartial.LFO2Fade
+              << " -> " << _fade << " samples / "
+              << (float) _fade / settings->sample_rate() << "s" << std::endl;
 
   _useLUT = true;
   _interpolate = false;
@@ -247,7 +260,7 @@ void WaveGenerator::_update_params(void)
   if (_rate + _rateChange <= 0)
     _period = 0;
   else
-    _period = _sampleRate * 10 / (_rate + _rateChange);
+    _period = (32000.0 / (61 * _LUT.LFORate[_rate + _rateChange])) *_sampleRate;
 }
 
 

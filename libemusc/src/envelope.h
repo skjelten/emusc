@@ -23,6 +23,8 @@
 
 #include "settings.h"
 
+#include <array>
+
 #include <stdint.h>
 
 
@@ -38,8 +40,9 @@ public:
     TVP
   };
 
-  Envelope(double value[5], uint8_t duration[5], bool shape[5], int key,
-	Settings *settings, int8_t partId, enum Type type, int initValue = 0);
+Envelope(double value[5], uint8_t duration[5], bool shape[5], int key,
+         std::array<int, 128> &timeLUT, Settings *settings, int8_t partId,
+         enum Type type, int initValue = 0);
   ~Envelope();
 
   void start(void);
@@ -57,6 +60,8 @@ private:
   double  _phaseValue[5];
   uint8_t _phaseDuration[5];
   bool    _phaseShape[5];       // Phase 0 = linear, 1 = logarithmic
+
+  std::array<int, 128> &_timeLUT;
 
   float _expDecayRate;
 

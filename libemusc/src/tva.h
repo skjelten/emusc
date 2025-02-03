@@ -39,7 +39,8 @@ class TVA
 public:
   TVA(ControlRom::InstPartial &instPartial, uint8_t key, uint8_t velocity,
       ControlRom::Sample *ctrlSample, WaveGenerator *LFO1, WaveGenerator *LFO2,
-      Settings *settings, int8_t partId, int instVolAtt);
+      ControlRom::LookupTables &LUT, Settings *settings, int8_t partId,
+      int instVolAtt);
   ~TVA();
 
   void update_dynamic_params(bool reset = false);
@@ -56,6 +57,8 @@ private:
 
   WaveGenerator *_LFO1;
   WaveGenerator *_LFO2;
+
+  ControlRom::LookupTables &_LUT;
 
   uint8_t _accLFO1Depth;
   uint8_t _accLFO2Depth;

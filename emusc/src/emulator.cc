@@ -135,15 +135,16 @@ void Emulator::start(void)
 
   if (_updateROMs || !_emuscControlRom || !_emuscPcmRom) {
     _updateROMs = true;
-    _load_control_rom(settings.value("Rom/control").toString());
+
+    _load_control_roms(settings.value("Rom/prog").toString(),
+                       settings.value("Rom/cpu").toString());
 
     QStringList pcmRomFilePaths;
-    pcmRomFilePaths << settings.value("Rom/pcm1").toString()
-		    << settings.value("Rom/pcm2").toString()
-		    << settings.value("Rom/pcm3").toString()
-		    << settings.value("Rom/pcm4").toString();
+    pcmRomFilePaths << settings.value("Rom/wave1").toString()
+		    << settings.value("Rom/wave2").toString()
+		    << settings.value("Rom/wave3").toString();
 
-    _load_pcm_rom(pcmRomFilePaths);
+    _load_pcm_roms(pcmRomFilePaths);
 //    _updateROMs == false;
   }
 
@@ -209,21 +210,24 @@ void Emulator::stop(void)
 }
 
 
-void Emulator::_load_control_rom(QString romPath)
+void Emulator::_load_control_roms(QString progPath, QString cpuPath)
 {
   if (_emuscControlRom)
     delete _emuscControlRom, _emuscControlRom = NULL;
 
   try {
-    if (romPath.isEmpty()) {
-      throw(QString("Emulator is unable to start since no control ROM has been "
-		    "selected yet. This can be done in the Preferences dialog."
+    if (progPath.isEmpty() || cpuPath.isEmpty()) {
+      throw(QString("Emulator is unable to start since one or both of the "
+		    "control ROMs (prog and CPU) are missing. "
+		    "This can be done in the Preferences dialog."
 		    ));
     } else {
 #ifdef Q_OS_WINDOWS
-      _emuscControlRom = new EmuSC::ControlRom(romPath.toLocal8Bit().constData());
+      _emuscControlRom = new EmuSC::ControlRom(progPath.toLocal8Bit().constData(),
+					       cpuPath.toLocal8Bit().constData());
 #else
-      _emuscControlRom = new EmuSC::ControlRom(romPath.toStdString());
+      _emuscControlRom = new EmuSC::ControlRom(progPath.toStdString(),
+					       cpuPath.toStdString());
 #endif
     }
   } catch (std::string errorMsg) {
@@ -239,13 +243,13 @@ void Emulator::_load_control_rom(QString romPath)
 }
 
 
-void Emulator::_load_pcm_rom(QStringList romPaths)
+void Emulator::_load_pcm_roms(QStringList romPaths)
 {
   // We depend on a valid control ROM before loading the PCM ROM
   if (!_emuscControlRom)
     throw(QString("Internal error: Control ROM must be loaded before PCM ROMs"));
   else if (romPaths.isEmpty() || romPaths.first() == "")
-    throw(QString("Emulator is unable to start since no PCM ROMs have been "
+    throw(QString("Emulator is unable to start since no Wave ROMs have been "
 		  "selected yet. This can be done in the Preferences dialog."));
 
   // If we already have a PCM ROM loaded, free it first

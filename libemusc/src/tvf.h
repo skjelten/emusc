@@ -39,7 +39,7 @@ class TVF
 {
 public:
   TVF(ControlRom::InstPartial &instPartial, uint8_t key, uint8_t velocity,
-      WaveGenerator *LFO1, WaveGenerator *LFO2,
+      WaveGenerator *LFO1, WaveGenerator *LFO2, ControlRom::LookupTables &LUT,
       Settings *settings, int8_t partId);
   ~TVF();
 
@@ -57,6 +57,8 @@ private:
 
   WaveGenerator *_LFO1;
   WaveGenerator *_LFO2;
+
+  ControlRom::LookupTables &_LUT;
 
   uint8_t _accLFO1Depth;
   uint8_t _accLFO2Depth;

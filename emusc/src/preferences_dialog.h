@@ -31,6 +31,7 @@
 #include <QLineEdit>
 #include <QListWidget>
 #include <QString>
+#include <QStringList>
 #include <QCheckBox>
 #include <QComboBox>
 #include <QListWidget>
@@ -197,37 +198,30 @@ class RomSettings : public QWidget
   Q_OBJECT
 
 private:
-  QLineEdit *_pathCtrlRomLE;
-  QLabel *_ctrlStatusL;
-  QTableView *_ctrlTableView;
-  QStandardItemModel *_ctrlModel;
-
-  QLineEdit *_pathPCMRomLE;
-  QLabel *_pcmStatusL;
-  QTableView *_pcmTableView;
-  QStandardItemModel *_pcmModel;
-  QStringList _pcmRomFilePaths;
+  QTableView *_romTableView;
+  QStandardItemModel *_romModel;
 
   Emulator *_emulator;
 
   ROMInfo _romInfo;
-  int _ctrlRomGen;
-  int _pcmRomGen;
 
 public:
   explicit RomSettings(Emulator *emulator, QWidget *parent = nullptr);
 
   void reset(void);
 
+private:
+  QString _get_file_sha256(QString filePath);
+  void _add_table_row(int row, QStringList text, QColor c = QColor(0, 0, 0));
+
+  void _update_rom_table_progrom(QString fileName);
+  void _update_rom_table_cpurom(QString fileName);
+  void _update_rom_table_waveroms(QString fileName, int index);
+
 private slots:
-  void _new_ctrl_rom_selected(void);
-  void _new_pcm_roms_selected(void);
+  void _table_view_clicked(const QModelIndex &index);
 
-  void _open_ctrl_rom_path_dialog(void);
-  void _open_pcm_rom_path_dialog(void);
-  
 };
-
 
 
 #endif // PREFERENCES_DIALOG_H

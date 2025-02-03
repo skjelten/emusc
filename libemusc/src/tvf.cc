@@ -41,15 +41,13 @@
 namespace EmuSC {
 
 
-constexpr float LogSemitoneRatio = 0.0577623;               // log(2.0) / 12
-
-
 TVF::TVF(ControlRom::InstPartial &instPartial, uint8_t key, uint8_t velocity,
-	 WaveGenerator *LFO1, WaveGenerator *LFO2,
+	 WaveGenerator *LFO1, WaveGenerator *LFO2,ControlRom::LookupTables &LUT,
 	 Settings *settings, int8_t partId)
   : _sampleRate(settings->sample_rate()),
     _LFO1(LFO1),
     _LFO2(LFO2),
+    _LUT(LUT),
     _key(key),
     _envelope(NULL),
     _instPartial(instPartial),
@@ -90,13 +88,16 @@ void TVF::apply(double *sample)
   if (_bqFilter == nullptr)
     return;
 
-  float envelopeDiff = 0.0;
+  float envelopeKey = 0.0;
+  float diff;
   if (_envelope) {
-    int envelope = _envelope->get_next_value() - 0x40;
-    envelopeDiff = ((float) _instPartial.TVFLvlInit / 64.0) * envelope;
+    diff = _envelope->get_next_value() - _instPartial.TVFBaseFlt;
+
+    // Asuming the static rate of increase is 1 / 100
+    envelopeKey = diff * (float) _instPartial.TVFLvlInit * 0.0125;
   }
 
-  float midiKey = _instPartial.TVFBaseFlt + _coFreq;// + envelopeDiff;
+  float midiKey = _instPartial.TVFBaseFlt + _coFreq + envelopeKey;
   if (midiKey < 0)   midiKey = 0;
   if (midiKey > 127) midiKey = 127;
 
@@ -110,7 +111,8 @@ void TVF::apply(double *sample)
     keyFollow = ((_instPartial.TVFCFKeyFlw - 0x40) / 100.0) * (_key - 60);
 
   // TVF cutoff frequency
-  float filterFreq = 440.0 * exp(LogSemitoneRatio * (midiKey - 69 + keyFollow));
+  // TODO: Why divide on 4.3?
+  int filterFreq = _LUT.TVFCutoffFreq[std::round(midiKey + keyFollow)] / 4.3;
 
 
   // FIXME: LFO modulation temporarily disabled due to clipping on instruments
@@ -119,16 +121,32 @@ void TVF::apply(double *sample)
   //				     (_LFO1->value() * _accLFO1Depth * 0.26) +
 //				     (_LFO2->value() * _accLFO2Depth * 0.26)) / 12);
 
-  // Resonance. NEEDS FIXING
+  // Filter resonance
+  // TODO: Figure out the exact range and function for the resonance
   // resonance = _lpResonance + sRes * 0.02;
-  float filterRes = 1; //(_res / 10.0) * 0.5;
+  int resonance = _instPartial.TVFResonance + _res - 0x40;
+  float filterRes = exp(2.3 * ((resonance - 64) / 64.0));
   if (filterRes < 0.01) filterRes = 0.01;
 
-  if (filterFreq > 8000) filterFreq = 8000;
   _bqFilter->calculate_coefficients(filterFreq, filterRes);
   *sample = _bqFilter->apply(*sample);
-}
 
+
+  if (0) {  // Debug
+    static int a = 0;
+    if (a++ % 10000 == 0)
+      std::cout << "E=" << _envelope->get_current_value()
+                << " C=" << (int) _instPartial.TVFBaseFlt
+                << " D=" << diff
+                << " I=" << (int) _instPartial.TVFLvlInit
+                << " K=" << envelopeKey
+                << " R=" << resonance << "=" << filterRes
+                << " k=" << midiKey + keyFollow
+                << " cF=" << filterFreq
+                << " LF=" << filterFreq / 4.3
+                << std::endl;
+  }
+}
 
 void TVF::note_off()
 {
@@ -178,7 +196,8 @@ void TVF::_init_envelope(void)
   bool phaseShape[5] = { 0, 0, 0, 0, 0 };
 
   _envelope = new Envelope(phaseLevel, phaseDuration, phaseShape, _key,
-			   _settings, _partId, Envelope::Type::TVF, 0x40);
+			   _LUT.envelopeTime, _settings, _partId,
+                           Envelope::Type::TVF, 0x40);
 }
 
 }

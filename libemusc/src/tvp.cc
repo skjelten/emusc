@@ -47,12 +47,13 @@ namespace EmuSC {
 TVP::TVP(ControlRom::InstPartial &instPartial, uint8_t key, uint8_t velocity,
 	 int keyShift, ControlRom::Sample *ctrlSample,
 	 WaveGenerator *LFO1, WaveGenerator *LFO2,
-         Settings *settings,int8_t partId)
+         ControlRom::LookupTables &LUT, Settings *settings,int8_t partId)
   : _sampleRate(settings->sample_rate()),
     _key(key),
     _keyFreq(440 * exp(log(2) * (key - 69) / 12)),
     _LFO1(LFO1),
     _LFO2(LFO2),
+    _LUT(LUT),
     _LFO1Depth(instPartial.TVPLFO1Depth & 0x7f),
     _LFO2Depth(instPartial.TVPLFO2Depth & 0x7f),
     _expFactor(log(2) / 12000),
@@ -197,8 +198,8 @@ void TVP::_init_envelope(void)
   bool phaseShape[5] = { 0, 0, 0, 0, 0 };
 
   _envelope = new Envelope(phasePitch, phaseDuration, phaseShape, 0,
-			   _settings, _partId, Envelope::Type::TVP,
-			   phasePitchInit);
+			   _LUT.envelopeTime, _settings, _partId,
+                           Envelope::Type::TVP, phasePitchInit);
 }
 
 }

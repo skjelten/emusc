@@ -31,44 +31,38 @@ ROMInfo::~ROMInfo()
 {}
 
 
-ROMInfo::CtrlROMInfo *ROMInfo::get_control_rom_info(std::string sha256)
+ROMInfo::ROMSetInfo *ROMInfo::get_rom_set_info_from_prog(std::string sha256)
 {
-  for (auto& romInfo : _ctrlROMList) {
-    if (romInfo.sha256 == sha256)
-      return &romInfo;
+  for (auto& romSetInfo : _romSetList) {
+    if (romSetInfo.controlROMs.progROMsha256 == sha256)
+      return &romSetInfo;
   }
 
   return nullptr;
 }
 
 
-ROMInfo::PcmROMInfo *ROMInfo::get_pcm_rom_info(std::string sha256)
+ROMInfo::ROMSetInfo *ROMInfo::get_rom_set_info_from_cpu(std::string sha256)
 {
-  for (auto& romInfo : _pcmROMList) {
-    for (int i = 0; i < 4; i ++)
-      if (romInfo.sha256[i] == sha256)
-	return &romInfo;
+  for (auto& romSetInfo : _romSetList) {
+    if (romSetInfo.controlROMs.cpuROMsha256 == sha256)
+      return &romSetInfo;
   }
 
   return nullptr;
 }
 
 
-int ROMInfo::get_number_of_pcm_rom_files(PcmROMInfo *romInfo)
+ROMInfo::ROMSetInfo *ROMInfo::get_rom_set_info_from_wave(std::string sha256,
+							 int *index)
 {
-  for (int i = 1; i < 4; i ++)
-    if (romInfo->sha256[i] == "")
-      return i;
+  for (auto& romSetInfo : _romSetList) {
+    for (int i = 0; i < 3; i ++)
+      if (romSetInfo.waveROMs.sha256[i] == sha256) {
+	*index = i;
+        return &romSetInfo;
+      }
+  }
 
-  return 4;
-}
-
-
-int ROMInfo::get_pcm_rom_index(PcmROMInfo *romInfo, std::string sha256)
-{
-  for (int i = 0; i < 4; i ++)
-    if (romInfo->sha256[i] == sha256)
-      return i;
-
-  return -1;
+  return nullptr;
 }

@@ -22,7 +22,8 @@
 //  - If the level in phase 4 (L4) is non-zero the value is sustained
 //  - Phase 5 is the "Release" phase triggered by a note off event
 //
-//  |  | T1 | T2 |T3|T4| (Sustain)  | T5 |
+//  |  | Attack  |Decay|  Sustain   |Release
+//  |  | T1 | T2 |T3|T4|            | T5 |
 //  |  |    |    |  |  |            |    |
 //  |  |  L1|____|L2|  |            |    |
 //  |  |    /    \  |  |____________|    |
@@ -55,8 +56,10 @@ constexpr std::array<float, 128> Envelope::_convert_time_to_sec_LUT;
 
 
 Envelope::Envelope(double value[5], uint8_t duration[5], bool shape[5], int key,
-	       Settings *settings, int8_t partId, enum Type type, int initValue)
-  : _finished(false),
+                   std::array<int, 128> &timeLUT, Settings *settings,
+                   int8_t partId, enum Type type, int initValue)
+  : _timeLUT(timeLUT),
+    _finished(false),
     _sampleRate(settings->sample_rate()),
     _currentValue(initValue),
     _phase(Phase::Off),
@@ -116,7 +119,7 @@ void Envelope::start(void)
   _init_new_phase(Phase::Attack1);
 }
 
-  
+
 void Envelope::_init_new_phase(enum Phase newPhase)
 {
   if (newPhase == Phase::Off) {

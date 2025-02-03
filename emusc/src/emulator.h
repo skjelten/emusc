@@ -216,8 +216,8 @@ private:
   void _start_midi_subsystem();
   void _start_audio_subsystem();
 
-  void _load_control_rom(QString romPath);
-  void _load_pcm_rom(QStringList romPaths);
+  void _load_control_roms(QString progPath, QString cpuPath);
+  void _load_pcm_roms(QStringList romPaths);
 
   void _set_all(void);
   void _set_part(uint8_t value);

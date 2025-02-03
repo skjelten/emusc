@@ -37,10 +37,12 @@ constexpr std::array<float, 128> TVA::_convert_volume_LUT;
 
 TVA::TVA(ControlRom::InstPartial &instPartial, uint8_t key, uint8_t velocity,
          ControlRom::Sample *ctrlSample,WaveGenerator *LFO1,WaveGenerator *LFO2,
-         Settings *settings, int8_t partId, int instVolAtt)
+         ControlRom::LookupTables &LUT, Settings *settings, int8_t partId,
+         int instVolAtt)
   : _sampleRate(settings->sample_rate()),
     _LFO1(LFO1),
     _LFO2(LFO2),
+    _LUT(LUT),
     _key(key),
     _drumSet(settings->get_param(PatchParam::UseForRhythm, partId)),
     _panpotLocked(false),
@@ -223,7 +225,8 @@ void TVA::_init_envelope(uint8_t velocity)
   phaseShape[4] = (_instPartial.TVALenP5 & 0x80) ? 0 : 1;
 
   _envelope = new Envelope(phaseVolume, phaseDuration, phaseShape, _key,
-			   _settings, _partId, Envelope::Type::TVA);
+                           _LUT.envelopeTime, _settings, _partId,
+                           Envelope::Type::TVA);
 
   // Adjust envelope phase durations.
   // The Sound Canvas has three parameters for tuning the TVA durations:

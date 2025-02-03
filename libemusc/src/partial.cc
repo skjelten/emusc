@@ -120,14 +120,16 @@ Partial::Partial(int partialId, uint8_t key, uint8_t velocity,
   _ctrlSample = &ctrlRom.sample(sampleIndex);
 
   // 7. Partial specific LFO2
-  _LFO2 = new WaveGenerator(_instPartial, settings, partId);
+  _LFO2 = new WaveGenerator(_instPartial, ctrlRom.lookupTables,settings,partId);
 
   // 8. Create TVP/F/A & envelope classes
   _tvp = new TVP(_instPartial, key, velocity, keyShift, _ctrlSample, LFO1,
-		 _LFO2, settings, partId);
-  _tvf = new TVF(_instPartial, key, velocity, LFO1, _LFO2, settings, partId);
+                 _LFO2, ctrlRom.lookupTables, settings, partId);
+  _tvf = new TVF(_instPartial, key, velocity, LFO1, _LFO2,
+                 ctrlRom.lookupTables, settings, partId);
   _tva = new TVA(_instPartial, key, velocity, _ctrlSample, LFO1, _LFO2,
-		 settings, partId, ctrlRom.instrument(instrumentIndex).volume);
+		 ctrlRom.lookupTables, settings, partId,
+                 ctrlRom.instrument(instrumentIndex).volume);
 
   // FIXME: A few sample definitions in the SC-55 ROM have loop length >
   // sample length. This makes EmuSC crash as it loops outside range. The

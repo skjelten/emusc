@@ -16,8 +16,19 @@
  *  along with libEmuSC. If not, see <http://www.gnu.org/licenses/>.
  */
 
-// Control ROM decoding is based on the SC55_Soundfont generator written by
-// Kitrinx and NewRisingSun [ https://github.com/Kitrinx/SC55_Soundfont ]
+// The SC-55 linueup controls the audio processing with instructions from:
+//  * The internal 32k EPROM on the H8/532 main CPU (CPUROM)
+//  * External 256kB (SC-55) or 512kB (SC-55mkII) EPROM (PROGROM)
+
+// These two ROMs are very tightly connected and extends each other. They must
+// therefore always be of the same ROM set / version.
+
+// This class reads both these ROM files and combines their data for a complete
+// set of control data to modify the audio stored in the PCM ROMs.
+
+// The external EPROM (PROGROM) is encrypted. Decoding is based on the
+// SC55_Soundfont generator written by Kitrinx and NewRisingSun.
+// For more information, see [ https://github.com/Kitrinx/SC55_Soundfont ]
 
 
 #include "control_rom.h"
@@ -41,12 +52,13 @@ const std::vector<uint32_t> ControlRom::_banksSC55 =
 const std::vector<uint32_t> ControlRom::_banksSC88 =
   { 0x10000, 0x1BD00, 0x1DEC0, 0x20000, 0x2BD00, 0x2DEC0, 0x30000, 0x38000 };
 
-ControlRom::ControlRom(std::string romPath)
+ControlRom::ControlRom(std::string romPath, std::string cpuRomPath)
   : _romPath(romPath)
 {
+  // External EPROM containing control data
   std::ifstream romFile(romPath, std::ios::binary | std::ios::in);
   if (!romFile.is_open())
-    throw(std::string("Unable to open control ROM: ") + romPath);
+    throw(std::string("Unable to open control ROM|: ") + romPath);
 
   if (_identify_model(romFile))
     throw(std::string("Unknown control ROM file!"));
@@ -61,7 +73,23 @@ ControlRom::ControlRom(std::string romPath)
   _read_samples(romFile);
   _read_variations(romFile);
   _read_drum_sets(romFile);
-  _read_lookup_tables(romFile);
+  _read_lookup_tables_progrom(romFile);
+
+  romFile.close();
+
+  // CPU EPROM
+  romFile.open(cpuRomPath, std::ios::binary | std::ios::in);
+  if (!romFile.is_open())
+    throw(std::string("Unable to open CPU ROM: ") + romPath);
+
+  // Verify size (always 32kB for all SC-55 variants)
+  std::streampos fileSize = romFile.tellg();
+  romFile.seekg(0, std::ios::end);
+  fileSize = romFile.tellg() - fileSize;
+  if (fileSize != 32768)
+    throw(std::string("Invalid CPU ROM (size != 32kB): ") + romPath);
+
+  _read_lookup_tables_cpurom(romFile);
 
   romFile.close();
 
@@ -486,7 +514,7 @@ int ControlRom::_read_drum_sets(std::ifstream &romFile)
     romFile.read((char *) d.reverb, 128);
     romFile.read((char *) d.chorus, 128);
     romFile.read((char *) d.flags, 128);
-    
+
     // Last 12 bytes are the drum name
     romFile.read(data, 12);
     d.name.assign(data, 12);
@@ -507,30 +535,107 @@ int ControlRom::_read_drum_sets(std::ifstream &romFile)
 }
 
 
-int ControlRom::_read_lookup_tables(std::ifstream &romFile)
+int ControlRom::_read_lookup_tables_progrom(std::ifstream &romFile)
 {
-  // Lookup tables (LUTs) are located after the 8 memory banks, at the exact
-  // same location for all SC-55 control ROMs
-  romFile.seekg(0x03d1e8);
-  romFile.read(reinterpret_cast<char*> (&_lookupTables[0]), 128 * 12);
+  return 0;
+}
 
-  //  romFile.seekg(0x03de78);
-  romFile.seekg(0x03dd82);
-  romFile.read(reinterpret_cast<char*> (&_lookupTables[12]), 128 * 7);
 
-  if (0) {
-    std::cout << "  -> LUTs: (" << _lookupTables.size() << ")" << std::endl;
-    for (int i = 0; i < _lookupTables.size(); i++) {
-      std::cout << "    " << i << ": " << std::flush;
-      for (int j = 0; j < _lookupTables[i].size(); j++) {
-	std::cout << (int) _lookupTables[i][j] << ", ";
-      }
-      std::cout << std::endl;
+int ControlRom::_read_lookup_tables_cpurom(std::ifstream &romFile)
+{
+  // Lookup tables are located at the end of the CPU ROM
+  // TODO: Support different versions of the ROM file
+  const struct _CPUMemoryMapLUT *CPUmmLUT;
+  switch(_synthModel)
+    {
+    case SynthModel::sm_SC55:
+      CPUmmLUT = &SC55_1_21_CPU_LUT;
+      break;
+    case SynthModel::sm_SC55mkII:
+      CPUmmLUT = &SC55mkII_1_01_CPU_LUT;
+      break;
+    default:
+      std::cerr << "libEmuSC: Unsupported ROM file!" << std::endl;
+      exit(0);
     }
+
+  // 8-bit values
+  romFile.seekg(CPUmmLUT->TVFResonance);
+  romFile.read(reinterpret_cast<char*> (&lookupTables.TVFResonance), 255);
+
+  // 16-bit values
+  _read_lut_128x16bit(romFile, CPUmmLUT->TVFCutoffFreq,
+                      lookupTables.TVFCutoffFreq);
+  _read_lut_128x16bit(romFile, CPUmmLUT->EnvelopeTime,
+                      lookupTables.envelopeTime);
+  _read_lut_128x16bit(romFile, CPUmmLUT->LFORate, lookupTables.LFORate);
+  _read_lut_128x16bit(romFile, CPUmmLUT->LFODelayTime,
+                      lookupTables.LFODelayTime);
+  _read_lut_128x16bit(romFile, CPUmmLUT->LFOTVFDepth,
+                      lookupTables.LFOTVFDepth);
+  _read_lut_128x16bit(romFile, CPUmmLUT->LFOTVPDepth,
+                      lookupTables.LFOTVPDepth);
+
+  return 0;
+}
+
+
+int ControlRom::_read_lut_128x16bit(std::ifstream &ifs, int pos,
+                                    std::array<int, 128> &lut)
+{
+  ifs.seekg(pos);
+
+  for (int i = 0; i < 128; i ++) {
+    uint16_t value;
+    if (!ifs.read(reinterpret_cast<char*>(&value), sizeof(value))) {
+      std::cerr << "libEmuSC: Error reading LUT from ROM" << std::endl;
+      return i;
+    }
+
+    lut[i] = static_cast<int>(_native_endian_uint16((uint8_t *) &value));
+
+    if (1)
+      std::cout << "LUT: " << i << " -> " << lut[i] << std::endl;
   }
 
-  return _lookupTables.size();
+  return 128;
 }
+
+
+/*
+uint8_t ControlRom::lookup_table(uint8_t table, uint8_t index)
+{
+  if (table >= _lookupTables.size() || index > 127)
+    return 0;
+
+  return _lookupTables[table][index];
+}
+
+
+float ControlRom::lookup_table(uint8_t table, float index, int interpolate)
+{
+  if (table >= _lookupTables.size() || index > 127)
+    return -1;
+
+  // interpolate == 0 => no interpolation
+  if (interpolate == 0) {
+    return _lookupTables[table][(uint8_t) index];
+
+  // interpolate == 1 => linear interpolation
+  } // else if (interpolate == 1) {
+
+  int indexBelow = floor(index);
+  int indexAbove = indexBelow + 1;
+  if (indexAbove >= _lookupTables[table].size())
+    indexAbove = 0;
+
+  float fractionAbove = index - indexBelow;
+  float fractionBelow = 1.0 - fractionAbove;
+
+  return fractionBelow * _lookupTables[table][indexBelow] +
+         fractionAbove * _lookupTables[table][indexAbove];
+}
+*/
 
 
 const uint8_t ControlRom::max_polyphony(void)
@@ -753,40 +858,6 @@ std::vector<std::string> ControlRom::get_drum_sets_list(void)
   }
 
   return drumSetsVector;
-}
-
-
-uint8_t ControlRom::lookup_table(uint8_t table, uint8_t index)
-{
-  if (table >= _lookupTables.size() || index > 127)
-    return 0;
-
-  return _lookupTables[table][index];
-}
-
-
-float ControlRom::lookup_table(uint8_t table, float index, int interpolate)
-{
-  if (table >= _lookupTables.size() || index > 127)
-    return -1;
-
-  // interpolate == 0 => no interpolation
-  if (interpolate == 0) {
-    return _lookupTables[table][(uint8_t) index];
-
-  // interpolate == 1 => linear interpolation
-  } // else if (interpolate == 1) {
-
-  int indexBelow = floor(index);
-  int indexAbove = indexBelow + 1;
-  if (indexAbove >= _lookupTables[table].size())
-    indexAbove = 0;
-
-  float fractionAbove = index - indexBelow;
-  float fractionBelow = 1.0 - fractionAbove;
-
-  return fractionBelow * _lookupTables[table][indexBelow] +
-         fractionAbove * _lookupTables[table][indexAbove];
 }
 
 

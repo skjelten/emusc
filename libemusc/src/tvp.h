@@ -39,7 +39,8 @@ class TVP
 public:
   TVP(ControlRom::InstPartial &instPartial, uint8_t key, uint8_t velocity,
       int keyShift, ControlRom::Sample *ctrlSample, WaveGenerator *LFO1,
-      WaveGenerator *LFO2, Settings *settings, int8_t partId);
+      WaveGenerator *LFO2, ControlRom::LookupTables &LUT,
+      Settings *settings, int8_t partId);
   ~TVP();
 
   void update_dynamic_params(void);
@@ -61,6 +62,9 @@ private:
 
   WaveGenerator *_LFO1;
   WaveGenerator *_LFO2;
+
+  ControlRom::LookupTables &_LUT;
+
   int _LFO1Depth;
   int _LFO2Depth;
 

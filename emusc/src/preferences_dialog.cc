@@ -978,12 +978,8 @@ void MidiSettings::_deviceCB_changed(int index)
 
 
 RomSettings::RomSettings(Emulator *emulator, QWidget *parent)
-  : _emulator(emulator),
-    _ctrlRomGen(-1),
-    _pcmRomGen(-1)
+  : _emulator(emulator)
 {
-  QSettings settings;
-
   QVBoxLayout *vboxLayout = new QVBoxLayout();
 
   QLabel *headerL = new QLabel("ROM Settings");
@@ -991,89 +987,50 @@ RomSettings::RomSettings(Emulator *emulator, QWidget *parent)
   headerL->setFont( f);
   vboxLayout->addWidget(headerL);
 
-  QGroupBox *ctrlGroupBox = new QGroupBox("Control ROM");
-  QGridLayout *ctrlGridLayout = new QGridLayout;
-  ctrlGroupBox->setLayout(ctrlGridLayout);
+  vboxLayout->addSpacing(15);
+  vboxLayout->addWidget(new QLabel("Selected ROM files:"));
 
-  ctrlGridLayout->addWidget(new QLabel("Path"), 0, 0);
-  _pathCtrlRomLE = new QLineEdit(settings.value("Rom/control").toString());
-  ctrlGridLayout->addWidget(_pathCtrlRomLE, 0, 1);
+  _romTableView = new QTableView();
+  _romModel = new QStandardItemModel(0, 5);
 
-  QToolButton *ctrlFilePickerTB = new QToolButton();
-  ctrlFilePickerTB->setToolButtonStyle(Qt::ToolButtonTextOnly);
-  ctrlFilePickerTB->setText("...");
-  ctrlGridLayout->addWidget(ctrlFilePickerTB, 0, 2);
+  QStringList romHeaders;
+  romHeaders << " Select " << "Status" << " Model " << "Version" << "Date"
+	     << "GS Version" << "Index" << "File";
+  _romModel->setHorizontalHeaderLabels(romHeaders);
+  _romTableView->setModel(_romModel);
+  _romTableView->setSizeAdjustPolicy(QAbstractScrollArea::AdjustToContentsOnFirstShow);
+  _romTableView->setEditTriggers(QAbstractItemView::NoEditTriggers);
+  vboxLayout->addWidget(_romTableView);
 
-  _ctrlStatusL = new QLabel();
-  ctrlGridLayout->addWidget(_ctrlStatusL, 1, 0, 1, 3);
-
-  _ctrlTableView = new QTableView();
-  _ctrlModel = new QStandardItemModel(1, 5);
-
-  QStringList ctrlHeaders;
-  ctrlHeaders << " Model " << "Generation" << "Version" << "Date"
-	      << "GS version" << "SHA256";
-  _ctrlModel->setHorizontalHeaderLabels(ctrlHeaders);
-  _ctrlTableView->setModel(_ctrlModel);
-  _ctrlTableView->setSizeAdjustPolicy(QAbstractScrollArea::AdjustToContentsOnFirstShow);
-
-  ctrlGridLayout->addWidget(_ctrlTableView, 2, 0, 1, 3);
-
-  QGroupBox *pcmGroupBox = new QGroupBox("PCM ROM(s)");
-  QGridLayout *pcmGridLayout = new QGridLayout;
-  pcmGroupBox->setLayout(pcmGridLayout);
-
-  pcmGridLayout->addWidget(new QLabel("Path"), 0, 0);
-  _pathPCMRomLE = new QLineEdit(settings.value("rom/pcm").toString());
-  pcmGridLayout->addWidget(_pathPCMRomLE, 0, 1);
-
-  QToolButton *pcmFilePickerTB = new QToolButton();
-  pcmFilePickerTB->setToolButtonStyle(Qt::ToolButtonTextOnly);
-  pcmFilePickerTB->setText("...");
-  pcmGridLayout->addWidget(pcmFilePickerTB, 0, 2);
-
-  _pcmStatusL = new QLabel();
-  pcmGridLayout->addWidget(_pcmStatusL, 1, 0, 1, 3);
-
-  _pcmTableView = new QTableView();
-  _pcmModel = new QStandardItemModel(1, 5);
-
-  QStringList pcmHeaders;
-  pcmHeaders << " Model " << "Generation" << "Version" << "Date" << "Index" << "SHA256";
-  _pcmModel->setHorizontalHeaderLabels(pcmHeaders);
-  _pcmTableView->setModel(_pcmModel);
-  _pcmTableView->setSizeAdjustPolicy(QAbstractScrollArea::AdjustToContentsOnFirstShow);
-
-  _pcmRomFilePaths << settings.value("Rom/pcm1").toString()
-		   << settings.value("Rom/pcm2").toString()
-		   << settings.value("Rom/pcm3").toString()
-		   << settings.value("Rom/pcm4").toString();   
-
-  QString pathPcmRomsStr;
-  for (auto &fileName : _pcmRomFilePaths) {
-    if (!fileName.isEmpty())
-      pathPcmRomsStr += QString("\"") + fileName + QString("\" ");
+  // Add all types as default table data
+  QStringList itemNames;
+  itemNames << "Prog" << "CPU" << "Wave1" << "Wave2" << "Wave3";
+  for (int i = 0; i < 5; i++) {
+    QStandardItem *item = new QStandardItem(itemNames[i]);
+    item->setBackground(QColor(235, 235, 235));
+    _romModel->setItem(i, 0, item);
   }
-  pathPcmRomsStr.chop(1);
-  _pathPCMRomLE->setText(pathPcmRomsStr);
+  connect(_romTableView, SIGNAL(clicked(QModelIndex)),
+          this, SLOT(_table_view_clicked(QModelIndex)));
 
-  pcmGridLayout->addWidget(_pcmTableView, 2, 0, 1, 3);
+  QSettings settings;
+  _update_rom_table_progrom(settings.value("Rom/prog").toString());
+  _update_rom_table_cpurom(settings.value("Rom/cpu").toString());
+  _update_rom_table_waveroms(settings.value("Rom/wave1").toString(), 0);
+  _update_rom_table_waveroms(settings.value("Rom/wave2").toString(), 1);
+  _update_rom_table_waveroms(settings.value("Rom/wave3").toString(), 2);
 
-  _new_ctrl_rom_selected();
-  _new_pcm_roms_selected();
-
-  connect(ctrlFilePickerTB, SIGNAL(clicked()),
-	  this, SLOT(_open_ctrl_rom_path_dialog()));
-  connect(pcmFilePickerTB, SIGNAL(clicked()),
-	  this, SLOT(_open_pcm_rom_path_dialog()));
-  connect(_pathCtrlRomLE, SIGNAL(editingFinished()),
-	  this, SLOT(_new_ctrl_rom_selected()));
-  connect(_pathPCMRomLE, SIGNAL(editingFinished()),
-	  this, SLOT(_new_pcm_roms_selected()));
-
-  vboxLayout->insertSpacing(1, 15);
-  vboxLayout->addWidget(ctrlGroupBox);
-  vboxLayout->addWidget(pcmGroupBox);
+  QLabel *info = new QLabel;
+  info->setTextFormat(Qt::RichText);
+  info->setText("EmuSC needs 3 type of ROM files:<ul>"
+                "<li>Prog: An external program EPROM</li>"
+                "<li>CPU: An integrated EPROM on the CPU</li>"
+                "<li>Wave 1-3: ROM files containing PCM audio</li></ul>"
+                "All ROM files must belong to the same ROM set (green status) "
+                "as different versions might be incompatible.");
+  info->setWordWrap(true);
+  vboxLayout->addSpacing(15);
+  vboxLayout->addWidget(info);
   vboxLayout->addStretch(0);
   setLayout(vboxLayout);
 }
@@ -1084,262 +1041,263 @@ void RomSettings::reset(void)
 }
 
 
-void RomSettings::_new_ctrl_rom_selected(void)
+void RomSettings::_table_view_clicked(const QModelIndex &index)
 {
-  QString path = _pathCtrlRomLE->text();
-  if (path.isEmpty())
+  if (index.column() != 0)
     return;
 
-  QFile f(path);
-  if (!f.exists()) {
-    QMessageBox::critical(this, tr("EmuSC"),
-			  tr("Unable to read selected control ROM file. File  "
-			     "does not exist."), QMessageBox::Close);
-    return;
+  QSettings settings;
 
-  } else if (f.open(QFile::ReadOnly)) {
-    QCryptographicHash hash(QCryptographicHash::Sha256);
-    if (hash.addData(&f)) {
-      struct ROMInfo::CtrlROMInfo *romInfo =
-	_romInfo.get_control_rom_info(hash.result().toHex().data());
-      if (romInfo) {
-	_ctrlTableView->setEnabled(true);
+  if (index.row() == 0) {
+    QFileInfo fi(settings.value("Rom/prog").toString());
+    QString path = fi.absolutePath();
+    if (path.isEmpty())
+      path = QDir::homePath();
 
-	QStandardItem *mode = new QStandardItem(QString(romInfo->model));
-	mode->setEditable(false);
-	mode->setTextAlignment(Qt::AlignCenter);
-	_ctrlModel->setItem(0, 0, mode);
+    QString fileName = QFileDialog::getOpenFileName(this,
+                                                    tr("Select program ROM file"),
+                                                    path,
+                                                    tr("ROMs (*.bin *.rom)"));
 
-	QStandardItem *generation = new QStandardItem();
-	generation->setEditable(false);
-	generation->setTextAlignment(Qt::AlignCenter);
-	if (romInfo->SynthGen == EmuSC::ControlRom::SynthGen::SC55) {
-	  generation->setText("SC-55");
-	} else if (romInfo->SynthGen == EmuSC::ControlRom::SynthGen::SC55mk2) {
-	  generation->setText("SC-55mkII");
-	} else {
-	  generation->setText("SC-88+");
-	}
-	_ctrlModel->setItem(0, 1, generation);
-
-	QStandardItem *version = new QStandardItem(QString(romInfo->version));
-	version->setEditable(false);
-	version->setTextAlignment(Qt::AlignCenter);
-	_ctrlModel->setItem(0, 2, version);
-
-	QStandardItem *date = new QStandardItem(QString(romInfo->date));
-	date->setEditable(false);
-	date->setTextAlignment(Qt::AlignCenter);
-	_ctrlModel->setItem(0, 3, date);
-
-	QStandardItem *gsVer = new QStandardItem(QString(romInfo->gsVersion));
-	gsVer->setEditable(false);
-	gsVer->setTextAlignment(Qt::AlignCenter);
-	_ctrlModel->setItem(0, 4, gsVer);
-
-	QStandardItem *sha256 = new QStandardItem(QString(romInfo->sha256.c_str()));
-	sha256->setEditable(false);
-	sha256->setTextAlignment(Qt::AlignCenter);
-	_ctrlModel->setItem(0, 5, sha256);
-
-	_ctrlTableView->resizeColumnsToContents();
-	_ctrlStatusL->setText("<font color=\"#008000\">Status: Valid control ROM file selected");
-	_ctrlRomGen = (int) romInfo->SynthGen;
-
-	_emulator->set_update_rom_state(true);
-
-	if (_ctrlRomGen != _pcmRomGen)
-	  _pcmTableView->setEnabled(false);
-
-      } else {
-	_ctrlTableView->setEnabled(false);
-	_ctrlModel->removeRow(0);
-	_ctrlStatusL->setText("<font color=\"#800000\">Status: No valid ROM file selected");
-      }
+    if (!fileName.isEmpty()) {
+      settings.setValue("Rom/prog", fileName);
+      _update_rom_table_progrom(fileName);
     }
+
+  } else if (index.row() == 1) {
+    QString file(settings.value("Rom/cpu").toString());
+    if (file.isEmpty())
+      file = settings.value("Rom/prog").toString();
+
+    QFileInfo fi(file);
+    QString path = fi.absolutePath();
+    if (path.isEmpty())
+      path = QDir::homePath();
+
+    QString fileName = QFileDialog::getOpenFileName(this,
+                                                    tr("Select CPU ROM file"),
+                                                    path,
+                                                    tr("ROMs (*.bin *.rom)"));
+
+    if (!fileName.isEmpty()) {
+      settings.setValue("Rom/cpu", fileName);
+      _update_rom_table_cpurom(fileName);
+    }
+
+  } else if (index.row() == 2) {
+    QString file(settings.value("Rom/wave1").toString());
+    if (file.isEmpty())
+      file = settings.value("Rom/prog").toString();
+
+    QFileInfo fi(file);
+    QString path = fi.absolutePath();
+    if (path.isEmpty())
+      path = QDir::homePath();
+
+    QString fileName = QFileDialog::getOpenFileName(this,
+                                                    tr("Select 1st wave ROM file"),
+                                                    path,
+                                                    tr("ROMs (*.bin *.rom)"));
+
+    if (!fileName.isEmpty())
+      settings.setValue("Rom/wave1", fileName);
+
+    _update_rom_table_waveroms(fileName, 0);
+
+  } else if (index.row() == 3) {
+    QString file(settings.value("Rom/wave2").toString());
+    if (file.isEmpty())
+      file = settings.value("Rom/wave1").toString();
+    if (file.isEmpty())
+      file = settings.value("Rom/prog").toString();
+
+    QFileInfo fi(file);
+    QString path = fi.absolutePath();
+    if (path.isEmpty())
+      path = QDir::homePath();
+
+    QString fileName = QFileDialog::getOpenFileName(this,
+                                                    tr("Select 2nd wave ROM file"),
+                                                    path,
+                                                    tr("ROMs (*.bin *.rom)"));
+
+    if (!fileName.isEmpty())
+      settings.setValue("Rom/wave2", fileName);
+
+    _update_rom_table_waveroms(fileName, 1);
+
+  } else if (index.row() == 4) {
+    QString file(settings.value("Rom/wave3").toString());
+    if (file.isEmpty())
+      file = settings.value("Rom/wave2").toString();
+    if (file.isEmpty())
+      file = settings.value("Rom/wave1").toString();
+    if (file.isEmpty())
+      file = settings.value("Rom/prog").toString();
+
+    QFileInfo fi(file);
+    QString path = fi.absolutePath();
+    if (path.isEmpty())
+      path = QDir::homePath();
+
+    QString fileName = QFileDialog::getOpenFileName(this,
+                                                    tr("Select 3rd wave ROM file"),
+                                                    path,
+                                                    tr("ROMs (*.bin *.rom)"));
+
+    if (!fileName.isEmpty())
+      settings.setValue("Rom/wave3", fileName);
+
+    _update_rom_table_waveroms(fileName, 2);
+  }
+}
+
+
+QString RomSettings::_get_file_sha256(QString filePath)
+{
+  QCryptographicHash hash(QCryptographicHash::Sha256);
+
+  QFile f(filePath);
+  if (f.open(QFile::ReadOnly)) {
+    if (!hash.addData(&f)) {
+      QMessageBox::critical(this, tr("EmuSC"),
+                            tr("Unable to read ROM files, do you have read "
+                               "access?"), QMessageBox::Close);
+      return QString("");
+    }
+  }
+  f.close();
+
+  return QString(hash.result().toHex().data());
+}
+
+
+void RomSettings::_add_table_row(int row, QStringList text, QColor c)
+{
+  QStandardItem *status = new QStandardItem(text[0]);
+  status->setTextAlignment(Qt::AlignCenter);
+  if (c != QColor(0,0,0))
+    status->setBackground(c);
+  _romModel->setItem(row, 1, status);
+
+  for (int i = 1; i <= 6; i++) {
+    if (text.size() <= i)
+      break;
+
+    QStandardItem *item = new QStandardItem(text[i]);
+    _romModel->setItem(row, i + 1, item);
+
+    if (i == 6)
+      item->setTextAlignment(Qt::AlignLeft);
+    else
+      item->setTextAlignment(Qt::AlignCenter);
+  }
+}
+
+
+void RomSettings::_update_rom_table_progrom(QString fileName)
+{
+  QString sha256 = _get_file_sha256(fileName);
+  struct ROMInfo::ROMSetInfo *romSetInfo;
+  romSetInfo = _romInfo.get_rom_set_info_from_prog(sha256.toStdString());
+
+  QStringList textList;
+  if (fileName.isEmpty()) {
+    textList << "Missing" << "" << "" << "" << "" << "" << fileName;
+    _add_table_row(0, textList, QColor(255, 122, 122));
+  } else  if (romSetInfo == nullptr) {
+    textList << "Incompatible" << "" << "" << "" << "" << "" << fileName;
+    _add_table_row(0, textList, QColor(255, 122, 122));
   } else {
-    QMessageBox::critical(this, tr("EmuSC"),
-			  tr("Unable to read selected control ROM file. Do you "
-			     "have read access?"), QMessageBox::Close);
-    return;
+    textList << "OK"
+             << QString(romSetInfo->controlROMs.model)
+             << QString(romSetInfo->controlROMs.version)
+             << QString(romSetInfo->controlROMs.date)
+             << QString(romSetInfo->controlROMs.gsVersion)
+             << "1/1"
+             << fileName;
+    _add_table_row(0, textList, QColor(122, 255, 122));
   }
 
-  _pathCtrlRomLE->setText(path);
-  QSettings settings;
-  settings.setValue("Rom/control", path);
+  _romTableView->resizeColumnsToContents();
 }
 
 
-void RomSettings::_new_pcm_roms_selected(void)
+void RomSettings::_update_rom_table_cpurom(QString fileName)
 {
-  if (_pcmRomFilePaths.isEmpty() || _pcmRomFilePaths[0] == "") {
-    _pcmTableView->setEnabled(false);
-    return;
+  QString sha256 = _get_file_sha256(fileName);
+  struct ROMInfo::ROMSetInfo *romSetInfo;
+  romSetInfo = _romInfo.get_rom_set_info_from_cpu(sha256.toStdString());
+
+  QStringList textList;
+  if (fileName.isEmpty()) {
+    textList << "Missing" << "" << "" << "" << "" << "" << fileName;
+    _add_table_row(1, textList, QColor(255, 122, 122));
+  } else  if (romSetInfo == nullptr) {
+    textList << "Incompatible" << "" << "" << "" << "" << "" << fileName;
+    _add_table_row(1, textList, QColor(255, 122, 122));
+  } else {
+    textList << "OK"
+             << QString(romSetInfo->controlROMs.model)
+             << QString(romSetInfo->controlROMs.version)
+             << QString(romSetInfo->controlROMs.date)
+             << QString(romSetInfo->controlROMs.gsVersion)
+             << "1/1"
+             << fileName;
+    _add_table_row(1, textList, QColor(122, 255, 122));
   }
 
-  struct ROMInfo::PcmROMInfo *romInfo = nullptr;
-  bool validROMsFound = false;
-  QString saveRomPath[4];
-  int number = 0;
-  int index;
-  int total;
-
-  _pcmModel->removeRows(0, _pcmModel->rowCount());
-
-  for (auto &filePath : _pcmRomFilePaths) {
-    if (filePath.isEmpty())
-      continue;
-
-    QFile f(filePath);
-    if (f.open(QFile::ReadOnly)) {
-      QCryptographicHash hash(QCryptographicHash::Sha256);
-      if (!hash.addData(&f)) {
-	QMessageBox::critical(this, tr("EmuSC"),
-			      tr("Unable to read ROM file, do you have read "
-				 "access?"), QMessageBox::Close);
-	return;
-      }
-
-      if (!romInfo) {
-	romInfo = _romInfo.get_pcm_rom_info(hash.result().toHex().data());
-
-	if (!romInfo) {
-	  QMessageBox::critical(this, tr("EmuSC"),
-				tr("One or more files are not valid ROM files"),
-				QMessageBox::Close);
-	  _pcmStatusL->setText("<font color=\"#800000\">"
-			   "Status: No valid set of ROM files selected</font>");
-	  _pcmTableView->setEnabled(false);
-	  return;
-	}
-
-	total = ROMInfo::get_number_of_pcm_rom_files(romInfo);
-      }
-
-      index = ROMInfo::get_pcm_rom_index(romInfo,hash.result().toHex().data());
-      if (index < 0) {
-	QMessageBox::critical(this, tr("EmuSC"), "The file \"" + filePath +
-			      "\" is not a valid ROM file", QMessageBox::Close);
-	_pcmStatusL->setText("<font color=\"#800000\">"
-			   "Status: No valid set of ROM files selected</font>");
-	_pcmTableView->setEnabled(false);
-	return;
-      } else {
-	saveRomPath[index] = filePath;
-	number ++;
-      }
-
-      _pcmTableView->setEnabled(true);
-
-      QStandardItem *model = new QStandardItem(QString(romInfo->model));
-      model->setEditable(false);
-      model->setTextAlignment(Qt::AlignCenter);
-      _pcmModel->setItem(index, 0, model);
-
-      QStandardItem *generation = new QStandardItem();
-      generation->setEditable(false);
-      generation->setTextAlignment(Qt::AlignCenter);
-      if (romInfo->SynthGen == EmuSC::ControlRom::SynthGen::SC55) {
-	generation->setText("SC-55");
-      } else if (romInfo->SynthGen == EmuSC::ControlRom::SynthGen::SC55mk2) {
-	generation->setText("SC-55mkII");
-      } else {
-	generation->setText("SC-88+");
-      }
-      _pcmModel->setItem(index, 1, generation);
-
-      QStandardItem *version = new QStandardItem(QString(romInfo->version));
-      version->setEditable(false);
-      version->setTextAlignment(Qt::AlignCenter);
-      _pcmModel->setItem(index, 2, version);
-
-      QStandardItem *date = new QStandardItem(QString(romInfo->date));
-      date->setEditable(false);
-      date->setTextAlignment(Qt::AlignCenter);
-      _pcmModel->setItem(index, 3, date);
-
-      QString partStr = QString::number(index+1) + "/" + QString::number(total);
-      QStandardItem *parts = new QStandardItem(partStr);
-      parts->setTextAlignment(Qt::AlignCenter);
-      _pcmModel->setItem(index, 4, parts);
-
-      QStandardItem *sha256 = new QStandardItem(QString(romInfo->sha256[index].c_str()));
-      sha256->setEditable(false);
-      sha256->setTextAlignment(Qt::AlignCenter);
-      _pcmModel->setItem(index, 5, sha256);
-
-      _pcmTableView->resizeColumnsToContents();
-    }
-  }
-
-  if (number != total) {
-    QMessageBox::critical(this, tr("EmuSC"),
-			  tr("Missing ROM file(s) to build complete ROM\n"
-			     "Tip: Use left shift or CTRL to select multiple "
-			     "files"),
-			  QMessageBox::Close);
-    _pcmStatusL->setText("<font color=\"#800000\">"
-			 "Status: No valid set of ROM files selected</font>");
-    _pcmTableView->setEnabled(false);
-    return;
-
-  } else if (_ctrlRomGen >= 0 && _ctrlRomGen != (int) romInfo->SynthGen) {
-    QMessageBox::critical(this, tr("EmuSC"),
-			  tr("Selected PCM ROM set is incompatible with "
-			     "selected control ROM"),
-			  QMessageBox::Close);
-    _pcmStatusL->setText("<font color=\"#800000\">"
-			 "Status: No valid set of ROM files selected</font>");
-    _pcmTableView->setEnabled(false);
-    return;
-  }
-
-  _pcmStatusL->setText("<font color=\"#008000\">Status: Valid control ROM files selected");
-
-  _emulator->set_update_rom_state(true);
-
-  QSettings settings;
-  settings.setValue("Rom/pcm1", saveRomPath[0]);
-  settings.setValue("Rom/pcm2", saveRomPath[1]);
-  settings.setValue("Rom/pcm3", saveRomPath[2]);
-  settings.setValue("Rom/pcm4", saveRomPath[3]);
+  _romTableView->resizeColumnsToContents();
 }
 
-
-void RomSettings::_open_ctrl_rom_path_dialog(void)
+void RomSettings::_update_rom_table_waveroms(QString fileName, int index)
 {
-  QFileDialog dialog(this, "Select control ROM file");
-  dialog.setFileMode(QFileDialog::ExistingFile);
-  if (_pathCtrlRomLE->text() == "")
-    dialog.setDirectory(QDir::homePath());
-  else
-    dialog.setDirectory(QFileInfo(_pathCtrlRomLE->text()).absolutePath());
+  QString sha256 = _get_file_sha256(fileName);
+  struct ROMInfo::ROMSetInfo *romSetInfo;
+  int pos;
+  romSetInfo = _romInfo.get_rom_set_info_from_wave(sha256.toStdString(), &pos);
 
-  if (dialog.exec()) {
-    QStringList fileNames = dialog.selectedFiles();
-    _pathCtrlRomLE->setText(fileNames[0]);
-    _new_ctrl_rom_selected();
+  QStringList textList;
+  if (index == 2 && fileName.isEmpty()
+      && _romModel->index(3,6).data().toString() == "2/2") {
+    textList << "N/A";
+    _add_table_row(index + 2, textList, QColor(122, 255, 122));
+  } else if (fileName.isEmpty()) {
+    textList << "Missing" << "" << "" << "" << "" << "" << fileName;
+    _add_table_row(index + 2, textList, QColor(255, 122, 122));
+  } else  if (romSetInfo == nullptr) {
+    textList << "Incompatible" << "" << "" << "" << "" << "" << fileName;
+    _add_table_row(index + 2, textList, QColor(255, 122, 122));
+  } else  if (pos != index) {
+    textList << "Wrong index" << "" << "" << "" << "" << "" << fileName;
+    _add_table_row(index + 2, textList, QColor(255, 122, 122));
+  } else {
+    textList << "OK"
+             << QString(romSetInfo->controlROMs.model)
+             << QString(romSetInfo->controlROMs.version)
+             << QString(romSetInfo->controlROMs.date)
+             << QString(romSetInfo->controlROMs.gsVersion)
+             << QString::number(pos+1) + QString("/") + QString::number(romSetInfo->waveROMs.numROMs)
+             << fileName;
+    _add_table_row(index + 2, textList, QColor(122, 255, 122));
   }
-}
 
+  // Remove any selected wave 3 ROM if we only need 2 wave ROM files
+  if (index == 1 && pos == 1 && romSetInfo->waveROMs.numROMs == 2) {
+    QSettings settings;
+    settings.setValue("Rom/wave3", "");
 
-void RomSettings::_open_pcm_rom_path_dialog(void)
-{
-  QFileDialog dialog(this, "Select PCM ROM file(s)");
-  dialog.setFileMode(QFileDialog::ExistingFiles);
-  if (_pathPCMRomLE->text() == "")
-    dialog.setDirectory(QDir::homePath());
-  else
-    dialog.setDirectory(QFileInfo(_pcmRomFilePaths[0]).absolutePath());
+    textList.clear();
+    textList << "N/A";
+    _add_table_row(4, textList, QColor(122, 255, 122));
 
-  if (dialog.exec()) {
-    _pcmRomFilePaths = dialog.selectedFiles();
-    QString text;
-    for (auto &fileName : _pcmRomFilePaths) {
-      text += QString("\"") + fileName + QString("\" ");
-    }
-    text.chop(1);
-    _pathPCMRomLE->setText(text);
-    _new_pcm_roms_selected();
+  // Add missing flag if wave3 is empty & "N/A" while wave 2 change -> 3 part
+  } else if (index == 1 && pos == 1 && romSetInfo->waveROMs.numROMs != 2
+             && _romModel->index(4,1).data().toString() == "N/A") {
+    textList.clear();
+    textList << "Missing";
+    _add_table_row(4, textList, QColor(255, 122, 122));
   }
+
+  _romTableView->resizeColumnsToContents();
 }
