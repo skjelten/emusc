@@ -163,8 +163,9 @@ public:
     std::array<int, 128> LFODelayTime;
     std::array<int, 128> LFOTVFDepth;
     std::array<int, 128> LFOTVPDepth;
+    std::array<uint8_t, 128> LFOSine;
     std::array<int, 128> TVFCutoffFreq;
-    std::array<int, 255> TVFResonance;
+    std::array<uint8_t, 255> TVFResonance;
   };
   struct LookupTables lookupTables;
 
@@ -237,14 +238,15 @@ private:
     int LFODelayTime;
     int LFOTVFDepth;
     int LFOTVPDepth;
+    int LFOSine;
     int TVFCutoffFreq;
     int TVFResonance;
   };
 
   const _CPUMemoryMapLUT SC55_1_21_CPU_LUT {
-    0x6f12, 0x7012, 0x7112, 0x7212, 0x7312, 0x7612, 0x7715 };
+    0x6f12, 0x7012, 0x7112, 0x7212, 0x7312, 0x7412, 0x7612, 0x7715 };
   const _CPUMemoryMapLUT SC55mkII_1_01_CPU_LUT {
-    0x6c86, 0x6486, 0x6e86, 0x6f86, 0x7086, 0x7386, 0x7489 };
+    0x6c86, 0x6486, 0x6e86, 0x6f86, 0x7086, 0x7186, 0x7386, 0x7489 };
 
   int _read_lookup_tables_progrom(std::ifstream &romFile);
   int _read_lookup_tables_cpurom(std::ifstream &romFile);

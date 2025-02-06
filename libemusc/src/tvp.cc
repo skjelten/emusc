@@ -22,13 +22,6 @@
 //  - Pitch modulation by LFOs (vibrato). Adjusted by dynamic paramters.
 //  - Pitch envelope. Also adjusted by dynamic paramters.
 
-// NOTES:
-// Pitch depth seems to be a linear function of vibrato depth in partial
-// definition + vibrato depth in patch parameters up to the sum of 55.
-//   Pitch adj(vibrato depth) = 0.0011 * (VD partial + VD patch param)
-// When accumulated sum of vibrato depth exceeds 55, it seems to start following
-// an exponential function.
-
 // Pitch envelopes have a linear correlation between pitch envelope value and
 // multiplier value: Pitch change in cents = 0.3 * multiplier * phase value
 
@@ -66,13 +59,6 @@ TVP::TVP(ControlRom::InstPartial &instPartial, uint8_t key, uint8_t velocity,
   _set_static_params(keyShift, ctrlSample);
   update_dynamic_params();
 
-  // If TVP envelope phase durations are all 0 we only have a static filter
-  // TODO: Verify that this is correct - what to do when P1-5 value != 0?
-  if ((!instPartial.pitchDurP1 && !instPartial.pitchDurP2 &&
-       !instPartial.pitchDurP3 && !instPartial.pitchDurP4 &&
-       !instPartial.pitchDurP5))
-    return;
-
   _init_envelope();
   if (_envelope)
     _envelope->start();
@@ -87,18 +73,14 @@ TVP::~TVP()
 
 double TVP::get_next_value()
 {
-  float pitchAdj = _staticPitchCorr * _pitchOffsetHz * _pitchExp;
+  float fixedPitchAdj = _staticPitchCorr * _pitchOffsetHz * _pitchExp;
 
-  double vibrato = (1 + (_LFO1->value() * _accLFO1Depth * 0.0011)) *
-                   (1 + (_LFO2->value() * _accLFO2Depth * 0.0011));
+  float vibrato1 = (_LFO1->value() * _LUT.LFOTVPDepth[_accLFO1Depth]) / 3650;
+  float vibrato2 = (_LFO2->value() * _LUT.LFOTVPDepth[_accLFO2Depth]) / 3650;
+  float envelope = _envelope->get_next_value() * 0.3 * _multiplier;
+  float dynPitchAdj = exp(((envelope * log(2)) + vibrato1 + vibrato2) / 1200.0);
 
-  if (!_envelope)
-    return pitchAdj * vibrato;
-
-  float envelope = exp(_envelope->get_next_value() * 0.3 * _multiplier *
-		       (log(2) / 1200.0));
-
-  return pitchAdj * vibrato * envelope;
+  return fixedPitchAdj * dynPitchAdj;
 }
 
 
@@ -111,14 +93,16 @@ void TVP::note_off()
 
 void TVP::update_dynamic_params(void)
 {
-  int lfoDepth = _LFO1Depth +
-    _settings->get_param(PatchParam::VibratoDepth, _partId) - 0x40 +
+  _accLFO1Depth = _LFO1Depth +
+    (_settings->get_param(PatchParam::VibratoDepth, _partId) - 0x40) * 2 +
     _settings->get_param(PatchParam::Acc_LFO1PitchDepth, _partId);
-  _accLFO1Depth = (lfoDepth > 0) ? (uint8_t) lfoDepth : 0;
+  if (_accLFO1Depth < 0) _accLFO1Depth = 0;
+  if (_accLFO1Depth > 127) _accLFO1Depth = 127;
 
-  lfoDepth = _LFO2Depth +
+  _accLFO2Depth = _LFO2Depth +
     _settings->get_param(PatchParam::Acc_LFO2PitchDepth, _partId);
-  _accLFO2Depth = (lfoDepth > 0) ? (uint8_t) lfoDepth : 0;
+  if (_accLFO2Depth < 0) _accLFO2Depth = 0;
+  if (_accLFO2Depth > 127) _accLFO2Depth = 127;
 
   float freqKeyTuned = _keyFreq +
     (_settings->get_param_nib16(PatchParam::PitchOffsetFine,_partId) -0x080)/10;

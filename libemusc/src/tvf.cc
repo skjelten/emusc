@@ -42,8 +42,8 @@ namespace EmuSC {
 
 
 TVF::TVF(ControlRom::InstPartial &instPartial, uint8_t key, uint8_t velocity,
-	 WaveGenerator *LFO1, WaveGenerator *LFO2,ControlRom::LookupTables &LUT,
-	 Settings *settings, int8_t partId)
+         WaveGenerator *LFO1, WaveGenerator *LFO2,ControlRom::LookupTables &LUT,
+         Settings *settings, int8_t partId)
   : _sampleRate(settings->sample_rate()),
     _LFO1(LFO1),
     _LFO2(LFO2),
@@ -80,7 +80,6 @@ TVF::~TVF()
 // TODO: Add suport for the following features:
 // * Cutoff freq V-sens
 // * TVF envelope
-// * TVF LFO modulation
 // * TVF Resonance
 void TVF::apply(double *sample)
 {
@@ -110,16 +109,18 @@ void TVF::apply(double *sample)
   else if (_instPartial.TVFCFKeyFlwC == 2 && _key > 60)
     keyFollow = ((_instPartial.TVFCFKeyFlw - 0x40) / 100.0) * (_key - 60);
 
+  // The LFO modulation does not make a smooth curve if used with LUT
+  // float lfo1ModFreq =_LFO1->value()*_LUT.LFOTVFDepth[_accLFO1Depth]/100000.0;
+  // float lfo2ModFreq =_LFO2->value()*_LUT.LFOTVFDepth[_accLFO2Depth]/100000.0;
+  // midiKeyCutoffFreq += lfo1ModFreq + lfo2ModFreq;
+
   // TVF cutoff frequency
-  // TODO: Why divide on 4.3?
-  int filterFreq = _LUT.TVFCutoffFreq[std::round(midiKey + keyFollow)] / 4.3;
+  float filterFreq = _LUT.TVFCutoffFreq[(int) (midiKey + keyFollow)] / 4.3;
 
-
-  // FIXME: LFO modulation temporarily disabled due to clipping on instruments
-  //        with high LFOx TVF depth. Needs to find out how to properly apply
-  //        filter effect.
-  //				     (_LFO1->value() * _accLFO1Depth * 0.26) +
-//				     (_LFO2->value() * _accLFO2Depth * 0.26)) / 12);
+  // Calculate TVF LFO depth separately to get smooth curve and modify freq
+  float lfo1ModFreq = _LFO1->value() * _LUT.LFOTVFDepth[_accLFO1Depth] / 1024.0;
+  float lfo2ModFreq = _LFO2->value() * _LUT.LFOTVFDepth[_accLFO2Depth] / 1024.0;
+  filterFreq *= exp((lfo1ModFreq + lfo2ModFreq) / 1200.0);
 
   // Filter resonance
   // TODO: Figure out the exact range and function for the resonance
@@ -147,6 +148,7 @@ void TVF::apply(double *sample)
                 << std::endl;
   }
 }
+
 
 void TVF::note_off()
 {

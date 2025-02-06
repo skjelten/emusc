@@ -563,6 +563,9 @@ int ControlRom::_read_lookup_tables_cpurom(std::ifstream &romFile)
   romFile.seekg(CPUmmLUT->TVFResonance);
   romFile.read(reinterpret_cast<char*> (&lookupTables.TVFResonance), 255);
 
+  romFile.seekg(CPUmmLUT->LFOSine);
+  romFile.read(reinterpret_cast<char*> (&lookupTables.LFOSine), 128);
+
   // 16-bit values
   _read_lut_128x16bit(romFile, CPUmmLUT->TVFCutoffFreq,
                       lookupTables.TVFCutoffFreq);
@@ -593,9 +596,6 @@ int ControlRom::_read_lut_128x16bit(std::ifstream &ifs, int pos,
     }
 
     lut[i] = static_cast<int>(_native_endian_uint16((uint8_t *) &value));
-
-    if (1)
-      std::cout << "LUT: " << i << " -> " << lut[i] << std::endl;
   }
 
   return 128;

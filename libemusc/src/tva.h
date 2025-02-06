@@ -60,8 +60,8 @@ private:
 
   ControlRom::LookupTables &_LUT;
 
-  uint8_t _accLFO1Depth;
-  uint8_t _accLFO2Depth;
+  int _accLFO1Depth;
+  int _accLFO2Depth;
 
   uint8_t _key;
   int _drumSet;

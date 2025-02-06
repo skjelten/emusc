@@ -68,8 +68,8 @@ private:
   int _LFO1Depth;
   int _LFO2Depth;
 
-  uint8_t _accLFO1Depth;
-  uint8_t _accLFO2Depth;
+  int _accLFO1Depth;
+  int _accLFO2Depth;
 
   const float _expFactor;       // log(2) / 12000
   float _pitchOffsetHz;

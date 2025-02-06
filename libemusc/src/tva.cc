@@ -75,22 +75,28 @@ void TVA::apply(double *sample)
   sample[0] *= _staticVolCorr * _drumVol * _ctrlVol;
 
   // Apply tremolo (LFOs)
-  if (_accLFO1Depth > 0) {
+  // TVA LFO waveforms needs more work. The sine function is streched? Is it
+  // the same "deformation" as seen with triangle?
+  float LFO1Mod, LFO2Mod;
+  if (1) {
+    // Do we have a LUT for this?
+    LFO1Mod = 1 + (_LFO1->value() * _accLFO1Depth / (256 * 127 / 3));
+    LFO2Mod = 1 + (_LFO2->value() * _accLFO2Depth / (256 * 127 / 3));
+
+    // LFO is limited to max 3 and min 0
+    if (LFO1Mod > 3) LFO1Mod = 3;
+    if (LFO1Mod < 0) LFO1Mod = 0;
+    if (LFO2Mod > 3) LFO2Mod = 3;
+    if (LFO2Mod < 0) LFO2Mod = 0;
+
+  } else {
     float high = _convert_LFO_depth_high_LUT[_accLFO1Depth];
     float low =  _convert_LFO_depth_low_LUT[_accLFO1Depth];
-    if (_instPartial.TVALFO1Depth & 0x80)
-      sample[0] *= ((_LFO1->value() * -1) + 1) * 0.5 * (high - low) + low;
-    else
-      sample[0] *= (_LFO1->value() + 1) * 0.5 * (high - low) + low;
+    LFO1Mod = 1 + ((_LFO1->value() * _accLFO1Depth / (255*127*2)) *  (high - low) + low );
   }
-  if (_accLFO2Depth > 0) {
-    float high = _convert_LFO_depth_high_LUT[_accLFO2Depth];
-    float low =  _convert_LFO_depth_low_LUT[_accLFO2Depth];
-    if (_instPartial.TVALFO2Depth & 0x80)
-      sample[0] *= ((_LFO2->value() * -1) + 1) * 0.5 * (high - low) + low;
-    else
-      sample[0] *= (_LFO2->value() + 1) * 0.5 * (high - low) + low;
-  }
+
+  sample[0] *= (_instPartial.TVALFO1Depth & 0x80) ? -1 * LFO1Mod : LFO1Mod;
+  sample[0] *= (_instPartial.TVALFO1Depth & 0x80) ? -1 * LFO2Mod : LFO2Mod;
 
   // Apply volume envelope
   if (_envelope)
@@ -118,17 +124,15 @@ void TVA::note_off()
 void TVA::update_dynamic_params(bool reset)
 {
   // Update LFO inputs
-  int newLFODepth = (_instPartial.TVALFO1Depth & 0x7f) +
+  _accLFO1Depth = (_instPartial.TVALFO1Depth & 0x7f) +
     _settings->get_param(PatchParam::Acc_LFO1TVADepth, _partId);
-  if (newLFODepth < 0) newLFODepth = 0;
-  if (newLFODepth > 127) newLFODepth = 127;
-  _accLFO1Depth = newLFODepth;
+  if (_accLFO1Depth < 0) _accLFO1Depth = 0;
+  if (_accLFO1Depth > 127) _accLFO1Depth = 127;
 
-  newLFODepth = (_instPartial.TVALFO2Depth & 0x7f) +
+  _accLFO2Depth = (_instPartial.TVALFO2Depth & 0x7f) +
     _settings->get_param(PatchParam::Acc_LFO2TVADepth, _partId);
-  if (newLFODepth < 0) newLFODepth = 0;
-  if (newLFODepth > 127) newLFODepth = 127;
-  _accLFO2Depth = newLFODepth;
+  if (_accLFO2Depth < 0) _accLFO2Depth = 0;
+  if (_accLFO2Depth > 127) _accLFO2Depth = 127;
 
   // Drum volume is dynamic
   if (_drumSet)

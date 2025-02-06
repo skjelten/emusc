@@ -59,9 +59,6 @@
 
 namespace EmuSC {
 
-// Make Clang compiler happy
-constexpr std::array<float, 256> WaveGenerator::_sineTable;
-
 
 WaveGenerator::WaveGenerator(struct ControlRom::Instrument &instrument,
                              struct ControlRom::LookupTables &LUT,
@@ -89,7 +86,9 @@ WaveGenerator::WaveGenerator(struct ControlRom::Instrument &instrument,
   _fadeMax = _fade;
 
   if (0)
-    std::cout << "New LFO1: delay(rom)=" << delayInput
+    std::cout << "New LFO1: rate=" << _rate
+              << " period=" << (32000.0 / (61 * _LUT.LFORate[_rate])) *_sampleRate
+              << " delay(rom)=" << delayInput
               << " -> " << _delay << " samples / "
               << (float) _delay / settings->sample_rate() << "s"
               << ", fade(rom)" << (int) instrument.LFO1Fade
@@ -97,7 +96,7 @@ WaveGenerator::WaveGenerator(struct ControlRom::Instrument &instrument,
               << (float) _fade / settings->sample_rate() << "s" << std::endl;
 
   _useLUT = true;
-  _interpolate = false;
+  _interpolate = true;
 
   _update_params();
 
@@ -133,7 +132,7 @@ WaveGenerator::WaveGenerator(struct ControlRom::InstPartial &instPartial,
               << (float) _fade / settings->sample_rate() << "s" << std::endl;
 
   _useLUT = true;
-  _interpolate = false;
+  _interpolate = true;
 
   _update_params();
 
@@ -161,31 +160,33 @@ void WaveGenerator::next(void)
   }
 
   _index = (_index + 1 < _period) ? _index + 1 : 0;
+  int squareWave = (_index < _period / 2) ? 1 : -1;
 
-  double LFOValue;
+  float LFOValue;
   if (_waveForm == Waveform::Sine) {
     if (!_useLUT) {
       LFOValue = std::sin(_index * 2.0 * M_PI / (float) _period);
 
-    } else {
+    } else { // Sine is created by using a 1/2 sine LUT and a square wave
+      float pos = (int) _index * 256 / (float) _period;
+      if (pos >= 128)
+        pos -= 128;
+
       if (!_interpolate) {
-	LFOValue = _sineTable[(int) _index * _sineTable.size() /(float)_period];
+        LFOValue = squareWave * _LUT.LFOSine[pos];
 
       } else {
-	int nextIndex = (int) _index + 1;
-	if (nextIndex >= _sineTable.size())
-	  nextIndex = 0;
+        int p0 = squareWave * _LUT.LFOSine[(int) pos];
+        int p1 = squareWave * _LUT.LFOSine[(int) (pos + 1) % 128];
 
-	float fractionNext = _index - ((int) _index);
-	float fractionPrev = 1.0 - fractionNext;
-
-	LFOValue = fractionPrev * _sineTable[(int) _index] +
-	           fractionNext * _sineTable[nextIndex];
+        float fractionP1 = pos - (int) pos;
+        float fractionP0 = 1.0 - fractionP1;
+	LFOValue = fractionP0 * p0 + fractionP1 * p1;
       }
     }
 
   } else if (_waveForm == Waveform::Square) {
-    LFOValue = _sineTable[(int) _index * _sineTable.size() /(float)_period] > 0 ? 1.0 : -1.0;
+    LFOValue = squareWave;
 
   } else if (_waveForm == Waveform::Sawtooth) {
     LFOValue = (fmod(_index, _period) / _period) * 2 - 1.0;
