@@ -181,9 +181,9 @@ void TVP::_init_envelope(void)
 
   bool phaseShape[5] = { 0, 0, 0, 0, 0 };
 
-  _envelope = new Envelope(phasePitch, phaseDuration, phaseShape, 0,
-			   _LUT.envelopeTime, _settings, _partId,
-                           Envelope::Type::TVP, phasePitchInit);
+  _envelope = new Envelope(phasePitch, phaseDuration, phaseShape, 0, _LUT,
+                           _settings, _partId, Envelope::Type::TVP,
+                           phasePitchInit);
 
   // Adjust envelope phase durations based on Pitch Envelope Time Key Follow
   // and Pitch Envelope Time Velocity Sensitivity.

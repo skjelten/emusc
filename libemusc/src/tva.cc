@@ -229,8 +229,7 @@ void TVA::_init_envelope(uint8_t velocity)
   phaseShape[4] = (_instPartial.TVALenP5 & 0x80) ? 0 : 1;
 
   _envelope = new Envelope(phaseVolume, phaseDuration, phaseShape, _key,
-                           _LUT.envelopeTime, _settings, _partId,
-                           Envelope::Type::TVA);
+                           _LUT, _settings, _partId, Envelope::Type::TVA);
 
   // Adjust envelope phase durations.
   // The Sound Canvas has three parameters for tuning the TVA durations:

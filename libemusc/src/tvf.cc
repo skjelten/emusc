@@ -197,9 +197,8 @@ void TVF::_init_envelope(void)
 
   bool phaseShape[5] = { 0, 0, 0, 0, 0 };
 
-  _envelope = new Envelope(phaseLevel, phaseDuration, phaseShape, _key,
-			   _LUT.envelopeTime, _settings, _partId,
-                           Envelope::Type::TVF, 0x40);
+  _envelope = new Envelope(phaseLevel, phaseDuration, phaseShape, _key, _LUT,
+                           _settings, _partId, Envelope::Type::TVF, 0x40);
 
 
   // Adjust envelope phase durations based on TVF Envelope Time Key Follow

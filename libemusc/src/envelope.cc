@@ -51,14 +51,11 @@
 
 namespace EmuSC {
 
-// Make Clang compiler happy
-constexpr std::array<float, 128> Envelope::_convert_time_to_sec_LUT;
-
 
 Envelope::Envelope(double value[5], uint8_t duration[5], bool shape[5], int key,
-                   std::array<int, 128> &timeLUT, Settings *settings,
+                   ControlRom::LookupTables &LUT, Settings *settings,
                    int8_t partId, enum Type type, int initValue)
-  : _timeLUT(timeLUT),
+  : _LUT(LUT),
     _finished(false),
     _sampleRate(settings->sample_rate()),
     _currentValue(initValue),
@@ -150,7 +147,7 @@ void Envelope::_init_new_phase(enum Phase newPhase)
   if (durationTotal < 0) durationTotal = 0;
   if (durationTotal > 127) durationTotal = 127;
 
-  double phaseDurationSec = _convert_time_to_sec_LUT[durationTotal];
+  float phaseDurationSec = (_LUT.envelopeTime[durationTotal] + 1) / 1000.0;
 
   // FIXME: Find out when this should be used and re-enable it
   //(_key < 0) ?
