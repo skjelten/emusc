@@ -66,8 +66,10 @@ Envelope::Envelope(double value[5], uint8_t duration[5], bool shape[5], int key,
     _key(key),
     _settings(settings),
     _partId(partId),
-    _timeCorrT1T4(1.0),
-    _timeCorrT5(1.0),
+    _timeKeyFlwT1T4(-1),
+    _timeKeyFlwT5(-1),
+    _timeVelSensT1T4(1.0),
+    _timeVelSensT5(1.0),
     _type(type)
 {
   for (int i = 0; i < 5; i++) {
@@ -155,10 +157,17 @@ void Envelope::_init_new_phase(enum Phase newPhase)
   //    _convert_time_to_sec_LUT[durationTotal] :
   //    _convert_time_to_sec_LUT[durationTotal] * (1 - (_key / 128.0));
 
-  if (newPhase != Phase::Release)
-    phaseDurationSec *= _timeCorrT1T4;
-  else
-    phaseDurationSec *= _timeCorrT5;
+  if (newPhase != Phase::Release) {
+    if (_timeKeyFlwT1T4 >= 0)
+      phaseDurationSec *= (float) _timeKeyFlwT1T4 / 256.0;
+
+    phaseDurationSec *= _timeVelSensT1T4;
+  } else {
+    if (_timeKeyFlwT5 >= 0)
+      phaseDurationSec *= (float) _timeKeyFlwT5 / 256.0;
+
+    phaseDurationSec *= _timeVelSensT5;
+  }
 
   _phaseSampleLen = round(phaseDurationSec * _sampleRate);
 
@@ -246,18 +255,6 @@ void Envelope::release()
     return;
 
   _init_new_phase(Phase::Release);
-}
-
-
-void Envelope::set_time_correction_t1_t4(float time)
-{
-  _timeCorrT1T4 = time;
-}
-
-
-void Envelope::set_time_correction_t5(float time)
-{
-  _timeCorrT5 = time;
 }
 
 }

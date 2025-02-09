@@ -307,6 +307,8 @@ int ControlRom::_read_instruments(std::ifstream &romFile)
       i.partials[p].pitchDurP3  = data[21];
       i.partials[p].pitchDurP4  = data[22];
       i.partials[p].pitchDurP5  = data[23];
+      i.partials[p].pitchETKeyF14=data[28];
+      i.partials[p].pitchETKeyF5= data[29];
       i.partials[p].TVFBaseFlt  = data[33];
       i.partials[p].TVFResonance= data[34];
       i.partials[p].TVFType     = data[35];
@@ -325,6 +327,8 @@ int ControlRom::_read_instruments(std::ifstream &romFile)
       i.partials[p].TVFDurP3    = data[48];
       i.partials[p].TVFDurP4    = data[49];
       i.partials[p].TVFDurP5    = data[50];
+      i.partials[p].TVFETKeyF14 = data[55];
+      i.partials[p].TVFETKeyF5  = data[56];
       i.partials[p].volume      = data[65];
       i.partials[p].TVALFO1Depth= data[68];
       i.partials[p].TVALFO2Depth= data[69];
@@ -560,6 +564,9 @@ int ControlRom::_read_lookup_tables_cpurom(std::ifstream &romFile)
     }
 
   // 8-bit values
+  romFile.seekg(CPUmmLUT->TimeKeyFollowDiv);
+  romFile.read(reinterpret_cast<char*> (&lookupTables.TimeKeyFollowDiv), 21);
+
   romFile.seekg(CPUmmLUT->TVFResonance);
   romFile.read(reinterpret_cast<char*> (&lookupTables.TVFResonance), 255);
 
@@ -567,24 +574,20 @@ int ControlRom::_read_lookup_tables_cpurom(std::ifstream &romFile)
   romFile.read(reinterpret_cast<char*> (&lookupTables.LFOSine), 128);
 
   // 16-bit values
-  _read_lut_128x16bit(romFile, CPUmmLUT->TVFCutoffFreq,
-                      lookupTables.TVFCutoffFreq);
-  _read_lut_128x16bit(romFile, CPUmmLUT->EnvelopeTime,
-                      lookupTables.envelopeTime);
-  _read_lut_128x16bit(romFile, CPUmmLUT->LFORate, lookupTables.LFORate);
-  _read_lut_128x16bit(romFile, CPUmmLUT->LFODelayTime,
-                      lookupTables.LFODelayTime);
-  _read_lut_128x16bit(romFile, CPUmmLUT->LFOTVFDepth,
-                      lookupTables.LFOTVFDepth);
-  _read_lut_128x16bit(romFile, CPUmmLUT->LFOTVPDepth,
-                      lookupTables.LFOTVPDepth);
+  _read_lut_16bit(romFile, CPUmmLUT->TimeKeyFollow, lookupTables.TimeKeyFollow);
+  _read_lut_16bit(romFile, CPUmmLUT->TVFCutoffFreq, lookupTables.TVFCutoffFreq);
+  _read_lut_16bit(romFile, CPUmmLUT->EnvelopeTime, lookupTables.envelopeTime);
+  _read_lut_16bit(romFile, CPUmmLUT->LFORate, lookupTables.LFORate);
+  _read_lut_16bit(romFile, CPUmmLUT->LFODelayTime, lookupTables.LFODelayTime);
+  _read_lut_16bit(romFile, CPUmmLUT->LFOTVFDepth, lookupTables.LFOTVFDepth);
+  _read_lut_16bit(romFile, CPUmmLUT->LFOTVPDepth, lookupTables.LFOTVPDepth);
 
   return 0;
 }
 
 
-int ControlRom::_read_lut_128x16bit(std::ifstream &ifs, int pos,
-                                    std::array<int, 128> &lut)
+int ControlRom::_read_lut_16bit(std::ifstream &ifs, int pos,
+                                std::array<int, 128> &lut)
 {
   ifs.seekg(pos);
 
@@ -602,40 +605,23 @@ int ControlRom::_read_lut_128x16bit(std::ifstream &ifs, int pos,
 }
 
 
-/*
-uint8_t ControlRom::lookup_table(uint8_t table, uint8_t index)
+int ControlRom::_read_lut_16bit(std::ifstream &ifs, int pos,
+                                std::array<int, 256> &lut)
 {
-  if (table >= _lookupTables.size() || index > 127)
-    return 0;
+  ifs.seekg(pos);
 
-  return _lookupTables[table][index];
+  for (int i = 0; i < 256; i ++) {
+    uint16_t value;
+    if (!ifs.read(reinterpret_cast<char*>(&value), sizeof(value))) {
+      std::cerr << "libEmuSC: Error reading LUT from ROM" << std::endl;
+      return i;
+    }
+
+    lut[i] = static_cast<int>(_native_endian_uint16((uint8_t *) &value));
+  }
+
+  return 256;
 }
-
-
-float ControlRom::lookup_table(uint8_t table, float index, int interpolate)
-{
-  if (table >= _lookupTables.size() || index > 127)
-    return -1;
-
-  // interpolate == 0 => no interpolation
-  if (interpolate == 0) {
-    return _lookupTables[table][(uint8_t) index];
-
-  // interpolate == 1 => linear interpolation
-  } // else if (interpolate == 1) {
-
-  int indexBelow = floor(index);
-  int indexAbove = indexBelow + 1;
-  if (indexAbove >= _lookupTables[table].size())
-    indexAbove = 0;
-
-  float fractionAbove = index - indexBelow;
-  float fractionBelow = 1.0 - fractionAbove;
-
-  return fractionBelow * _lookupTables[table][indexBelow] +
-         fractionAbove * _lookupTables[table][indexAbove];
-}
-*/
 
 
 const uint8_t ControlRom::max_polyphony(void)

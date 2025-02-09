@@ -91,6 +91,9 @@ public:
     uint8_t pitchDurP4;
     uint8_t pitchDurP5;
 
+    uint8_t pitchETKeyF14;// TVF Envelope Time Key Follow (T1 - T4)
+    uint8_t pitchETKeyF5; // TVF Envelope Time Key Follow (T5)
+
     int8_t TVFBaseFlt;
     int8_t TVFResonance;
     int8_t TVFType;       // TVF Type [ low pass | high pass | disabled ]
@@ -111,6 +114,9 @@ public:
     uint8_t TVFDurP3;
     uint8_t TVFDurP4;
     uint8_t TVFDurP5;
+
+    uint8_t TVFETKeyF14;  // TVF Envelope Time Key Follow (T1 - T4)
+    uint8_t TVFETKeyF5;   // TVF Envelope Time Key Follow (T5)
 
     uint8_t TVALFO1Depth;
     uint8_t TVALFO2Depth;
@@ -158,13 +164,15 @@ public:
   };
 
   struct LookupTables {
-    std::array<int, 128> envelopeTime;
-    std::array<int, 128> LFORate;
-    std::array<int, 128> LFODelayTime;
-    std::array<int, 128> LFOTVFDepth;
-    std::array<int, 128> LFOTVPDepth;
+    std::array<uint8_t,  21> TimeKeyFollowDiv;
+    std::array<int,     256> TimeKeyFollow;
+    std::array<int,     128> envelopeTime;
+    std::array<int,     128> LFORate;
+    std::array<int,     128> LFODelayTime;
+    std::array<int,     128> LFOTVFDepth;
+    std::array<int,     128> LFOTVPDepth;
     std::array<uint8_t, 128> LFOSine;
-    std::array<int, 128> TVFCutoffFreq;
+    std::array<int,     128> TVFCutoffFreq;
     std::array<uint8_t, 255> TVFResonance;
   };
   struct LookupTables lookupTables;
@@ -233,6 +241,8 @@ private:
   static const std::vector<uint32_t> _banksSC88;
 
   struct _CPUMemoryMapLUT {
+    int TimeKeyFollowDiv;
+    int TimeKeyFollow;
     int EnvelopeTime;
     int LFORate;
     int LFODelayTime;
@@ -244,18 +254,16 @@ private:
   };
 
   const _CPUMemoryMapLUT SC55_1_21_CPU_LUT {
-    0x6f12, 0x7012, 0x7112, 0x7212, 0x7312, 0x7412, 0x7612, 0x7715 };
+    0x679a, 0x67c6, 0x6f12, 0x7012, 0x7112, 0x7212, 0x7312, 0x7412, 0x7612,
+    0x7715 };
   const _CPUMemoryMapLUT SC55mkII_1_01_CPU_LUT {
-    0x6c86, 0x6486, 0x6e86, 0x6f86, 0x7086, 0x7186, 0x7386, 0x7489 };
+    0x650e, 0x653a, 0x6c86, 0x6486, 0x6e86, 0x6f86, 0x7086, 0x7186, 0x7386,
+    0x7489 };
 
   int _read_lookup_tables_progrom(std::ifstream &romFile);
   int _read_lookup_tables_cpurom(std::ifstream &romFile);
-  int _read_lut_128x16bit(std::ifstream &ifs, int pos,
-                          std::array<int, 128> &lut);
-  /*
-  uint8_t lookup_table(uint8_t table, uint8_t index);
-  float lookup_table(uint8_t table, float index, int interpolate = 1);
-  */
+  int _read_lut_16bit(std::ifstream &ifs, int pos, std::array<int, 128> &lut);
+  int _read_lut_16bit(std::ifstream &ifs, int pos, std::array<int, 256> &lut);
 
   int _identify_model(std::ifstream &romFile);
   const std::vector<uint32_t> &_banks(void);

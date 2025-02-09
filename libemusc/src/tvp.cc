@@ -184,6 +184,35 @@ void TVP::_init_envelope(void)
   _envelope = new Envelope(phasePitch, phaseDuration, phaseShape, 0,
 			   _LUT.envelopeTime, _settings, _partId,
                            Envelope::Type::TVP, phasePitchInit);
+
+  // Adjust envelope phase durations based on Pitch Envelope Time Key Follow
+  // and Pitch Envelope Time Velocity Sensitivity.
+
+  // Adjust time for T1 - T4 (Attacks and Decays)
+  if (_instPartial.pitchETKeyF14 != 0x40) {
+    int tkfDiv=_LUT.TimeKeyFollowDiv[std::abs(_instPartial.pitchETKeyF14-0x40)];
+    if (_instPartial.pitchETKeyF14 < 0x40)
+      tkfDiv *= -1;
+    int tkfIndex = ((tkfDiv * (_key - 64)) / 64) + 128;
+    _envelope->set_time_key_follow_t1_t4(_LUT.TimeKeyFollow[tkfIndex]);
+
+    if (0)   // Debug output Pitch Envelope Time Key Follow T1-T4
+      std::cout << "Pitch ETKF T1-T4: key=" << (int) _key
+                << " LUT1[" << (int) _instPartial.pitchETKeyF14 - 0x40
+                << "]=" << tkfDiv << " LUT2[" << tkfIndex
+                << "]=" << _LUT.TimeKeyFollow[tkfIndex]
+                << " => time change=" << _LUT.TimeKeyFollow[tkfIndex] / 256.0
+                << "x" << std::endl;
+  }
+
+  // Adjust time for T5 (Release)
+  if (_instPartial.pitchETKeyF5 != 0x40) {
+    int tkfDiv =_LUT.TimeKeyFollowDiv[std::abs(_instPartial.pitchETKeyF5-0x40)];
+    if (_instPartial.pitchETKeyF5 < 0x40)
+      tkfDiv *= -1;
+    int tkfIndex = ((tkfDiv * (_key - 64)) / 64) + 128;
+    _envelope->set_time_key_follow_t5(_LUT.TimeKeyFollow[tkfIndex]);
+  }
 }
 
 }

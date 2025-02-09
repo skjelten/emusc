@@ -237,10 +237,10 @@ void TVA::_init_envelope(uint8_t velocity)
   // - TVA Envelope Time Key Presets
   // - TVA Envelope Time Key Follow
   // - TVA Envelope Time Velocity Sensitivity
-  // All three parameters have separate parameter for attacks & decays (T1-T4)
-  // and for the release phase (T5).
 
   // Adjust time for T1 - T4 (Attacks & Decays)
+
+  // TODO: Fix TVA Envelope Time Key Presets
   int key;
   if (_instPartial.TVAETKeyP14 == 1)
     key = 127 - _key;
@@ -249,8 +249,21 @@ void TVA::_init_envelope(uint8_t velocity)
   else
     key = _key;
 
-  int tkf = _instPartial.TVAETKeyF14 - 0x40;
-  float taKeyFollow = pow(0.87075, tkf) * exp(0.0021586 * tkf * key);
+  if (_instPartial.TVAETKeyF14 != 0x40) {
+    int tkfDiv = _LUT.TimeKeyFollowDiv[std::abs(_instPartial.TVAETKeyF14-0x40)];
+    if (_instPartial.TVAETKeyF14 < 0x40)
+      tkfDiv *= -1;
+    int tkfIndex = ((tkfDiv * (_key - 64)) / 64) + 128;
+    _envelope->set_time_key_follow_t1_t4(_LUT.TimeKeyFollow[tkfIndex]);
+
+    if (0)   // Debug output TVA Envelope Time Key Follow T1-T4
+      std::cout << "TVA ETKF T1-T4: key=" << (int) _key
+                << " LUT1[" << (int) _instPartial.TVAETKeyF14 - 0x40
+                << "]=" << tkfDiv << " LUT2[" << tkfIndex
+                << "]=" << _LUT.TimeKeyFollow[tkfIndex]
+                << " => time change=" << _LUT.TimeKeyFollow[tkfIndex] / 256.0
+                << "x" << std::endl;
+  }
 
   float taVelSens = 1;
   if (_instPartial.TVAETVSens14 < 0x40) {
@@ -261,7 +274,7 @@ void TVA::_init_envelope(uint8_t velocity)
               << std::endl;
   }
 
-  _envelope->set_time_correction_t1_t4(taKeyFollow * taVelSens);
+  _envelope->set_time_vel_sens_t1_t4(taVelSens);
 
   // Adjust time for T5 (Release)
   if (_instPartial.TVAETKeyP5 == 1)
@@ -271,8 +284,13 @@ void TVA::_init_envelope(uint8_t velocity)
   else
     key = _key;
 
-  tkf = _instPartial.TVAETKeyF5 - 0x40;
-  taKeyFollow = pow(0.87075, tkf) * exp(0.0021586 * tkf * key);
+  if (_instPartial.TVAETKeyF5 != 0x40) {
+    int tkfDiv = _LUT.TimeKeyFollowDiv[std::abs(_instPartial.TVAETKeyF5 -0x40)];
+    if (_instPartial.TVAETKeyF5 < 0x40)
+      tkfDiv *= -1;
+    int tkfIndex = ((tkfDiv * (_key - 64)) / 64) + 128;
+    _envelope->set_time_key_follow_t5(_LUT.TimeKeyFollow[tkfIndex]);
+  }
 
   taVelSens = 1;
   if (_instPartial.TVAETVSens5 < 0x40) {
@@ -282,8 +300,7 @@ void TVA::_init_envelope(uint8_t velocity)
     std::cerr << "Positive TVA envelope V-sensitivity not implemented yet"
               << std::endl;
   }
-
-  _envelope->set_time_correction_t5(taKeyFollow * taVelSens);
+  _envelope->set_time_vel_sens_t5(taVelSens);
 
   // Adjust level
   // TBD

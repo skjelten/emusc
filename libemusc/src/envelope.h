@@ -53,8 +53,10 @@ Envelope(double value[5], uint8_t duration[5], bool shape[5], int key,
 
   inline bool finished(void) { return _finished; }
 
-  void set_time_correction_t1_t4(float time);
-  void set_time_correction_t5(float time);
+  void set_time_key_follow_t1_t4(int time) { _timeKeyFlwT1T4 = time; }
+  void set_time_key_follow_t5(int time) { _timeKeyFlwT5 = time; }
+  void set_time_vel_sens_t1_t4(float time) { _timeVelSensT1T4 = time; }
+  void set_time_vel_sens_t5(float time) { _timeVelSensT5 = time; }
 
 private:
   double  _phaseValue[5];
@@ -91,8 +93,11 @@ private:
   Settings *_settings;
   int8_t _partId;
 
-  float _timeCorrT1T4;
-  float _timeCorrT5;
+  int _timeKeyFlwT1T4;
+  int _timeKeyFlwT5;
+
+  float _timeVelSensT1T4;
+  float _timeVelSensT5;
 
   enum Type _type;
   const char *_phaseName[5] = { "Attack 1", "Attack 2", "Decay 1",
