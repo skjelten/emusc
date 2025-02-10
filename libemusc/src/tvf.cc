@@ -200,35 +200,12 @@ void TVF::_init_envelope(void)
   _envelope = new Envelope(phaseLevel, phaseDuration, phaseShape, _key, _LUT,
                            _settings, _partId, Envelope::Type::TVF, 0x40);
 
+  // Adjust time for Envelope Time Key Follow including Envelope Time Key Preset
+  if (_instPartial.TVAETKeyF14 != 0x40)
+    _envelope->set_time_key_follow(0, _instPartial.TVFETKeyF14 - 0x40);
 
-  // Adjust envelope phase durations based on TVF Envelope Time Key Follow
-  // and TVF Envelope Time Velocity Sensitivity.
-
-  // Adjust time for T1 - T4 (Attacks and Decays)
-  if (_instPartial.TVFETKeyF14 != 0x40) {
-    int tkfDiv = _LUT.TimeKeyFollowDiv[std::abs(_instPartial.TVFETKeyF14-0x40)];
-    if (_instPartial.TVFETKeyF14 < 0x40)
-      tkfDiv *= -1;
-    int tkfIndex = ((tkfDiv * (_key - 64)) / 64) + 128;
-    _envelope->set_time_key_follow_t1_t4(_LUT.TimeKeyFollow[tkfIndex]);
-
-    if (0)   // Debug output TVF Envelope Time Key Follow T1-T4
-      std::cout << "TVF ETKF T1-T4: key=" << (int) _key
-                << " LUT1[" << (int) _instPartial.TVFETKeyF14 - 0x40
-                << "]=" << tkfDiv << " LUT2[" << tkfIndex
-                << "]=" << _LUT.TimeKeyFollow[tkfIndex]
-                << " => time change=" << _LUT.TimeKeyFollow[tkfIndex] / 256.0
-                << "x" << std::endl;
-  }
-
-  // Adjust time for T5 (Release)
-  if (_instPartial.TVFETKeyF5 != 0x40) {
-    int tkfDiv = _LUT.TimeKeyFollowDiv[std::abs(_instPartial.TVFETKeyF5 -0x40)];
-    if (_instPartial.TVFETKeyF5 < 0x40)
-      tkfDiv *= -1;
-    int tkfIndex = ((tkfDiv * (_key - 64)) / 64) + 128;
-    _envelope->set_time_key_follow_t5(_LUT.TimeKeyFollow[tkfIndex]);
-  }
+  if (_instPartial.TVAETKeyF5 != 0x40)
+    _envelope->set_time_key_follow(1, _instPartial.TVFETKeyF5 - 0x40);
 }
 
 }

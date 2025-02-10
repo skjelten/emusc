@@ -41,9 +41,9 @@ public:
     TVP
   };
 
-Envelope(double value[5], uint8_t duration[5], bool shape[5], int key,
-         ControlRom::LookupTables &LUT, Settings *settings, int8_t partId,
-         enum Type type, int initValue = 0);
+  Envelope(double value[5], uint8_t duration[5], bool shape[5], int key,
+           ControlRom::LookupTables &LUT, Settings *settings, int8_t partId,
+           enum Type type, int initValue = 0);
   ~Envelope();
 
   void start(void);
@@ -54,8 +54,9 @@ Envelope(double value[5], uint8_t duration[5], bool shape[5], int key,
 
   inline bool finished(void) { return _finished; }
 
-  void set_time_key_follow_t1_t4(int time) { _timeKeyFlwT1T4 = time; }
-  void set_time_key_follow_t5(int time) { _timeKeyFlwT5 = time; }
+  void set_time_key_follow(bool phase, int etkfROM, int etkpROM = 0);
+  void set_time_velocity_sensitvity(bool phase, int etvsROM);
+
   void set_time_vel_sens_t1_t4(float time) { _timeVelSensT1T4 = time; }
   void set_time_vel_sens_t5(float time) { _timeVelSensT5 = time; }
 

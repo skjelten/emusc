@@ -119,6 +119,45 @@ void Envelope::start(void)
 }
 
 
+// phase=0 -> T1-T4 (Attacks and Decays), phase=1 -> T5 (Release)
+void Envelope::set_time_key_follow(bool phase, int etkfROM, int etkpROM)
+{
+  if (etkfROM) {
+    int tkfDiv = _LUT.TimeKeyFollowDiv[std::abs(etkfROM)];
+    if (etkfROM < 0)
+      tkfDiv *= -1;
+
+    int tkfIndex;
+    if (etkpROM == 0)
+      tkfIndex = ((tkfDiv * (_key - 64)) / 64) + 128;
+    else if (etkpROM == 1)
+      tkfIndex = ((tkfDiv * (_key - 64)) / 64) + 128;  // TODO: FIXME!!
+    else
+      tkfIndex = ((tkfDiv * (127 - 64)) / 64) + 128;
+
+    if (phase == 0)
+      _timeKeyFlwT1T4 = _LUT.TimeKeyFollow[tkfIndex];
+    else
+      _timeKeyFlwT5 =  _LUT.TimeKeyFollow[tkfIndex];
+
+    if (0)
+      std::cout << "ETKF: phase=" << phase << std::dec
+                << " key=" << (int) _key << " etkpROM=" << etkpROM
+                << " LUT1[" << std::abs(etkfROM) << "]=" << tkfDiv
+                << " LUT2[" << tkfIndex << "]=" << _LUT.TimeKeyFollow[tkfIndex]
+                << " => time change=" << _LUT.TimeKeyFollow[tkfIndex] / 256.0
+                << std::endl;
+  }
+}
+
+
+// phase=0 -> T1-T4 (Attacks and Decays), phase=1 -> T5 (Release)
+void Envelope::set_time_velocity_sensitvity(bool phase, int etvsROM)
+{
+  // TODO
+}
+
+
 void Envelope::_init_new_phase(enum Phase newPhase)
 {
   if (newPhase == Phase::Off) {
