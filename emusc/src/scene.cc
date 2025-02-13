@@ -784,9 +784,6 @@ void Scene::keyPressEvent(QKeyEvent *keyEvent)
     int volume = _volumeDial->value();
     int newVolume = (volume >= 5) ? volume - 5 : 0;
     _volumeDial->setValue(newVolume);
-
-  } else if (keyEvent->key() == Qt::Key_Space) {
-    _powerButton->click();
   }
 
   // The remaining keys are only used of keyboard MIDI input is enabled

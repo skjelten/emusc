@@ -255,6 +255,12 @@ void MainWindow::_create_actions(void)
   connect(_viewEnvelopesChartAct, &QAction::triggered,
 	  this, &MainWindow::_display_envelope_dialog);
 
+  _turnOnOffAct = new QAction("&Turn On", this);
+  _turnOnOffAct->setShortcut(tr("SPACE"));
+  connect(_turnOnOffAct, &QAction::triggered,
+          this, &MainWindow::_turn_on_off);
+  addAction(_turnOnOffAct);
+
   _synthSettingsAct = new QAction("&Settings...", this);
   _synthSettingsAct->setShortcut(tr("CTRL+S"));
   _synthSettingsAct->setMenuRole(QAction::NoRole);
@@ -337,6 +343,7 @@ void MainWindow::_create_menus(void)
 #endif
 
   _synthMenu = menuBar()->addMenu("&Synth");
+  _synthMenu->addAction(_turnOnOffAct);
   _synthMenu->addAction(_synthSettingsAct);
 
   // TODO: Add SC-88 modes
@@ -487,6 +494,7 @@ void MainWindow::power_switch(int newPowerState)
     _panicAct->setEnabled(true);
     _synthSettingsAct->setEnabled(true);
     _viewCtrlRomDataAct->setEnabled(true);
+    _turnOnOffAct->setText("Turn off");
     _synthModeMenu->setEnabled(false);
 
 #ifdef __USE_QTCHARTS__
@@ -507,6 +515,7 @@ void MainWindow::power_switch(int newPowerState)
     _panicAct->setDisabled(true);
     _synthSettingsAct->setDisabled(true);
     _viewCtrlRomDataAct->setDisabled(true);
+    _turnOnOffAct->setText("Turn on");
     _synthModeMenu->setDisabled(false);
 
 #ifdef __USE_QTCHARTS__
@@ -536,6 +545,12 @@ void MainWindow::_dump_demo_songs(void)
 			 tr("Demo songs"),
 			 tr("No demo songs found in control ROM"),
 			 QMessageBox::Close);
+}
+
+
+void MainWindow::_turn_on_off(void)
+{
+  power_switch(-1);
 }
 
 
