@@ -80,6 +80,8 @@ private:
   QGraphicsTextItem *_lcdKshiftText;
   QGraphicsTextItem *_lcdMidichText;
 
+  QGraphicsTextItem *_modelNameText;
+
   QPushButton *_allButton;
   QPushButton *_muteButton;
 
@@ -155,6 +157,8 @@ public:
   void set_lcd_bkg_on_color(QColor color, bool update = true);
   void set_lcd_active_on_color(QColor color, bool update = true);
   void set_lcd_inactive_on_color(QColor color);
+
+  void set_model_name(QString name, QString version);
 
   void set_midi_kbd_enable(bool state) { _midiKbdInput = state; }
 

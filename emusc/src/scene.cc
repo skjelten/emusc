@@ -106,6 +106,13 @@ Scene::Scene(QWidget *parent)
 //    logoText->setPos(QPointF(500, -35));
 //    addItem(logoText);
 
+  _modelNameText = new QGraphicsTextItem;
+  QFont *font = new QFont;
+  font->setStretch(140);
+  _modelNameText->setFont(*font);
+  _modelNameText->setPos(QPointF(450, 180));
+  addItem(_modelNameText);
+
   QGraphicsTextItem *partHeaderText = new QGraphicsTextItem;
   partHeaderText->setHtml(_generate_sans_text_html("PART", 10));
   partHeaderText->setDefaultTextColor(0xbbbbbb);
@@ -688,6 +695,15 @@ void Scene::set_lcd_inactive_on_color(QColor color)
   _lcdChorusTextBkg->setDefaultTextColor(color);
   _lcdKshiftTextBkg->setDefaultTextColor(color);
   _lcdMidichTextBkg->setDefaultTextColor(color);
+}
+
+
+void Scene::set_model_name(QString name, QString version)
+{
+  if (name == "SC-55mkII")
+    _modelNameText->setHtml("<html><head><body style=\" white-space: pre-wrap; font-family:Sans Serif; font-style:italic; text-decoration:none;\"><font style=\"font-size:17pt; font-weight:normal; color: #e6a124\">SC-55mkII</font>");
+  else
+    _modelNameText->setPlainText("");
 }
 
 
