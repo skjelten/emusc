@@ -316,7 +316,7 @@ int ControlRom::_read_instruments(std::ifstream &romFile)
       i.partials[p].TVFCFKeyFlw = data[37];
       i.partials[p].TVFLFO1Depth= data[38];
       i.partials[p].TVFLFO2Depth= data[39];
-      i.partials[p].TVFLvlInit  = data[40];
+      i.partials[p].TVFEnvDepth = data[40];
       i.partials[p].TVFLvlP1    = data[41];
       i.partials[p].TVFLvlP2    = data[42];
       i.partials[p].TVFLvlP3    = data[43];
@@ -566,21 +566,25 @@ int ControlRom::_read_lookup_tables_cpurom(std::ifstream &romFile)
   // 8-bit values
   romFile.seekg(CPUmmLUT->TimeKeyFollowDiv);
   romFile.read(reinterpret_cast<char*> (&lookupTables.TimeKeyFollowDiv), 21);
-
+  romFile.seekg(CPUmmLUT->TVFCOFKeyFollow);
+  romFile.read(reinterpret_cast<char*> (&lookupTables.TVFCOFKeyFollow), 256);
   romFile.seekg(CPUmmLUT->TVFResonance);
-  romFile.read(reinterpret_cast<char*> (&lookupTables.TVFResonance), 255);
-
+  romFile.read(reinterpret_cast<char*> (&lookupTables.TVFResonance), 128);
+  romFile.seekg(CPUmmLUT->TVFEnvScale);
+  romFile.read(reinterpret_cast<char*> (&lookupTables.TVFEnvScale), 64);
   romFile.seekg(CPUmmLUT->LFOSine);
   romFile.read(reinterpret_cast<char*> (&lookupTables.LFOSine), 128);
 
   // 16-bit values
   _read_lut_16bit(romFile, CPUmmLUT->TimeKeyFollow, lookupTables.TimeKeyFollow);
+  _read_lut_16bit(romFile, CPUmmLUT->TVFEnvDepth, lookupTables.TVFEnvDepth);
   _read_lut_16bit(romFile, CPUmmLUT->TVFCutoffFreq, lookupTables.TVFCutoffFreq);
   _read_lut_16bit(romFile, CPUmmLUT->EnvelopeTime, lookupTables.envelopeTime);
   _read_lut_16bit(romFile, CPUmmLUT->LFORate, lookupTables.LFORate);
   _read_lut_16bit(romFile, CPUmmLUT->LFODelayTime, lookupTables.LFODelayTime);
   _read_lut_16bit(romFile, CPUmmLUT->LFOTVFDepth, lookupTables.LFOTVFDepth);
   _read_lut_16bit(romFile, CPUmmLUT->LFOTVPDepth, lookupTables.LFOTVPDepth);
+  _read_lut_16bit(romFile, CPUmmLUT->PitchEnvDepth, lookupTables.PitchEnvDepth);
 
   return 0;
 }

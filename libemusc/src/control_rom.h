@@ -103,7 +103,7 @@ public:
 
     uint8_t TVFLFO1Depth;
     uint8_t TVFLFO2Depth;
-    uint8_t TVFLvlInit;
+    uint8_t TVFEnvDepth;
     uint8_t TVFLvlP1;
     uint8_t TVFLvlP2;
     uint8_t TVFLvlP3;
@@ -172,8 +172,12 @@ public:
     std::array<int,     128> LFOTVFDepth;
     std::array<int,     128> LFOTVPDepth;
     std::array<uint8_t, 128> LFOSine;
+    std::array<int,     128> TVFEnvDepth;
     std::array<int,     128> TVFCutoffFreq;
-    std::array<uint8_t, 255> TVFResonance;
+    std::array<uint8_t, 256> TVFCOFKeyFollow;
+    std::array<uint8_t, 128> TVFResonance;
+    std::array<int,     128> PitchEnvDepth;
+    std::array<uint8_t,  64> TVFEnvScale;
   };
   struct LookupTables lookupTables;
 
@@ -249,16 +253,20 @@ private:
     int LFOTVFDepth;
     int LFOTVPDepth;
     int LFOSine;
+    int TVFEnvDepth;
     int TVFCutoffFreq;
+    int TVFCOFKeyFollow;
     int TVFResonance;
+    int PitchEnvDepth;
+    int TVFEnvScale;
   };
 
   const _CPUMemoryMapLUT SC55_1_21_CPU_LUT {
-    0x679a, 0x67c6, 0x6f12, 0x7012, 0x7112, 0x7212, 0x7312, 0x7412, 0x7612,
-    0x7715 };
+    0x679a, 0x67c6, 0x6f12, 0x7012, 0x7112, 0x7212, 0x7312, 0x7412,
+    0x7512, 0x7612, 0x7715, 0x7816, 0x78f2, 0x79f2 };
   const _CPUMemoryMapLUT SC55mkII_1_01_CPU_LUT {
-    0x650e, 0x653a, 0x6c86, 0x6486, 0x6e86, 0x6f86, 0x7086, 0x7186, 0x7386,
-    0x7489 };
+    0x650e, 0x653a, 0x6c86, 0x6486, 0x6e86, 0x6f86, 0x7086, 0x7186,
+    0x7286, 0x7386, 0x7489, 0x758a, 0x7765, 0x7766 };
 
   int _read_lookup_tables_progrom(std::ifstream &romFile);
   int _read_lookup_tables_cpurom(std::ifstream &romFile);

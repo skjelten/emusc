@@ -22,9 +22,9 @@
 // whether the TVF filter is disabled.
 
 // If TVF filter is enabled, the "TVF Cutoff Frequency" sets the base cutoff
-// frequency, and envelope values are modifiers to this base frequency. Note
-// that the initial envelope value is a common factor for the amount of effect
-// for the 5 phases.
+// frequency, and envelope values are modifiers to this base frequency. The
+// significance of the TVF Envelope on the cutoff frequency is controlled by
+// the TVF Envelope Depth parameter.
 
 // TVF cutoff frequency relative change (NRPN / SysEx) has steps of 100 cents.
 
@@ -61,6 +61,8 @@ TVF::TVF(ControlRom::InstPartial &instPartial, uint8_t key, uint8_t velocity,
   else
     _bqFilter = nullptr;
 
+  _envDepth = _LUT.TVFEnvDepth[_instPartial.TVFEnvDepth];
+
   if (_bqFilter != nullptr) {
     _init_envelope();
     _envelope->start();
@@ -79,26 +81,18 @@ TVF::~TVF()
 
 // TODO: Add suport for the following features:
 // * Cutoff freq V-sens
-// * TVF envelope
-// * TVF Resonance
 void TVF::apply(double *sample)
 {
   // Skip filter calculation if filter is disabled for this partial 
   if (_bqFilter == nullptr)
     return;
 
-  float envelopeKey = 0.0;
-  float diff;
+  float envFreq = 0.0;
   if (_envelope) {
-    diff = _envelope->get_next_value() - _instPartial.TVFBaseFlt;
-
-    // Asuming the static rate of increase is 1 / 100
-    envelopeKey = diff * (float) _instPartial.TVFLvlInit * 0.0125;
+    envFreq = (_envelope->get_next_value() - 0x40) * _envDepth * 0.01;
   }
 
-  float midiKey = _instPartial.TVFBaseFlt + _coFreq + envelopeKey;
-  if (midiKey < 0)   midiKey = 0;
-  if (midiKey > 127) midiKey = 127;
+  float midiKey = _coFreqIndex;// + envelopeKey;
 
   float keyFollow = 0;
   // TODO: These are only approximations, find and use non-linear curves (S?)
@@ -110,41 +104,54 @@ void TVF::apply(double *sample)
     keyFollow = ((_instPartial.TVFCFKeyFlw - 0x40) / 100.0) * (_key - 60);
 
   // The LFO modulation does not make a smooth curve if used with LUT
-  // float lfo1ModFreq =_LFO1->value()*_LUT.LFOTVFDepth[_accLFO1Depth]/100000.0;
-  // float lfo2ModFreq =_LFO2->value()*_LUT.LFOTVFDepth[_accLFO2Depth]/100000.0;
-  // midiKeyCutoffFreq += lfo1ModFreq + lfo2ModFreq;
+   float lfo1ModFreq =_LFO1->value()*_LUT.LFOTVFDepth[_accLFO1Depth]/100000.0;
+   float lfo2ModFreq =_LFO2->value()*_LUT.LFOTVFDepth[_accLFO2Depth]/100000.0;
+   midiKey += lfo1ModFreq + lfo2ModFreq;
+
+   if (midiKey < 0)   midiKey = 0;
+   if (midiKey > 127) midiKey = 127;
 
   // TVF cutoff frequency
-  float filterFreq = _LUT.TVFCutoffFreq[(int) (midiKey + keyFollow)] / 4.3;
+  float filterFreq = _interpolate_lut(_LUT.TVFCutoffFreq, midiKey + keyFollow) / 4.3;
 
+  // TESTING ENVELOPE VALUES: Hypothesis: Envelope is calculated in diff Hz
+  filterFreq += envFreq;
+
+
+  // Limit biquad filter frequencies
+  if (filterFreq > 12500)
+    filterFreq = 12500;
+  else if (filterFreq < 35)
+    filterFreq = 35;
+
+
+  /* TO BE DELETED: LFO calculated with separate exp-function
   // Calculate TVF LFO depth separately to get smooth curve and modify freq
   float lfo1ModFreq = _LFO1->value() * _LUT.LFOTVFDepth[_accLFO1Depth] / 1024.0;
   float lfo2ModFreq = _LFO2->value() * _LUT.LFOTVFDepth[_accLFO2Depth] / 1024.0;
   filterFreq *= exp((lfo1ModFreq + lfo2ModFreq) / 1200.0);
+  */
+
 
   // Filter resonance
-  // TODO: Figure out the exact range and function for the resonance
-  // resonance = _lpResonance + sRes * 0.02;
-  int resonance = _instPartial.TVFResonance + _res - 0x40;
-  float filterRes = exp(2.3 * ((resonance - 64) / 64.0));
-  if (filterRes < 0.01) filterRes = 0.01;
+  // Output of LUT is in the range of 255 - 106
+  // Assuming filter range (Q) of 0.5 to 10
+  int resonance = _LUT.TVFResonance[_resIndex];
+  float filterRes = 10.0 - (static_cast<float>(resonance - 106) * (9.6)) / 149;
 
   _bqFilter->calculate_coefficients(filterFreq, filterRes);
   *sample = _bqFilter->apply(*sample);
 
-
   if (0) {  // Debug
     static int a = 0;
     if (a++ % 10000 == 0)
-      std::cout << "E=" << _envelope->get_current_value()
-                << " C=" << (int) _instPartial.TVFBaseFlt
-                << " D=" << diff
-                << " I=" << (int) _instPartial.TVFLvlInit
-                << " K=" << envelopeKey
+      std::cout << "E=" << envFreq
+                << " C=" << _coFreqIndex
+                << " D=" << (int) _instPartial.TVFEnvDepth
                 << " R=" << resonance << "=" << filterRes
                 << " k=" << midiKey + keyFollow
                 << " cF=" << filterFreq
-                << " LF=" << filterFreq / 4.3
+                << " FD=" << _LUT.TVFEnvDepth[_instPartial.TVFEnvDepth]
                 << std::endl;
   }
 }
@@ -159,21 +166,40 @@ void TVF::note_off()
 
 void TVF::update_params(void)
 {
-  // Update LFOs
-  int newLFODepth = (_instPartial.TVFLFO1Depth & 0x7f) +
+  _accLFO1Depth = (_instPartial.TVFLFO1Depth & 0x7f) +
     _settings->get_param(PatchParam::Acc_LFO1TVFDepth, _partId);
-  if (newLFODepth < 0) newLFODepth = 0;
-  if (newLFODepth > 127) newLFODepth = 127;
-  _accLFO1Depth = newLFODepth;
+  if (_accLFO1Depth < 0) _accLFO1Depth = 0;
+  if (_accLFO1Depth > 127) _accLFO1Depth = 127;
 
-  newLFODepth = (_instPartial.TVFLFO2Depth & 0x7f) +
+  _accLFO2Depth = (_instPartial.TVFLFO2Depth & 0x7f) +
     _settings->get_param(PatchParam::Acc_LFO2TVFDepth, _partId);
-  if (newLFODepth < 0) newLFODepth = 0;
-  if (newLFODepth > 127) newLFODepth = 127;
-  _accLFO2Depth = newLFODepth;
+  if (_accLFO2Depth < 0) _accLFO2Depth = 0;
+  if (_accLFO2Depth > 127) _accLFO2Depth = 127;
 
-  _coFreq = _settings->get_param(PatchParam::TVFCutoffFreq, _partId) - 0x40;
-  _res = _settings->get_param(PatchParam::TVFResonance, _partId);
+  _coFreqIndex = _instPartial.TVFBaseFlt +
+    (_settings->get_param(PatchParam::TVFCutoffFreq, _partId) - 0x40) * 2;
+  if (_coFreqIndex < 0) _coFreqIndex = 0;
+  if (_coFreqIndex > 127) _coFreqIndex = 127;
+
+  _resIndex = _instPartial.TVFResonance +
+    (_settings->get_param(PatchParam::TVFResonance, _partId) - 0x40) * 2;
+  if (_resIndex < 0) _resIndex = 0;
+  if (_resIndex > 127) _resIndex = 127;
+}
+
+
+float TVF::_interpolate_lut(std::array<int, 128> &lut, float pos)
+{
+  if (pos < 0 || pos >= 128)
+    return std::nanf("");
+
+  int p0 = lut[(int) pos];
+  int p1 = lut[(int) (pos + 1) % 128];
+
+  float fractionP1 = pos - (int) pos;
+  float fractionP0 = 1.0 - fractionP1;
+
+  return fractionP0 * p0 + fractionP1 * p1;
 }
 
 
@@ -182,7 +208,6 @@ void TVF::_init_envelope(void)
   double phaseLevel[5];
   uint8_t phaseDuration[5];
 
-  // Set adjusted values for frequencies (0-127) and time (seconds)
   phaseLevel[0] = _instPartial.TVFLvlP1;
   phaseLevel[1] = _instPartial.TVFLvlP2;
   phaseLevel[2] = _instPartial.TVFLvlP3;

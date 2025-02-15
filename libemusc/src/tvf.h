@@ -60,14 +60,15 @@ private:
 
   ControlRom::LookupTables &_LUT;
 
-  uint8_t _accLFO1Depth;
-  uint8_t _accLFO2Depth;
+  int _accLFO1Depth;
+  int _accLFO2Depth;
 
-  int8_t _coFreq;
-  uint8_t _res;
+  int _coFreqIndex;
+  int _resIndex;
 
   uint8_t _key;
 
+  int _envDepth;
   Envelope *_envelope;
 
   BiquadFilter *_bqFilter;
@@ -79,6 +80,7 @@ private:
 
   TVF();
 
+  float _interpolate_lut(std::array<int, 128> &lut, float pos);
   void _init_envelope(void);
 };
 
