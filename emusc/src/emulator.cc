@@ -169,6 +169,9 @@ void Emulator::start(void)
     throw(errorMsg);
   }
 
+  _scene->set_model_name(_emuscControlRom->model().data(),
+                         _emuscControlRom->version().data());
+
   connect(_midiInput, SIGNAL(new_midi_message(bool, int)),
 	  _scene, SLOT(update_midi_activity_led(bool, int)));
 

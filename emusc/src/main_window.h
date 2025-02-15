@@ -63,6 +63,7 @@ private:
   QAction *_viewCtrlRomDataAct;
   QAction *_viewLFOsChartAct;
   QAction *_viewEnvelopesChartAct;
+  QAction *_turnOnOffAct;
   QAction *_synthSettingsAct;
   QAction *_GSmodeAct;
   QAction *_GMmodeAct;
@@ -115,6 +116,7 @@ private slots:
 
   void _dump_demo_songs(void);
   void _display_control_rom_info(void);
+  void _turn_on_off(void);
   void _panic(void);
 
   void _set_gs_map(void);
