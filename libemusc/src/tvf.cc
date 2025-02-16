@@ -76,6 +76,8 @@ TVF::~TVF()
 {
   delete _envelope;
   delete _bqFilter;
+
+  std::cout << "TVF Filter closed" << std::endl;
 }
 
 
@@ -87,36 +89,60 @@ void TVF::apply(double *sample)
   if (_bqFilter == nullptr)
     return;
 
-  float envFreq = 0.0;
+//  float envFreq = 0.0;
+  float envKey = 0.0;
   if (_envelope) {
-    envFreq = (_envelope->get_next_value() - 0x40) * _envDepth * 0.01;
+//    envFreq = (_envelope->get_next_value() - 0x40) * _envDepth * 0.01;
+    envKey = (_envelope->get_next_value() - 0x40) * _envDepth * 0.000062;
   }
 
-  float midiKey = _coFreqIndex;// + envelopeKey;
-
+  // Key Follow
+  // Cutoff Freq Key Follow scales filter freq with LUT index = "ROM / 10" keys
+  // Key Follow Direction:
+  // 0 => All keys equal
+  // 1 => Only adjust keys > C4
+  // 2 => Only adjust keys > C7
+  // 3 => Only adjust keys < C7
   float keyFollow = 0;
-  // TODO: These are only approximations, find and use non-linear curves (S?)
   if (_instPartial.TVFCFKeyFlwC == 0 ||
-      _instPartial.TVFCFKeyFlwC == 3 ||
-      (_instPartial.TVFCFKeyFlwC == 1 && _key > 60))
+      (_instPartial.TVFCFKeyFlwC == 3 && _key <= 96))
+    keyFollow = ((_instPartial.TVFCFKeyFlw - 0x40) / 10.0) * (_key - 64);
+  else if (_instPartial.TVFCFKeyFlwC == 1 && _key > 60)
     keyFollow = ((_instPartial.TVFCFKeyFlw - 0x40) / 10.0) * (_key - 60);
-  else if (_instPartial.TVFCFKeyFlwC == 2 && _key > 60)
-    keyFollow = ((_instPartial.TVFCFKeyFlw - 0x40) / 100.0) * (_key - 60);
+  else if (_instPartial.TVFCFKeyFlwC == 2 && _key > 96)
+    keyFollow = ((_instPartial.TVFCFKeyFlw - 0x40) / 10.0) * (_key - 96);
+  else if (_instPartial.TVFCFKeyFlwC == 3 && _key > 96)
+    keyFollow = ((_instPartial.TVFCFKeyFlw - 0x40) / 10.0) * (96 - 64);
 
   // The LFO modulation does not make a smooth curve if used with LUT
-   float lfo1ModFreq =_LFO1->value()*_LUT.LFOTVFDepth[_accLFO1Depth]/100000.0;
-   float lfo2ModFreq =_LFO2->value()*_LUT.LFOTVFDepth[_accLFO2Depth]/100000.0;
-   midiKey += lfo1ModFreq + lfo2ModFreq;
+  float lfo1ModFreq =_LFO1->value()*_LUT.LFOTVFDepth[_accLFO1Depth]/100000.0;
+  float lfo2ModFreq =_LFO2->value()*_LUT.LFOTVFDepth[_accLFO2Depth]/100000.0;
 
-   if (midiKey < 0)   midiKey = 0;
-   if (midiKey > 127) midiKey = 127;
+  float midiKey = _coFreqIndex + envKey + lfo1ModFreq + lfo2ModFreq;
+  if (midiKey < 0)   midiKey = 0;
+  if (midiKey > 127) midiKey = 127;
 
   // TVF cutoff frequency
-  float filterFreq = _interpolate_lut(_LUT.TVFCutoffFreq, midiKey + keyFollow) / 4.3;
+  float freqIndex = midiKey + keyFollow;
+  if (freqIndex < 0) freqIndex = 0;
+  float filterFreq = _interpolate_lut(_LUT.TVFCutoffFreq, freqIndex) / 4.3;
 
-  // TESTING ENVELOPE VALUES: Hypothesis: Envelope is calculated in diff Hz
-  filterFreq += envFreq;
+  // Filter resonance
+  // Output of LUT is in the range of 255 - 106
+  // Assuming filter range (Q) of 0.5 to 10
 
+  // Resonance / Q value
+  // The resonance for an instrument are in the partial definitions. In
+  // addition to converting this value in a lookup table, we also need to check
+  // if the TVF Cutoff Freq Key Follow is lower, and if yes it that number
+  // instead. TODO: Figure out the correct scaling.
+  int altIndex = _LUT.TVFCOFKeyFollow[(int) (filterFreq - 1) / 128];
+  int resonance = _LUT.TVFResonance[std::min(_resIndex, altIndex)];
+  float filterRes = 10.0 - (static_cast<float>(resonance - 106) * (9.6)) / 149;
+
+//  std::cout << "RES: ROM+SysEx=" << _resIndex << " altIndex=" << altIndex
+//            << " smallest=" << std::min(_resIndex, altIndex) << "and result="
+//            << resonance << std::endl;
 
   // Limit biquad filter frequencies
   if (filterFreq > 12500)
@@ -124,31 +150,18 @@ void TVF::apply(double *sample)
   else if (filterFreq < 35)
     filterFreq = 35;
 
-
-  /* TO BE DELETED: LFO calculated with separate exp-function
-  // Calculate TVF LFO depth separately to get smooth curve and modify freq
-  float lfo1ModFreq = _LFO1->value() * _LUT.LFOTVFDepth[_accLFO1Depth] / 1024.0;
-  float lfo2ModFreq = _LFO2->value() * _LUT.LFOTVFDepth[_accLFO2Depth] / 1024.0;
-  filterFreq *= exp((lfo1ModFreq + lfo2ModFreq) / 1200.0);
-  */
-
-
-  // Filter resonance
-  // Output of LUT is in the range of 255 - 106
-  // Assuming filter range (Q) of 0.5 to 10
-  int resonance = _LUT.TVFResonance[_resIndex];
-  float filterRes = 10.0 - (static_cast<float>(resonance - 106) * (9.6)) / 149;
-
   _bqFilter->calculate_coefficients(filterFreq, filterRes);
   *sample = _bqFilter->apply(*sample);
 
   if (0) {  // Debug
     static int a = 0;
     if (a++ % 10000 == 0)
-      std::cout << "E=" << envFreq
+      std::cout << "E=" << envKey
                 << " C=" << _coFreqIndex
                 << " D=" << (int) _instPartial.TVFEnvDepth
                 << " R=" << resonance << "=" << filterRes
+                << " Rr=" << _resIndex
+                << " Ra=" << (int)_LUT.TVFCOFKeyFollow[(int) (filterFreq - 1) / 128]
                 << " k=" << midiKey + keyFollow
                 << " cF=" << filterFreq
                 << " FD=" << _LUT.TVFEnvDepth[_instPartial.TVFEnvDepth]
@@ -190,11 +203,13 @@ void TVF::update_params(void)
 
 float TVF::_interpolate_lut(std::array<int, 128> &lut, float pos)
 {
-  if (pos < 0 || pos >= 128)
+  if (pos < 0)
     return std::nanf("");
-
+  else if (pos >= 127) { std::cerr << "OUTSIDE TABLE!" << std::endl;
+    return (float) lut[127];
+  }
   int p0 = lut[(int) pos];
-  int p1 = lut[(int) (pos + 1) % 128];
+  int p1 = lut[(int) pos + 1];
 
   float fractionP1 = pos - (int) pos;
   float fractionP0 = 1.0 - fractionP1;
