@@ -131,7 +131,7 @@ void Envelope::set_time_key_follow(bool phase, int etkfROM, int etkpROM)
     if (etkpROM == 0)
       tkfIndex = ((tkfDiv * (_key - 64)) / 64) + 128;
     else if (etkpROM == 1)
-      tkfIndex = ((tkfDiv * (_key - 64)) / 64) + 128;  // TODO: FIXME!!
+      tkfIndex = (_LUT.TimeKeyFollowP1Index[_key] - 32) / 2 + 80;
     else
       tkfIndex = ((tkfDiv * (127 - 64)) / 64) + 128;
 

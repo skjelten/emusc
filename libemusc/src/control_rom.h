@@ -164,6 +164,10 @@ public:
   };
 
   struct LookupTables {
+    // PROGROM
+    std::array<uint8_t, 128> TimeKeyFollowP1Index;
+
+    // CPUROM
     std::array<uint8_t,  21> TimeKeyFollowDiv;
     std::array<int,     256> TimeKeyFollow;
     std::array<int,     128> envelopeTime;
@@ -243,6 +247,15 @@ private:
 
   // Only a placeholder, SC-88 layout is currently unkown
   static const std::vector<uint32_t> _banksSC88;
+
+  struct _ProgMemoryMapLUT {
+    int TimeKeyFollowP1Index;
+  };
+
+  const _ProgMemoryMapLUT SC55_1_21_Prog_LUT {
+    0x3df82 };
+  const _ProgMemoryMapLUT SC55mkII_1_01_Prog_LUT {
+    0x0 };
 
   struct _CPUMemoryMapLUT {
     int TimeKeyFollowDiv;

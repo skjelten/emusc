@@ -541,14 +541,31 @@ int ControlRom::_read_drum_sets(std::ifstream &romFile)
 
 int ControlRom::_read_lookup_tables_progrom(std::ifstream &romFile)
 {
+  const struct _ProgMemoryMapLUT *PROGmmLUT;
+  switch(_synthModel)
+    {
+    case SynthModel::sm_SC55:
+      PROGmmLUT = &SC55_1_21_Prog_LUT;
+      break;
+    case SynthModel::sm_SC55mkII:
+      PROGmmLUT = &SC55mkII_1_01_Prog_LUT;
+      break;
+    default:
+      std::cerr << "libEmuSC: Unsupported ROM file!" << std::endl;
+      exit(0);
+    }
+
+  // 8-bit values
+  romFile.seekg(PROGmmLUT->TimeKeyFollowP1Index);
+  romFile.read(reinterpret_cast<char*> (&lookupTables.TimeKeyFollowP1Index),
+               128);
+
   return 0;
 }
 
 
 int ControlRom::_read_lookup_tables_cpurom(std::ifstream &romFile)
 {
-  // Lookup tables are located at the end of the CPU ROM
-  // TODO: Support different versions of the ROM file
   const struct _CPUMemoryMapLUT *CPUmmLUT;
   switch(_synthModel)
     {
