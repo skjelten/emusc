@@ -255,7 +255,8 @@ double Envelope::get_next_value(void)
 
   } else if (_phase == Phase::Decay2) {
     if (_phaseSampleIndex > _phaseSampleLen) {
-      if (_phaseValue[static_cast<int>(Phase::Decay2)] == 0)
+      if (_phaseValue[static_cast<int>(Phase::Decay2)] == 0 &&
+          _type == Type::TVA)
 	_init_new_phase(Phase::Release);
       else
 	return _currentValue;                  // Sustain can last forever
