@@ -103,11 +103,13 @@ void TVF::apply(double *sample)
   // Envelope
   float envKey = 0.0;
   if (_envelope)
-    envKey = (_envelope->get_next_value() - 0x40) * _envDepth * 0.0001 * 0.31;
+    envKey = (_envelope->get_next_value() - 0x40) * _envDepth * 0.0001 * 0.63;
 
   // LFO modulation
-  float lfo1ModFreq =_LFO1->value()*_LUT.LFOTVFDepth[_accLFO1Depth] / 100000.0;
-  float lfo2ModFreq =_LFO2->value()*_LUT.LFOTVFDepth[_accLFO2Depth] / 100000.0;
+  float lfo1ModFreq = _LFO1->value() * _LUT.LFOTVFDepth[_accLFO1Depth] * 0.001 *
+    0.015;
+  float lfo2ModFreq = _LFO2->value() * _LUT.LFOTVFDepth[_accLFO2Depth] * 0.001 *
+    0.015;
 
   float freqIndex =
     _coFreqIndex + envKey + _keyFollow + lfo1ModFreq + lfo2ModFreq;
@@ -122,19 +124,16 @@ void TVF::apply(double *sample)
   _bqFilter->calculate_coefficients(_filterFreq / 4.3, _filterRes);
   *sample = _bqFilter->apply(*sample);
 
-  if (0) {  // Debug
-    static int a = 0;
-    if (a++ % 10000 == 0)
-      std::cout << "E=" << envKey
-                << " C=" << _coFreqIndex
-                << " K=" << _keyFollow
-                << " M=" << lfo1ModFreq + lfo2ModFreq
-                << " D=" << _envDepth
-                << " I=" << freqIndex << "->[" << freqIndex * 2 << "]"
-                << " F=" << _filterFreq << " (" << _filterFreq / 4.3 << "Hz)"
-                << " R=" << _filterRes
-                << std::endl;
-  }
+  if (0)
+    std::cout << "E=" << envKey
+              << " C=" << _coFreqIndex
+              << " K=" << _keyFollow
+              << " M=" << lfo1ModFreq + lfo2ModFreq
+              << " D=" << _envDepth
+              << " I=" << freqIndex << "->[" << freqIndex * 2 << "]"
+              << " F=" << _filterFreq << " (" << _filterFreq / 4.3 << "Hz)"
+              << " R=" << _filterRes
+              << std::endl;
 }
 
 
@@ -170,7 +169,7 @@ void TVF::update_params(void)
   int resonance = _LUT.TVFResonance[newResIndex];
   _filterRes = 10.0 - (static_cast<float>(resonance - 106) * (9.6)) / 149;
 
-  if (1)
+  if (0)
     std::cout << "TVF: fFreq=" << _filterFreq
               << " fRes=" << _filterRes
               << " res[" << newResIndex << "]=" << resonance << std::endl;
@@ -210,7 +209,7 @@ void TVF::_init_envelope(void)
 
 void TVF::_init_freq_and_res(void)
 {
-  // First find the correct filer frequency
+  // First find the initial filter frequency
   int envLevelMax = _calc_envelope_max();
 
   _coFreqIndex = _instPartial.TVFBaseFlt +
@@ -218,7 +217,6 @@ void TVF::_init_freq_and_res(void)
   if (_coFreqIndex < 0) _coFreqIndex = 0;
   if (_coFreqIndex > 127) _coFreqIndex = 127;
 
-  // TODO: Check if LFOs are a part of the init freq lfo1ModFreq + lfo2ModFreq??
   float freqIndex = _coFreqIndex + _envDepth * 0.0001 * envLevelMax * 0.31 +
     _keyFollow;
   if (freqIndex > 127) freqIndex = 127;
@@ -237,7 +235,7 @@ void TVF::_init_freq_and_res(void)
   _filterRes = 10.0 - (static_cast<float>(resonance - 106) * (9.6)) / 149;
 
   if (0)
-    std::cout << "Init TVF: COFFreq[" << (int) freqIndex << "]=" << _filterFreq
+    std::cout << "Init TVF: COFFreq[" << (int)freqIndex*2 << "]=" << _filterFreq
               << " ResFreq[" << (int) (_filterFreq - 1) / 128 << "]="
               << altResIndex
               << " Res[" << _filterResIndex << "]=" << _filterRes << std::endl;
