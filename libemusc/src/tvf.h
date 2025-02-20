@@ -64,9 +64,14 @@ private:
   int _accLFO2Depth;
 
   int _coFreqIndex;
-  int _resIndex;
+
+  float _filterFreq;
+  float _filterRes;
+  int _filterResIndex;
 
   uint8_t _key;
+
+  float _keyFollow;
 
   int _envDepth;
   Envelope *_envelope;
@@ -80,8 +85,12 @@ private:
 
   TVF();
 
-  float _interpolate_lut(std::array<int, 128> &lut, float pos);
   void _init_envelope(void);
+  void _init_freq_and_res(void);
+
+  float _calc_cutoff_frequency(float index);
+  int _calc_envelope_max(void);
+  float _calc_key_follow(void);
 };
 
 }

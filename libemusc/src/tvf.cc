@@ -21,12 +21,23 @@
 // The "TVF Type" variable in partial definitions specifies the filter type or
 // whether the TVF filter is disabled.
 
-// If TVF filter is enabled, the "TVF Cutoff Frequency" sets the base cutoff
-// frequency, and envelope values are modifiers to this base frequency. The
-// significance of the TVF Envelope on the cutoff frequency is controlled by
-// the TVF Envelope Depth parameter.
+// If TVF filter is enabled, the "TVF Cutoff Frequency" in partial definition
+// sets the base cutoff frequency, and envelope values are modifiers to this
+// base frequency. The significance of the TVF Envelope on the cutoff frequency
+// is controlled by the TVF Envelope Depth parameter.
 
-// TVF cutoff frequency relative change (NRPN / SysEx) has steps of 100 cents.
+// Cutoff Freq Key Follow scales filter freq with LUT index = "ROM / 10" keys.
+// The Cutoff Freq Key Follow Direction has 4 modes:
+//   0 => Adjust all keys with center on key 64
+//   1 => Only adjust keys > C4
+//   2 => Only adjust keys > C7
+//   3 => Only adjust keys < C7
+
+// To calculate the filter resonance there are two calculations needed:
+//  * Read resonance value from partial def. in ROM and add 2x SysEx value
+//  * Calculate the correct index and read the value from LUT.TVFResonanceFreq
+// Whichever of the two values are lowest will be used for calculating the
+// resonance from the LUT.Resonance lookup table.
 
 
 #include "tvf.h"
@@ -61,14 +72,17 @@ TVF::TVF(ControlRom::InstPartial &instPartial, uint8_t key, uint8_t velocity,
   else
     _bqFilter = nullptr;
 
+  if (_bqFilter == nullptr)                       // TVF disabled
+    return;
+
   _envDepth = _LUT.TVFEnvDepth[_instPartial.TVFEnvDepth];
+  _keyFollow = _calc_key_follow();
 
-  if (_bqFilter != nullptr) {
-    _init_envelope();
-    _envelope->start();
+  _init_envelope();
+  _init_freq_and_res();
 
-    update_params();
-  }
+  _envelope->start();
+  update_params();
 }
 
 
@@ -76,81 +90,36 @@ TVF::~TVF()
 {
   delete _envelope;
   delete _bqFilter;
-
-  std::cout << "TVF Filter closed" << std::endl;
 }
 
 
-// TODO: Add suport for the following features:
-// * Cutoff freq V-sens
+// TODO: Add suport for Cutoff freq V-sens
 void TVF::apply(double *sample)
 {
   // Skip filter calculation if filter is disabled for this partial 
   if (_bqFilter == nullptr)
     return;
 
-//  float envFreq = 0.0;
+  // Envelope
   float envKey = 0.0;
-  if (_envelope) {
-//    envFreq = (_envelope->get_next_value() - 0x40) * _envDepth * 0.01;
-    envKey = (_envelope->get_next_value() - 0x40) * _envDepth * 0.000062;
-  }
+  if (_envelope)
+    envKey = (_envelope->get_next_value() - 0x40) * _envDepth * 0.0001 * 0.31;
 
-  // Key Follow
-  // Cutoff Freq Key Follow scales filter freq with LUT index = "ROM / 10" keys
-  // Key Follow Direction:
-  // 0 => All keys equal
-  // 1 => Only adjust keys > C4
-  // 2 => Only adjust keys > C7
-  // 3 => Only adjust keys < C7
-  float keyFollow = 0;
-  if (_instPartial.TVFCFKeyFlwC == 0 ||
-      (_instPartial.TVFCFKeyFlwC == 3 && _key <= 96))
-    keyFollow = ((_instPartial.TVFCFKeyFlw - 0x40) / 10.0) * (_key - 64);
-  else if (_instPartial.TVFCFKeyFlwC == 1 && _key > 60)
-    keyFollow = ((_instPartial.TVFCFKeyFlw - 0x40) / 10.0) * (_key - 60);
-  else if (_instPartial.TVFCFKeyFlwC == 2 && _key > 96)
-    keyFollow = ((_instPartial.TVFCFKeyFlw - 0x40) / 10.0) * (_key - 96);
-  else if (_instPartial.TVFCFKeyFlwC == 3 && _key > 96)
-    keyFollow = ((_instPartial.TVFCFKeyFlw - 0x40) / 10.0) * (96 - 64);
+  // LFO modulation
+  float lfo1ModFreq =_LFO1->value()*_LUT.LFOTVFDepth[_accLFO1Depth] / 100000.0;
+  float lfo2ModFreq =_LFO2->value()*_LUT.LFOTVFDepth[_accLFO2Depth] / 100000.0;
 
-  // The LFO modulation does not make a smooth curve if used with LUT
-  float lfo1ModFreq =_LFO1->value()*_LUT.LFOTVFDepth[_accLFO1Depth]/100000.0;
-  float lfo2ModFreq =_LFO2->value()*_LUT.LFOTVFDepth[_accLFO2Depth]/100000.0;
+  float freqIndex =
+    _coFreqIndex + envKey + _keyFollow + lfo1ModFreq + lfo2ModFreq;
+  if (freqIndex > 127) freqIndex = 127;
+  _filterFreq = _LUT.TVFCutoffFreq[(int) freqIndex];
 
-  float midiKey = _coFreqIndex + envKey + lfo1ModFreq + lfo2ModFreq;
-  if (midiKey < 0)   midiKey = 0;
-  if (midiKey > 127) midiKey = 127;
+  if (freqIndex < 0)   freqIndex = 0;
+  if (freqIndex > 127) freqIndex = 127;
 
-  // TVF cutoff frequency
-  float freqIndex = midiKey + keyFollow;
-  if (freqIndex < 0) freqIndex = 0;
-  float filterFreq = _interpolate_lut(_LUT.TVFCutoffFreq, freqIndex) / 4.3;
+  _filterFreq = _calc_cutoff_frequency(freqIndex);
 
-  // Filter resonance
-  // Output of LUT is in the range of 255 - 106
-  // Assuming filter range (Q) of 0.5 to 10
-
-  // Resonance / Q value
-  // The resonance for an instrument are in the partial definitions. In
-  // addition to converting this value in a lookup table, we also need to check
-  // if the TVF Cutoff Freq Key Follow is lower, and if yes it that number
-  // instead. TODO: Figure out the correct scaling.
-  int altIndex = _LUT.TVFCOFKeyFollow[(int) (filterFreq - 1) / 128];
-  int resonance = _LUT.TVFResonance[std::min(_resIndex, altIndex)];
-  float filterRes = 10.0 - (static_cast<float>(resonance - 106) * (9.6)) / 149;
-
-//  std::cout << "RES: ROM+SysEx=" << _resIndex << " altIndex=" << altIndex
-//            << " smallest=" << std::min(_resIndex, altIndex) << "and result="
-//            << resonance << std::endl;
-
-  // Limit biquad filter frequencies
-  if (filterFreq > 12500)
-    filterFreq = 12500;
-  else if (filterFreq < 35)
-    filterFreq = 35;
-
-  _bqFilter->calculate_coefficients(filterFreq, filterRes);
+  _bqFilter->calculate_coefficients(_filterFreq / 4.3, _filterRes);
   *sample = _bqFilter->apply(*sample);
 
   if (0) {  // Debug
@@ -158,13 +127,12 @@ void TVF::apply(double *sample)
     if (a++ % 10000 == 0)
       std::cout << "E=" << envKey
                 << " C=" << _coFreqIndex
-                << " D=" << (int) _instPartial.TVFEnvDepth
-                << " R=" << resonance << "=" << filterRes
-                << " Rr=" << _resIndex
-                << " Ra=" << (int)_LUT.TVFCOFKeyFollow[(int) (filterFreq - 1) / 128]
-                << " k=" << midiKey + keyFollow
-                << " cF=" << filterFreq
-                << " FD=" << _LUT.TVFEnvDepth[_instPartial.TVFEnvDepth]
+                << " K=" << _keyFollow
+                << " M=" << lfo1ModFreq + lfo2ModFreq
+                << " D=" << _envDepth
+                << " I=" << freqIndex << "->[" << freqIndex * 2 << "]"
+                << " F=" << _filterFreq << " (" << _filterFreq / 4.3 << "Hz)"
+                << " R=" << _filterRes
                 << std::endl;
   }
 }
@@ -194,27 +162,18 @@ void TVF::update_params(void)
   if (_coFreqIndex < 0) _coFreqIndex = 0;
   if (_coFreqIndex > 127) _coFreqIndex = 127;
 
-  _resIndex = _instPartial.TVFResonance +
+  int newResIndex = _filterResIndex +
     (_settings->get_param(PatchParam::TVFResonance, _partId) - 0x40) * 2;
-  if (_resIndex < 0) _resIndex = 0;
-  if (_resIndex > 127) _resIndex = 127;
-}
+  if (newResIndex < 8) newResIndex = 8;
+  if (newResIndex > 255) newResIndex = 255;
 
+  int resonance = _LUT.TVFResonance[newResIndex];
+  _filterRes = 10.0 - (static_cast<float>(resonance - 106) * (9.6)) / 149;
 
-float TVF::_interpolate_lut(std::array<int, 128> &lut, float pos)
-{
-  if (pos < 0)
-    return std::nanf("");
-  else if (pos >= 127) { std::cerr << "OUTSIDE TABLE!" << std::endl;
-    return (float) lut[127];
-  }
-  int p0 = lut[(int) pos];
-  int p1 = lut[(int) pos + 1];
-
-  float fractionP1 = pos - (int) pos;
-  float fractionP0 = 1.0 - fractionP1;
-
-  return fractionP0 * p0 + fractionP1 * p1;
+  if (1)
+    std::cout << "TVF: fFreq=" << _filterFreq
+              << " fRes=" << _filterRes
+              << " res[" << newResIndex << "]=" << resonance << std::endl;
 }
 
 
@@ -246,6 +205,91 @@ void TVF::_init_envelope(void)
 
   if (_instPartial.TVAETKeyF5 != 0x40)
     _envelope->set_time_key_follow(1, _instPartial.TVFETKeyF5 - 0x40);
+}
+
+
+void TVF::_init_freq_and_res(void)
+{
+  // First find the correct filer frequency
+  int envLevelMax = _calc_envelope_max();
+
+  _coFreqIndex = _instPartial.TVFBaseFlt +
+    (_settings->get_param(PatchParam::TVFCutoffFreq, _partId) - 0x40) * 2;
+  if (_coFreqIndex < 0) _coFreqIndex = 0;
+  if (_coFreqIndex > 127) _coFreqIndex = 127;
+
+  // TODO: Check if LFOs are a part of the init freq lfo1ModFreq + lfo2ModFreq??
+  float freqIndex = _coFreqIndex + _envDepth * 0.0001 * envLevelMax * 0.31 +
+    _keyFollow;
+  if (freqIndex > 127) freqIndex = 127;
+  _filterFreq = _LUT.TVFCutoffFreq[(int) freqIndex];
+
+  // Then calculate the correct filter resonance
+  int _resIndex = _instPartial.TVFResonance +
+    (_settings->get_param(PatchParam::TVFResonance, _partId) - 0x40) * 2;
+  if (_resIndex < 0) _resIndex = 0;
+  if (_resIndex > 127) _resIndex = 127;
+
+  int altResIndex = _LUT.TVFResonanceFreq[(int) (_filterFreq - 1) / 128];
+  _filterResIndex = std::min(_resIndex, altResIndex);
+  _filterResIndex = std::max(8, _filterResIndex);
+  int resonance = _LUT.TVFResonance[_filterResIndex];
+  _filterRes = 10.0 - (static_cast<float>(resonance - 106) * (9.6)) / 149;
+
+  if (0)
+    std::cout << "Init TVF: COFFreq[" << (int) freqIndex << "]=" << _filterFreq
+              << " ResFreq[" << (int) (_filterFreq - 1) / 128 << "]="
+              << altResIndex
+              << " Res[" << _filterResIndex << "]=" << _filterRes << std::endl;
+}
+
+
+float TVF::_calc_cutoff_frequency(float index)
+{
+  if (index < 0)
+    return std::nanf("");
+  else if (index >= 127)
+    return (float) _LUT.TVFCutoffFreq[127];
+
+  int p0 = _LUT.TVFCutoffFreq[(int) index];
+  int p1 = _LUT.TVFCutoffFreq[(int) index + 1];
+
+  float fractionP1 = index - (int) index;
+  float fractionP0 = 1.0 - fractionP1;
+
+  return fractionP0 * p0 + fractionP1 * p1;
+}
+
+
+int TVF::_calc_envelope_max(void)
+{
+  int envLevelMax = (int) _instPartial.TVFLvlP1;
+  envLevelMax = std::max((int) _instPartial.TVFLvlP2, envLevelMax);
+  envLevelMax = std::max((int) _instPartial.TVFLvlP3, envLevelMax);
+  envLevelMax = std::max((int) _instPartial.TVFLvlP4, envLevelMax);
+  envLevelMax = std::max((int) _instPartial.TVFLvlP5, envLevelMax);
+  envLevelMax = std::max((int) 0, envLevelMax - 0x40);
+
+  return _LUT.TVFEnvScale[envLevelMax];
+}
+
+
+float TVF::_calc_key_follow(void)
+{
+  float keyFollow = 0;
+  if (_instPartial.TVFCFKeyFlw != 0x40) {
+    if (_instPartial.TVFCFKeyFlwC == 0 ||
+        (_instPartial.TVFCFKeyFlwC == 3 && _key <= 96))
+      keyFollow = ((_instPartial.TVFCFKeyFlw - 0x40) / 10.0) * (_key - 64);
+    else if (_instPartial.TVFCFKeyFlwC == 1 && _key > 60)
+      keyFollow = ((_instPartial.TVFCFKeyFlw - 0x40) / 10.0) * (_key - 60);
+    else if (_instPartial.TVFCFKeyFlwC == 2 && _key > 96)
+      keyFollow = ((_instPartial.TVFCFKeyFlw - 0x40) / 10.0) * (_key - 96);
+    else if (_instPartial.TVFCFKeyFlwC == 3 && _key > 96)
+      keyFollow = ((_instPartial.TVFCFKeyFlw - 0x40) / 10.0) * (96 - 64);
+  }
+
+  return keyFollow;
 }
 
 }

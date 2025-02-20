@@ -81,7 +81,7 @@ Partial::Partial(int partialId, uint8_t key, uint8_t velocity,
     _tva(NULL),
     _interpMode(static_cast<Settings::InterpMode>(settings->interpolation_mode())),
     _sample(0),
-    _updatePeriod(settings->sample_rate() / 128)
+    _updatePeriod((32000 / 256) * settings->sample_rate() / 32000.0)
 {
   _drumSet = settings->get_param(PatchParam::UseForRhythm, partId);
   if (_drumSet)
@@ -162,7 +162,7 @@ bool Partial::get_next_sample(float *noteSample)
   if  (_tva->finished())
     return 1;
 
-  // TODO: Figure out how often this should be executed (new thread?)
+  // To be executed every 256 samples if samplerate = 32k
   if (!(_updateTimeout++ % _updatePeriod))
     _update_params();
 

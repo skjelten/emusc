@@ -178,7 +178,7 @@ public:
     std::array<uint8_t, 128> LFOSine;
     std::array<int,     128> TVFEnvDepth;
     std::array<int,     128> TVFCutoffFreq;
-    std::array<uint8_t, 256> TVFCOFKeyFollow;
+    std::array<uint8_t, 256> TVFResonanceFreq;
     std::array<uint8_t, 128> TVFResonance;
     std::array<int,     128> PitchEnvDepth;
     std::array<uint8_t,  64> TVFEnvScale;
@@ -255,7 +255,7 @@ private:
   const _ProgMemoryMapLUT SC55_1_21_Prog_LUT {
     0x3df82 };
   const _ProgMemoryMapLUT SC55mkII_1_01_Prog_LUT {
-    0x0 };
+    0x3e10c };
 
   struct _CPUMemoryMapLUT {
     int TimeKeyFollowDiv;
@@ -268,7 +268,7 @@ private:
     int LFOSine;
     int TVFEnvDepth;
     int TVFCutoffFreq;
-    int TVFCOFKeyFollow;
+    int TVFResonanceFreq;
     int TVFResonance;
     int PitchEnvDepth;
     int TVFEnvScale;

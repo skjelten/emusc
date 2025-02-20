@@ -583,8 +583,8 @@ int ControlRom::_read_lookup_tables_cpurom(std::ifstream &romFile)
   // 8-bit values
   romFile.seekg(CPUmmLUT->TimeKeyFollowDiv);
   romFile.read(reinterpret_cast<char*> (&lookupTables.TimeKeyFollowDiv), 21);
-  romFile.seekg(CPUmmLUT->TVFCOFKeyFollow);
-  romFile.read(reinterpret_cast<char*> (&lookupTables.TVFCOFKeyFollow), 256);
+  romFile.seekg(CPUmmLUT->TVFResonanceFreq);
+  romFile.read(reinterpret_cast<char*> (&lookupTables.TVFResonanceFreq), 256);
   romFile.seekg(CPUmmLUT->TVFResonance);
   romFile.read(reinterpret_cast<char*> (&lookupTables.TVFResonance), 128);
   romFile.seekg(CPUmmLUT->TVFEnvScale);
