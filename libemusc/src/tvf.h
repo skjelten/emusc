@@ -65,9 +65,11 @@ private:
 
   int _coFreqIndex;
 
+  int _resIndexROM;
+  int _resIndexFreq;
+
   float _filterFreq;
   float _filterRes;
-  int _filterResIndex;
 
   uint8_t _key;
 

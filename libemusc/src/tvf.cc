@@ -161,18 +161,19 @@ void TVF::update_params(void)
   if (_coFreqIndex < 0) _coFreqIndex = 0;
   if (_coFreqIndex > 127) _coFreqIndex = 127;
 
-  int newResIndex = _filterResIndex +
+  int resIndexUsed = std::min(_resIndexROM, _resIndexFreq);
+  resIndexUsed -=
     (_settings->get_param(PatchParam::TVFResonance, _partId) - 0x40) * 2;
-  if (newResIndex < 8) newResIndex = 8;
-  if (newResIndex > 255) newResIndex = 255;
+  if (resIndexUsed > _resIndexFreq) resIndexUsed = _resIndexFreq;
+  if (resIndexUsed < 8) resIndexUsed = 8;
 
-  int resonance = _LUT.TVFResonance[newResIndex];
-  _filterRes = 10.0 - (static_cast<float>(resonance - 106) * (9.6)) / 149;
+  int resonance = _LUT.TVFResonance[resIndexUsed];
+  _filterRes = ((resonance - 106) / (255.0f - 106.0f)) * (10.0f - 0.5f) + 0.5f;
 
   if (0)
     std::cout << "TVF: fFreq=" << _filterFreq
               << " fRes=" << _filterRes
-              << " res[" << newResIndex << "]=" << resonance << std::endl;
+              << " res[" << resIndexUsed << "]=" << resonance << std::endl;
 }
 
 
@@ -222,23 +223,15 @@ void TVF::_init_freq_and_res(void)
   if (freqIndex > 127) freqIndex = 127;
   _filterFreq = _LUT.TVFCutoffFreq[(int) freqIndex];
 
-  // Then calculate the correct filter resonance
-  int _resIndex = _instPartial.TVFResonance +
-    (_settings->get_param(PatchParam::TVFResonance, _partId) - 0x40) * 2;
-  if (_resIndex < 0) _resIndex = 0;
-  if (_resIndex > 127) _resIndex = 127;
-
-  int altResIndex = _LUT.TVFResonanceFreq[(int) (_filterFreq - 1) / 128];
-  _filterResIndex = std::min(_resIndex, altResIndex);
-  _filterResIndex = std::max(8, _filterResIndex);
-  int resonance = _LUT.TVFResonance[_filterResIndex];
-  _filterRes = 10.0 - (static_cast<float>(resonance - 106) * (9.6)) / 149;
+  // Then find the two filter resonance index alternatives
+  _resIndexROM = (int) _instPartial.TVFResonance;
+  _resIndexFreq = _LUT.TVFResonanceFreq[(int) (_filterFreq - 1) / 128];
 
   if (0)
     std::cout << "Init TVF: COFFreq[" << (int)freqIndex*2 << "]=" << _filterFreq
-              << " ResFreq[" << (int) (_filterFreq - 1) / 128 << "]="
-              << altResIndex
-              << " Res[" << _filterResIndex << "]=" << _filterRes << std::endl;
+              << " ResIndexFreq[" << (int) (_filterFreq - 1) / 128 << "]="
+              << _resIndexFreq
+              << " ResIndexROM=" << _resIndexROM << std::endl;
 }
 
 
