@@ -277,6 +277,7 @@ int ControlRom::_read_instruments(std::ifstream &romFile)
     i.LFO1Delay    = data[16];
     i.LFO1Fade     = data[17];
     i.partialsUsed = data[18];
+    i.pitchCurve   = data[19];
 
     // We have 2 partial parameters sets; starting in bank position 34 & 126
     for (int p = 0; p < 2; p++) {
@@ -556,9 +557,21 @@ int ControlRom::_read_lookup_tables_progrom(std::ifstream &romFile)
     }
 
   // 8-bit values
+  romFile.seekg(PROGmmLUT->mul2);
+  romFile.read(reinterpret_cast<char*> (&lookupTables.mul2), 128);
+  romFile.seekg(PROGmmLUT->mul2From85);
+  romFile.read(reinterpret_cast<char*> (&lookupTables.mul2From85), 128);
   romFile.seekg(PROGmmLUT->TimeKeyFollowP1Index);
-  romFile.read(reinterpret_cast<char*> (&lookupTables.TimeKeyFollowP1Index),
-               128);
+  romFile.read(reinterpret_cast<char*>(&lookupTables.TimeKeyFollowP1Index),128);
+
+  // 16-bit values
+// _read_lut_16bit(romFile, PROGmmLUT->mul256, lookupTables.mul256);
+// _read_lut_16bit(romFile, PROGmmLUT->mul256From60, lookupTables.mul256From60);
+// _read_lut_16bit(romFile, PROGmmLUT->mul256From96, lookupTables.mul256From96);
+// _read_lut_16bit(romFile, PROGmmLUT->mul256Upto96, lookupTables.mul256Upto96);
+  _read_lut_16bit(romFile, PROGmmLUT->PitchScale1, lookupTables.PitchScale1);
+  _read_lut_16bit(romFile, PROGmmLUT->PitchScale2, lookupTables.PitchScale2);
+  _read_lut_16bit(romFile, PROGmmLUT->PitchScale3, lookupTables.PitchScale3);
 
   return 0;
 }

@@ -39,7 +39,7 @@ class TVP
 public:
   TVP(ControlRom::InstPartial &instPartial, uint8_t key, uint8_t velocity,
       int keyShift, ControlRom::Sample *ctrlSample, WaveGenerator *LFO1,
-      WaveGenerator *LFO2, ControlRom::LookupTables &LUT,
+      WaveGenerator *LFO2, int pitchCurve, ControlRom::LookupTables &LUT,
       Settings *settings, int8_t partId);
   ~TVP();
 
@@ -86,7 +86,8 @@ private:
   TVP();
 
   void _init_envelope(void);
-  void _set_static_params(int keyShift, ControlRom::Sample *ctrlSample);
+  void _set_static_params(int keyShift, ControlRom::Sample *ctrlSample,
+                          int pitchCurve);
 };
 
 }

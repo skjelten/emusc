@@ -123,8 +123,9 @@ Partial::Partial(int partialId, uint8_t key, uint8_t velocity,
   _LFO2 = new WaveGenerator(_instPartial, ctrlRom.lookupTables,settings,partId);
 
   // 8. Create TVP/F/A & envelope classes
+  int pitchCurve = ctrlRom.instrument(instrumentIndex).pitchCurve;
   _tvp = new TVP(_instPartial, key, velocity, keyShift, _ctrlSample, LFO1,
-                 _LFO2, ctrlRom.lookupTables, settings, partId);
+                 _LFO2, pitchCurve, ctrlRom.lookupTables, settings, partId);
   _tvf = new TVF(_instPartial, key, velocity, LFO1, _LFO2,
                  ctrlRom.lookupTables, settings, partId);
   _tva = new TVA(_instPartial, key, velocity, _ctrlSample, LFO1, _LFO2,

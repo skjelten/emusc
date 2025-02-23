@@ -39,7 +39,7 @@ namespace EmuSC {
 
 TVP::TVP(ControlRom::InstPartial &instPartial, uint8_t key, uint8_t velocity,
 	 int keyShift, ControlRom::Sample *ctrlSample,
-	 WaveGenerator *LFO1, WaveGenerator *LFO2,
+	 WaveGenerator *LFO1, WaveGenerator *LFO2, int pitchCurve,
          ControlRom::LookupTables &LUT, Settings *settings,int8_t partId)
   : _sampleRate(settings->sample_rate()),
     _key(key),
@@ -56,7 +56,7 @@ TVP::TVP(ControlRom::InstPartial &instPartial, uint8_t key, uint8_t velocity,
     _settings(settings),
     _partId(partId)
 {
-  _set_static_params(keyShift, ctrlSample);
+  _set_static_params(keyShift, ctrlSample, pitchCurve);
   update_dynamic_params();
 
   _init_envelope();
@@ -118,7 +118,8 @@ void TVP::update_dynamic_params(void)
 }
 
 
-void TVP::_set_static_params(int keyShift, ControlRom::Sample *ctrlSample)
+void TVP::_set_static_params(int keyShift, ControlRom::Sample *ctrlSample,
+                             int pitchCurve)
 {
   int drumSet = _settings->get_param(PatchParam::UseForRhythm, _partId);
 
@@ -144,6 +145,15 @@ void TVP::_set_static_params(int keyShift, ControlRom::Sample *ctrlSample)
     keyDiff = _key + keyShift - ctrlSample->rootKey;
   }
 
+  // Pitch correction table (in decicents)
+  int pitchScaleCurve = 0;
+  if (pitchCurve == 1)
+    pitchScaleCurve = _LUT.PitchScale1[_key] - 0x8000;
+  else if (pitchCurve == 2)
+    pitchScaleCurve = _LUT.PitchScale2[_key] - 0x8000;
+  else if (pitchCurve == 3)
+    pitchScaleCurve = _LUT.PitchScale3[_key] - 0x8000;
+
   _staticPitchCorr =
     (exp(
          ( // Corrections in octaves (100 cents)
@@ -152,6 +162,7 @@ void TVP::_set_static_params(int keyShift, ControlRom::Sample *ctrlSample)
              (60 - ctrlSample->rootKey) * (1 - pitchKeyFollow) ) * 100 +
 
            // Correction in cents
+           (pitchScaleCurve / 10) +
            _instPartial.finePitch - 0x40 +
            randomPitchDepth +
            ((ctrlSample->pitch - 1024) / 16)
