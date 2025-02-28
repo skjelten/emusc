@@ -210,14 +210,9 @@ void Envelope::_init_new_phase(enum Phase newPhase)
   _phaseSampleIndex = 0;
   _phase = newPhase;
 
-  // Exponential decay: y(x) = y0 * exp(-k*x)
-  // k (_expDecayRate) = 0.00025 * (1 + a * (60 – key) / 60.0) / t
-  // 0.00025 is pretty good estimation for 1 second of key C4
-  // "a" is the scaling factor for key value compensation. Should be approx.
-  // 0.45, but this creates instability in volume level for high pitches.
-  // TODO: Investigate how "a" can be decreased without affecting volume
-  if (_phaseShape[static_cast<int>(_phase)] == 1)
-    _expDecayRate = 0.00025 * (1 + 0.48 * (60 - _key) / 60.0) /phaseDurationSec;
+  if (_phaseShape[static_cast<int>(_phase)] == 0)
+    _linearChange = (_phaseValue[static_cast<int>(_phase)] - _phaseInitValue) /
+      (double) _phaseSampleLen;
 
   if (0) {
     std::string envType;
@@ -269,15 +264,13 @@ double Envelope::get_next_value(void)
     }
   }
 
-  if (_phaseShape[static_cast<int>(_phase)] == 0) {       // Linear decay
-    _currentValue = _phaseInitValue +
-      (_phaseValue[static_cast<int>(_phase)] - _phaseInitValue) *
-      ((double) _phaseSampleIndex / (double) _phaseSampleLen);
-
-  } else {                                                // Exponential decay
-    _currentValue = _phaseValue[static_cast<int>(_phase)] +
+  if (_phaseShape[static_cast<int>(_phase)] == 0) {  // Linear rise / decay
+    _currentValue += _linearChange;
+  } else {                                           // Exponential rise / decay
+    _currentValue = _phaseValue[static_cast<int>(_phase)] + 
       (_phaseInitValue - _phaseValue[static_cast<int>(_phase)]) *
-      exp(-_expDecayRate * _phaseSampleIndex);
+      _calc_exp_change(255 - 255 * (_phaseSampleIndex / (float)_phaseSampleLen))
+      / 65535.0;
   }
 
   _phaseSampleIndex ++;
@@ -292,6 +285,24 @@ void Envelope::release()
     return;
 
   _init_new_phase(Phase::Release);
+}
+
+
+
+float Envelope::_calc_exp_change(float index)
+{
+  if (index < 0)
+    return std::nanf("");
+  else if (index >= 255)
+    return (float) _LUT.TVAEnvExpChange[255];
+
+  int p0 = _LUT.TVAEnvExpChange[(int) index];
+  int p1 = _LUT.TVAEnvExpChange[(int) index + 1];
+
+  float fractionP1 = index - (int) index;
+  float fractionP0 = 1.0 - fractionP1;
+
+  return fractionP0 * p0 + fractionP1 * p1;
 }
 
 }

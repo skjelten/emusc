@@ -63,11 +63,9 @@ public:
 private:
   double  _phaseValue[5];
   uint8_t _phaseDuration[5];
-  bool    _phaseShape[5];       // Phase 0 = linear, 1 = logarithmic
+  bool    _phaseShape[5];       // 0 => linear, 1 => exponential
 
   ControlRom::LookupTables &_LUT;
-
-  float _expDecayRate;
 
   bool _finished;               // Flag indicating whether enveolope is finished
 
@@ -79,6 +77,8 @@ private:
 
   double _phaseInitValue;
   double _currentValue;
+
+  float _linearChange;
 
   enum class Phase {
     Off     = -1,
@@ -108,6 +108,7 @@ private:
   Envelope();
 
   void _init_new_phase(enum Phase newPhase);
+  float _calc_exp_change(float index);
 
 };
 
