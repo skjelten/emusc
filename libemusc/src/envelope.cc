@@ -204,17 +204,19 @@ void Envelope::_init_new_phase(enum Phase newPhase)
   _phaseInitValue = _currentValue;
 
   int durationTotal = _phaseDuration[static_cast<int>(newPhase)];
-  if (newPhase == Phase::Attack1 || newPhase == Phase::Attack2) {
-    durationTotal +=
-      (_settings->get_param(PatchParam::TVFAEnvAttack, _partId) - 0x40) * 2;
+  if (_type != Type::TVP) {
+    if (newPhase == Phase::Attack1 || newPhase == Phase::Attack2) {
+      durationTotal +=
+        (_settings->get_param(PatchParam::TVFAEnvAttack, _partId) - 0x40) * 2;
 
-  } else if (newPhase == Phase::Decay1 || newPhase == Phase::Decay2) {
-    durationTotal +=
-      (_settings->get_param(PatchParam::TVFAEnvDecay, _partId) - 0x40) * 2;
+    } else if (newPhase == Phase::Decay1 || newPhase == Phase::Decay2) {
+      durationTotal +=
+        (_settings->get_param(PatchParam::TVFAEnvDecay, _partId) - 0x40) * 2;
 
-  } else if (newPhase == Phase::Release) {
-    durationTotal +=
-      (_settings->get_param(PatchParam::TVFAEnvRelease, _partId) - 0x40) * 2;
+    } else if (newPhase == Phase::Release) {
+      durationTotal +=
+        (_settings->get_param(PatchParam::TVFAEnvRelease, _partId) - 0x40) * 2;
+    }
   }
 
   // Make sure synth settings does not go outside valid values
