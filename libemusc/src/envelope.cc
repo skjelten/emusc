@@ -16,10 +16,10 @@
  *  along with libEmuSC. If not, see <http://www.gnu.org/licenses/>.
  */
 
-// Envelopes in the Sound Canvas have 5 phases:
+// TVF and TVA envelopes in the Sound Canvas have 5 phases:
 //  - Phase 1 and 2 are the "Attack" phases
 //  - Phase 3 and 4 are the "Decay" phases
-//  - If the level in phase 4 (L4) is non-zero the value is sustained
+//  - End of phase 4 is sustained at L4 (must be non-zero for sustained TVA)
 //  - Phase 5 is the "Release" phase triggered by a note off event
 //
 //  |  | Attack  |Decay|  Sustain   |Release
@@ -30,16 +30,37 @@
 //  |  |   /      \ | /L4           |\   |
 //  |  |  /        \|/              | \  |
 //  |  | /          L3              |  \ |
-//  |__|/___________________________|___\|___
+//  |__|/___________________________|___\|___ Time
 //     ^L0                          ^    L5
 //  Note on                      Note off
+//          Example TVA envelope
 //
-// Some notes:
-// * Sound Canvas line has 3 similar envelopes available: Pitch, TVF and TVA
-// * TVA have both linear and expoential curves, pitch and TVF only linear
-// * In TVA envelopes L0 and L5 are not specified as they are always 0
-
-// TODO: Phase duration adjustments are dynamically updated
+// The pitch envelope shares many features with TVA and TVF envelopes, but it
+// also has some important differences:
+//  - The first phase value in ROM is used as initial value (L0)
+//  - It uses only 4 phases, where phase 3 is sustained
+//
+//  |  |   |    |   | Sustain |Release
+//  │  │T1 │ T2 │ T3|         │  T4  |
+//  │  │   │    │   |         │      |
+//  │  │ L1│____│L2 |         │      |
+//  │  │   /     \  |         │      |
+//  │  │  /       \ |         │      |
+//  │  │ /         \|_________|      |
+//  │  │/           |L3       |\     |
+//  │  │L0          |         | \    |
+//  │__│____________|_________|__\___|_____ Time
+//     ^                      ^   \  |
+//  Note on                Note off\ |
+//       Example pitch envelope     \|_____
+//                                   L5
+// Some notes on envelopes:
+// - TVA have both linear and expoential curves, pitch and TVF only linear
+// - In TVA envelopes L0 and L5 are not specified as they are always 0
+// - In TVF envelopes L0 is always 0 (0x40)
+// - Both pitch and TVF envelopes has a depth parameter to control the total
+//   effect of the envelope
+// - SysEx changes to phase durations does not affect the pitch envelope
 
 
 #include "envelope.h"
@@ -119,35 +140,49 @@ void Envelope::start(void)
 }
 
 
-// phase=0 -> T1-T4 (Attacks and Decays), phase=1 -> T5 (Release)
+// etkpROM != 0 is only possible for the TVA envelope
 void Envelope::set_time_key_follow(bool phase, int etkfROM, int etkpROM)
 {
-  if (etkfROM) {
-    int tkfDiv = _LUT.TimeKeyFollowDiv[std::abs(etkfROM)];
+  if (!etkfROM)
+    return;
+
+
+  int tkfDiv = _LUT.TimeKeyFollowDiv[std::abs(etkfROM)];
+  if (etkfROM < 0)
+    tkfDiv *= -1;
+
+  int tkfIndex;
+  if (etkpROM == 0) {
+    tkfIndex = ((tkfDiv * (_key - 64)) / 64) + 128;
+
+  } else if (etkpROM == 1 && phase == 0) {
+    int p1 = _LUT.TVAEnvTKFP1T14Index[_key];
+    tkfIndex = p1 + (128 - std::abs(tkfDiv)) * (128 - p1) / 128.0;
     if (etkfROM < 0)
-      tkfDiv *= -1;
+      tkfIndex = 255 - tkfIndex;
 
-    int tkfIndex;
-    if (etkpROM == 0)
-      tkfIndex = ((tkfDiv * (_key - 64)) / 64) + 128;
-    else if (etkpROM == 1)
-      tkfIndex = (_LUT.TimeKeyFollowP1Index[_key] - 32) / 2 + 80;
-    else
-      tkfIndex = ((tkfDiv * (127 - 64)) / 64) + 128;
+  } else if (etkpROM == 1 && phase == 1) {
+    int p1 = _LUT.TVAEnvTKFP1T5Index[_key];
+    tkfIndex = p1 + (128 - std::abs(tkfDiv)) * (128 - p1) / 128.0;
+    if (etkfROM < 0)
+      tkfIndex = 255 - tkfIndex;
 
-    if (phase == 0)
-      _timeKeyFlwT1T4 = _LUT.TimeKeyFollow[tkfIndex];
-    else
-      _timeKeyFlwT5 =  _LUT.TimeKeyFollow[tkfIndex];
-
-    if (0)
-      std::cout << "ETKF: phase=" << phase << std::dec
-                << " key=" << (int) _key << " etkpROM=" << etkpROM
-                << " LUT1[" << std::abs(etkfROM) << "]=" << tkfDiv
-                << " LUT2[" << tkfIndex << "]=" << _LUT.TimeKeyFollow[tkfIndex]
-                << " => time change=" << _LUT.TimeKeyFollow[tkfIndex] / 256.0
-                << std::endl;
+  } else {
+    tkfIndex = ((tkfDiv * (127 - 64)) / 64) + 128;
   }
+
+  if (phase == 0)
+    _timeKeyFlwT1T4 = _LUT.TimeKeyFollow[tkfIndex];
+  else
+    _timeKeyFlwT5 =  _LUT.TimeKeyFollow[tkfIndex];
+
+  if (0)
+    std::cout << "ETKF: phase=" << phase << std::dec
+              << " key=" << (int) _key << " etkpROM=" << etkpROM
+              << " LUT1[" << std::abs(etkfROM) << "]=" << tkfDiv
+              << " LUT2[" << tkfIndex << "]=" << _LUT.TimeKeyFollow[tkfIndex]
+              << " => time change=" << _LUT.TimeKeyFollow[tkfIndex] / 256.0
+              << std::endl;
 }
 
 

@@ -561,8 +561,10 @@ int ControlRom::_read_lookup_tables_progrom(std::ifstream &romFile)
   romFile.read(reinterpret_cast<char*> (&lookupTables.mul2), 128);
   romFile.seekg(PROGmmLUT->mul2From85);
   romFile.read(reinterpret_cast<char*> (&lookupTables.mul2From85), 128);
-  romFile.seekg(PROGmmLUT->TimeKeyFollowP1Index);
-  romFile.read(reinterpret_cast<char*>(&lookupTables.TimeKeyFollowP1Index),128);
+  romFile.seekg(PROGmmLUT->TVAEnvTKFP1T14Index);
+  romFile.read(reinterpret_cast<char*>(&lookupTables.TVAEnvTKFP1T14Index), 128);
+  romFile.seekg(PROGmmLUT->TVAEnvTKFP1T5Index);
+  romFile.read(reinterpret_cast<char*>(&lookupTables.TVAEnvTKFP1T5Index), 128);
 
   // 16-bit values
 // _read_lut_16bit(romFile, PROGmmLUT->mul256, lookupTables.mul256);

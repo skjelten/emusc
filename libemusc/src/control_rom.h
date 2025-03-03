@@ -168,7 +168,8 @@ public:
     // PROGROM
     std::array<uint8_t, 128> mul2;
     std::array<uint8_t, 128> mul2From85;
-    std::array<uint8_t, 128> TimeKeyFollowP1Index;
+    std::array<uint8_t, 128> TVAEnvTKFP1T14Index;
+    std::array<uint8_t, 128> TVAEnvTKFP1T5Index;
 //    std::array<int,     128> mul256;
 //    std::array<int,     128> mul256From60;
 //    std::array<int,     128> mul256From96;
@@ -262,7 +263,8 @@ private:
   struct _ProgMemoryMapLUT {
     int mul2;
     int mul2From85;
-    int TimeKeyFollowP1Index;
+    int TVAEnvTKFP1T14Index;
+    int TVAEnvTKFP1T5Index;
 //    int mul256;
 //    int mul256From60;
 //    int mul256From96;
@@ -273,9 +275,9 @@ private:
   };
 
   const _ProgMemoryMapLUT SC55_1_21_Prog_LUT {
-    0x3dd82, 0x3de02, 0x3df82, 0x3e982, 0x3ea82, 0x3eb82 };
+    0x3dd82, 0x3de02, 0x3df82, 0x3e102, 0x3e982, 0x3ea82, 0x3eb82 };
   const _ProgMemoryMapLUT SC55mkII_1_01_Prog_LUT {
-    0x3de8c, 0x3df0c, 0x3e10c, 0x3ee0c, 0x3ef0c, 0x3f00c };
+    0x3de8c, 0x3df0c, 0x3e10c, 0x3e30c, 0x3ee0c, 0x3ef0c, 0x3f00c };
 
   struct _CPUMemoryMapLUT {
     int TimeKeyFollowDiv;
