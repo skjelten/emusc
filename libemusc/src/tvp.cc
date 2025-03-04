@@ -51,7 +51,7 @@ TVP::TVP(ControlRom::InstPartial &instPartial, uint8_t key, uint8_t velocity,
     _LFO2Depth(instPartial.TVPLFO2Depth & 0x7f),
     _expFactor(log(2) / 12000),
     _envelope(NULL),
-    _multiplier(instPartial.pitchMult & 0x7f),
+    _multiplier(instPartial.pitchEnvDepth & 0x7f),
     _instPartial(instPartial),
     _settings(settings),
     _partId(partId)
@@ -173,28 +173,27 @@ void TVP::_set_static_params(int keyShift, ControlRom::Sample *ctrlSample,
 
 void TVP::_init_envelope(void)
 {
-  int phasePitchInit;           // Initial pitch for phase 1
-  double phasePitch[5];         // Target phase pitch for phase 1-5
-  uint8_t phaseDuration[5];     // Phase duration for phase 1-5
+  double phasePitch[6];
+  uint8_t phaseDuration[6];
 
-  phasePitchInit = _instPartial.pitchLvlP0 - 0x40;
-  phasePitch[0] = _instPartial.pitchLvlP1 - 0x40;
-  phasePitch[1] = _instPartial.pitchLvlP2 - 0x40;
-  phasePitch[2] = _instPartial.pitchLvlP3 - 0x40;
-  phasePitch[3] = _instPartial.pitchLvlP4 - 0x40;
+  phasePitch[0] = _instPartial.pitchEnvL0 - 0x40;
+  phasePitch[1] = _instPartial.pitchEnvL1 - 0x40;
+  phasePitch[2] = _instPartial.pitchEnvL2 - 0x40;
+  phasePitch[3] = _instPartial.pitchEnvL3 - 0x40;
   phasePitch[4] = 0;
+  phasePitch[5] = _instPartial.pitchEnvL5 - 0x40;
 
-  phaseDuration[0] = _instPartial.pitchDurP1 & 0x7F;
-  phaseDuration[1] = _instPartial.pitchDurP2 & 0x7F;
-  phaseDuration[2] = _instPartial.pitchDurP3 & 0x7F;
-  phaseDuration[3] = _instPartial.pitchDurP4 & 0x7F;
-  phaseDuration[4] = _instPartial.pitchDurP5 & 0x7F;
+  phaseDuration[0] = 0;
+  phaseDuration[1] = _instPartial.pitchEnvT1 & 0x7F;
+  phaseDuration[2] = _instPartial.pitchEnvT2 & 0x7F;
+  phaseDuration[3] = _instPartial.pitchEnvT3 & 0x7F;
+  phaseDuration[4] = _instPartial.pitchEnvT4 & 0x7F;
+  phaseDuration[5] = _instPartial.pitchEnvT5 & 0x7F;
 
-  bool phaseShape[5] = { 0, 0, 0, 0, 0 };
+  bool phaseShape[6] = { 0, 0, 0, 0, 0, 0 };
 
   _envelope = new Envelope(phasePitch, phaseDuration, phaseShape, _key, _LUT,
-                           _settings, _partId, Envelope::Type::TVP,
-                           phasePitchInit);
+                           _settings, _partId, Envelope::Type::Pitch);
 
   // Adjust time for Envelope Time Key Follow
   if (_instPartial.pitchETKeyF14 != 0x40) { std::cout << "Pitch correction: " << (int) _instPartial.pitchETKeyF14 - 0x40 << std::endl;

@@ -63,96 +63,96 @@ public:
     uint16_t samples[16]; // Set of addresses to the sample table. 0 is default
   };                      // and above corresponds to breakpoints
 
-  struct InstPartial {    // 92 bytes in total
+  struct InstPartial {      // 92 bytes in total
     uint8_t LFO2Waveform;
-    uint8_t LFO2Rate;     // LFO frequency in 0.1 Hz
-    uint8_t LFO2Delay;
-    uint8_t LFO2Fade;
+    uint8_t LFO2Rate;       // LFO frequency
+    uint8_t LFO2Delay;      // LFO delay before LFO Fade starts
+    uint8_t LFO2Fade;       // LFO fade in, linear increase
 
-    uint16_t partialIndex;// Partial table index, 0xFFFF for unused
-    int8_t panpot;        // [-64, 64]. Default 0x40 (0-127)
-    int8_t coarsePitch;   // Shifts pitch in semitones. Default 0x40
-    int8_t finePitch;     // Shifts pitch in cents. Default 0x40
+    uint16_t partialIndex;  // Partial table index, 0xFFFF for unused
+    int8_t panpot;          // [-64, 64]. Default 0x40 (0-127)
+    int8_t coarsePitch;     // Shifts pitch in semitones. Default 0x40
+    int8_t finePitch;       // Shifts pitch in cents. Default 0x40
     int8_t randPitch;
-    int8_t volume;        // Volume attenuation (0x7f - 0)
+    int8_t volume;          // Volume attenuation (0x7f - 0)
     int8_t pitchKeyFlw;
 
     uint8_t TVPLFO1Depth;
     uint8_t TVPLFO2Depth;
-    uint8_t pitchMult;
-    uint8_t pitchLvlP0;
-    uint8_t pitchLvlP1;
-    uint8_t pitchLvlP2;
-    uint8_t pitchLvlP3;
-    uint8_t pitchLvlP4;
-    uint8_t pitchDurP1;
-    uint8_t pitchDurP2;
-    uint8_t pitchDurP3;
-    uint8_t pitchDurP4;
-    uint8_t pitchDurP5;
+    uint8_t pitchEnvDepth;
+    uint8_t pitchEnvL0;     // Pitch Envelope L0
+    uint8_t pitchEnvL1;     // Pitch Envelope L1
+    uint8_t pitchEnvL2;     // Pitch Envelope L2
+    uint8_t pitchEnvL3;     // Pitch Envelope L3 (L4 = 0)
+    uint8_t pitchEnvL5;     // Pitch Envelope L5
+    uint8_t pitchEnvT1;     // Pitch Envelope T1 (Attack1)
+    uint8_t pitchEnvT2;     // Pitch Envelope T2 (Attack2)
+    uint8_t pitchEnvT3;     // Pitch Envelope T3 (Decay1)
+    uint8_t pitchEnvT4;     // Pitch Envelope T4 (Decay2)
+    uint8_t pitchEnvT5;     // Pitch Envelope T5 (Release)
 
-    uint8_t pitchETKeyF14;// TVF Envelope Time Key Follow (T1 - T4)
-    uint8_t pitchETKeyF5; // TVF Envelope Time Key Follow (T5)
+    uint8_t pitchETKeyF14;  // TVF Envelope Time Key Follow (T1 - T4)
+    uint8_t pitchETKeyF5;   // TVF Envelope Time Key Follow (T5)
 
     int8_t TVFBaseFlt;
     int8_t TVFResonance;
-    int8_t TVFType;       // TVF Type [ low pass | high pass | disabled ]
+    int8_t TVFType;         // TVF Type [ low pass | high pass | disabled ]
 
-    uint8_t TVFCFKeyFlw;  // TVF Cutoff Frequency Key Follow
-    uint8_t TVFCFKeyFlwC; // TVF Cutoff Frequency Key Follow Curves
+    uint8_t TVFCFKeyFlw;    // TVF Cutoff Frequency Key Follow
+    uint8_t TVFCFKeyFlwC;   // TVF Cutoff Frequency Key Follow Curves
 
     uint8_t TVFLFO1Depth;
     uint8_t TVFLFO2Depth;
     uint8_t TVFEnvDepth;
-    uint8_t TVFLvlP1;
-    uint8_t TVFLvlP2;
-    uint8_t TVFLvlP3;
-    uint8_t TVFLvlP4;
-    uint8_t TVFLvlP5;
-    uint8_t TVFDurP1;
-    uint8_t TVFDurP2;
-    uint8_t TVFDurP3;
-    uint8_t TVFDurP4;
-    uint8_t TVFDurP5;
+    uint8_t TVFEnvL1;       // TVF Envelope L1 (L0 = 0)
+    uint8_t TVFEnvL2;       // TVF Envelope L2
+    uint8_t TVFEnvL3;       // TVF Envelope L3
+    uint8_t TVFEnvL4;       // TVF Envelope L4
+    uint8_t TVFEnvL5;       // TVF Envelope L5
+    uint8_t TVFEnvT1;       // TVF Envelope T1
+    uint8_t TVFEnvT2;       // TVF Envelope T2
+    uint8_t TVFEnvT3;       // TVF Envelope T3
+    uint8_t TVFEnvT4;       // TVF Envelope T4
+    uint8_t TVFEnvT5;       // TVF Envelope T5
 
-    uint8_t TVFETKeyF14;  // TVF Envelope Time Key Follow (T1 - T4)
-    uint8_t TVFETKeyF5;   // TVF Envelope Time Key Follow (T5)
+    uint8_t TVFETKeyF14;    // TVF Envelope Time Key Follow (T1 - T4)
+    uint8_t TVFETKeyF5;     // TVF Envelope Time Key Follow (T5)
 
     uint8_t TVALFO1Depth;
     uint8_t TVALFO2Depth;
-    uint8_t TVAVolP1;     // TVA level phase 1 (Attack)     Default 0x7f
-    uint8_t TVAVolP2;     // TVA level phase 2 (Hold)       Default 0x7f
-    uint8_t TVAVolP3;     // TVA level phase 3 (Decay)      Default 0x7f
-    uint8_t TVAVolP4;     // TVA level phase 4 (Sustain)    Default 0x7f
-    uint8_t TVALenP1;     // TVA duration phase 1 (Attack1) Default 0x80
-    uint8_t TVALenP2;     // TVA duration phase 2 (Attack2) Default 0x80
-    uint8_t TVALenP3;     // TVA duration phase 3 (Decay1)  Default 0
-    uint8_t TVALenP4;     // TVA duration phase 4 (Decay2)  Default 0
-    uint8_t TVALenP5;     // TVA duration phase 5 (Release) Default 0x09
+    uint8_t TVAEnvL1;       // TVA Envelope L1 (L0 = 0)
+    uint8_t TVAEnvL2;       // TVA Envelope L2
+    uint8_t TVAEnvL3;       // TVA Envelope L3
+    uint8_t TVAEnvL4;       // TVA Envelope L4 (L5 = 0)
+    uint8_t TVAEnvT1;       // TVA Envelope T1 (Attack1)
+    uint8_t TVAEnvT2;       // TVA Envelope T2 (Attack2)
+    uint8_t TVAEnvT3;       // TVA Envelope T3 (Decay1)
+    uint8_t TVAEnvT4;       // TVA Envelope T4 (Decay2)
+    uint8_t TVAEnvT5;       // TVA Envelope T5 (Release)
 
-    uint8_t TVAETKeyP14;  // TVA Envelope Time Key Presets (T1 - T4)
-    uint8_t TVAETKeyP5;   // TVA Envelope Time Key Presets (T5)
-    uint8_t TVAETKeyF14;  // TVA Envelope Time Key Follow (T1 - T4)
-    uint8_t TVAETKeyF5;   // TVA Envelope Time Key Follow (T5)
-    uint8_t TVAETVSens14; // TVA Envelope Time Velocity Sensitivity (T1 - T4)
-    uint8_t TVAETVSens5;  // TVA Envelope Time Velocity Sensitivity (T5)
+    uint8_t TVAETKeyP14;    // TVA Envelope Time Key Presets (T1 - T4)
+    uint8_t TVAETKeyP5;     // TVA Envelope Time Key Presets (T5)
+    uint8_t TVAETKeyF14;    // TVA Envelope Time Key Follow (T1 - T4)
+    uint8_t TVAETKeyF5;     // TVA Envelope Time Key Follow (T5)
+    uint8_t TVAETVSens14;   // TVA Envelope Time Velocity Sensitivity (T1 - T4)
+    uint8_t TVAETVSens5;    // TVA Envelope Time Velocity Sensitivity (T5)
   };
 
-  struct Instrument {     // 204 bytes in total
+  struct Instrument {       // 204 bytes in total
     std::string name;
 
-    uint8_t volume;       // Volume attenuation (0x7f - 0)
+    uint8_t volume;         // Volume attenuation (0x7f - 0)
     uint8_t LFO1Waveform;
-    uint8_t LFO1Rate;     // LFO frequency in 0.1 Hz
+    uint8_t LFO1Rate;       // LFO frequency
     uint8_t LFO1Delay;
     uint8_t LFO1Fade;
-    uint8_t partialsUsed; // Bit 0 & 1 => which of the two partials are in use
+    uint8_t partialsUsed;   // Bit 0 & 1 => which of the two partials are in use
     uint8_t pitchCurve;
 
     struct InstPartial partials[2];
   };
 
-  struct DrumSet {        //1164 bytes
+  struct DrumSet {          // 1164 bytes
     uint16_t preset[128];
     uint8_t volume[128];
     uint8_t key[128];
@@ -160,8 +160,8 @@ public:
     uint8_t panpot[128];
     uint8_t reverb[128];
     uint8_t chorus[128];
-    uint8_t flags[128];   // 0x10 -> accept note on,  0x01 -> accept note off
-    std::string name;     // 12 chars
+    uint8_t flags[128];     // 0x10 -> accept note on,  0x01 -> accept note off
+    std::string name;       // 12 chars
   };
 
   struct LookupTables {

@@ -35,29 +35,11 @@
 //  Note on                      Note off
 //          Example TVA envelope
 //
-// The pitch envelope shares many features with TVA and TVF envelopes, but it
-// also has some important differences:
-//  - The first phase value in ROM is used as initial value (L0)
-//  - It uses only 4 phases, where phase 3 is sustained
-//
-//  |  |   |    |   | Sustain |Release
-//  │  │T1 │ T2 │ T3|         │  T4  |
-//  │  │   │    │   |         │      |
-//  │  │ L1│____│L2 |         │      |
-//  │  │   /     \  |         │      |
-//  │  │  /       \ |         │      |
-//  │  │ /         \|_________|      |
-//  │  │/           |L3       |\     |
-//  │  │L0          |         | \    |
-//  │__│____________|_________|__\___|_____ Time
-//     ^                      ^   \  |
-//  Note on                Note off\ |
-//       Example pitch envelope     \|_____
-//                                   L5
 // Some notes on envelopes:
 // - TVA have both linear and expoential curves, pitch and TVF only linear
+// - In Pitch envelopes L4 is always 0 (0x40 in ROM)
+// - In TVF envelopes L0 is always 0 (0x40 in ROM)
 // - In TVA envelopes L0 and L5 are not specified as they are always 0
-// - In TVF envelopes L0 is always 0 (0x40)
 // - Both pitch and TVF envelopes has a depth parameter to control the total
 //   effect of the envelope
 // - SysEx changes to phase durations does not affect the pitch envelope
@@ -73,13 +55,13 @@
 namespace EmuSC {
 
 
-Envelope::Envelope(double value[5], uint8_t duration[5], bool shape[5], int key,
+Envelope::Envelope(double value[6], uint8_t duration[6], bool shape[6], int key,
                    ControlRom::LookupTables &LUT, Settings *settings,
-                   int8_t partId, enum Type type, int initValue)
+                   int8_t partId, enum Type type)
   : _LUT(LUT),
     _finished(false),
     _sampleRate(settings->sample_rate()),
-    _currentValue(initValue),
+    _currentValue(value[0]),
     _phase(Phase::Off),
     _key(key),
     _settings(settings),
@@ -90,7 +72,7 @@ Envelope::Envelope(double value[5], uint8_t duration[5], bool shape[5], int key,
     _timeVelSensT5(1.0),
     _type(type)
 {
-  for (int i = 0; i < 5; i++) {
+  for (int i = 0; i < 6; i++) {
     _phaseValue[i] = value[i];
     _phaseDuration[i] = duration[i];
     _phaseShape[i] = shape[i];
@@ -104,27 +86,27 @@ Envelope::Envelope(double value[5], uint8_t duration[5], bool shape[5], int key,
     std::array<std::string, 2> shape = { "Linear", "Exponential" };
 
     std::cout << "\nNew " << envType << " envelope" << std::endl << std::dec
-	      << " Attack 1: -> L=" << (double) _phaseValue[0]
-	      << " T=" << (float) _phaseDuration[0]
-	      << " S=" << shape[_phaseShape[0]] << std::endl
-	      << " Attack 2: -> L=" << (double) _phaseValue[1]
+	      << " Attack 1: -> L=" << (double) _phaseValue[1]
 	      << " T=" << (float) _phaseDuration[1]
 	      << " S=" << shape[_phaseShape[1]] << std::endl
-	      << " Decay 1:  -> L=" << (double) _phaseValue[2]
+	      << " Attack 2: -> L=" << (double) _phaseValue[2]
 	      << " T=" << (float) _phaseDuration[2]
 	      << " S=" << shape[_phaseShape[2]] << std::endl
-	      << " Decay 2:  -> L=" << (double) _phaseValue[3]
+	      << " Decay 1:  -> L=" << (double) _phaseValue[3]
 	      << " T=" << (float) _phaseDuration[3]
-	      << " S=" << shape[_phaseShape[3]] << std::endl;
+	      << " S=" << shape[_phaseShape[3]] << std::endl
+	      << " Decay 2:  -> L=" << (double) _phaseValue[4]
+	      << " T=" << (float) _phaseDuration[4]
+	      << " S=" << shape[_phaseShape[4]] << std::endl;
 
-    if (_phaseValue[3] != 0)
-      std::cout << "   > Sustain -> L=" << (double) _phaseValue[3] << std::endl;
+    if (!(type == Type::TVA && _phaseValue[4] == 0))
+      std::cout << "   > Sustain -> L=" << (double) _phaseValue[4] << std::endl;
     else
       std::cout << "   > No sustain" << std::endl;
 
-    std::cout << " Release:  -> L=" << (double) _phaseValue[4]
-	      << " T=" << (float) _phaseDuration[4]
-	      << " S=" << shape[_phaseShape[4]] << std::endl
+    std::cout << " Release:  -> L=" << (double) _phaseValue[5]
+	      << " T=" << (float) _phaseDuration[5]
+	      << " S=" << shape[_phaseShape[5]] << std::endl
 	      << " Key=" << key << std::endl;
   }
 }
@@ -204,7 +186,7 @@ void Envelope::_init_new_phase(enum Phase newPhase)
   _phaseInitValue = _currentValue;
 
   int durationTotal = _phaseDuration[static_cast<int>(newPhase)];
-  if (_type != Type::TVP) {
+  if (_type != Type::Pitch) {
     if (newPhase == Phase::Attack1 || newPhase == Phase::Attack2) {
       durationTotal +=
         (_settings->get_param(PatchParam::TVFAEnvAttack, _partId) - 0x40) * 2;

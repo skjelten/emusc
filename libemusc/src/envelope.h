@@ -36,14 +36,14 @@ class Envelope
 {
 public:
   enum class Type {
-    TVA,
+    Pitch,
     TVF,
-    TVP
+    TVA
   };
 
-  Envelope(double value[5], uint8_t duration[5], bool shape[5], int key,
+  Envelope(double value[6], uint8_t duration[6], bool shape[6], int key,
            ControlRom::LookupTables &LUT, Settings *settings, int8_t partId,
-           enum Type type, int initValue = 0);
+           enum Type type);
   ~Envelope();
 
   void start(void);
@@ -61,9 +61,9 @@ public:
   void set_time_vel_sens_t5(float time) { _timeVelSensT5 = time; }
 
 private:
-  double  _phaseValue[5];
-  uint8_t _phaseDuration[5];
-  bool    _phaseShape[5];       // 0 => linear, 1 => exponential
+  double  _phaseValue[6];
+  uint8_t _phaseDuration[6];
+  bool    _phaseShape[6];       // 0 => linear, 1 => exponential
 
   ControlRom::LookupTables &_LUT;
 
@@ -82,11 +82,12 @@ private:
 
   enum class Phase {
     Off     = -1,
-    Attack1 =  0,
-    Attack2 =  1,
-    Decay1  =  2,
-    Decay2  =  3,
-    Release =  4
+    Init    =  0,
+    Attack1 =  1,
+    Attack2 =  2,
+    Decay1  =  3,
+    Decay2  =  4,
+    Release =  5
   };
   enum Phase _phase;
 
@@ -102,7 +103,7 @@ private:
   float _timeVelSensT5;
 
   enum Type _type;
-  const char *_phaseName[5] = { "Attack 1", "Attack 2", "Decay 1",
+  const char *_phaseName[6] = { "Init", "Attack 1", "Attack 2", "Decay 1",
 				"Decay 2 (S)", "Release" };
 
   Envelope();

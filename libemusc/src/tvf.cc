@@ -179,25 +179,27 @@ void TVF::update_params(void)
 
 void TVF::_init_envelope(void)
 {
-  double phaseLevel[5];
-  uint8_t phaseDuration[5];
+  double phaseLevel[6];
+  uint8_t phaseDuration[6];
 
-  phaseLevel[0] = _instPartial.TVFLvlP1;
-  phaseLevel[1] = _instPartial.TVFLvlP2;
-  phaseLevel[2] = _instPartial.TVFLvlP3;
-  phaseLevel[3] = _instPartial.TVFLvlP4;
-  phaseLevel[4] = _instPartial.TVFLvlP5;
+  phaseLevel[0] = 0x40;
+  phaseLevel[1] = _instPartial.TVFEnvL1;
+  phaseLevel[2] = _instPartial.TVFEnvL2;
+  phaseLevel[3] = _instPartial.TVFEnvL3;
+  phaseLevel[4] = _instPartial.TVFEnvL4;
+  phaseLevel[5] = _instPartial.TVFEnvL5;
 
-  phaseDuration[0] = _instPartial.TVFDurP1 & 0x7F;
-  phaseDuration[1] = _instPartial.TVFDurP2 & 0x7F;
-  phaseDuration[2] = _instPartial.TVFDurP3 & 0x7F;
-  phaseDuration[3] = _instPartial.TVFDurP4 & 0x7F;
-  phaseDuration[4] = _instPartial.TVFDurP5 & 0x7F;
+  phaseDuration[0] = 0;                                     // Never used
+  phaseDuration[1] = _instPartial.TVFEnvT1 & 0x7F;
+  phaseDuration[2] = _instPartial.TVFEnvT2 & 0x7F;
+  phaseDuration[3] = _instPartial.TVFEnvT3 & 0x7F;
+  phaseDuration[4] = _instPartial.TVFEnvT4 & 0x7F;
+  phaseDuration[5] = _instPartial.TVFEnvT5 & 0x7F;
 
-  bool phaseShape[5] = { 0, 0, 0, 0, 0 };
+  bool phaseShape[6] = { 0, 0, 0, 0, 0, 0 };
 
   _envelope = new Envelope(phaseLevel, phaseDuration, phaseShape, _key, _LUT,
-                           _settings, _partId, Envelope::Type::TVF, 0x40);
+                           _settings, _partId, Envelope::Type::TVF);
 
   // Adjust time for Envelope Time Key Follow including Envelope Time Key Preset
   if (_instPartial.TVAETKeyF14 != 0x40)
@@ -208,6 +210,7 @@ void TVF::_init_envelope(void)
 }
 
 
+// TODO: Add TVF Cutoff Velocity Sensitivity to the init. frequency calculation
 void TVF::_init_freq_and_res(void)
 {
   // First find the initial filter frequency
@@ -254,11 +257,11 @@ float TVF::_calc_cutoff_frequency(float index)
 
 int TVF::_calc_envelope_max(void)
 {
-  int envLevelMax = (int) _instPartial.TVFLvlP1;
-  envLevelMax = std::max((int) _instPartial.TVFLvlP2, envLevelMax);
-  envLevelMax = std::max((int) _instPartial.TVFLvlP3, envLevelMax);
-  envLevelMax = std::max((int) _instPartial.TVFLvlP4, envLevelMax);
-  envLevelMax = std::max((int) _instPartial.TVFLvlP5, envLevelMax);
+  int envLevelMax = (int) _instPartial.TVFEnvL1;
+  envLevelMax = std::max((int) _instPartial.TVFEnvL2, envLevelMax);
+  envLevelMax = std::max((int) _instPartial.TVFEnvL3, envLevelMax);
+  envLevelMax = std::max((int) _instPartial.TVFEnvL4, envLevelMax);
+  envLevelMax = std::max((int) _instPartial.TVFEnvL5, envLevelMax);
   envLevelMax = std::max((int) 0, envLevelMax - 0x40);
 
   return _LUT.TVFEnvScale[envLevelMax];

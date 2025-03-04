@@ -205,28 +205,30 @@ void TVA::_set_static_params(ControlRom::Sample *ctrlSample, int instVolAtt)
 
 void TVA::_init_envelope(uint8_t velocity)
 {
-  double  phaseVolume[5];        // Phase volume for phase 1-5
-  uint8_t phaseDuration[5];      // Phase duration for phase 1-5
-  bool    phaseShape[5];         // Phase shape for phase 1-5
+  double  phaseVolume[6];
+  uint8_t phaseDuration[6];
+  bool    phaseShape[6];
 
-  // Set adjusted values for volume (0-127) and time (seconds)
-  phaseVolume[0] = _convert_volume_LUT[_instPartial.TVAVolP1];
-  phaseVolume[1] = _convert_volume_LUT[_instPartial.TVAVolP2];
-  phaseVolume[2] = _convert_volume_LUT[_instPartial.TVAVolP3];
-  phaseVolume[3] = _convert_volume_LUT[_instPartial.TVAVolP4];
-  phaseVolume[4] = 0;
+  phaseVolume[0] = 0;
+  phaseVolume[1] = _convert_volume_LUT[_instPartial.TVAEnvL1];
+  phaseVolume[2] = _convert_volume_LUT[_instPartial.TVAEnvL2];
+  phaseVolume[3] = _convert_volume_LUT[_instPartial.TVAEnvL3];
+  phaseVolume[4] = _convert_volume_LUT[_instPartial.TVAEnvL4];
+  phaseVolume[5] = 0;
 
-  phaseDuration[0] = _instPartial.TVALenP1 & 0x7F;
-  phaseDuration[1] = _instPartial.TVALenP2 & 0x7F;
-  phaseDuration[2] = _instPartial.TVALenP3 & 0x7F;
-  phaseDuration[3] = _instPartial.TVALenP4 & 0x7F;
-  phaseDuration[4] = _instPartial.TVALenP5 & 0x7F;
+  phaseDuration[0] = 0;                                     // Never used
+  phaseDuration[1] = _instPartial.TVAEnvT1 & 0x7F;
+  phaseDuration[2] = _instPartial.TVAEnvT2 & 0x7F;
+  phaseDuration[3] = _instPartial.TVAEnvT3 & 0x7F;
+  phaseDuration[4] = _instPartial.TVAEnvT4 & 0x7F;
+  phaseDuration[5] = _instPartial.TVAEnvT5 & 0x7F;
 
-  phaseShape[0] = (_instPartial.TVALenP1 & 0x80) ? 0 : 1;
-  phaseShape[1] = (_instPartial.TVALenP2 & 0x80) ? 0 : 1;
-  phaseShape[2] = (_instPartial.TVALenP3 & 0x80) ? 0 : 1;
-  phaseShape[3] = (_instPartial.TVALenP4 & 0x80) ? 0 : 1;
-  phaseShape[4] = (_instPartial.TVALenP5 & 0x80) ? 0 : 1;
+  phaseShape[0] = 0;                                        // Never used
+  phaseShape[1] = (_instPartial.TVAEnvT1 & 0x80) ? 0 : 1;
+  phaseShape[2] = (_instPartial.TVAEnvT2 & 0x80) ? 0 : 1;
+  phaseShape[3] = (_instPartial.TVAEnvT3 & 0x80) ? 0 : 1;
+  phaseShape[4] = (_instPartial.TVAEnvT4 & 0x80) ? 0 : 1;
+  phaseShape[5] = (_instPartial.TVAEnvT5 & 0x80) ? 0 : 1;
 
   _envelope = new Envelope(phaseVolume, phaseDuration, phaseShape, _key,
                            _LUT, _settings, _partId, Envelope::Type::TVA);
