@@ -310,6 +310,7 @@ int ControlRom::_read_instruments(std::ifstream &romFile)
       i.partials[p].pitchEnvT5   = data[23];
       i.partials[p].pitchETKeyF14=data[28];
       i.partials[p].pitchETKeyF5 = data[29];
+      i.partials[p].TVFCOFVelCur = data[32];
       i.partials[p].TVFBaseFlt   = data[33];
       i.partials[p].TVFResonance = data[34];
       i.partials[p].TVFType      = data[35];
@@ -330,6 +331,7 @@ int ControlRom::_read_instruments(std::ifstream &romFile)
       i.partials[p].TVFEnvT5     = data[50];
       i.partials[p].TVFETKeyF14  = data[55];
       i.partials[p].TVFETKeyF5   = data[56];
+      i.partials[p].TVALvlVelCur = data[60];
       i.partials[p].volume       = data[65];
       i.partials[p].TVABiasPoint = data[66];
       i.partials[p].TVABiasLevel = data[67];
@@ -559,6 +561,26 @@ int ControlRom::_read_lookup_tables_progrom(std::ifstream &romFile)
     }
 
   // 8-bit values
+  romFile.seekg(PROGmmLUT->VelocityCurve0);
+  romFile.read(reinterpret_cast<char*> (&lookupTables.VelocityCurve0), 128);
+  romFile.seekg(PROGmmLUT->VelocityCurve1);
+  romFile.read(reinterpret_cast<char*> (&lookupTables.VelocityCurve1), 128);
+  romFile.seekg(PROGmmLUT->VelocityCurve2);
+  romFile.read(reinterpret_cast<char*> (&lookupTables.VelocityCurve2), 128);
+  romFile.seekg(PROGmmLUT->VelocityCurve3);
+  romFile.read(reinterpret_cast<char*> (&lookupTables.VelocityCurve3), 128);
+  romFile.seekg(PROGmmLUT->VelocityCurve4);
+  romFile.read(reinterpret_cast<char*> (&lookupTables.VelocityCurve4), 128);
+  romFile.seekg(PROGmmLUT->VelocityCurve5);
+  romFile.read(reinterpret_cast<char*> (&lookupTables.VelocityCurve5), 128);
+  romFile.seekg(PROGmmLUT->VelocityCurve6);
+  romFile.read(reinterpret_cast<char*> (&lookupTables.VelocityCurve6), 128);
+  romFile.seekg(PROGmmLUT->VelocityCurve7);
+  romFile.read(reinterpret_cast<char*> (&lookupTables.VelocityCurve7), 128);
+  romFile.seekg(PROGmmLUT->VelocityCurve8);
+  romFile.read(reinterpret_cast<char*> (&lookupTables.VelocityCurve8), 128);
+  romFile.seekg(PROGmmLUT->VelocityCurve9);
+  romFile.read(reinterpret_cast<char*> (&lookupTables.VelocityCurve9), 128);
   romFile.seekg(PROGmmLUT->mul2);
   romFile.read(reinterpret_cast<char*> (&lookupTables.mul2), 128);
   romFile.seekg(PROGmmLUT->mul2From85);

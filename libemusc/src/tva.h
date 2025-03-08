@@ -85,8 +85,12 @@ private:
 
   TVA();
 
-  void _set_static_params(ControlRom::Sample *ctrlSample, int instVolAtt);
+  void _set_static_params(ControlRom::Sample *ctrlSample, int instVolAtt,
+                          uint8_t velocity);
   void _init_envelope(uint8_t velocity);
+
+  float _get_bias_level(void);
+  float _get_velocity_from_vcurve(uint8_t velocity);
 
   static constexpr std::array<float, 128> _convert_LFO_depth_high_LUT = {
     1.0000000, 1.0205695, 1.0413239, 1.0622632, 1.0833874, 1.1046965,

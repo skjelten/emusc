@@ -53,7 +53,7 @@ TVA::TVA(ControlRom::InstPartial &instPartial, uint8_t key, uint8_t velocity,
     _partId(partId),
     _drumVol(1)
 {
-  _set_static_params(ctrlSample, instVolAtt);
+  _set_static_params(ctrlSample, instVolAtt, velocity);
   update_dynamic_params(true);
 
   // All instruments must have a TVA envelope defined
@@ -183,7 +183,8 @@ bool TVA::finished(void)
 }
 
 
-void TVA::_set_static_params(ControlRom::Sample *ctrlSample, int instVolAtt)
+void TVA::_set_static_params(ControlRom::Sample *ctrlSample, int instVolAtt,
+                             uint8_t velocity)
 {
   // Calculate static volume corrections
   float instVol = _convert_volume_LUT[instVolAtt];
@@ -193,7 +194,24 @@ void TVA::_set_static_params(ControlRom::Sample *ctrlSample, int instVolAtt)
 
   _staticVolCorr = instVol * sampleVol * partialVol;
 
-  // TVA Bias
+  // Set level from bias
+  _staticVolCorr *= 1.0 - _get_bias_level();
+
+  // Set level from velocity
+  _staticVolCorr *= _get_velocity_from_vcurve(velocity) * (1/127.0);
+
+  // Calculate random pan if part pan or drum pan value is 0 (RND)
+  if (_settings->get_param(PatchParam::PartPanpot, _partId) == 0 ||
+      (_drumSet &&
+       _settings->get_param(DrumParam::Panpot, _drumSet - 1, _key) == 0)) {
+    _panpot = std::rand() % 128;
+    _panpotLocked = true;
+  }
+}
+
+
+float TVA::_get_bias_level(void)
+{
   // Note: The SC-55 uses a lookup table for finding the index when TVA Bias
   // Point = 1 (biasKey = _LUT.TVABiasPoint1[_key]). Consider to use this LUT.
   int biasKey = 0;
@@ -220,16 +238,52 @@ void TVA::_set_static_params(ControlRom::Sample *ctrlSample, int instVolAtt)
     biasLevel = 0;
   }
 
-  float biasVol = _convert_volume_LUT[(biasLevel/73.0)*127];
-  _staticVolCorr *= 1.0 - biasVol;
+  return _convert_volume_LUT[(biasLevel/73.0)*127];
+}
 
-  // Calculate random pan if part pan or drum pan value is 0 (RND)
-  if (_settings->get_param(PatchParam::PartPanpot, _partId) == 0 ||
-      (_drumSet &&
-       _settings->get_param(DrumParam::Panpot, _drumSet - 1, _key) == 0)) {
-    _panpot = std::rand() % 128;
-    _panpotLocked = true;
-  }
+
+float TVA::_get_velocity_from_vcurve(uint8_t velocity)
+{
+  int vLevel;
+  switch(_instPartial.TVALvlVelCur)
+    {
+    case 0:
+      vLevel = _LUT.VelocityCurve0[velocity];
+      break;
+    case 1:
+      vLevel = _LUT.VelocityCurve1[velocity];
+      break;
+    case 2:
+      vLevel = _LUT.VelocityCurve2[velocity];
+      break;
+    case 3:
+      vLevel = _LUT.VelocityCurve3[velocity];
+      break;
+    case 4:
+      vLevel = _LUT.VelocityCurve4[velocity];
+      break;
+    case 5:
+      vLevel = _LUT.VelocityCurve5[velocity];
+      break;
+    case 6:
+      vLevel = _LUT.VelocityCurve6[velocity];
+      break;
+    case 7:
+      vLevel = _LUT.VelocityCurve7[velocity];
+      break;
+    case 8:
+      vLevel = _LUT.VelocityCurve8[velocity];
+      break;
+    case 9:
+      vLevel = _LUT.VelocityCurve9[velocity];
+      break;
+    default:
+      vLevel = 0;
+      std::cerr << "libEmuSC internal error: Illegal velocity curve used"
+                << std::endl;
+    }
+
+  return vLevel;
 }
 
 

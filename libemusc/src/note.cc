@@ -29,7 +29,6 @@ namespace EmuSC {
 Note::Note(uint8_t key, uint8_t velocity, ControlRom &ctrlRom, PcmRom &pcmRom,
 	   Settings *settings, int8_t partId)
   : _key(key),
-    _velocity(velocity),
     _settings(settings),
     _partId(partId),
     _sustain(false),
@@ -134,10 +133,6 @@ bool Note::get_next_sample(float *partSample)
 
   if (finished[0] == true && finished[1] == true)
     return 1;
-
-  // Apply key velocity
-  sample[0] *= _velocity * _7bScale;
-  sample[1] *= _velocity * _7bScale;
 
   partSample[0] += sample[0];
   partSample[1] += sample[1];

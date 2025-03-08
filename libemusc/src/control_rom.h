@@ -91,9 +91,10 @@ public:
     uint8_t pitchEnvT4;     // Pitch Envelope T4 (Decay2)
     uint8_t pitchEnvT5;     // Pitch Envelope T5 (Release)
 
-    uint8_t pitchETKeyF14;  // TVF Envelope Time Key Follow (T1 - T4)
-    uint8_t pitchETKeyF5;   // TVF Envelope Time Key Follow (T5)
+    uint8_t pitchETKeyF14;  // Pitch Envelope Time Key Follow (T1 - T4)
+    uint8_t pitchETKeyF5;   // Pitch Envelope Time Key Follow (T5)
 
+    uint8_t TVFCOFVelCur;   // TVF Cutoff Velocity Curve
     int8_t TVFBaseFlt;
     int8_t TVFResonance;
     int8_t TVFType;         // TVF Type [ low pass | high pass | disabled ]
@@ -118,6 +119,7 @@ public:
     uint8_t TVFETKeyF14;    // TVF Envelope Time Key Follow (T1 - T4)
     uint8_t TVFETKeyF5;     // TVF Envelope Time Key Follow (T5)
 
+    uint8_t TVALvlVelCur;
     int8_t volume;          // Volume attenuation (0x7f - 0)
     uint8_t TVABiasPoint;   // TVA Bias Point, 0=V shape, 1=key>85, 2=flat curve
     uint8_t TVABiasLevel;
@@ -169,6 +171,16 @@ public:
 
   struct LookupTables {
     // PROGROM
+    std::array<uint8_t, 128> VelocityCurve0;
+    std::array<uint8_t, 128> VelocityCurve1;
+    std::array<uint8_t, 128> VelocityCurve2;
+    std::array<uint8_t, 128> VelocityCurve3;
+    std::array<uint8_t, 128> VelocityCurve4;
+    std::array<uint8_t, 128> VelocityCurve5;
+    std::array<uint8_t, 128> VelocityCurve6;
+    std::array<uint8_t, 128> VelocityCurve7;
+    std::array<uint8_t, 128> VelocityCurve8;
+    std::array<uint8_t, 128> VelocityCurve9;
     std::array<uint8_t, 128> mul2;
     std::array<uint8_t, 128> mul2From85;
     std::array<uint8_t, 128> TVABiasPoint1;
@@ -266,6 +278,16 @@ private:
   static const std::vector<uint32_t> _banksSC88;
 
   struct _ProgMemoryMapLUT {
+    int VelocityCurve0;
+    int VelocityCurve1;
+    int VelocityCurve2;
+    int VelocityCurve3;
+    int VelocityCurve4;
+    int VelocityCurve5;
+    int VelocityCurve6;
+    int VelocityCurve7;
+    int VelocityCurve8;
+    int VelocityCurve9;
     int mul2;
     int mul2From85;
     int TVABiasPoint1;
@@ -281,9 +303,13 @@ private:
   };
 
   const _ProgMemoryMapLUT SC55_1_21_Prog_LUT {
-    0x3dd82, 0x3de02, 0x3de02, 0x3df82, 0x3e102, 0x3e982, 0x3ea82, 0x3eb82 };
+    0x3d1e8, 0x3d268, 0x3d2e8, 0x3d368, 0x3d3e8, 0x3d468, 0x3d4e8, 0x3d568,
+    0x3d5e8, 0x3d668, 0x3dd82, 0x3de02, 0x3de02, 0x3df82, 0x3e102, 0x3e982,
+    0x3ea82, 0x3eb82 };
   const _ProgMemoryMapLUT SC55mkII_1_01_Prog_LUT {
-    0x3de8c, 0x3df0c, 0x3df0c, 0x3e10c, 0x3e30c, 0x3ee0c, 0x3ef0c, 0x3f00c };
+    0x3d1e8, 0x3d268, 0x3d2e8, 0x3d368, 0x3d3e8, 0x3d468, 0x3d4e8, 0x3d568,
+    0x3d5e8, 0x3d668, 0x3de8c, 0x3df0c, 0x3df0c, 0x3e10c, 0x3e30c, 0x3ee0c,
+    0x3ef0c, 0x3f00c };
 
   struct _CPUMemoryMapLUT {
     int TimeKeyFollowDiv;

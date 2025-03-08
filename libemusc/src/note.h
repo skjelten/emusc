@@ -55,7 +55,6 @@ public:
 
 private:
   uint8_t _key;
-  uint8_t _velocity;
 
   bool _sustain;
   bool _stopped;
