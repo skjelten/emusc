@@ -74,7 +74,7 @@ public:
     int8_t coarsePitch;     // Shifts pitch in semitones. Default 0x40
     int8_t finePitch;       // Shifts pitch in cents. Default 0x40
     int8_t randPitch;
-    int8_t volume;          // Volume attenuation (0x7f - 0)
+
     int8_t pitchKeyFlw;
 
     uint8_t TVPLFO1Depth;
@@ -118,6 +118,9 @@ public:
     uint8_t TVFETKeyF14;    // TVF Envelope Time Key Follow (T1 - T4)
     uint8_t TVFETKeyF5;     // TVF Envelope Time Key Follow (T5)
 
+    int8_t volume;          // Volume attenuation (0x7f - 0)
+    uint8_t TVABiasPoint;   // TVA Bias Point, 0=V shape, 1=key>85, 2=flat curve
+    uint8_t TVABiasLevel;
     uint8_t TVALFO1Depth;
     uint8_t TVALFO2Depth;
     uint8_t TVAEnvL1;       // TVA Envelope L1 (L0 = 0)
@@ -168,6 +171,7 @@ public:
     // PROGROM
     std::array<uint8_t, 128> mul2;
     std::array<uint8_t, 128> mul2From85;
+    std::array<uint8_t, 128> TVABiasPoint1;
     std::array<uint8_t, 128> TVAEnvTKFP1T14Index;
     std::array<uint8_t, 128> TVAEnvTKFP1T5Index;
 //    std::array<int,     128> mul256;
@@ -194,6 +198,7 @@ public:
     std::array<int,     128> PitchEnvDepth;
     std::array<uint8_t,  64> TVFEnvScale;
     std::array<int,     256> TVAEnvExpChange;
+    std::array<uint8_t, 129> TVABiasLevel;
   };
   struct LookupTables lookupTables;
 
@@ -263,6 +268,7 @@ private:
   struct _ProgMemoryMapLUT {
     int mul2;
     int mul2From85;
+    int TVABiasPoint1;
     int TVAEnvTKFP1T14Index;
     int TVAEnvTKFP1T5Index;
 //    int mul256;
@@ -275,9 +281,9 @@ private:
   };
 
   const _ProgMemoryMapLUT SC55_1_21_Prog_LUT {
-    0x3dd82, 0x3de02, 0x3df82, 0x3e102, 0x3e982, 0x3ea82, 0x3eb82 };
+    0x3dd82, 0x3de02, 0x3de02, 0x3df82, 0x3e102, 0x3e982, 0x3ea82, 0x3eb82 };
   const _ProgMemoryMapLUT SC55mkII_1_01_Prog_LUT {
-    0x3de8c, 0x3df0c, 0x3e10c, 0x3e30c, 0x3ee0c, 0x3ef0c, 0x3f00c };
+    0x3de8c, 0x3df0c, 0x3df0c, 0x3e10c, 0x3e30c, 0x3ee0c, 0x3ef0c, 0x3f00c };
 
   struct _CPUMemoryMapLUT {
     int TimeKeyFollowDiv;
@@ -295,18 +301,20 @@ private:
     int PitchEnvDepth;
     int TVFEnvScale;
     int TVAEnvExpChange;
+    int TVABiasLevel;
   };
 
   const _CPUMemoryMapLUT SC55_1_21_CPU_LUT {
     0x679a, 0x67c6, 0x6f12, 0x7012, 0x7112, 0x7212, 0x7312, 0x7412,
-    0x7512, 0x7612, 0x7715, 0x7816, 0x78f2, 0x79f2, 0x6d10 };
+    0x7512, 0x7612, 0x7715, 0x7816, 0x78f2, 0x79f2, 0x6d10, 0x69c6 };
   const _CPUMemoryMapLUT SC55mkII_1_01_CPU_LUT {
     0x650e, 0x653a, 0x6c86, 0x6486, 0x6e86, 0x6f86, 0x7086, 0x7186,
-    0x7286, 0x7386, 0x7489, 0x758a, 0x7765, 0x7766, 0x6a84 };
+    0x7286, 0x7386, 0x7489, 0x758a, 0x7765, 0x7766, 0x6a84, 0x673a };
 
   int _read_lookup_tables_progrom(std::ifstream &romFile);
   int _read_lookup_tables_cpurom(std::ifstream &romFile);
   int _read_lut_16bit(std::ifstream &ifs, int pos, std::array<int, 128> &lut);
+  int _read_lut_16bit(std::ifstream &ifs, int pos, std::array<int, 129> &lut);
   int _read_lut_16bit(std::ifstream &ifs, int pos, std::array<int, 256> &lut);
 
   int _identify_model(std::ifstream &romFile);

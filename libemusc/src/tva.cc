@@ -186,12 +186,42 @@ bool TVA::finished(void)
 void TVA::_set_static_params(ControlRom::Sample *ctrlSample, int instVolAtt)
 {
   // Calculate static volume corrections
-  double instVol = _convert_volume_LUT[instVolAtt];
-  double sampleVol = _convert_volume_LUT[ctrlSample->volume +
+  float instVol = _convert_volume_LUT[instVolAtt];
+  float sampleVol = _convert_volume_LUT[ctrlSample->volume +
                                          (ctrlSample->fineVolume -1024)/1000.0];
-  double partialVol = _convert_volume_LUT[_instPartial.volume];
+  float partialVol = _convert_volume_LUT[_instPartial.volume];
 
   _staticVolCorr = instVol * sampleVol * partialVol;
+
+  // TVA Bias
+  // Note: The SC-55 uses a lookup table for finding the index when TVA Bias
+  // Point = 1 (biasKey = _LUT.TVABiasPoint1[_key]). Consider to use this LUT.
+  int biasKey = 0;
+  if (_instPartial.TVABiasPoint == 0)
+    biasKey = ((_instPartial.TVABiasLevel - 0x40)/ 10.0) * std::abs(_key - 64);
+  else if (_instPartial.TVABiasPoint == 1 && _key >= 85)
+    biasKey = ((_instPartial.TVABiasLevel - 0x40) / 10.0) * (_key - 84);
+  else if (_instPartial.TVABiasPoint == 2)
+    biasKey = std::abs(_instPartial.TVABiasLevel - 0x40) * 6.35;
+
+  int biasLevel = _LUT.TVABiasLevel[std::abs(biasKey)];
+
+  // Cancel out "the wrong side" of bias point
+  bool positiveBias = (_instPartial.TVABiasLevel > 0x40) ? true : false;
+  if (_instPartial.TVABiasPoint == 0) {
+    if (!positiveBias && _key < 64)
+      biasLevel = 0;
+    else if (positiveBias && _key > 64)
+      biasLevel = 0;
+  } else if (_instPartial.TVABiasPoint == 1) {
+    if (positiveBias || _key < 85)
+      biasLevel = 0;
+  } else if (_instPartial.TVABiasPoint == 2 && _instPartial.TVABiasLevel >0x40){
+    biasLevel = 0;
+  }
+
+  float biasVol = _convert_volume_LUT[(biasLevel/73.0)*127];
+  _staticVolCorr *= 1.0 - biasVol;
 
   // Calculate random pan if part pan or drum pan value is 0 (RND)
   if (_settings->get_param(PatchParam::PartPanpot, _partId) == 0 ||
@@ -264,8 +294,7 @@ void TVA::_init_envelope(uint8_t velocity)
   }
   _envelope->set_time_vel_sens_t5(taVelSens);
 
-  // Adjust level
-  // TBD
+
 }
 
 }

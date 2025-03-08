@@ -331,6 +331,8 @@ int ControlRom::_read_instruments(std::ifstream &romFile)
       i.partials[p].TVFETKeyF14  = data[55];
       i.partials[p].TVFETKeyF5   = data[56];
       i.partials[p].volume       = data[65];
+      i.partials[p].TVABiasPoint = data[66];
+      i.partials[p].TVABiasLevel = data[67];
       i.partials[p].TVALFO1Depth = data[68];
       i.partials[p].TVALFO2Depth = data[69];
       i.partials[p].TVAEnvL1     = data[70];
@@ -561,6 +563,8 @@ int ControlRom::_read_lookup_tables_progrom(std::ifstream &romFile)
   romFile.read(reinterpret_cast<char*> (&lookupTables.mul2), 128);
   romFile.seekg(PROGmmLUT->mul2From85);
   romFile.read(reinterpret_cast<char*> (&lookupTables.mul2From85), 128);
+  romFile.seekg(PROGmmLUT->TVABiasPoint1);
+  romFile.read(reinterpret_cast<char*> (&lookupTables.TVABiasPoint1), 128);
   romFile.seekg(PROGmmLUT->TVAEnvTKFP1T14Index);
   romFile.read(reinterpret_cast<char*>(&lookupTables.TVAEnvTKFP1T14Index), 128);
   romFile.seekg(PROGmmLUT->TVAEnvTKFP1T5Index);
@@ -606,6 +610,8 @@ int ControlRom::_read_lookup_tables_cpurom(std::ifstream &romFile)
   romFile.read(reinterpret_cast<char*> (&lookupTables.TVFEnvScale), 64);
   romFile.seekg(CPUmmLUT->LFOSine);
   romFile.read(reinterpret_cast<char*> (&lookupTables.LFOSine), 128);
+  romFile.seekg(CPUmmLUT->TVABiasLevel);
+  romFile.read(reinterpret_cast<char*> (&lookupTables.TVABiasLevel), 129);
 
   // 16-bit values
   _read_lut_16bit(romFile, CPUmmLUT->TimeKeyFollow, lookupTables.TimeKeyFollow);
@@ -639,6 +645,25 @@ int ControlRom::_read_lut_16bit(std::ifstream &ifs, int pos,
   }
 
   return 128;
+}
+
+
+int ControlRom::_read_lut_16bit(std::ifstream &ifs, int pos,
+                                std::array<int, 129> &lut)
+{
+  ifs.seekg(pos);
+
+  for (int i = 0; i < 129; i ++) {
+    uint16_t value;
+    if (!ifs.read(reinterpret_cast<char*>(&value), sizeof(value))) {
+      std::cerr << "libEmuSC: Error reading LUT from ROM" << std::endl;
+      return i;
+    }
+
+    lut[i] = static_cast<int>(_native_endian_uint16((uint8_t *) &value));
+  }
+
+  return 129;
 }
 
 
