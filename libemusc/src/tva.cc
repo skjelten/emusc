@@ -103,11 +103,8 @@ void TVA::apply(double *sample)
     sample[0] *= _envelope->get_next_value();
 
   // Panpot
-  sample[1] = sample[0];
-  if (_panpot > 64)
-    sample[0] *= 1.0 - (_panpot - 64) / 63.0;
-  else if (_panpot < 64)
-    sample[1] *= ((_panpot - 1) / 64.0);
+  sample[1] = sample[0] * (_LUT.TVAPanpot[_panpot] / 127.0);
+  sample[0] *= _LUT.TVAPanpot[128 - _panpot] / 127.0;
 }
 
 
