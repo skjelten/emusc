@@ -173,7 +173,7 @@ void TVP::_set_static_params(int keyShift, ControlRom::Sample *ctrlSample,
 
 void TVP::_init_envelope(void)
 {
-  double phasePitch[6];
+  float phasePitch[6];
   uint8_t phaseDuration[6];
 
   phasePitch[0] = _instPartial.pitchEnvL0 - 0x40;

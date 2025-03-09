@@ -55,7 +55,7 @@
 namespace EmuSC {
 
 
-Envelope::Envelope(double value[6], uint8_t duration[6], bool shape[6], int key,
+Envelope::Envelope(float value[6], uint8_t duration[6], bool shape[6], int key,
                    ControlRom::LookupTables &LUT, Settings *settings,
                    int8_t partId, enum Type type)
   : _LUT(LUT),
@@ -86,25 +86,25 @@ Envelope::Envelope(double value[6], uint8_t duration[6], bool shape[6], int key,
     std::array<std::string, 2> shape = { "Linear", "Exponential" };
 
     std::cout << "\nNew " << envType << " envelope" << std::endl << std::dec
-	      << " Attack 1: -> L=" << (double) _phaseValue[1]
+	      << " Attack 1: -> L=" << (float) _phaseValue[1]
 	      << " T=" << (float) _phaseDuration[1]
 	      << " S=" << shape[_phaseShape[1]] << std::endl
-	      << " Attack 2: -> L=" << (double) _phaseValue[2]
+	      << " Attack 2: -> L=" << (float) _phaseValue[2]
 	      << " T=" << (float) _phaseDuration[2]
 	      << " S=" << shape[_phaseShape[2]] << std::endl
-	      << " Decay 1:  -> L=" << (double) _phaseValue[3]
+	      << " Decay 1:  -> L=" << (float) _phaseValue[3]
 	      << " T=" << (float) _phaseDuration[3]
 	      << " S=" << shape[_phaseShape[3]] << std::endl
-	      << " Decay 2:  -> L=" << (double) _phaseValue[4]
+	      << " Decay 2:  -> L=" << (float) _phaseValue[4]
 	      << " T=" << (float) _phaseDuration[4]
 	      << " S=" << shape[_phaseShape[4]] << std::endl;
 
     if (!(type == Type::TVA && _phaseValue[4] == 0))
-      std::cout << "   > Sustain -> L=" << (double) _phaseValue[4] << std::endl;
+      std::cout << "   > Sustain -> L=" << (float) _phaseValue[4] << std::endl;
     else
       std::cout << "   > No sustain" << std::endl;
 
-    std::cout << " Release:  -> L=" << (double) _phaseValue[5]
+    std::cout << " Release:  -> L=" << (float) _phaseValue[5]
 	      << " T=" << (float) _phaseDuration[5]
 	      << " S=" << shape[_phaseShape[5]] << std::endl
 	      << " Key=" << key << std::endl;
@@ -231,7 +231,7 @@ void Envelope::_init_new_phase(enum Phase newPhase)
 
   if (_phaseShape[static_cast<int>(_phase)] == 0)
     _linearChange = (_phaseValue[static_cast<int>(_phase)] - _phaseInitValue) /
-      (double) _phaseSampleLen;
+      (float) _phaseSampleLen;
 
   if (0) {
     std::string envType;
@@ -248,7 +248,7 @@ void Envelope::_init_new_phase(enum Phase newPhase)
 }
 
 
-double Envelope::get_next_value(void)
+float Envelope::get_next_value(void)
 {
   if (_phase == Phase::Off) {
     std::cerr << "libEmuSC: Internal error, envelope used in Off phase"

@@ -17,6 +17,19 @@
  */
 
 // TVA: Controlling volume changes and stereo positioning over time
+//
+// To find the TVA envelope levels (volume), the following parameters are used:
+//  - Partial level
+//  - Bias level
+//  - Velocity
+//  - Sample level
+//  - Instrument level
+//  - Envelope levels in ROM (L1 - L4)
+// These parameters are calculated by using lookup tables, and the sum is used
+// in another lookup table to find the correct envelope output levels.
+//
+// Pan (stereo position) is also using a lookup table to find the correct level
+// for each channel (left and right).
 
 
 #include "tva.h"
@@ -30,8 +43,6 @@
 namespace EmuSC {
 
 // Make Clang compiler happy
-constexpr std::array<float, 128> TVA::_convert_LFO_depth_high_LUT;
-constexpr std::array<float, 128> TVA::_convert_LFO_depth_low_LUT;
 constexpr std::array<float, 128> TVA::_convert_volume_LUT;
 
 
@@ -53,13 +64,28 @@ TVA::TVA(ControlRom::InstPartial &instPartial, uint8_t key, uint8_t velocity,
     _partId(partId),
     _drumVol(1)
 {
-  _set_static_params(ctrlSample, instVolAtt, velocity);
   update_dynamic_params(true);
 
+  // Calculate accumulated level (volume) indexes
+  int levelIndex =
+    _get_bias_level() +
+    _LUT.TVALevelIndex[_instPartial.volume] +
+    _LUT.TVALevelIndex[_get_velocity_from_vcurve(velocity)] +
+    _LUT.TVALevelIndex[ctrlSample->volume] +
+    _LUT.TVALevelIndex[instVolAtt];
+
   // All instruments must have a TVA envelope defined
-  _init_envelope(velocity);
+  _init_envelope(levelIndex, _get_velocity_from_vcurve(velocity));
   if (_envelope)
     _envelope->start();
+
+  // Calculate random pan if part pan or drum pan value is 0 (RND)
+  if (settings->get_param(PatchParam::PartPanpot, _partId) == 0 ||
+      (_drumSet &&
+       settings->get_param(DrumParam::Panpot, _drumSet - 1, _key) == 0)) {
+    _panpot = std::rand() % 128;
+    _panpotLocked = true;
+  }
 }
 
 
@@ -71,29 +97,23 @@ TVA::~TVA()
 
 void TVA::apply(double *sample)
 {
-  // Apply static volume corrections
-  sample[0] *= _staticVolCorr * _drumVol * _ctrlVol;
+  // Apply dynamic volume corrections
+  sample[0] *= _drumVol * _ctrlVol;
 
   // Apply tremolo (LFOs)
   // TVA LFO waveforms needs more work. The sine function is streched? Is it
   // the same "deformation" as seen with triangle?
   float LFO1Mod, LFO2Mod;
-  if (1) {
-    // Do we have a LUT for this?
-    LFO1Mod = 1 + (_LFO1->value() * _accLFO1Depth / (256 * 127 / 3));
-    LFO2Mod = 1 + (_LFO2->value() * _accLFO2Depth / (256 * 127 / 3));
 
-    // LFO is limited to max 3 and min 0
-    if (LFO1Mod > 3) LFO1Mod = 3;
-    if (LFO1Mod < 0) LFO1Mod = 0;
-    if (LFO2Mod > 3) LFO2Mod = 3;
-    if (LFO2Mod < 0) LFO2Mod = 0;
+  // Do we have a LUT for this?
+  LFO1Mod = 1 + (_LFO1->value() * _accLFO1Depth / (256 * 127 / 3));
+  LFO2Mod = 1 + (_LFO2->value() * _accLFO2Depth / (256 * 127 / 3));
 
-  } else {
-    float high = _convert_LFO_depth_high_LUT[_accLFO1Depth];
-    float low =  _convert_LFO_depth_low_LUT[_accLFO1Depth];
-    LFO1Mod = 1 + ((_LFO1->value() * _accLFO1Depth / (255*127*2)) *  (high - low) + low );
-  }
+  // LFO is limited to max 3 and min 0
+  if (LFO1Mod > 3) LFO1Mod = 3;
+  if (LFO1Mod < 0) LFO1Mod = 0;
+  if (LFO2Mod > 3) LFO2Mod = 3;
+  if (LFO2Mod < 0) LFO2Mod = 0;
 
   sample[0] *= (_instPartial.TVALFO1Depth & 0x80) ? -1 * LFO1Mod : LFO1Mod;
   sample[0] *= (_instPartial.TVALFO1Depth & 0x80) ? -1 * LFO2Mod : LFO2Mod;
@@ -180,34 +200,7 @@ bool TVA::finished(void)
 }
 
 
-void TVA::_set_static_params(ControlRom::Sample *ctrlSample, int instVolAtt,
-                             uint8_t velocity)
-{
-  // Calculate static volume corrections
-  float instVol = _convert_volume_LUT[instVolAtt];
-  float sampleVol = _convert_volume_LUT[ctrlSample->volume +
-                                         (ctrlSample->fineVolume -1024)/1000.0];
-  float partialVol = _convert_volume_LUT[_instPartial.volume];
-
-  _staticVolCorr = instVol * sampleVol * partialVol;
-
-  // Set level from bias
-  _staticVolCorr *= 1.0 - _get_bias_level();
-
-  // Set level from velocity
-  _staticVolCorr *= _get_velocity_from_vcurve(velocity) * (1/127.0);
-
-  // Calculate random pan if part pan or drum pan value is 0 (RND)
-  if (_settings->get_param(PatchParam::PartPanpot, _partId) == 0 ||
-      (_drumSet &&
-       _settings->get_param(DrumParam::Panpot, _drumSet - 1, _key) == 0)) {
-    _panpot = std::rand() % 128;
-    _panpotLocked = true;
-  }
-}
-
-
-float TVA::_get_bias_level(void)
+int TVA::_get_bias_level(void)
 {
   // Note: The SC-55 uses a lookup table for finding the index when TVA Bias
   // Point = 1 (biasKey = _LUT.TVABiasPoint1[_key]). Consider to use this LUT.
@@ -235,7 +228,7 @@ float TVA::_get_bias_level(void)
     biasLevel = 0;
   }
 
-  return _convert_volume_LUT[(biasLevel/73.0)*127];
+  return biasLevel;
 }
 
 
@@ -284,17 +277,22 @@ float TVA::_get_velocity_from_vcurve(uint8_t velocity)
 }
 
 
-void TVA::_init_envelope(uint8_t velocity)
+  void TVA::_init_envelope(int levelIndex, uint8_t velocity)
 {
-  double  phaseVolume[6];
+  float  phaseVolume[6];
   uint8_t phaseDuration[6];
   bool    phaseShape[6];
 
+  int envL1Index = levelIndex + _LUT.TVALevelIndex[_instPartial.TVAEnvL1];
+  int envL2Index = levelIndex + _LUT.TVALevelIndex[_instPartial.TVAEnvL2];
+  int envL3Index = levelIndex + _LUT.TVALevelIndex[_instPartial.TVAEnvL3];
+  int envL4Index = levelIndex + _LUT.TVALevelIndex[_instPartial.TVAEnvL4];
+
   phaseVolume[0] = 0;
-  phaseVolume[1] = _convert_volume_LUT[_instPartial.TVAEnvL1];
-  phaseVolume[2] = _convert_volume_LUT[_instPartial.TVAEnvL2];
-  phaseVolume[3] = _convert_volume_LUT[_instPartial.TVAEnvL3];
-  phaseVolume[4] = _convert_volume_LUT[_instPartial.TVAEnvL4];
+  phaseVolume[1] = _LUT.TVALevel[std::max(255 - envL1Index, 0)] / 255.0;
+  phaseVolume[2] = _LUT.TVALevel[std::max(255 - envL2Index, 0)] / 255.0;
+  phaseVolume[3] = _LUT.TVALevel[std::max(255 - envL3Index, 0)] / 255.0;
+  phaseVolume[4] = _LUT.TVALevel[std::max(255 - envL4Index, 0)] / 255.0;
   phaseVolume[5] = 0;
 
   phaseDuration[0] = 0;                                     // Never used
@@ -323,6 +321,7 @@ void TVA::_init_envelope(uint8_t velocity)
     _envelope->set_time_key_follow(1, _instPartial.TVAETKeyF5 - 0x40,
                                    _instPartial.TVAETKeyP5);
 
+
   // Adjust time for Envelope Time Velocity Sensitivity
   float taVelSens = 1;
   if (_instPartial.TVAETVSens14 < 0x40) {
@@ -344,7 +343,6 @@ void TVA::_init_envelope(uint8_t velocity)
               << std::endl;
   }
   _envelope->set_time_vel_sens_t5(taVelSens);
-
 
 }
 

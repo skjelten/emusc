@@ -179,7 +179,7 @@ void TVF::update_params(void)
 
 void TVF::_init_envelope(void)
 {
-  double phaseLevel[6];
+  float phaseLevel[6];
   uint8_t phaseDuration[6];
 
   phaseLevel[0] = 0x40;

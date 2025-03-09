@@ -41,14 +41,14 @@ public:
     TVA
   };
 
-  Envelope(double value[6], uint8_t duration[6], bool shape[6], int key,
+  Envelope(float value[6], uint8_t duration[6], bool shape[6], int key,
            ControlRom::LookupTables &LUT, Settings *settings, int8_t partId,
            enum Type type);
   ~Envelope();
 
   void start(void);
-  double get_next_value(void);
-  double get_current_value(void) { return _currentValue; }
+  float get_next_value(void);
+  float get_current_value(void) { return _currentValue; }
 
   void release(void);
 
@@ -61,7 +61,7 @@ public:
   void set_time_vel_sens_t5(float time) { _timeVelSensT5 = time; }
 
 private:
-  double  _phaseValue[6];
+  float  _phaseValue[6];
   uint8_t _phaseDuration[6];
   bool    _phaseShape[6];       // 0 => linear, 1 => exponential
 
@@ -75,8 +75,8 @@ private:
   uint32_t _phaseSampleNum;
   uint32_t _phaseSampleLen;
 
-  double _phaseInitValue;
-  double _currentValue;
+  float _phaseInitValue;
+  float _currentValue;
 
   float _linearChange;
 

@@ -636,6 +636,10 @@ int ControlRom::_read_lookup_tables_cpurom(std::ifstream &romFile)
   romFile.read(reinterpret_cast<char*> (&lookupTables.TVABiasLevel), 129);
   romFile.seekg(CPUmmLUT->TVAPanpot);
   romFile.read(reinterpret_cast<char*> (&lookupTables.TVAPanpot), 128);
+  romFile.seekg(CPUmmLUT->TVALevelIndex);
+  romFile.read(reinterpret_cast<char*> (&lookupTables.TVALevelIndex), 128);
+  romFile.seekg(CPUmmLUT->TVALevel);
+  romFile.read(reinterpret_cast<char*> (&lookupTables.TVALevel), 256);
 
   // 16-bit values
   _read_lut_16bit(romFile, CPUmmLUT->TimeKeyFollow, lookupTables.TimeKeyFollow);
