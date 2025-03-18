@@ -93,7 +93,7 @@ public:
 
     uint8_t pitchETKeyF14;  // Pitch Envelope Time Key Follow (T1 - T4)
     uint8_t pitchETKeyF5;   // Pitch Envelope Time Key Follow (T5)
-
+    uint8_t pitchEnvVSens;  // Pitch Envelope Velocity Sensitivity
     uint8_t TVFCOFVelCur;   // TVF Cutoff Velocity Curve
     int8_t TVFBaseFlt;
     int8_t TVFResonance;

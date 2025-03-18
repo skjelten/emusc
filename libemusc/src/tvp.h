@@ -83,9 +83,12 @@ private:
   Settings *_settings;
   int8_t _partId;
 
+  std::array<float, 11> _envVSensLUT = { 0, 1.24, 1.28, 1.32, 1.37, 1.42,
+                                         1.44, 1.48, 1.52, 1.56, 1.6 };
+
   TVP();
 
-  void _init_envelope(void);
+  void _init_envelope(uint8_t envelope);
   void _set_static_params(int keyShift, ControlRom::Sample *ctrlSample,
                           int pitchCurve);
 };

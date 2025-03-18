@@ -308,8 +308,9 @@ int ControlRom::_read_instruments(std::ifstream &romFile)
       i.partials[p].pitchEnvT3   = data[21];
       i.partials[p].pitchEnvT4   = data[22];
       i.partials[p].pitchEnvT5   = data[23];
-      i.partials[p].pitchETKeyF14=data[28];
+      i.partials[p].pitchETKeyF14= data[28];
       i.partials[p].pitchETKeyF5 = data[29];
+      i.partials[p].pitchEnvVSens= data[30];
       i.partials[p].TVFCOFVelCur = data[32];
       i.partials[p].TVFBaseFlt   = data[33];
       i.partials[p].TVFResonance = data[34];

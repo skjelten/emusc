@@ -59,7 +59,7 @@ TVP::TVP(ControlRom::InstPartial &instPartial, uint8_t key, uint8_t velocity,
   _set_static_params(keyShift, ctrlSample, pitchCurve);
   update_dynamic_params();
 
-  _init_envelope();
+  _init_envelope(velocity);
   if (_envelope)
     _envelope->start();
 }
@@ -77,8 +77,8 @@ double TVP::get_next_value()
 
   float vibrato1 = (_LFO1->value() * _LUT.LFOTVPDepth[_accLFO1Depth]) / 3650;
   float vibrato2 = (_LFO2->value() * _LUT.LFOTVPDepth[_accLFO2Depth]) / 3650;
-  float envelope = _envelope->get_next_value() * 0.3 * _multiplier;
-  float dynPitchAdj = exp(((envelope * log(2)) + vibrato1 + vibrato2) / 1200.0);
+  float envelope = _envelope->get_next_value() * 0.3 * _multiplier * log(2);
+  float dynPitchAdj = exp((envelope + vibrato1 + vibrato2) / 1200.0);
 
   return fixedPitchAdj * dynPitchAdj;
 }
@@ -171,17 +171,40 @@ void TVP::_set_static_params(int keyShift, ControlRom::Sample *ctrlSample,
 }
 
 
-void TVP::_init_envelope(void)
+void TVP::_init_envelope(uint8_t velocity)
 {
   float phasePitch[6];
   uint8_t phaseDuration[6];
 
-  phasePitch[0] = _instPartial.pitchEnvL0 - 0x40;
-  phasePitch[1] = _instPartial.pitchEnvL1 - 0x40;
-  phasePitch[2] = _instPartial.pitchEnvL2 - 0x40;
-  phasePitch[3] = _instPartial.pitchEnvL3 - 0x40;
-  phasePitch[4] = 0;
-  phasePitch[5] = _instPartial.pitchEnvL5 - 0x40;
+  if (_instPartial.pitchEnvVSens >= 0x40) {
+    phasePitch[0] = _instPartial.pitchEnvL0 - 0x40;
+    phasePitch[1] = _instPartial.pitchEnvL1 - 0x40;
+    phasePitch[2] = _instPartial.pitchEnvL2 - 0x40;
+    phasePitch[3] = _instPartial.pitchEnvL3 - 0x40;
+    phasePitch[4] = 0;
+    phasePitch[5] = _instPartial.pitchEnvL5 - 0x40;
+
+  } else {      // Negative Pitch Envelope Velocity Sensitivty inverts envelope
+    phasePitch[0] = 0x40 - _instPartial.pitchEnvL0;
+    phasePitch[1] = 0x40 - _instPartial.pitchEnvL1;
+    phasePitch[2] = 0x40 - _instPartial.pitchEnvL2;
+    phasePitch[3] = 0x40 - _instPartial.pitchEnvL3;
+    phasePitch[4] = 0;
+    phasePitch[5] = 0x40 - _instPartial.pitchEnvL5;
+  }
+
+  // Scale envelope output by Pitch Envelope Velocity Sensitivty
+  if (_instPartial.pitchEnvVSens != 0x40 && velocity != 127) {
+    float vs = std::abs(_instPartial.pitchEnvVSens - 0x40) * (127 - velocity)
+      * _envVSensLUT[std::abs(_instPartial.pitchEnvVSens - 0x40)];
+    float vsFactor = pow(2, -vs / 1200.0);
+
+    phasePitch[0] *= vsFactor;
+    phasePitch[1] *= vsFactor;
+    phasePitch[2] *= vsFactor;
+    phasePitch[3] *= vsFactor;
+    phasePitch[5] *= vsFactor;
+  }
 
   phaseDuration[0] = 0;
   phaseDuration[1] = _instPartial.pitchEnvT1 & 0x7F;
