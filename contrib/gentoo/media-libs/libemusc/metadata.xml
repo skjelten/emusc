@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE pkgmetadata SYSTEM "http://www.gentoo.org/dtd/metadata.dtd">
+<pkgmetadata>
+	<maintainer type="person">
+		<name>Håkon Skjelten</name>
+		<email>skjelten@pvv.org</email>
+	</maintainer>
+	<maintainer type="project">
+		<name>Proxy Maintainers</name>
+		<email>proxy-maint@gentoo.org</email>
+	</maintainer>
+	<longdescription lang="en">
+	EmuSC is a software synthesizer that aims to emulate the Roland Sound Canvas SC-55 lineup to recreate
+	the original sounds of these '90s era synthesizers. Emulation is done by extracting relevant information
+	from the original control and PCM ROMs and reimplement the synth's behavior in modern C++.
+
+	This project has been in development since 2022 and is currently able to reproduce audio that is relatively
+	similar to the original synths. There are still some significant shortcomings in the generated audio,
+	varying on which instruments and settings are being used, but the goal is to be able to reproduce sounds
+	that will make it very difficult to notice the difference.
+
+	If you are looking for the best possible SC-55 emulation today you might want to try
+	<pkg>media-sound/nuked-sc55</pkg>, or to use a sound font based on the SC-55, such as SC-55 sound font
+	made by Kitrinx and NewRisingSun.
+
+	The EmuSC project is split into two parts:
+
+		<pkg>media-sound/emusc</pkg>: A desktop application that serves as a frontend to libEmuSC.
+		<pkg>media-sound/libemusc</pkg>: A library that implements all the Sound Canvas emulation.
+
+	Note that this project is in no way endorsed by or affiliated with Roland Corp.
+	</longdescription>
+	<upstream>
+		<maintainer status="active">
+			<name>Håkon Skjelten</name>
+			<email>skjelten@pvv.org</email>
+		</maintainer>
+		<changelog>https://github.com/ra3xdh/qucs_s/releases</changelog>
+		<doc lang="en">https://github.com/skjelten/emusc/wiki</doc>
+		<bugs-to>https://github.com/skjelten/emusc/issues</bugs-to>
+		<remote-id type="github">skjelten/emusc</remote-id>
+	</upstream>
+</pkgmetadata>
