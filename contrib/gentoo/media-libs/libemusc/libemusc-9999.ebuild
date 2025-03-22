@@ -3,7 +3,7 @@
 
 EAPI=8
 
-inherit cmake-multilib desktop
+inherit cmake-multilib
 
 DESCRIPTION="EmuSC is a software synthesizer that aims to emulate the Roland Sound Canvas SC-55 lineup."
 HOMEPAGE="https://github.com/skjelten/emusc"
