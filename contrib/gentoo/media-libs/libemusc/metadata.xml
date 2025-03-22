@@ -35,7 +35,7 @@
 			<name>Håkon Skjelten</name>
 			<email>skjelten@pvv.org</email>
 		</maintainer>
-		<changelog>https://github.com/ra3xdh/qucs_s/releases</changelog>
+		<changelog>https://github.com/skjelten/emusc/releases</changelog>
 		<doc lang="en">https://github.com/skjelten/emusc/wiki</doc>
 		<bugs-to>https://github.com/skjelten/emusc/issues</bugs-to>
 		<remote-id type="github">skjelten/emusc</remote-id>
