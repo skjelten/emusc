@@ -30,6 +30,11 @@
 
 	Note that this project is in no way endorsed by or affiliated with Roland Corp.
 	</longdescription>
+	<use>
+		<flag name="wav">Support saving to WAV file format.</flag>
+		<flag name="lfomonitor">Enable LFOs and envelopes monitor based on QtCharts.</flag>
+		<flag name="qtmultimedia">Build QtMultimedia audio backend.</flag>
+	</use>
 	<upstream>
 		<maintainer status="active">
 			<name>Håkon Skjelten</name>
