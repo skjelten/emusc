@@ -24,11 +24,31 @@
 	made by Kitrinx and NewRisingSun.
 
 	The EmuSC project is split into two parts:
-
-		<pkg>media-sound/emusc</pkg>: A desktop application that serves as a frontend to libEmuSC.
 		<pkg>media-sound/libemusc</pkg>: A library that implements all the Sound Canvas emulation.
+		<pkg>media-sound/emusc</pkg>: A desktop application that serves as a frontend to libEmuSC.
 
 	Note that this project is in no way endorsed by or affiliated with Roland Corp.
+	</longdescription>
+	<longdescription lang="ru">
+	EmuSC - программа синтеза звука, которая эмулирует MIDI модуль Roland Sound Canvas SC-55 и совместимые
+	с ним, воссоздавая оригинальное звучание этих винтажных синтезаторов 1990-х.
+	EmuSC спроектирована на основе информации. полученной из анализа прошивок оригинальных устройств,
+	и детвльно воспроизводит поведение синтезатора на языке C++.
+
+	Проект назодится в разработке с 2022 года, и уже способен выдавать звук, достаточно похожий
+	на оригинал, хотя в некоторых ситуациях ещё заметны недостатки, зависящие от используемых инструментов
+	и настроек. Несмотря на это, цель проекта - генерировать звучание, максимально неотличимое от звучания
+	реального устройства.
+
+	Если Вы ищете наиболее точную эмуляцию SC-55 на сегоднящний день, попробуйте <pkg>media-sound/nuked-sc55</pkg>.
+	Также Вам может подойти библиотека патчей (sound font) на основе звуков SC-55,например от Kitrinx
+	и NewRisingSun.
+
+	Проект состоит из двуз частей:
+		<pkg>media-sound/libemusc</pkg>: Ядро эмуляции - разделяемая библиотека без внешних зависимостей.
+		<pkg>media-sound/emusc</pkg>: Приложение пользователя - графическая обёртка над ядром эмулятора.
+
+	Проект EmuSC никоим образом не одобрен, не поддерживается и не связан с компанией Roland Corp.
 	</longdescription>
 	<use>
 		<flag name="wav">Support saving to WAV file format.</flag>
