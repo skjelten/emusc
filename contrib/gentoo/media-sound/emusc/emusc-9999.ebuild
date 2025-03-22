@@ -3,27 +3,22 @@
 
 EAPI=8
 
-inherit cmake-multilib xdg
+inherit cmake-multilib xdg git-r3
 
 DESCRIPTION="EmuSC is a software synthesizer that aims to emulate the Roland Sound Canvas SC-55 lineup."
 HOMEPAGE="https://github.com/skjelten/emusc"
 
-if [[ ${PV} == 9999 ]]; then
-	EGIT_REPO_URI="https://github.com/skjelten/${PN}.git"
-	inherit git-r3
-else
-	SRC_URI="https://github.com/skjelten/${PN}/archive/refs/tags/v${PV}.tar.gz -> ${P}.tar.gz"
-	KEYWORDS="~amd64 ~x86"
-fi
+EGIT_REPO_URI="https://github.com/skjelten/${PN}.git"
 
 LICENSE="GPL-3+"
 SLOT="0"
-IUSE="+alsa +pulseaudio +wav jack +qtcharts +qtmultimedia"
+
+IUSE="+alsa +pulseaudio +wav jack +lfomonitor +qtmultimedia"
 
 DEPEND="
 	dev-qt/qtbase:6[gui,widgets]
-	dev-qt/qtmultimedia
-	dev-qt/qtcharts
+	qtmultimedia? ( dev-qt/qtmultimedia )
+	lfomonitor? ( dev-qt/qtcharts )
 	media-libs/libemusc
 	alsa? ( media-libs/alsa-lib )
 	pulseaudio? ( media-libs/libpulse )
@@ -38,7 +33,7 @@ DOCS="${S}/README.md ${S}/AUTHORS ${S}/ChangeLog ${S}/NEWS"
 multilib_src_configure() {
         local mycmakeargs=(
 		-DQT_AUDIO="$(usex qtmultimedia)"
-		-DUSE_QTCHARTS="$(usex qtcharts)"
+		-DUSE_QTCHARTS="$(usex lfomonitor)"
 		-DWAV_AUDIO="$(usex wav)"
 		-DALSA_AUDIO="$(usex alsa)"
 		-DALSA_MIDI="$(usex alsa)"
