@@ -254,32 +254,25 @@ float Envelope::get_next_value(void)
     std::cerr << "libEmuSC: Internal error, envelope used in Off phase"
 	      << std::endl; 
     return 0;
+  }
 
-  } else if (_phase == Phase::Attack1) {
-    if (_phaseSampleIndex > _phaseSampleLen)
+  // Phase is complete -> transition to next phase
+  if (_phaseSampleIndex > _phaseSampleLen) {
+    if (_phase == Phase::Attack1) {
       _init_new_phase(Phase::Attack2);
-
-  } else if (_phase == Phase::Attack2) {
-    if (_phaseSampleIndex > _phaseSampleLen)
+    } else if (_phase == Phase::Attack2) {
       _init_new_phase(Phase::Decay1);
-
-  } else if (_phase == Phase::Decay1) {
-    if (_phaseSampleIndex > _phaseSampleLen)
+    } else if (_phase == Phase::Decay1) {
       _init_new_phase(Phase::Decay2);
-
-  } else if (_phase == Phase::Decay2) {
-    if (_phaseSampleIndex > _phaseSampleLen) {
+    } else if (_phase == Phase::Decay2) {
       if (_phaseValue[static_cast<int>(Phase::Decay2)] == 0 &&
           _type == Type::TVA)
 	_init_new_phase(Phase::Release);
       else
 	return _currentValue;                  // Sustain can last forever
-    }
-
-  } else if (_phase == Phase::Release) {
-    if (_phaseSampleIndex > _phaseSampleLen) {
+    } else if (_phase == Phase::Release) {
       _finished = true;
-      return 0;
+      return _currentValue;
     }
   }
 

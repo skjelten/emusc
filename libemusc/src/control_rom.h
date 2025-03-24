@@ -118,6 +118,7 @@ public:
 
     uint8_t TVFETKeyF14;    // TVF Envelope Time Key Follow (T1 - T4)
     uint8_t TVFETKeyF5;     // TVF Envelope Time Key Follow (T5)
+    uint8_t TVFCOFVSens;    // TVF Cutoff Frequency Velocity Sensitivty
 
     uint8_t TVALvlVelCur;
     int8_t volume;          // Volume attenuation (0x7f - 0)

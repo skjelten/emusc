@@ -72,6 +72,9 @@ private:
   float _filterRes;
 
   uint8_t _key;
+  int _velocity;
+
+  float _coFreqVSens;
 
   float _keyFollow;
 
@@ -86,6 +89,9 @@ private:
   int8_t _partId;
 
   TVF();
+
+  int _get_velocity_from_vcurve(uint8_t velocity);
+  float _read_cutoff_freq_vel_sens(void);
 
   void _init_envelope(void);
   void _init_freq_and_res(void);

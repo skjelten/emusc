@@ -77,6 +77,8 @@ TVF::TVF(ControlRom::InstPartial &instPartial, uint8_t key, uint8_t velocity,
 
   _envDepth = _LUT.TVFEnvDepth[_instPartial.TVFEnvDepth];
   _keyFollow = _calc_key_follow();
+  _velocity = _get_velocity_from_vcurve(velocity);
+  _coFreqVSens = _read_cutoff_freq_vel_sens();
 
   _init_envelope();
   _init_freq_and_res();
@@ -103,19 +105,16 @@ void TVF::apply(double *sample)
   // Envelope
   float envKey = 0.0;
   if (_envelope)
-    envKey = (_envelope->get_next_value() - 0x40) * _envDepth * 0.0001 * 0.63;
+    envKey = (_envelope->get_next_value() - 0x40) * _envDepth * 0.0001 * 0.62;
 
   // LFO modulation
-  float lfo1ModFreq = _LFO1->value() * _LUT.LFOTVFDepth[_accLFO1Depth] * 0.001 *
-    0.015;
-  float lfo2ModFreq = _LFO2->value() * _LUT.LFOTVFDepth[_accLFO2Depth] * 0.001 *
-    0.015;
+  float lfo1ModFreq = _LFO1->value() * _LUT.LFOTVFDepth[_accLFO1Depth] / 256;
+  float lfo2ModFreq = _LFO2->value() * _LUT.LFOTVFDepth[_accLFO2Depth] / 256;
 
-  float freqIndex =
-    _coFreqIndex + envKey + _keyFollow + lfo1ModFreq + lfo2ModFreq;
-  if (freqIndex > 127) freqIndex = 127;
-  _filterFreq = _LUT.TVFCutoffFreq[(int) freqIndex];
-
+  float freqIndex = _coFreqIndex + _keyFollow + lfo1ModFreq + lfo2ModFreq +
+                    envKey + _coFreqVSens;
+  if (_instPartial.TVFCOFVSens < 0x40)
+    freqIndex -= 73.5;
   if (freqIndex < 0)   freqIndex = 0;
   if (freqIndex > 127) freqIndex = 127;
 
@@ -127,6 +126,7 @@ void TVF::apply(double *sample)
   if (0)
     std::cout << "E=" << envKey
               << " C=" << _coFreqIndex
+              << " V=" << _coFreqVSens
               << " K=" << _keyFollow
               << " M=" << lfo1ModFreq + lfo2ModFreq
               << " D=" << _envDepth
@@ -210,6 +210,61 @@ void TVF::_init_envelope(void)
 }
 
 
+int TVF::_get_velocity_from_vcurve(uint8_t velocity)
+{
+  int vLevel;
+  switch(_instPartial.TVFCOFVelCur)
+    {
+    case 0:
+      vLevel = _LUT.VelocityCurve0[velocity];
+      break;
+    case 1:
+      vLevel = _LUT.VelocityCurve1[velocity];
+      break;
+    case 2:
+      vLevel = _LUT.VelocityCurve2[velocity];
+      break;
+    case 3:
+      vLevel = _LUT.VelocityCurve3[velocity];
+      break;
+    case 4:
+      vLevel = _LUT.VelocityCurve4[velocity];
+      break;
+    case 5:
+      vLevel = _LUT.VelocityCurve5[velocity];
+      break;
+    case 6:
+      vLevel = _LUT.VelocityCurve6[velocity];
+      break;
+    case 7:
+      vLevel = _LUT.VelocityCurve7[velocity];
+      break;
+    case 8:
+      vLevel = _LUT.VelocityCurve8[velocity];
+      break;
+    case 9:
+      vLevel = _LUT.VelocityCurve9[velocity];
+      break;
+    default:
+      vLevel = 0;
+      std::cerr << "libEmuSC internal error: Illegal velocity curve used"
+                << std::endl;
+    }
+
+  return vLevel;
+}
+
+
+float TVF::_read_cutoff_freq_vel_sens(void)
+{
+  if (_instPartial.TVFCOFVSens == 0x40)
+    return 0;
+
+  // FIXME: Use TVF Cutoff Velocity Sensitivity LUT for exact calculation
+  return -(127 - _velocity) * (_instPartial.TVFCOFVSens - 0x40) * 0.028;
+}
+
+
 // TODO: Add TVF Cutoff Velocity Sensitivity to the init. frequency calculation
 void TVF::_init_freq_and_res(void)
 {
@@ -223,6 +278,13 @@ void TVF::_init_freq_and_res(void)
 
   float freqIndex = _coFreqIndex + _envDepth * 0.0001 * envLevelMax * 0.31 +
     _keyFollow;
+
+  if (_instPartial.TVFCOFVSens > 0x40)
+    freqIndex += _coFreqVSens;
+  else if (_instPartial.TVFCOFVSens < 0x40)
+    freqIndex -= 37;
+
+  if (freqIndex < 0) freqIndex = 0;
   if (freqIndex > 127) freqIndex = 127;
   _filterFreq = _LUT.TVFCutoffFreq[(int) freqIndex];
 
