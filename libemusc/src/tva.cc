@@ -277,9 +277,9 @@ float TVA::_get_velocity_from_vcurve(uint8_t velocity)
 }
 
 
-  void TVA::_init_envelope(int levelIndex, uint8_t velocity)
+void TVA::_init_envelope(int levelIndex, uint8_t velocity)
 {
-  float  phaseVolume[6];
+  float   phaseVolume[6];
   uint8_t phaseDuration[6];
   bool    phaseShape[6];
 
@@ -321,29 +321,11 @@ float TVA::_get_velocity_from_vcurve(uint8_t velocity)
     _envelope->set_time_key_follow(1, _instPartial.TVAETKeyF5 - 0x40,
                                    _instPartial.TVAETKeyP5);
 
-
   // Adjust time for Envelope Time Velocity Sensitivity
-  float taVelSens = 1;
-  if (_instPartial.TVAETVSens14 < 0x40) {
-    taVelSens = -((_instPartial.TVAETVSens14 - 0x40) * velocity) / 1270.0 +
-      1 + ((_instPartial.TVAETVSens14 - 0x40) / 10.0);
-  } else if (_instPartial.TVAETVSens14 > 0x40) {
-    std::cerr << "Positive TVA envelope V-sensitivity not implemented yet"
-              << std::endl;
-  }
-
-  _envelope->set_time_vel_sens_t1_t4(taVelSens);
-
-  taVelSens = 1;
-  if (_instPartial.TVAETVSens5 < 0x40) {
-    taVelSens = -((_instPartial.TVAETVSens5 - 0x40) * velocity) / 1270.0 +
-      1 + ((_instPartial.TVAETVSens5 - 0x40) / 10.0);
-  } else if (_instPartial.TVAETVSens5 > 0x40) {
-    std::cerr << "Positive TVA envelope V-sensitivity not implemented yet"
-              << std::endl;
-  }
-  _envelope->set_time_vel_sens_t5(taVelSens);
-
+  _envelope->set_time_velocity_sensitivity(0, _instPartial.TVAETVSens14 - 0x40,
+                                           velocity);
+  _envelope->set_time_velocity_sensitivity(1, _instPartial.TVAETVSens5 - 0x40,
+                                           velocity);
 }
 
 }

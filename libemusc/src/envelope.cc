@@ -66,10 +66,10 @@ Envelope::Envelope(float value[6], uint8_t duration[6], bool shape[6], int key,
     _key(key),
     _settings(settings),
     _partId(partId),
-    _timeKeyFlwT1T4(-1),
-    _timeKeyFlwT5(-1),
-    _timeVelSensT1T4(1.0),
-    _timeVelSensT5(1.0),
+    _timeKeyFlwT1T4(256),
+    _timeKeyFlwT5(256),
+    _timeVelSensT1T2(256),
+    _timeVelSensT3T5(256),
     _type(type)
 {
   for (int i = 0; i < 6; i++) {
@@ -128,7 +128,6 @@ void Envelope::set_time_key_follow(bool phase, int etkfROM, int etkpROM)
   if (!etkfROM)
     return;
 
-
   int tkfDiv = _LUT.TimeKeyFollowDiv[std::abs(etkfROM)];
   if (etkfROM < 0)
     tkfDiv *= -1;
@@ -168,10 +167,38 @@ void Envelope::set_time_key_follow(bool phase, int etkfROM, int etkpROM)
 }
 
 
-// phase=0 -> T1-T4 (Attacks and Decays), phase=1 -> T5 (Release)
-void Envelope::set_time_velocity_sensitvity(bool phase, int etvsROM)
+void Envelope::set_time_velocity_sensitivity(bool phase, int etvsROM,
+                                             int velocity)
 {
-  // TODO
+  int timeVelSens;
+  int tvsDiv = _LUT.TimeKeyFollowDiv[std::abs(etvsROM)];
+  int divmuliv = tvsDiv * (127 - velocity);
+
+  if (etvsROM < 0) {
+    if (divmuliv < 8001)
+      timeVelSens = ((8128 - divmuliv) * 2064) >> 16;
+    else
+      timeVelSens = 4;
+
+  } else if (etvsROM > 0) {
+      if (8128 - divmuliv < 32)
+        timeVelSens = 65535;
+      else
+        timeVelSens = 0x1fc000 / (8128 - divmuliv);
+
+  } else {  // etvsROM == 0
+    timeVelSens = 256;
+  }
+
+  if (phase == 0)
+    _timeVelSensT1T2 = timeVelSens;
+  else
+    _timeVelSensT3T5 = timeVelSens;
+
+  if (0)
+    std::cout << "ETVS: phase (0:T1-2 1:T3-5)=" << phase << std::dec
+              << " etvsROM=" << etvsROM << " velocity=" << velocity
+              << " sensitivity=" << timeVelSens << std::endl;
 }
 
 
@@ -206,23 +233,21 @@ void Envelope::_init_new_phase(enum Phase newPhase)
   if (durationTotal > 127) durationTotal = 127;
 
   float phaseDurationSec = (_LUT.envelopeTime[durationTotal] + 1) / 1000.0;
+  // 25 seconds duration -> LUT = 24000 -> 800000 samples. Minimum 32 samples.
+//  float phaseDurationSec = _LUT.envelopeTime[durationTotal] / 0.03;
+//  if (phaseDurationSec < 32) phaseDurationSec = 32;
 
-  // FIXME: Find out when this should be used and re-enable it
-  //(_key < 0) ?
-  //    _convert_time_to_sec_LUT[durationTotal] :
-  //    _convert_time_to_sec_LUT[durationTotal] * (1 - (_key / 128.0));
+  // Correct phase duration for Time Key Follow
+  if (newPhase != Phase::Release)
+    phaseDurationSec *= (float) _timeKeyFlwT1T4 / 256.0;
+  else
+    phaseDurationSec *= (float) _timeKeyFlwT5 / 256.0;
 
-  if (newPhase != Phase::Release) {
-    if (_timeKeyFlwT1T4 >= 0)
-      phaseDurationSec *= (float) _timeKeyFlwT1T4 / 256.0;
-
-    phaseDurationSec *= _timeVelSensT1T4;
-  } else {
-    if (_timeKeyFlwT5 >= 0)
-      phaseDurationSec *= (float) _timeKeyFlwT5 / 256.0;
-
-    phaseDurationSec *= _timeVelSensT5;
-  }
+  // Correct phase duration for Time Velocity Sensitivity
+  if (newPhase == Phase::Attack1 || newPhase == Phase::Attack2)
+    phaseDurationSec *= _timeVelSensT1T2 / 256.0;
+  else
+    phaseDurationSec *= _timeVelSensT3T5 / 256.0;
 
   _phaseSampleLen = round(phaseDurationSec * _sampleRate);
 

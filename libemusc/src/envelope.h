@@ -55,10 +55,7 @@ public:
   inline bool finished(void) { return _finished; }
 
   void set_time_key_follow(bool phase, int etkfROM, int etkpROM = 0);
-  void set_time_velocity_sensitvity(bool phase, int etvsROM);
-
-  void set_time_vel_sens_t1_t4(float time) { _timeVelSensT1T4 = time; }
-  void set_time_vel_sens_t5(float time) { _timeVelSensT5 = time; }
+  void set_time_velocity_sensitivity(bool phase, int etvsROM, int velocity);
 
 private:
   float  _phaseValue[6];
@@ -99,8 +96,8 @@ private:
   int _timeKeyFlwT1T4;
   int _timeKeyFlwT5;
 
-  float _timeVelSensT1T4;
-  float _timeVelSensT5;
+  int _timeVelSensT1T2;
+  int _timeVelSensT3T5;
 
   enum Type _type;
   const char *_phaseName[6] = { "Init", "Attack 1", "Attack 2", "Decay 1",
