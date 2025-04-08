@@ -322,9 +322,9 @@ void TVA::_init_envelope(int levelIndex, uint8_t velocity)
                                    _instPartial.TVAETKeyP5);
 
   // Adjust time for Envelope Time Velocity Sensitivity
-  _envelope->set_time_velocity_sensitivity(0, _instPartial.TVAETVSens14 - 0x40,
+  _envelope->set_time_velocity_sensitivity(0, _instPartial.TVAETVSens12 - 0x40,
                                            velocity);
-  _envelope->set_time_velocity_sensitivity(1, _instPartial.TVAETVSens5 - 0x40,
+  _envelope->set_time_velocity_sensitivity(1, _instPartial.TVAETVSens35 - 0x40,
                                            velocity);
 }
 

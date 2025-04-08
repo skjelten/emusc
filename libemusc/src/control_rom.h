@@ -119,6 +119,8 @@ public:
     uint8_t TVFETKeyF14;    // TVF Envelope Time Key Follow (T1 - T4)
     uint8_t TVFETKeyF5;     // TVF Envelope Time Key Follow (T5)
     uint8_t TVFCOFVSens;    // TVF Cutoff Frequency Velocity Sensitivty
+    uint8_t TVFETVSens12;   // TVF Envelope Time Velocity Sensitivity (T1 - T2)
+    uint8_t TVFETVSens35;   // TVF Envelope Time Velocity Sensitivity (T3 - T5)
 
     uint8_t TVALvlVelCur;
     int8_t volume;          // Volume attenuation (0x7f - 0)
@@ -140,8 +142,8 @@ public:
     uint8_t TVAETKeyP5;     // TVA Envelope Time Key Presets (T5)
     uint8_t TVAETKeyF14;    // TVA Envelope Time Key Follow (T1 - T4)
     uint8_t TVAETKeyF5;     // TVA Envelope Time Key Follow (T5)
-    uint8_t TVAETVSens14;   // TVA Envelope Time Velocity Sensitivity (T1 - T4)
-    uint8_t TVAETVSens5;    // TVA Envelope Time Velocity Sensitivity (T5)
+    uint8_t TVAETVSens12;   // TVA Envelope Time Velocity Sensitivity (T1 - T2)
+    uint8_t TVAETVSens35;   // TVA Envelope Time Velocity Sensitivity (T3 - T5)
   };
 
   struct Instrument {       // 204 bytes in total

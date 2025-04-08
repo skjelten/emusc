@@ -207,6 +207,12 @@ void TVF::_init_envelope(void)
 
   if (_instPartial.TVAETKeyF5 != 0x40)
     _envelope->set_time_key_follow(1, _instPartial.TVFETKeyF5 - 0x40);
+
+  // Adjust time for Envelope Time Velocity Sensitivity
+  _envelope->set_time_velocity_sensitivity(0, _instPartial.TVFETVSens12 - 0x40,
+                                           _velocity);
+  _envelope->set_time_velocity_sensitivity(1, _instPartial.TVFETVSens35 - 0x40,
+                                           _velocity);
 }
 
 
