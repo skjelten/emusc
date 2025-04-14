@@ -76,7 +76,7 @@ TVF::TVF(ControlRom::InstPartial &instPartial, uint8_t key, uint8_t velocity,
     return;
 
   _envDepth = _LUT.TVFEnvDepth[_instPartial.TVFEnvDepth];
-  _keyFollow = _calc_key_follow();
+  _keyFollow = _get_cof_key_follow(_instPartial.TVFCFKeyFlw - 0x40);
   _velocity = _get_velocity_from_vcurve(velocity);
   _coFreqVSens = _read_cutoff_freq_vel_sens();
 
@@ -111,8 +111,8 @@ void TVF::apply(double *sample)
   float lfo1ModFreq = _LFO1->value() * _LUT.LFOTVFDepth[_accLFO1Depth] / 256;
   float lfo2ModFreq = _LFO2->value() * _LUT.LFOTVFDepth[_accLFO2Depth] / 256;
 
-  float freqIndex = _coFreqIndex + _keyFollow + lfo1ModFreq + lfo2ModFreq +
-                    envKey + _coFreqVSens;
+  float freqIndex = _coFreqIndex + lfo1ModFreq + lfo2ModFreq + envKey +
+                    (_keyFollow >> 8) + _coFreqVSens;
   if (_instPartial.TVFCOFVSens < 0x40)
     freqIndex -= 73.5;
   if (freqIndex < 0)   freqIndex = 0;
@@ -127,7 +127,7 @@ void TVF::apply(double *sample)
     std::cout << "E=" << envKey
               << " C=" << _coFreqIndex
               << " V=" << _coFreqVSens
-              << " K=" << _keyFollow
+              << " K=" << (_keyFollow >> 8)
               << " M=" << lfo1ModFreq + lfo2ModFreq
               << " D=" << _envDepth
               << " I=" << freqIndex << "->[" << freqIndex * 2 << "]"
@@ -202,11 +202,10 @@ void TVF::_init_envelope(void)
                            _settings, _partId, Envelope::Type::TVF);
 
   // Adjust time for Envelope Time Key Follow including Envelope Time Key Preset
-  if (_instPartial.TVAETKeyF14 != 0x40)
-    _envelope->set_time_key_follow(0, _instPartial.TVFETKeyF14 - 0x40);
-
-  if (_instPartial.TVAETKeyF5 != 0x40)
-    _envelope->set_time_key_follow(1, _instPartial.TVFETKeyF5 - 0x40);
+  _envelope->set_time_key_follow(0, _instPartial.TVFETKeyF14 - 0x40,
+                                 _instPartial.TVFETKeyFP14);
+  _envelope->set_time_key_follow(1, _instPartial.TVFETKeyF5 - 0x40,
+                                 _instPartial.TVFETKeyFP5);
 
   // Adjust time for Envelope Time Velocity Sensitivity
   _envelope->set_time_velocity_sensitivity(0, _instPartial.TVFETVSens12 - 0x40,
@@ -218,46 +217,14 @@ void TVF::_init_envelope(void)
 
 int TVF::_get_velocity_from_vcurve(uint8_t velocity)
 {
-  int vLevel;
-  switch(_instPartial.TVFCOFVelCur)
-    {
-    case 0:
-      vLevel = _LUT.VelocityCurve0[velocity];
-      break;
-    case 1:
-      vLevel = _LUT.VelocityCurve1[velocity];
-      break;
-    case 2:
-      vLevel = _LUT.VelocityCurve2[velocity];
-      break;
-    case 3:
-      vLevel = _LUT.VelocityCurve3[velocity];
-      break;
-    case 4:
-      vLevel = _LUT.VelocityCurve4[velocity];
-      break;
-    case 5:
-      vLevel = _LUT.VelocityCurve5[velocity];
-      break;
-    case 6:
-      vLevel = _LUT.VelocityCurve6[velocity];
-      break;
-    case 7:
-      vLevel = _LUT.VelocityCurve7[velocity];
-      break;
-    case 8:
-      vLevel = _LUT.VelocityCurve8[velocity];
-      break;
-    case 9:
-      vLevel = _LUT.VelocityCurve9[velocity];
-      break;
-    default:
-      vLevel = 0;
-      std::cerr << "libEmuSC internal error: Illegal velocity curve used"
-                << std::endl;
-    }
+  unsigned int address = _instPartial.TVFCOFVelCur * 128 + velocity;
+  if (address > _LUT.VelocityCurves.size()) {
+    std::cerr << "libEmuSC internal error: Illegal velocity curve used"
+              << std::endl;
+    return 0;
+  }
 
-  return vLevel;
+  return _LUT.VelocityCurves[address];
 }
 
 
@@ -283,7 +250,7 @@ void TVF::_init_freq_and_res(void)
   if (_coFreqIndex > 127) _coFreqIndex = 127;
 
   float freqIndex = _coFreqIndex + _envDepth * 0.0001 * envLevelMax * 0.31 +
-    _keyFollow;
+    (_keyFollow >> 8);
 
   if (_instPartial.TVFCOFVSens > 0x40)
     freqIndex += _coFreqVSens;
@@ -336,22 +303,35 @@ int TVF::_calc_envelope_max(void)
 }
 
 
-float TVF::_calc_key_follow(void)
+// Implementation based on disassembly of the CPUROM binary code. There must be
+// some function later in the processing to extract the decimal part (LSB).
+int TVF::_get_cof_key_follow(int cofkfROM)
 {
-  float keyFollow = 0;
-  if (_instPartial.TVFCFKeyFlw != 0x40) {
-    if (_instPartial.TVFCFKeyFlwC == 0 ||
-        (_instPartial.TVFCFKeyFlwC == 3 && _key <= 96))
-      keyFollow = ((_instPartial.TVFCFKeyFlw - 0x40) / 10.0) * (_key - 64);
-    else if (_instPartial.TVFCFKeyFlwC == 1 && _key > 60)
-      keyFollow = ((_instPartial.TVFCFKeyFlw - 0x40) / 10.0) * (_key - 60);
-    else if (_instPartial.TVFCFKeyFlwC == 2 && _key > 96)
-      keyFollow = ((_instPartial.TVFCFKeyFlw - 0x40) / 10.0) * (_key - 96);
-    else if (_instPartial.TVFCFKeyFlwC == 3 && _key > 96)
-      keyFollow = ((_instPartial.TVFCFKeyFlw - 0x40) / 10.0) * (96 - 64);
-  }
+  int kmIndex = _LUT.KeyMapperIndex[48 + _instPartial.TVFCFKeyFlwC] - _LUT.KeyMapperOffset;
+  int km = static_cast<int>(_native_endian_uint16((uint8_t *) &_LUT.KeyMapper[kmIndex + _key * 2]));
+  int cofkf = _LUT.TVFCutoffFreqKF[std::abs(cofkfROM)];
+  int res = ((km - 0x4000) * cofkf) >> 8;
 
-  return keyFollow;
+  if (0)
+    std::cout << "km=0x" << std::hex << km
+	      << " cofkfROM=" << std::dec << cofkfROM
+	      << " mulxu.w=0x" << std::hex << ((km - 0x4000) * cofkf)
+	      << " res=" << res << std::dec
+	      << std::endl;
+
+  if (cofkfROM < 0)
+    return  -res;
+
+  return res;
+}
+
+
+uint16_t TVF::_native_endian_uint16(uint8_t *ptr)
+{
+  if (_le_native())
+    return (ptr[0] << 8 | ptr[1]);
+
+  return (ptr[1] << 8 | ptr[0]);
 }
 
 }

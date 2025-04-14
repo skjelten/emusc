@@ -76,7 +76,7 @@ private:
 
   float _coFreqVSens;
 
-  float _keyFollow;
+  int _keyFollow;
 
   int _envDepth;
   Envelope *_envelope;
@@ -98,7 +98,10 @@ private:
 
   float _calc_cutoff_frequency(float index);
   int _calc_envelope_max(void);
-  float _calc_key_follow(void);
+  int _get_cof_key_follow(int cofkfROM);
+
+  inline bool _le_native(void) { uint16_t n = 1; return (*(uint8_t *) & n); }
+  uint16_t _native_endian_uint16(uint8_t *ptr);
 };
 
 }

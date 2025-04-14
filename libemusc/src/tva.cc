@@ -66,16 +66,18 @@ TVA::TVA(ControlRom::InstPartial &instPartial, uint8_t key, uint8_t velocity,
 {
   update_dynamic_params(true);
 
+  int cVelocity = _get_velocity_from_vcurve(velocity);
+
   // Calculate accumulated level (volume) indexes
   int levelIndex =
-    _get_bias_level() +
+    _get_bias_level(_instPartial.TVABiasPoint) +
     _LUT.TVALevelIndex[_instPartial.volume] +
-    _LUT.TVALevelIndex[_get_velocity_from_vcurve(velocity)] +
+    _LUT.TVALevelIndex[cVelocity] +
     _LUT.TVALevelIndex[ctrlSample->volume] +
     _LUT.TVALevelIndex[instVolAtt];
 
   // All instruments must have a TVA envelope defined
-  _init_envelope(levelIndex, _get_velocity_from_vcurve(velocity));
+  _init_envelope(levelIndex, cVelocity);
   if (_envelope)
     _envelope->start();
 
@@ -200,80 +202,28 @@ bool TVA::finished(void)
 }
 
 
-int TVA::_get_bias_level(void)
+// Exact calculation found by disassembling the CPUROM
+int TVA::_get_bias_level(int biasPoint)
 {
-  // Note: The SC-55 uses a lookup table for finding the index when TVA Bias
-  // Point = 1 (biasKey = _LUT.TVABiasPoint1[_key]). Consider to use this LUT.
-  int biasKey = 0;
-  if (_instPartial.TVABiasPoint == 0)
-    biasKey = ((_instPartial.TVABiasLevel - 0x40)/ 10.0) * std::abs(_key - 64);
-  else if (_instPartial.TVABiasPoint == 1 && _key >= 85)
-    biasKey = ((_instPartial.TVABiasLevel - 0x40) / 10.0) * (_key - 84);
-  else if (_instPartial.TVABiasPoint == 2)
-    biasKey = std::abs(_instPartial.TVABiasLevel - 0x40) * 6.35;
+  int kmIndex = _LUT.KeyMapperIndex[0 + biasPoint] - _LUT.KeyMapperOffset;
+  int km = _LUT.KeyMapper[kmIndex + _key];
+  int kfDiv = _LUT.TimeKeyFollowDiv[std::abs(_instPartial.TVABiasLevel - 0x40)];
+  int biasLevelIndex = ((std::abs(km - 128) * kfDiv) * 2) >> 8;
 
-  int biasLevel = _LUT.TVABiasLevel[std::abs(biasKey)];
-
-  // Cancel out "the wrong side" of bias point
-  bool positiveBias = (_instPartial.TVABiasLevel > 0x40) ? true : false;
-  if (_instPartial.TVABiasPoint == 0) {
-    if (!positiveBias && _key < 64)
-      biasLevel = 0;
-    else if (positiveBias && _key > 64)
-      biasLevel = 0;
-  } else if (_instPartial.TVABiasPoint == 1) {
-    if (positiveBias || _key < 85)
-      biasLevel = 0;
-  } else if (_instPartial.TVABiasPoint == 2 && _instPartial.TVABiasLevel >0x40){
-    biasLevel = 0;
-  }
-
-  return biasLevel;
+  return _LUT.TVABiasLevel[biasLevelIndex];
 }
 
 
-float TVA::_get_velocity_from_vcurve(uint8_t velocity)
+int TVA::_get_velocity_from_vcurve(uint8_t velocity)
 {
-  int vLevel;
-  switch(_instPartial.TVALvlVelCur)
-    {
-    case 0:
-      vLevel = _LUT.VelocityCurve0[velocity];
-      break;
-    case 1:
-      vLevel = _LUT.VelocityCurve1[velocity];
-      break;
-    case 2:
-      vLevel = _LUT.VelocityCurve2[velocity];
-      break;
-    case 3:
-      vLevel = _LUT.VelocityCurve3[velocity];
-      break;
-    case 4:
-      vLevel = _LUT.VelocityCurve4[velocity];
-      break;
-    case 5:
-      vLevel = _LUT.VelocityCurve5[velocity];
-      break;
-    case 6:
-      vLevel = _LUT.VelocityCurve6[velocity];
-      break;
-    case 7:
-      vLevel = _LUT.VelocityCurve7[velocity];
-      break;
-    case 8:
-      vLevel = _LUT.VelocityCurve8[velocity];
-      break;
-    case 9:
-      vLevel = _LUT.VelocityCurve9[velocity];
-      break;
-    default:
-      vLevel = 0;
-      std::cerr << "libEmuSC internal error: Illegal velocity curve used"
-                << std::endl;
-    }
+  unsigned int address = _instPartial.TVALvlVelCur * 128 + velocity;
+  if (address > _LUT.VelocityCurves.size()) {
+    std::cerr << "libEmuSC internal error: Illegal velocity curve used"
+              << std::endl;
+    return 0;
+  }
 
-  return vLevel;
+  return _LUT.VelocityCurves[address];
 }
 
 
@@ -313,13 +263,11 @@ void TVA::_init_envelope(int levelIndex, uint8_t velocity)
                            _LUT, _settings, _partId, Envelope::Type::TVA);
 
   // Adjust time for Envelope Time Key Follow including Envelope Time Key Preset
-  if (_instPartial.TVAETKeyF14 != 0x40)
-    _envelope->set_time_key_follow(0, _instPartial.TVAETKeyF14 - 0x40,
-                                   _instPartial.TVAETKeyP14);
+  _envelope->set_time_key_follow(0, _instPartial.TVAETKeyF14 - 0x40,
+                                 _instPartial.TVAETKeyFP14);
 
-  if (_instPartial.TVAETKeyF5 != 0x40)
-    _envelope->set_time_key_follow(1, _instPartial.TVAETKeyF5 - 0x40,
-                                   _instPartial.TVAETKeyP5);
+  _envelope->set_time_key_follow(1, _instPartial.TVAETKeyF5 - 0x40,
+                                 _instPartial.TVAETKeyFP5);
 
   // Adjust time for Envelope Time Velocity Sensitivity
   _envelope->set_time_velocity_sensitivity(0, _instPartial.TVAETVSens12 - 0x40,

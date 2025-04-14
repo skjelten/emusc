@@ -87,8 +87,8 @@ private:
 
   void _init_envelope(int levelIndex, uint8_t velocity);
 
-  int _get_bias_level(void);
-  float _get_velocity_from_vcurve(uint8_t velocity);
+  int _get_bias_level(int biasPoint);
+  int _get_velocity_from_vcurve(uint8_t velocity);
 
   static constexpr std::array<float, 128> _convert_volume_LUT = {
     0,        0.001906, 0.003848, 0.005827, 0.007844, 0.009900, 0.011995,

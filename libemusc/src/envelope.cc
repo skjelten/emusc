@@ -125,43 +125,56 @@ void Envelope::start(void)
 // etkpROM != 0 is only possible for the TVA envelope
 void Envelope::set_time_key_follow(bool phase, int etkfROM, int etkpROM)
 {
-  if (!etkfROM)
-    return;
+  // Skip unnecessary calculations if etkfROM value is 0
+  if (etkfROM == 0) {
+    if (phase == 0)
+      _timeKeyFlwT1T4 = 256;
+    else
+      _timeKeyFlwT5 = 256;
 
+    return;
+  }
+
+  int offset = 0;
+  if (_type == Type::TVA)
+    offset = (phase == 0) ? 16 : 32;
+  else if (_type == Type::TVF)
+    offset = (phase == 0) ? 64 : 80;
+
+  int kmIndex = _LUT.KeyMapperIndex[offset + etkpROM] - _LUT.KeyMapperOffset;
+  int km = _LUT.KeyMapper[kmIndex + _key];
   int tkfDiv = _LUT.TimeKeyFollowDiv[std::abs(etkfROM)];
-  if (etkfROM < 0)
-    tkfDiv *= -1;
 
   int tkfIndex;
-  if (etkpROM == 0) {
-    tkfIndex = ((tkfDiv * (_key - 64)) / 64) + 128;
-
-  } else if (etkpROM == 1 && phase == 0) {
-    int p1 = _LUT.TVAEnvTKFP1T14Index[_key];
-    tkfIndex = p1 + (128 - std::abs(tkfDiv)) * (128 - p1) / 128.0;
-    if (etkfROM < 0)
-      tkfIndex = 255 - tkfIndex;
-
-  } else if (etkpROM == 1 && phase == 1) {
-    int p1 = _LUT.TVAEnvTKFP1T5Index[_key];
-    tkfIndex = p1 + (128 - std::abs(tkfDiv)) * (128 - p1) / 128.0;
-    if (etkfROM < 0)
-      tkfIndex = 255 - tkfIndex;
+  if (etkfROM > 0) {
+    if (km > 128)
+      tkfIndex = 128 + ((((km - 128) * tkfDiv) * 2) >> 8);
+    else if (km < 128)
+      tkfIndex = 128 - ((((128 - km) * tkfDiv) * 2) >> 8);
+    else
+      tkfIndex = 128;
 
   } else {
-    tkfIndex = ((tkfDiv * (127 - 64)) / 64) + 128;
+    if (km > 128)
+      tkfIndex = 128 - ((((km - 128) * tkfDiv) * 2) >> 8);
+    else if (km < 128)
+      tkfIndex = 128 + ((((128 - km) * tkfDiv) * 2) >> 8);
+    else
+      tkfIndex = 128;
   }
 
   if (phase == 0)
     _timeKeyFlwT1T4 = _LUT.TimeKeyFollow[tkfIndex];
   else
-    _timeKeyFlwT5 =  _LUT.TimeKeyFollow[tkfIndex];
+    _timeKeyFlwT5 = _LUT.TimeKeyFollow[tkfIndex];
 
   if (0)
-    std::cout << "ETKF: phase=" << phase << std::dec
-              << " key=" << (int) _key << " etkpROM=" << etkpROM
-              << " LUT1[" << std::abs(etkfROM) << "]=" << tkfDiv
-              << " LUT2[" << tkfIndex << "]=" << _LUT.TimeKeyFollow[tkfIndex]
+    std::cout << "ETKF: type=" << _typeName[static_cast<int>(_type)]
+              << " phase=" << phase << std::dec  << " key=" << (int) _key
+              << " offset=" << offset << " etkpROM=" << etkpROM
+              << " tkfDiv[" << etkfROM << "]=" << tkfDiv
+              << " km[" << kmIndex + _key << "]=" << km
+              << " tkf[" << tkfIndex << "]=" << _LUT.TimeKeyFollow[tkfIndex]
               << " => time change=" << _LUT.TimeKeyFollow[tkfIndex] / 256.0
               << std::endl;
 }

@@ -330,6 +330,8 @@ int ControlRom::_read_instruments(std::ifstream &romFile)
       i.partials[p].TVFEnvT3     = data[48];
       i.partials[p].TVFEnvT4     = data[49];
       i.partials[p].TVFEnvT5     = data[50];
+      i.partials[p].TVFETKeyFP14 = data[53];
+      i.partials[p].TVFETKeyFP5  = data[54];
       i.partials[p].TVFETKeyF14  = data[55];
       i.partials[p].TVFETKeyF5   = data[56];
       i.partials[p].TVFCOFVSens  = data[57];
@@ -350,8 +352,8 @@ int ControlRom::_read_instruments(std::ifstream &romFile)
       i.partials[p].TVAEnvT3     = data[76];
       i.partials[p].TVAEnvT4     = data[77];
       i.partials[p].TVAEnvT5     = data[78];
-      i.partials[p].TVAETKeyP14  = data[81];
-      i.partials[p].TVAETKeyP5   = data[82];
+      i.partials[p].TVAETKeyFP14 = data[81];
+      i.partials[p].TVAETKeyFP5  = data[82];
       i.partials[p].TVAETKeyF14  = data[83];
       i.partials[p].TVAETKeyF5   = data[84];
       i.partials[p].TVAETVSens12 = data[85];
@@ -550,60 +552,38 @@ int ControlRom::_read_drum_sets(std::ifstream &romFile)
 
 int ControlRom::_read_lookup_tables_progrom(std::ifstream &romFile)
 {
+  int numVCurves = 10;
   const struct _ProgMemoryMapLUT *PROGmmLUT;
   switch(_synthModel)
     {
     case SynthModel::sm_SC55:
       PROGmmLUT = &SC55_1_21_Prog_LUT;
+      numVCurves = 10;
       break;
     case SynthModel::sm_SC55mkII:
       PROGmmLUT = &SC55mkII_1_01_Prog_LUT;
+      numVCurves = 12;
       break;
     default:
       std::cerr << "libEmuSC: Unsupported ROM file!" << std::endl;
       exit(0);
     }
 
-  // 8-bit values
-  romFile.seekg(PROGmmLUT->VelocityCurve0);
-  romFile.read(reinterpret_cast<char*> (&lookupTables.VelocityCurve0), 128);
-  romFile.seekg(PROGmmLUT->VelocityCurve1);
-  romFile.read(reinterpret_cast<char*> (&lookupTables.VelocityCurve1), 128);
-  romFile.seekg(PROGmmLUT->VelocityCurve2);
-  romFile.read(reinterpret_cast<char*> (&lookupTables.VelocityCurve2), 128);
-  romFile.seekg(PROGmmLUT->VelocityCurve3);
-  romFile.read(reinterpret_cast<char*> (&lookupTables.VelocityCurve3), 128);
-  romFile.seekg(PROGmmLUT->VelocityCurve4);
-  romFile.read(reinterpret_cast<char*> (&lookupTables.VelocityCurve4), 128);
-  romFile.seekg(PROGmmLUT->VelocityCurve5);
-  romFile.read(reinterpret_cast<char*> (&lookupTables.VelocityCurve5), 128);
-  romFile.seekg(PROGmmLUT->VelocityCurve6);
-  romFile.read(reinterpret_cast<char*> (&lookupTables.VelocityCurve6), 128);
-  romFile.seekg(PROGmmLUT->VelocityCurve7);
-  romFile.read(reinterpret_cast<char*> (&lookupTables.VelocityCurve7), 128);
-  romFile.seekg(PROGmmLUT->VelocityCurve8);
-  romFile.read(reinterpret_cast<char*> (&lookupTables.VelocityCurve8), 128);
-  romFile.seekg(PROGmmLUT->VelocityCurve9);
-  romFile.read(reinterpret_cast<char*> (&lookupTables.VelocityCurve9), 128);
-  romFile.seekg(PROGmmLUT->mul2);
-  romFile.read(reinterpret_cast<char*> (&lookupTables.mul2), 128);
-  romFile.seekg(PROGmmLUT->mul2From85);
-  romFile.read(reinterpret_cast<char*> (&lookupTables.mul2From85), 128);
-  romFile.seekg(PROGmmLUT->TVABiasPoint1);
-  romFile.read(reinterpret_cast<char*> (&lookupTables.TVABiasPoint1), 128);
-  romFile.seekg(PROGmmLUT->TVAEnvTKFP1T14Index);
-  romFile.read(reinterpret_cast<char*>(&lookupTables.TVAEnvTKFP1T14Index), 128);
-  romFile.seekg(PROGmmLUT->TVAEnvTKFP1T5Index);
-  romFile.read(reinterpret_cast<char*>(&lookupTables.TVAEnvTKFP1T5Index), 128);
+  lookupTables.VelocityCurves.resize(128 * numVCurves);
+  romFile.seekg(PROGmmLUT->VelocityCurves);
+  romFile.read(reinterpret_cast<char*> (lookupTables.VelocityCurves.data()),
+               lookupTables.VelocityCurves.size());
 
-  // 16-bit values
-// _read_lut_16bit(romFile, PROGmmLUT->mul256, lookupTables.mul256);
-// _read_lut_16bit(romFile, PROGmmLUT->mul256From60, lookupTables.mul256From60);
-// _read_lut_16bit(romFile, PROGmmLUT->mul256From96, lookupTables.mul256From96);
-// _read_lut_16bit(romFile, PROGmmLUT->mul256Upto96, lookupTables.mul256Upto96);
-  _read_lut_16bit(romFile, PROGmmLUT->PitchScale1, lookupTables.PitchScale1);
-  _read_lut_16bit(romFile, PROGmmLUT->PitchScale2, lookupTables.PitchScale2);
-  _read_lut_16bit(romFile, PROGmmLUT->PitchScale3, lookupTables.PitchScale3);
+  _read_lut_16bit(romFile, PROGmmLUT->KeyMapperIndex,
+                  lookupTables.KeyMapperIndex);
+
+  int kmSize = 128 +
+    lookupTables.KeyMapperIndex.back() - lookupTables.KeyMapperIndex.front();
+  lookupTables.KeyMapper.resize(kmSize);
+
+  romFile.seekg(PROGmmLUT->KeyMapper);
+  romFile.read(reinterpret_cast<char*> (lookupTables.KeyMapper.data()), kmSize);
+  lookupTables.KeyMapperOffset = PROGmmLUT->KeyMapper - 0x30000;
 
   return 0;
 }
@@ -656,8 +636,29 @@ int ControlRom::_read_lookup_tables_cpurom(std::ifstream &romFile)
   _read_lut_16bit(romFile, CPUmmLUT->LFOTVPDepth, lookupTables.LFOTVPDepth);
   _read_lut_16bit(romFile, CPUmmLUT->PitchEnvDepth, lookupTables.PitchEnvDepth);
   _read_lut_16bit(romFile, CPUmmLUT->TVAEnvExpChange, lookupTables.TVAEnvExpChange);
+  _read_lut_16bit(romFile, CPUmmLUT->TVFCutoffFreqKF,
+		  lookupTables.TVFCutoffFreqKF);
 
   return 0;
+}
+
+
+int ControlRom::_read_lut_16bit(std::ifstream &ifs, int pos,
+                                std::array<int, 21> &lut)
+{
+  ifs.seekg(pos);
+
+  for (int i = 0; i < 21; i ++) {
+    uint16_t value;
+    if (!ifs.read(reinterpret_cast<char*>(&value), sizeof(value))) {
+      std::cerr << "libEmuSC: Error reading LUT from ROM" << std::endl;
+      return i;
+    }
+
+    lut[i] = static_cast<int>(_native_endian_uint16((uint8_t *) &value));
+  }
+
+  return 21;
 }
 
 
@@ -696,6 +697,25 @@ int ControlRom::_read_lut_16bit(std::ifstream &ifs, int pos,
   }
 
   return 129;
+}
+
+
+int ControlRom::_read_lut_16bit(std::ifstream &ifs, int pos,
+                                std::array<int, 136> &lut)
+{
+  ifs.seekg(pos);
+
+  for (int i = 0; i < 136; i ++) {
+    uint16_t value;
+    if (!ifs.read(reinterpret_cast<char*>(&value), sizeof(value))) {
+      std::cerr << "libEmuSC: Error reading LUT from ROM" << std::endl;
+      return i;
+    }
+
+    lut[i] = static_cast<int>(_native_endian_uint16((uint8_t *) &value));
+  }
+
+  return 136;
 }
 
 

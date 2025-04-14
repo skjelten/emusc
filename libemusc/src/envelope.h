@@ -100,6 +100,7 @@ private:
   int _timeVelSensT3T5;
 
   enum Type _type;
+  const char *_typeName[3] = { "Pitch", "TVF", "TVA" };
   const char *_phaseName[6] = { "Init", "Attack 1", "Attack 2", "Decay 1",
 				"Decay 2 (S)", "Release" };
 

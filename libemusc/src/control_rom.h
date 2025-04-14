@@ -116,6 +116,8 @@ public:
     uint8_t TVFEnvT4;       // TVF Envelope T4
     uint8_t TVFEnvT5;       // TVF Envelope T5
 
+    uint8_t TVFETKeyFP14;   // TVF Envelope Time Key Follow Presets (T1 - T4)
+    uint8_t TVFETKeyFP5;    // TVF Envelope Time Key Follow Presets (T5)
     uint8_t TVFETKeyF14;    // TVF Envelope Time Key Follow (T1 - T4)
     uint8_t TVFETKeyF5;     // TVF Envelope Time Key Follow (T5)
     uint8_t TVFCOFVSens;    // TVF Cutoff Frequency Velocity Sensitivty
@@ -138,8 +140,8 @@ public:
     uint8_t TVAEnvT4;       // TVA Envelope T4 (Decay2)
     uint8_t TVAEnvT5;       // TVA Envelope T5 (Release)
 
-    uint8_t TVAETKeyP14;    // TVA Envelope Time Key Presets (T1 - T4)
-    uint8_t TVAETKeyP5;     // TVA Envelope Time Key Presets (T5)
+    uint8_t TVAETKeyFP14;   // TVA Envelope Time Key Follow Presets (T1 - T4)
+    uint8_t TVAETKeyFP5;    // TVA Envelope Time Key Follow Presets (T5)
     uint8_t TVAETKeyF14;    // TVA Envelope Time Key Follow (T1 - T4)
     uint8_t TVAETKeyF5;     // TVA Envelope Time Key Follow (T5)
     uint8_t TVAETVSens12;   // TVA Envelope Time Velocity Sensitivity (T1 - T2)
@@ -174,28 +176,11 @@ public:
 
   struct LookupTables {
     // PROGROM
-    std::array<uint8_t, 128> VelocityCurve0;
-    std::array<uint8_t, 128> VelocityCurve1;
-    std::array<uint8_t, 128> VelocityCurve2;
-    std::array<uint8_t, 128> VelocityCurve3;
-    std::array<uint8_t, 128> VelocityCurve4;
-    std::array<uint8_t, 128> VelocityCurve5;
-    std::array<uint8_t, 128> VelocityCurve6;
-    std::array<uint8_t, 128> VelocityCurve7;
-    std::array<uint8_t, 128> VelocityCurve8;
-    std::array<uint8_t, 128> VelocityCurve9;
-    std::array<uint8_t, 128> mul2;
-    std::array<uint8_t, 128> mul2From85;
-    std::array<uint8_t, 128> TVABiasPoint1;
-    std::array<uint8_t, 128> TVAEnvTKFP1T14Index;
-    std::array<uint8_t, 128> TVAEnvTKFP1T5Index;
-//    std::array<int,     128> mul256;
-//    std::array<int,     128> mul256From60;
-//    std::array<int,     128> mul256From96;
-//    std::array<int,     128> mul256Upto96;
-    std::array<int,     128> PitchScale1;
-    std::array<int,     128> PitchScale2;
-    std::array<int,     128> PitchScale3;
+    std::vector<uint8_t> VelocityCurves;
+
+    std::array<int, 136> KeyMapperIndex;
+    int KeyMapperOffset;
+    std::vector<uint8_t> KeyMapper;
 
     // CPUROM
     std::array<uint8_t,  21> TimeKeyFollowDiv;
@@ -206,6 +191,7 @@ public:
     std::array<int,     128> LFOTVFDepth;
     std::array<int,     128> LFOTVPDepth;
     std::array<uint8_t, 128> LFOSine;
+    std::array<int,      21> TVFCutoffFreqKF;
     std::array<int,     128> TVFEnvDepth;
     std::array<int,     128> TVFCutoffFreq;
     std::array<uint8_t, 256> TVFResonanceFreq;
@@ -284,38 +270,16 @@ private:
   static const std::vector<uint32_t> _banksSC88;
 
   struct _ProgMemoryMapLUT {
-    int VelocityCurve0;
-    int VelocityCurve1;
-    int VelocityCurve2;
-    int VelocityCurve3;
-    int VelocityCurve4;
-    int VelocityCurve5;
-    int VelocityCurve6;
-    int VelocityCurve7;
-    int VelocityCurve8;
-    int VelocityCurve9;
-    int mul2;
-    int mul2From85;
-    int TVABiasPoint1;
-    int TVAEnvTKFP1T14Index;
-    int TVAEnvTKFP1T5Index;
-//    int mul256;
-//    int mul256From60;
-//    int mul256From96;
-//    int mul256Upto96;
-    int PitchScale1;
-    int PitchScale2;
-    int PitchScale3;
+    int VelocityCurves;
+
+    int KeyMapperIndex;
+    int KeyMapper;
   };
 
   const _ProgMemoryMapLUT SC55_1_21_Prog_LUT {
-    0x3d1e8, 0x3d268, 0x3d2e8, 0x3d368, 0x3d3e8, 0x3d468, 0x3d4e8, 0x3d568,
-    0x3d5e8, 0x3d668, 0x3dd82, 0x3de02, 0x3de02, 0x3df82, 0x3e102, 0x3e982,
-    0x3ea82, 0x3eb82 };
+    0x3d1e8, 0x3dc72, 0x3dd82 };
   const _ProgMemoryMapLUT SC55mkII_1_01_Prog_LUT {
-    0x3d1e8, 0x3d268, 0x3d2e8, 0x3d368, 0x3d3e8, 0x3d468, 0x3d4e8, 0x3d568,
-    0x3d5e8, 0x3d668, 0x3de8c, 0x3df0c, 0x3df0c, 0x3e10c, 0x3e30c, 0x3ee0c,
-    0x3ef0c, 0x3f00c };
+    0x3d1e8, 0x3dd7c, 0x3de8c };
 
   struct _CPUMemoryMapLUT {
     int TimeKeyFollowDiv;
@@ -326,6 +290,7 @@ private:
     int LFOTVFDepth;
     int LFOTVPDepth;
     int LFOSine;
+    int TVFCutoffFreqKF;
     int TVFEnvDepth;
     int TVFCutoffFreq;
     int TVFResonanceFreq;
@@ -341,17 +306,19 @@ private:
 
   const _CPUMemoryMapLUT SC55_1_21_CPU_LUT {
     0x679a, 0x67c6, 0x6f12, 0x7012, 0x7112, 0x7212, 0x7312, 0x7412,
-    0x7512, 0x7612, 0x7715, 0x7816, 0x78f2, 0x79f2, 0x6d10, 0x69c6,
-    0x6c8f, 0x6b0f, 0x6b8f };
+    0x74d2, 0x7512, 0x7612, 0x7715, 0x7816, 0x78f2, 0x79f2, 0x6d10,
+    0x69c6, 0x6c8f, 0x6b0f, 0x6b8f };
   const _CPUMemoryMapLUT SC55mkII_1_01_CPU_LUT {
     0x650e, 0x653a, 0x6c86, 0x6486, 0x6e86, 0x6f86, 0x7086, 0x7186,
-    0x7286, 0x7386, 0x7489, 0x758a, 0x7765, 0x7766, 0x6a84, 0x673a,
-    0x6a03, 0x6883, 0x6903 };
+    0x74fb, 0x7286, 0x7386, 0x7489, 0x758a, 0x7765, 0x7766, 0x6a84,
+    0x673a, 0x6a03, 0x6883, 0x6903 };
 
   int _read_lookup_tables_progrom(std::ifstream &romFile);
   int _read_lookup_tables_cpurom(std::ifstream &romFile);
+  int _read_lut_16bit(std::ifstream &ifs, int pos, std::array<int, 21> &lut);
   int _read_lut_16bit(std::ifstream &ifs, int pos, std::array<int, 128> &lut);
   int _read_lut_16bit(std::ifstream &ifs, int pos, std::array<int, 129> &lut);
+  int _read_lut_16bit(std::ifstream &ifs, int pos, std::array<int, 136> &lut);
   int _read_lut_16bit(std::ifstream &ifs, int pos, std::array<int, 256> &lut);
 
   int _identify_model(std::ifstream &romFile);

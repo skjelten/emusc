@@ -146,13 +146,7 @@ void TVP::_set_static_params(int keyShift, ControlRom::Sample *ctrlSample,
   }
 
   // Pitch correction table (in decicents)
-  int pitchScaleCurve = 0;
-  if (pitchCurve == 1)
-    pitchScaleCurve = _LUT.PitchScale1[_key] - 0x8000;
-  else if (pitchCurve == 2)
-    pitchScaleCurve = _LUT.PitchScale2[_key] - 0x8000;
-  else if (pitchCurve == 3)
-    pitchScaleCurve = _LUT.PitchScale3[_key] - 0x8000;
+  int pitchScaleCurve = _get_pitch_curve_correction(pitchCurve);
 
   _staticPitchCorr =
     (exp(
@@ -219,11 +213,21 @@ void TVP::_init_envelope(uint8_t velocity)
                            _settings, _partId, Envelope::Type::Pitch);
 
   // Adjust time for Envelope Time Key Follow
-  if (_instPartial.pitchETKeyF14 != 0x40) { std::cout << "Pitch correction: " << (int) _instPartial.pitchETKeyF14 - 0x40 << std::endl;
-    _envelope->set_time_key_follow(0, _instPartial.pitchETKeyF14 - 0x40);
-  }
-  if (_instPartial.pitchETKeyF5 != 0x40)
-    _envelope->set_time_key_follow(1, _instPartial.pitchETKeyF5 - 0x40);
+  _envelope->set_time_key_follow(0, _instPartial.pitchETKeyF14 - 0x40);
+  _envelope->set_time_key_follow(1, _instPartial.pitchETKeyF5 - 0x40);
+}
+
+
+int TVP::_get_pitch_curve_correction(int pitchCurve)
+{
+  // If pitch curve is 0 in the instrument definition -> no correction
+  if (!pitchCurve)
+    return 0;
+
+  int lutIndex = _LUT.KeyMapperIndex[96 + pitchCurve] - _LUT.KeyMapperOffset;
+
+  return (_LUT.KeyMapper[lutIndex + 2 * _key] << 8) +
+         _LUT.KeyMapper[lutIndex + 2 * _key + 1] - 0x8000;
 }
 
 }
