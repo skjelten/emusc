@@ -225,44 +225,45 @@ void Envelope::_init_new_phase(enum Phase newPhase)
 
   _phaseInitValue = _currentValue;
 
-  int durationTotal = _phaseDuration[static_cast<int>(newPhase)];
+  int duration = _phaseDuration[static_cast<int>(newPhase)];
+
+  // TODO: Add test for PD#4 on TVF envelopes
   if (_type != Type::Pitch) {
     if (newPhase == Phase::Attack1 || newPhase == Phase::Attack2) {
-      durationTotal +=
+      duration +=
         (_settings->get_param(PatchParam::TVFAEnvAttack, _partId) - 0x40) * 2;
 
     } else if (newPhase == Phase::Decay1 || newPhase == Phase::Decay2) {
-      durationTotal +=
+      duration +=
         (_settings->get_param(PatchParam::TVFAEnvDecay, _partId) - 0x40) * 2;
 
     } else if (newPhase == Phase::Release) {
-      durationTotal +=
+      duration +=
         (_settings->get_param(PatchParam::TVFAEnvRelease, _partId) - 0x40) * 2;
     }
   }
 
   // Make sure synth settings does not go outside valid values
-  if (durationTotal < 0) durationTotal = 0;
-  if (durationTotal > 127) durationTotal = 127;
+  if (duration < 0) duration = 0;
+  if (duration > 127) duration = 127;
 
-  float phaseDurationSec = (_LUT.envelopeTime[durationTotal] + 1) / 1000.0;
-  // 25 seconds duration -> LUT = 24000 -> 800000 samples. Minimum 32 samples.
-//  float phaseDurationSec = _LUT.envelopeTime[durationTotal] / 0.03;
-//  if (phaseDurationSec < 32) phaseDurationSec = 32;
+  duration = _LUT.envelopeTime[duration];
 
   // Correct phase duration for Time Key Follow
   if (newPhase != Phase::Release)
-    phaseDurationSec *= (float) _timeKeyFlwT1T4 / 256.0;
+    duration = (duration * _timeKeyFlwT1T4) >> 8;
   else
-    phaseDurationSec *= (float) _timeKeyFlwT5 / 256.0;
+    duration = (duration * _timeKeyFlwT5) >> 8;
 
   // Correct phase duration for Time Velocity Sensitivity
   if (newPhase == Phase::Attack1 || newPhase == Phase::Attack2)
-    phaseDurationSec *= _timeVelSensT1T2 / 256.0;
+    duration = (duration * _timeVelSensT1T2) >> 8;
   else
-    phaseDurationSec *= _timeVelSensT3T5 / 256.0;
+    duration = (duration * _timeVelSensT3T5) >> 8;
 
-  _phaseSampleLen = round(phaseDurationSec * _sampleRate);
+  // Convert from fixed 32kHz to actual sample rate
+  _phaseSampleLen = 32 * round(duration * (_sampleRate / 32000.0));
+  if (_phaseSampleLen < 32) _phaseSampleLen = 32;
 
   _phaseSampleIndex = 0;
   _phase = newPhase;
@@ -280,7 +281,7 @@ void Envelope::_init_new_phase(enum Phase newPhase)
     std::cout << "New " << envType << " envelope phase: -> " << static_cast<int>(_phase)
 	      << " (" << _phaseName[static_cast<int>(_phase)] << "): Level = "
               << _phaseInitValue << " -> " << _phaseValue[static_cast<int>(_phase)]
-	      << " Time = " << phaseDurationSec << "s"
+	      << " Time = " << (float) (duration / 1000.0) << "s"
 	      << " (" << _phaseSampleLen << " samples)" << std::endl;
   }
 }
