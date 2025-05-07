@@ -60,6 +60,12 @@ private:
 
   ControlRom::LookupTables &_LUT;
 
+  int _L1Init;
+  int _L2Init;
+  int _L3Init;
+  int _L4Init;
+  int _L5Init;
+
   int _accLFO1Depth;
   int _accLFO2Depth;
 
@@ -74,7 +80,7 @@ private:
   uint8_t _key;
   int _velocity;
 
-  float _coFreqVSens;
+  int _coFreqVSens;
 
   int _keyFollow;
 
@@ -91,14 +97,17 @@ private:
   TVF();
 
   int _get_velocity_from_vcurve(uint8_t velocity);
-  float _read_cutoff_freq_vel_sens(void);
 
   void _init_envelope(void);
   void _init_freq_and_res(void);
 
   float _calc_cutoff_frequency(float index);
-  int _calc_envelope_max(void);
+
   int _get_cof_key_follow(int cofkfROM);
+
+  int _read_cutoff_freq_vel_sens(int cofvsROM);
+
+  int _get_level_init(int level);
 
   inline bool _le_native(void) { uint16_t n = 1; return (*(uint8_t *) & n); }
   uint16_t _native_endian_uint16(uint8_t *ptr);

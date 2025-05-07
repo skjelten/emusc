@@ -69,6 +69,8 @@ public:
     uint8_t LFO2Delay;      // LFO delay before LFO Fade starts
     uint8_t LFO2Fade;       // LFO fade in, linear increase
 
+    uint8_t TVFFlags;       // TVF feature flags (always 0xff, used for debug?)
+
     uint16_t partialIndex;  // Partial table index, 0xFFFF for unused
     int8_t panpot;          // [-64, 64]. Default 0x40 (0-127)
     int8_t coarsePitch;     // Shifts pitch in semitones. Default 0x40
@@ -192,6 +194,7 @@ public:
     std::array<int,     128> LFOTVPDepth;
     std::array<uint8_t, 128> LFOSine;
     std::array<int,      21> TVFCutoffFreqKF;
+    std::array<int,      11> TVFCutoffVSens;
     std::array<int,     128> TVFEnvDepth;
     std::array<int,     128> TVFCutoffFreq;
     std::array<uint8_t, 256> TVFResonanceFreq;
@@ -291,6 +294,7 @@ private:
     int LFOTVPDepth;
     int LFOSine;
     int TVFCutoffFreqKF;
+    int TVFCutoffVSens;
     int TVFEnvDepth;
     int TVFCutoffFreq;
     int TVFResonanceFreq;
@@ -306,15 +310,16 @@ private:
 
   const _CPUMemoryMapLUT SC55_1_21_CPU_LUT {
     0x679a, 0x67c6, 0x6f12, 0x7012, 0x7112, 0x7212, 0x7312, 0x7412,
-    0x74d2, 0x7512, 0x7612, 0x7715, 0x7816, 0x78f2, 0x79f2, 0x6d10,
-    0x69c6, 0x6c8f, 0x6b0f, 0x6b8f };
+    0x74d2, 0x74fc, 0x7512, 0x7612, 0x7714, 0x7816, 0x78f2, 0x79f2,
+    0x6d10, 0x69c6, 0x6c8f, 0x6b0f, 0x6b8f };
   const _CPUMemoryMapLUT SC55mkII_1_01_CPU_LUT {
     0x650e, 0x653a, 0x6c86, 0x6486, 0x6e86, 0x6f86, 0x7086, 0x7186,
-    0x74fb, 0x7286, 0x7386, 0x7489, 0x758a, 0x7765, 0x7766, 0x6a84,
-    0x673a, 0x6a03, 0x6883, 0x6903 };
+    0x74fb, 0x7511, 0x7286, 0x7386, 0x7489, 0x758a, 0x7765, 0x7766,
+    0x6a84, 0x673a, 0x6a03, 0x6883, 0x6903 };
 
   int _read_lookup_tables_progrom(std::ifstream &romFile);
   int _read_lookup_tables_cpurom(std::ifstream &romFile);
+  int _read_lut_16bit(std::ifstream &ifs, int pos, std::array<int, 11> &lut);
   int _read_lut_16bit(std::ifstream &ifs, int pos, std::array<int, 21> &lut);
   int _read_lut_16bit(std::ifstream &ifs, int pos, std::array<int, 128> &lut);
   int _read_lut_16bit(std::ifstream &ifs, int pos, std::array<int, 129> &lut);

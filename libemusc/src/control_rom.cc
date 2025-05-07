@@ -290,6 +290,7 @@ int ControlRom::_read_instruments(std::ifstream &romFile)
       i.partials[p].LFO2Rate     = data[1];
       i.partials[p].LFO2Delay    = data[2];
       i.partials[p].LFO2Fade     = data[3];
+      i.partials[p].TVFFlags     = data[4];
       i.partials[p].panpot       = data[5];
       i.partials[p].coarsePitch  = data[6];
       i.partials[p].finePitch    = data[7];
@@ -636,10 +637,30 @@ int ControlRom::_read_lookup_tables_cpurom(std::ifstream &romFile)
   _read_lut_16bit(romFile, CPUmmLUT->LFOTVPDepth, lookupTables.LFOTVPDepth);
   _read_lut_16bit(romFile, CPUmmLUT->PitchEnvDepth, lookupTables.PitchEnvDepth);
   _read_lut_16bit(romFile, CPUmmLUT->TVAEnvExpChange, lookupTables.TVAEnvExpChange);
+  _read_lut_16bit(romFile, CPUmmLUT->TVFCutoffVSens, lookupTables.TVFCutoffVSens);
   _read_lut_16bit(romFile, CPUmmLUT->TVFCutoffFreqKF,
 		  lookupTables.TVFCutoffFreqKF);
 
   return 0;
+}
+
+
+int ControlRom::_read_lut_16bit(std::ifstream &ifs, int pos,
+                                std::array<int, 11> &lut)
+{
+  ifs.seekg(pos);
+
+  for (int i = 0; i < 11; i ++) {
+    uint16_t value;
+    if (!ifs.read(reinterpret_cast<char*>(&value), sizeof(value))) {
+      std::cerr << "libEmuSC: Error reading LUT from ROM" << std::endl;
+      return i;
+    }
+
+    lut[i] = static_cast<int>(_native_endian_uint16((uint8_t *) &value));
+  }
+
+  return 11;
 }
 
 
