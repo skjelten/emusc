@@ -144,7 +144,7 @@ WaveGenerator::~WaveGenerator()
 {}
 
 
-void WaveGenerator::next(void)
+void WaveGenerator::update(void)
 {
   if (++_updateParams % 100 == 0)
     _update_params();

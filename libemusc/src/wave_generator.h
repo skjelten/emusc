@@ -54,7 +54,7 @@ public:
                 Settings *settings, int partId);
   ~WaveGenerator();
 
-  void next(void);
+  void update(void);
   inline double value() { return _currentValue; }
 
 private:

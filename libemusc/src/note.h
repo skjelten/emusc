@@ -67,6 +67,9 @@ private:
 
   Settings *_settings;
   int8_t _partId;
+
+  int _updateSkipSamples;
+  int _updateSkipSamplesItr;
 };
 
 }

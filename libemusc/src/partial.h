@@ -45,8 +45,10 @@ public:
 	  WaveGenerator *LFO1, Settings *settings, int8_t partId);
   ~Partial();
 
-  void stop(void);
   bool get_next_sample(float *sampleOut);
+
+  void stop(void);
+  void update(void);
 
   inline float get_current_lfo(void)
   { if (_LFO2) return (float) _LFO2->value(); return std::nanf("");}
@@ -82,12 +84,7 @@ private:
   enum Settings::InterpMode _interpMode;
   double _sample;
 
-  unsigned int _updateTimeout = 0;   // Temporary quickfix
-  int _updatePeriod;                 // samples to skip for params update
-
   bool _next_sample_from_rom(float timeStep);
-
-  void _update_params(void);
 };
 
 }

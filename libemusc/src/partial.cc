@@ -80,8 +80,7 @@ Partial::Partial(int partialId, uint8_t key, uint8_t velocity,
     _tvf(NULL),
     _tva(NULL),
     _interpMode(static_cast<Settings::InterpMode>(settings->interpolation_mode())),
-    _sample(0),
-    _updatePeriod((32000 / 256) * settings->sample_rate() / 32000.0)
+    _sample(0)
 {
   _drumSet = settings->get_param(PatchParam::UseForRhythm, partId);
   if (_drumSet)
@@ -163,13 +162,6 @@ bool Partial::get_next_sample(float *noteSample)
   if  (_tva->finished())
     return 1;
 
-  // To be executed every 256 samples if samplerate = 32k
-  if (!(_updateTimeout++ % _updatePeriod))
-    _update_params();
-
-  // Iterate LFO2
-  _LFO2->next();
-
   float pitchAdj = _settings->get_pitchBend_factor(_partId) * _tvp->get_next_value();
 
   if (_next_sample_from_rom(pitchAdj))
@@ -213,12 +205,10 @@ bool Partial::_next_sample_from_rom(float timeStep)
 
   switch (_interpMode) {
     case Settings::InterpMode::Nearest: {
-      // Nearest neighbor
       _sample = _pcmSamples->at(idx0);
       break;
     }
     case Settings::InterpMode::Linear: {
-      // Linear interpolation
       int idx1 = idx0 + 1;
       if (idx1 > (int) loopEnd) {
         idx1 = _isLooping ? (int) loopStart : idx0;
@@ -230,7 +220,6 @@ bool Partial::_next_sample_from_rom(float timeStep)
       break;
     }
     case Settings::InterpMode::Cubic: {
-      // Cubic interpolation
       auto indexes = get_cubic_indexes(idx0,
                                        _ctrlSample->sampleLen - _ctrlSample->loopLen,
                                        _ctrlSample->sampleLen,
@@ -262,11 +251,14 @@ void Partial::stop(void)
 }
 
 
-void Partial::_update_params(void)
+// Update parameters every 256th sample @32k
+void Partial::update(void)
 {
   if (_tvp) _tvp->update_dynamic_params();
   if (_tvf) _tvf->update_params();
   if (_tva) _tva->update_dynamic_params();
+
+  if (_LFO2) _LFO2->update();
 }
 
 }
