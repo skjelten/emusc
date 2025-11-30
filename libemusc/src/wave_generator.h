@@ -85,7 +85,6 @@ private:
   int _index;                 // Sample index
   int _period;                // Number of samples in one period (2*pi)
 
-  unsigned int _updateParams = 0;
 
   void _update_params(void);
   float _phase_shift_to_index(int phaseShift);

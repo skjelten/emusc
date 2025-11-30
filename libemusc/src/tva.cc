@@ -107,9 +107,9 @@ void TVA::apply(double *sample)
   // the same "deformation" as seen with triangle?
   float LFO1Mod, LFO2Mod;
 
-  // Do we have a LUT for this?
-  LFO1Mod = 1 + (_LFO1->value() * _accLFO1Depth / (256 * 127 / 3));
-  LFO2Mod = 1 + (_LFO2->value() * _accLFO2Depth / (256 * 127 / 3));
+  // Fixme: TCA Depth calculation needs more work. Do we have a LUT for this?
+  LFO1Mod = 1 + (_LFO1->value() * _accLFO1Depth / (127));
+  LFO2Mod = 1 + (_LFO2->value() * _accLFO2Depth / (127));
 
   // LFO is limited to max 3 and min 0
   if (LFO1Mod > 3) LFO1Mod = 3;

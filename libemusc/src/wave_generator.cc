@@ -81,13 +81,12 @@ WaveGenerator::WaveGenerator(struct ControlRom::Instrument &instrument,
   if (delayInput < 0) delayInput = 0;
   if (delayInput > 127) delayInput = 127;
 
-  _delay = (32000.0 / (61 * LUT.LFODelayTime[delayInput])) * _sampleRate;
-  _fade = (32000.0 / (61 * LUT.LFODelayTime[instrument.LFO1Fade])) *_sampleRate;
+  _delay = (32000.0 / (61 * LUT.LFODelayTime[delayInput])) * 125.0;
+  _fade = (32000.0 / (61 * LUT.LFODelayTime[instrument.LFO1Fade])) * 125.0;
   _fadeMax = _fade;
 
   if (0)
     std::cout << "New LFO1: rate=" << _rate
-              << " period=" << (32000.0 / (61 * _LUT.LFORate[_rate])) *_sampleRate
               << " delay(rom)=" << delayInput
               << " -> " << _delay << " samples / "
               << (float) _delay / settings->sample_rate() << "s"
@@ -119,8 +118,8 @@ WaveGenerator::WaveGenerator(struct ControlRom::InstPartial &instPartial,
   _waveForm = (enum Waveform) (instPartial.LFO2Waveform & 0x0f);
   _rate = instPartial.LFO2Rate;
 
-  _delay = (32000.0 / (61 * LUT.LFODelayTime[instPartial.LFO2Delay]))*_sampleRate;
-  _fade = (32000.0 / (61 * LUT.LFODelayTime[instPartial.LFO2Fade]))*_sampleRate;
+  _delay = (32000.0 / (61 * LUT.LFODelayTime[instPartial.LFO2Delay])) * 125.0;
+  _fade = (32000.0 / (61 * LUT.LFODelayTime[instPartial.LFO2Fade])) * 125.0;
   _fadeMax = _fade;
 
   if (0)
@@ -144,10 +143,10 @@ WaveGenerator::~WaveGenerator()
 {}
 
 
+// This function is called at ~125Hz and has 256 samples between each run @32k
 void WaveGenerator::update(void)
 {
-  if (++_updateParams % 100 == 0)
-    _update_params();
+  _update_params();
 
   if (_rate + _rateChange <= 0) {       // rate = 0 Hz => keep previous output
     return;
@@ -173,7 +172,7 @@ void WaveGenerator::update(void)
         pos -= 128;
 
       if (!_interpolate) {
-        LFOValue = squareWave * _LUT.LFOSine[pos];
+        LFOValue = (squareWave * _LUT.LFOSine[pos]) / 255.0;
 
       } else {
         int p0 = squareWave * _LUT.LFOSine[(int) pos];
@@ -181,7 +180,7 @@ void WaveGenerator::update(void)
 
         float fractionP1 = pos - (int) pos;
         float fractionP0 = 1.0 - fractionP1;
-	LFOValue = fractionP0 * p0 + fractionP1 * p1;
+	LFOValue = (fractionP0 * p0 + fractionP1 * p1) / 255.0;
       }
     }
 
@@ -261,7 +260,7 @@ void WaveGenerator::_update_params(void)
   if (_rate + _rateChange <= 0)
     _period = 0;
   else
-    _period = (32000.0 / (61 * _LUT.LFORate[_rate + _rateChange])) *_sampleRate;
+    _period = (32000.0 / (61 * _LUT.LFORate[_rate + _rateChange])) * 125.0;
 }
 
 

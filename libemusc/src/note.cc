@@ -119,7 +119,7 @@ bool Note::get_next_sample(float *partSample)
 {
   bool finished[2] = {0, 0};
 
-  // Update all note parameters every 256 samples @32k samples/s
+  // Update all note parameters every 256th samples @32k samples/s => 125 Hz
   if (_updateSkipSamplesItr-- == 0) {
     _updateSkipSamplesItr = _updateSkipSamples;
 
