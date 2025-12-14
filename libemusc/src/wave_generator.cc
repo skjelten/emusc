@@ -154,14 +154,17 @@ void WaveGenerator::update(void)
 
   int index = _instRate;
   if (_id == 0)
-    index += _settings->get_param(PatchParam::VibratoRate, _partId) - 0x40;
+    index += _settings->get_param(PatchParam::VibratoRate, _partId) - 0x80 +
+             _settings->get_param(PatchParam::Acc_LFO1RateControl, _partId);
+  else
+    index += _settings->get_param(PatchParam::Acc_LFO2RateControl, _partId)
+             - 0x40;
+
+  // Save time by skipping LFO calculations if LFO rate is stalled
+  if (index == 0)
+    return;
+
   int rate =  _LUT.LFORate[std::clamp(index, 0, 127)];
-
-  int accCtrlRate = (_id == 0) ?
-    (_settings->get_param(PatchParam::Acc_LFO1RateControl, _partId) - 0x40) :
-    (_settings->get_param(PatchParam::Acc_LFO2RateControl, _partId) - 0x40);
-
-  rate += accCtrlRate;
   rate = std::clamp(rate, 0, 0x28f6);
 
   // FIXME: There is an unknwon multiplication that we are missing
