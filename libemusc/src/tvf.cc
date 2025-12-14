@@ -108,8 +108,8 @@ void TVF::apply(double *sample)
     envKey = (_envelope->get_next_value() - 0x40) * _envDepth * 0.0001 * 0.62;
 
   // LFO modulation
-  float lfo1ModFreq = _LFO1->value() * _LUT.LFOTVFDepth[_accLFO1Depth] / 256;
-  float lfo2ModFreq = _LFO2->value() * _LUT.LFOTVFDepth[_accLFO2Depth] / 256;
+  float lfo1ModFreq = _LFO1->value_float() * _LUT.LFOTVFDepth[_accLFO1Depth] / 256;
+  float lfo2ModFreq = _LFO2->value_float() * _LUT.LFOTVFDepth[_accLFO2Depth] / 256;
 
   float freqIndex = _coFreqIndex + lfo1ModFreq + lfo2ModFreq + envKey +
                     (_keyFollow >> 8); // + _coFreqVSens;

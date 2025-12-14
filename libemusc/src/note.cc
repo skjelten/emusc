@@ -33,9 +33,7 @@ Note::Note(uint8_t key, uint8_t velocity, ControlRom &ctrlRom, PcmRom &pcmRom,
     _stopped(false),
     _7bScale(1/127.0),
     _settings(settings),
-    _partId(partId),
-    _updateSkipSamples(256.0 * (float) settings->sample_rate() / 32000.0),
-    _updateSkipSamplesItr(0)
+    _partId(partId)
 {
   _partial[0] = _partial[1] = NULL;
 
@@ -115,18 +113,17 @@ void Note::sustain(bool state)
 }
 
 
+void Note::update(void)
+{
+  if (_LFO1) _LFO1->update();
+  if (_partial[0]) _partial[0]->update();
+  if (_partial[1]) _partial[1]->update();
+}
+
+
 bool Note::get_next_sample(float *partSample)
 {
   bool finished[2] = {0, 0};
-
-  // Update all note parameters every 256th samples @32k samples/s => 125 Hz
-  if (_updateSkipSamplesItr-- == 0) {
-    _updateSkipSamplesItr = _updateSkipSamples;
-
-    if (_LFO1) _LFO1->update();
-    if (_partial[0]) _partial[0]->update();
-    if (_partial[1]) _partial[1]->update();
-  }
 
   // Temporary samples for LEFT and RIGHT channel
   float sample[2] = {0, 0};
@@ -161,7 +158,7 @@ int Note::get_num_partials()
 }
 
 
-float Note::get_current_lfo(int lfo)
+int Note::get_current_lfo(int lfo)
 {
   if (lfo == 0)
     return _LFO1->value();
@@ -170,7 +167,7 @@ float Note::get_current_lfo(int lfo)
   if (lfo == 2 && _partial[1])
     return _partial[1]->get_current_lfo();
 
-  return std::nanf("");
+  return 0;
 }
 
 

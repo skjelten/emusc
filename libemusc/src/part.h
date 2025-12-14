@@ -45,6 +45,7 @@ public:
   ~Part();
 
   int get_next_sample(float *sampleOut);
+  void update(void);
   float get_last_peak_sample(void);
   int get_num_partials(void);
 
@@ -70,12 +71,14 @@ public:
 
   uint8_t midi_channel(void) { return _settings->get_param(PatchParam::RxChannel, _id); }
 
+  // Define callback functions for frontends
+  void set_change_callback(std::function<void(const int)> cb);
+  void clear_change_callback(void);
   void set_envelope_callback(std::function<void(const float, const float,
                                                 const float, const float,
                                                 const float, const float)> cb);
   void clear_envelope_callback(void);
-  void set_lfo_callback(std::function<void(const float, const float,
-                                           const float)> cb);
+  void set_lfo_callback(std::function<void(const int, const int, const int)>cb);
   void clear_lfo_callback(void);
 
 private:
@@ -112,14 +115,13 @@ private:
   // TODO: Figure out how to do this properly. Only relevant for pitchBend?
   uint8_t _lastPitchBendRange;
 
-  // TODO: Find a better solution to having this updated at a different interval
-  unsigned int _sampleCounter = 0;
-
   // Envelopes and LFOs callback for external clients
+  std::function<void(const int)> _changeCallback = NULL;
   std::function<void(const float, const float,
                      const float, const float,
                      const float, const float)> _envelopeCallback = NULL;
-  std::function<void(const float, const float, const float)> _lfoCallback =NULL;
+  std::function<void(const int, const int, const int)> _lfoCallback = NULL;
+  bool _callbackTrigger;
 
 };
 

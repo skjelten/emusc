@@ -75,8 +75,8 @@ double TVP::get_next_value()
 {
   float fixedPitchAdj = _staticPitchCorr * _pitchOffsetHz * _pitchExp;
 
-  float vibrato1 = (_LFO1->value() * _LUT.LFOTVPDepth[_accLFO1Depth]) / 3650;
-  float vibrato2 = (_LFO2->value() * _LUT.LFOTVPDepth[_accLFO2Depth]) / 3650;
+  float vibrato1 = (_LFO1->value_float() * _LUT.LFOTVPDepth[_accLFO1Depth]) / 3650;
+  float vibrato2 = (_LFO2->value_float() * _LUT.LFOTVPDepth[_accLFO2Depth]) / 3650;
   float envelope = _envelope->get_next_value() * 0.3 * _multiplier * log(2);
   float dynPitchAdj = exp((envelope + vibrato1 + vibrato2) / 1200.0);
 

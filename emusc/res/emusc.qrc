@@ -27,6 +27,12 @@
 	<file>images/controller.png</file>
 	<file>images/drum.png</file>
 	<file>images/display.png</file>
+        <file>images/wf_sine.png</file>
+        <file>images/wf_square.png</file>
+        <file>images/wf_sawtooth.png</file>
+        <file>images/wf_triangle.png</file>
+        <file>images/wf_samplehold.png</file>
+        <file>images/wf_random.png</file>
     </qresource>
 
     <qresource>

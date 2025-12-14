@@ -44,7 +44,9 @@ Synth::Synth(ControlRom &controlRom, PcmRom &pcmRom, SoundMap map)
   : _sampleRate(0),
     _channels(0),
     _ctrlRom(controlRom),
-    _pcmRom(pcmRom)
+    _pcmRom(pcmRom),
+    _updateSkipSamples(-1),
+    _updateSkipSamplesItr(0)
 {
   srand (static_cast<unsigned>(time(0)));
 
@@ -325,6 +327,13 @@ int Synth::get_next_sample(int16_t *sampleOut)
 
   midiMutex.lock();
 
+  // Update all parts and note parameters every 256 samples @32k
+  if (_updateSkipSamples >= 0 && _updateSkipSamplesItr-- == 0) {
+    _updateSkipSamplesItr = _updateSkipSamples;
+    for (auto &p : _parts)
+      p.update();
+  }
+
   // Iterate all parts and ask for next sample
   for (auto &p : _parts) {
     partSample[0] = partSample[1] = 0;
@@ -382,6 +391,8 @@ void Synth::set_audio_format(uint32_t sampleRate, uint8_t channels)
   _channels = channels;
 
   _init_parts();
+
+  _updateSkipSamples = (256.0 * (float) sampleRate / 32000.0);
 }
 
 
@@ -415,6 +426,7 @@ void Synth::set_part_mute(uint8_t partId, bool mute)
   _parts[partId].set_mute(mute);
 }
 
+
 void Synth::set_part_instrument(uint8_t partId, uint8_t index, uint8_t bank)
 {
   _parts[partId].set_program(index, bank, true);
@@ -433,6 +445,20 @@ void Synth::clear_part_midi_mod_callback(void)
 }
 
 
+void Synth::add_part_change_callback(std::function<void(const int)> callback)
+{
+  for (auto &p : _parts)
+    p.set_change_callback(callback);
+}
+
+
+void Synth::clear_part_change_callback()
+{
+  for (auto &p : _parts)
+    p.clear_change_callback();
+}
+
+
 void Synth::set_part_envelope_callback(int partId,
                                        std::function<void(const float, const float, const float, const float, const float, const float)> callback)
 {
@@ -446,8 +472,8 @@ void Synth::clear_part_envelope_callback(int partId)
 
 
 void Synth::set_part_lfo_callback(int partId,
-                                  std::function<void(const float, const float,
-                                                     const float)> callback)
+                                  std::function<void(const int, const int,
+                                                     const int)> callback)
 {
   _parts[partId].set_lfo_callback(callback);
 }

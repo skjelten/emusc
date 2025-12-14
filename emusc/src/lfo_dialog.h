@@ -27,13 +27,15 @@
 #include "emulator.h"
 #include "scene.h"
 
-#include <QVector>
 #include <QPushButton>
 #include <QComboBox>
 #include <QDialog>
-#include <QTimer>
-#include <QMutex>
 #include <QKeyEvent>
+#include <QLabel>
+#include <QMutex>
+#include <QString>
+#include <QTimer>
+
 #include <QtCharts/QChart>
 #include <QtCharts/QLineSeries>
 #include <QtCharts/QValueAxis>
@@ -51,12 +53,11 @@ public:
   LFODialog(Emulator *emulator, Scene *scene, QWidget *parent = nullptr);
   virtual ~LFODialog();
 
-  void lfo_callback(const float lfo1, const float lfo2p1, const float lfo2p2);
+  void lfo_callback(const int lfo1, const int lfo2p1, const int lfo2p2);
 
 public slots:
   void chart_timeout(void);
 
-  void pause(void);
   void done(int res);
   void reject(void);
 
@@ -67,9 +68,9 @@ private:
   QTimer _chartTimer;
   QMutex _dataMutex;
 
-  QVector<float> _lfo1Data;
-  QVector<float> _lfo2p1Data;
-  QVector<float> _lfo2p2Data;
+  QList<QPointF> _lfo1Buf;
+  QList<QPointF> _lfo2p1Buf;
+  QList<QPointF> _lfo2p2Buf;
 
   QChart *_chart;
   QValueAxis *_xAxis;
@@ -80,19 +81,52 @@ private:
   QLineSeries *_LFO2P2Series;
 
   QComboBox *_partCB;
-  QPushButton *_pausePB;
+  QComboBox *_timeCB;
 
-  int _partId;
-  
+  QLabel *_legendL[3];
+  QLabel *_legendBoxL[3];
+  QLabel *_waveformPML[3];
+  QLabel *_waveformL[3];
+  QLabel *_rateL[3];
+  QLabel *_delayL[3];
+  QLabel *_fadeL[3];
+
+  QLabel *_waveformNameL[3];
+  QLabel *_rateValueL[3];
+  QLabel *_delayValueL[3];
+  QLabel *_fadeValueL[3];
+
+  QPixmap _sinePM;
+  QPixmap _squarePM;
+  QPixmap _trianglePM;
+  QPixmap _sawtoothPM;
+  QPixmap _sampleHoldPM;
+  QPixmap _randomPM;
+
+  bool _activeLFO[3];
+
+  int _selectedPart;
+
   int _timePeriod;
-  unsigned int _iteration;
-  float _xPos;
 
   void keyPressEvent(QKeyEvent *keyEvent);
   void keyReleaseEvent(QKeyEvent *keyEvent);
 
+  void _update_instrument_info(void);
+  void _enable_lfo_column(bool enable, int column);
+  QString _get_qstring_from_waveform(uint8_t waveform);
+  void _show_legend(bool status, int lfo);
+  void _set_waveform_image(int waveform, QLabel *label);
+  QPixmap _invert_pixmap_color(const QPixmap &pixmap);
+
+signals:
+  void lfo_data_received(const int lfo1, const int lfo2p1, const int lfo2p2);
+
 private slots:
   void _partCB_changed(int value);
+  void _timeCB_changed(QString string);
+  void _part_changed(int partId);
+  void _update_lfo_series(const int lfo1, const int lfo2p1, const int lfo2p2);
 
 };
 

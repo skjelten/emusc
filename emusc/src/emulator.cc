@@ -186,6 +186,10 @@ void Emulator::start(void)
   else if (!interpol.compare("Cubic", Qt::CaseInsensitive))
     _emuscSynth->set_interpolation_mode(2);
 
+  _emuscSynth->add_part_change_callback(std::bind(&Emulator::_part_change_callback,
+                                                  this,
+                                                  std::placeholders::_1));
+
   _running = true;
   emit(started());
 }
@@ -195,6 +199,7 @@ void Emulator::start(void)
 void Emulator::stop(void)
 {
   _emuscSynth->clear_part_midi_mod_callback();
+  _emuscSynth->clear_part_change_callback();
 
   _lcdDisplay->turn_off();
 
@@ -341,6 +346,12 @@ void Emulator::_part_mod_callback(const int partId)
     _set_part(partId);
   else if (partId < 0 && _allMode)
     _set_all();
+}
+
+
+void Emulator::_part_change_callback(const int partId)
+{
+  emit part_changed(partId);
 }
 
 
@@ -1493,4 +1504,37 @@ void Emulator::set_mt32_map(void)
   reset();
   _selectedPart = 0;
   update_LCD_display();
+}
+
+
+EmuSC::ControlRom::Instrument &Emulator::get_instrument_rom(int bank, int index)
+{
+  if (!_emuscControlRom)
+    throw (QString("No instrument available"));
+
+  uint16_t instrument = _emuscControlRom->variation(bank)[index];
+
+  return _emuscControlRom->instrument(instrument);
+}
+
+
+int Emulator::get_lfo_rate_LUT(int index)
+{
+  if (!_emuscControlRom)
+    throw (QString("Internal error: Control ROM not available!"));
+  else if (index < 0 || index > 127)
+    throw (QString("Internal error: LFO Rate lookup out of range!"));
+
+  return _emuscControlRom->lookupTables.LFORate[index];
+}
+
+
+int Emulator::get_lfo_delay_fade_LUT(int index)
+{
+  if (!_emuscControlRom)
+    throw (QString("Internal error: Control ROM not available"));
+  else if (index < 0 || index > 127)
+    throw (QString("Internal error: LFO Delay / Fade lookup out of range!"));
+
+  return _emuscControlRom->lookupTables.LFODelayTime[index];
 }

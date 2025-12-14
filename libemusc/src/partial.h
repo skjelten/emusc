@@ -50,8 +50,8 @@ public:
   void stop(void);
   void update(void);
 
-  inline float get_current_lfo(void)
-  { if (_LFO2) return (float) _LFO2->value(); return std::nanf("");}
+  inline int get_current_lfo(void)
+  { if (_LFO2) return _LFO2->value(); return 0; }
   float get_current_tvp(void)
   { if (_tvp) return _tvp->get_current_value(); return 0;}
   float get_current_tvf(void)

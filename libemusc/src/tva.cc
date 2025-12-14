@@ -108,8 +108,8 @@ void TVA::apply(double *sample)
   float LFO1Mod, LFO2Mod;
 
   // Fixme: TCA Depth calculation needs more work. Do we have a LUT for this?
-  LFO1Mod = 1 + (_LFO1->value() * _accLFO1Depth / (127));
-  LFO2Mod = 1 + (_LFO2->value() * _accLFO2Depth / (127));
+  LFO1Mod = 1 + (_LFO1->value_float() * _accLFO1Depth / (127));
+  LFO2Mod = 1 + (_LFO2->value_float() * _accLFO2Depth / (127));
 
   // LFO is limited to max 3 and min 0
   if (LFO1Mod > 3) LFO1Mod = 3;

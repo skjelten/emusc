@@ -61,6 +61,8 @@ public:
   QString pcm_rom_version(void);
   QString pcm_rom_date(void);
 
+  EmuSC::ControlRom::Instrument &get_instrument_rom(int bank, int index);
+
   QStandardItemModel *get_instruments_list(void);
   QStandardItemModel *get_partials_list(void);
   QStandardItemModel *get_samples_list(void);
@@ -121,6 +123,9 @@ public:
 
   void set_interpolation_mode(int mode);
 
+  int get_lfo_rate_LUT(int index);
+  int get_lfo_delay_fade_LUT(int index);
+
 signals:
   void bar_display_update(QVector<bool>*);
 
@@ -139,6 +144,8 @@ signals:
 
   void all_button_changed(bool state);
   void mute_button_changed(bool state);
+
+  void part_changed(int partId);
 
 public slots:
   void select_all();
@@ -231,6 +238,7 @@ private:
   void _set_midi_channel(uint8_t value, bool update);
 
   void _part_mod_callback(const int partId);
+  void _part_change_callback(const int partId);
 };
 
 

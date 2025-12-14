@@ -29,11 +29,12 @@ namespace EmuSC {
 Part::Part(uint8_t id, Settings *settings, ControlRom &ctrlRom, PcmRom &pcmRom)
   : _id(id),
     _settings(settings),
-    _ctrlRom(ctrlRom),
-    _pcmRom(pcmRom),
     _7bScale(1/127.0),
     _lastPeakSample(0),
-    _lastPitchBendRange(2)
+    _ctrlRom(ctrlRom),
+    _pcmRom(pcmRom),
+    _lastPitchBendRange(2),
+    _callbackTrigger(false)
 {
   // TODO: Rename mode => synthMode and set proper defaults for MT32 mode
   _notesMutex = new std::mutex();
@@ -60,6 +61,8 @@ int Part::get_next_sample(float *sampleOut)
 {
   float partSample[2] = { 0, 0 };
 
+  _notesMutex->lock();
+
   // Only process notes if we have any
   if (_notes.size() > 0) {
 
@@ -70,10 +73,6 @@ int Part::get_next_sample(float *sampleOut)
       _lastPitchBendRange = pbRng;
       _settings->update_pitchBend_factor(_id);
     }
-
-    float accSample = 0;
-
-    _notesMutex->lock();
 
     // Get next sample from active notes, delete those which are finished
     std::list<Note*>::iterator itr = _notes.begin();
@@ -90,19 +89,20 @@ int Part::get_next_sample(float *sampleOut)
     }
 
     // Export envelopes and LFOs to external client
-    if (_envelopeCallback && !_notes.empty() && _sampleCounter % 150 == 0)
-      _envelopeCallback(_notes.front()->get_current_tvp(0),
-                        _notes.front()->get_current_tvp(1),
-                        _notes.front()->get_current_tvf(0),
-                        _notes.front()->get_current_tvf(1),
-                        _notes.front()->get_current_tva(0),
-                        _notes.front()->get_current_tva(1));
-    if (_lfoCallback && !_notes.empty() && _sampleCounter % 100 == 0)
-      _lfoCallback(_notes.front()->get_current_lfo(0),
-                   _notes.front()->get_current_lfo(1),
-                   _notes.front()->get_current_lfo(2));
+    if (_callbackTrigger) {
+      if (_envelopeCallback)
+        _envelopeCallback(_notes.front()->get_current_tvp(0),
+                          _notes.front()->get_current_tvp(1),
+                          _notes.front()->get_current_tvf(0),
+                          _notes.front()->get_current_tvf(1),
+                          _notes.front()->get_current_tva(0),
+                          _notes.front()->get_current_tva(1));
 
-    _notesMutex->unlock();
+      if (_lfoCallback)
+        _lfoCallback(_notes.front()->get_current_lfo(0),
+                     _notes.front()->get_current_lfo(1),
+                     _notes.front()->get_current_lfo(2));
+    }
 
     // Apply volume from part (MIDI channel) and expression (CM11)
     uint8_t expression = _settings->get_param(PatchParam::Expression, _id);
@@ -117,15 +117,29 @@ int Part::get_next_sample(float *sampleOut)
 
     sampleOut[0] += partSample[0];
     sampleOut[1] += partSample[1];
+
+  } else {     // Send LFO callbacks also when no active notes are running
+    if (_callbackTrigger && _lfoCallback)
+      _lfoCallback(0, 0, 0);
   }
 
-  // Final stage is to add System Effects
-  if (_sampleCounter++ % 350 == 0)
-    _systemEffects->update_params();
+  _notesMutex->unlock();
 
   _systemEffects->apply(sampleOut);
 
+  _callbackTrigger = false;
+
   return 0;
+}
+
+
+void Part::update(void)
+{
+  for (auto &n : _notes)
+    n->update();
+
+  _systemEffects->update_params();
+  _callbackTrigger = true;
 }
 
 
@@ -547,7 +561,22 @@ int Part::set_program(uint8_t index, int8_t bank, bool ignRxFlags)
     _settings->set_param(PatchParam::ToneNumber, dsIndex, _id);
   }
 
+  // Send "change" callback for frontend
+  if (_changeCallback) _changeCallback(_id);
+
   return 1;
+}
+
+
+void Part::set_change_callback(std::function<void(const int)> cb)
+{
+  _changeCallback = cb;
+}
+
+
+void Part::clear_change_callback(void)
+{
+  _changeCallback = NULL;
 }
 
 
@@ -565,8 +594,8 @@ void Part::clear_envelope_callback(void)
 }
 
 
-void Part::set_lfo_callback(std::function<void(const float, const float,
-                                               const float)> cb)
+void Part::set_lfo_callback(std::function<void(const int, const int, const int)
+                            > cb)
 {
   _lfoCallback = cb;
 }

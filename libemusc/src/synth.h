@@ -102,12 +102,14 @@ public:
 
   // REMOVE!
   bool get_part_mute(uint8_t partId);
-  uint8_t get_part_instrument(uint8_t partId, uint8_t &bank);
   void set_part_mute(uint8_t partId, bool mute);
   void set_part_instrument(uint8_t partId, uint8_t index, uint8_t bank);
 
   void add_part_midi_mod_callback(std::function<void(const int)> callback);
   void clear_part_midi_mod_callback(void);
+
+  void add_part_change_callback(std::function<void(const int)> callback);
+  void clear_part_change_callback(void);
 
   void set_part_envelope_callback(int partId,
                                   std::function<void(const float, const float,
@@ -115,8 +117,8 @@ public:
                                                      const float, const float)> callback);
   void clear_part_envelope_callback(int partId);
   void set_part_lfo_callback(int partId,
-                             std::function<void(const float, const float,
-                                                const float)> callback);
+                             std::function<void(const int, const int, const int)
+                             > callback);
   void clear_part_lfo_callback(int partId);
 
   // EmuSC clients methods for getting synth paramters
@@ -157,9 +159,13 @@ private:
 
   struct std::vector<Part> _parts;
   std::vector<std::function<void(const int)>> _partMidiModCallbacks;
+  std::vector<std::function<void(const int)>> _partChangeCallbacks;
 
   ControlRom &_ctrlRom;
   PcmRom &_pcmRom;
+
+  int _updateSkipSamples;
+  int _updateSkipSamplesItr;
 
   // MIDI message types
   static const uint8_t midi_NoteOff         = 0x80;

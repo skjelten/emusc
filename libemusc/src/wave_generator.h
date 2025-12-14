@@ -35,12 +35,12 @@ class WaveGenerator
 {
 public:
   enum class Waveform {
-    Sine        = 0,
-    Square      = 1,
-    Sawtooth    = 2,
-    Triangle    = 3,
-    RandomLevel = 8,
-    RandomSlope = 9,
+    Sine       = 0,
+    Square     = 1,
+    Sawtooth   = 2,
+    Triangle   = 3,
+    SampleHold = 8,
+    Random     = 9,
   };
 
   // LFO1 is defined in the Instrument section
@@ -55,40 +55,42 @@ public:
   ~WaveGenerator();
 
   void update(void);
-  inline double value() { return _currentValue; }
+  inline int value(void) { return _currentValueNorm; }
+  inline float value_float(void) { return (float) _currentValueNorm / 32767.0; }
 
 private:
   WaveGenerator();
 
   bool _id;
-  enum Waveform _waveForm;
-  int _sampleRate;
+  enum Waveform _waveform;
 
   struct ControlRom::LookupTables &_LUT;
 
-  int _rate;
+  int _instRate;              // LFO Rate from instrument [partial] definition
   int _rateChange;            // Change in rate due to controller input etc.
-  int _delay;                 // Delay time in number of samples
-  int _fade;                  // Fade time in number of samples
-  int _fadeMax;
 
-  float _currentValue;
-  float _random;
-  float _randomStart;
+  int _delay;                 // Current delay status from 0 to 0xffff
+  int _delayIncLUT;           // Delay increment @125Hz from LUT
+
+  int _fade;                  // Current fade status from 0 to 0xffff
+  int _fadeIncLUT;            // Fade increment @125Hz from LUT
+
+  int _currentValue;          // 16 bit SC-55 scpecific LFO format
+  int _currentValueNorm;      // 16 bit normalized LFO value
+
+  uint16_t _accRate;          // Accumulated rate (+ phase shift)
+  int _random;
+  bool _randomFirstRun;
 
   Settings *_settings;
   int _partId;
 
-  bool _useLUT;
-  bool _interpolate;          // Linear interpolation
-
-  int _index;                 // Sample index
-  int _period;                // Number of samples in one period (2*pi)
-
-
-  void _update_params(void);
-  float _phase_shift_to_index(int phaseShift);
-
+  int _generate_sine(int rate);
+  int _generate_square(int rate);
+  int _generate_sawtooth(int rate);
+  int _generate_triangle(int rate);
+  int _generate_sample_hold(int rate);
+  int _generate_random(int rate);
 };
 
 }
