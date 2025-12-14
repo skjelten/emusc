@@ -31,6 +31,8 @@
 #include <QGridLayout>
 #include <QApplication>
 #include <QRegularExpressionValidator>
+#include <QPainter>
+#include <QStyleHints>
 
 
 SynthDialog::SynthDialog(Emulator *emulator, Scene *scene, QWidget *parent)
@@ -68,35 +70,64 @@ SynthDialog::SynthDialog(Emulator *emulator, Scene *scene, QWidget *parent)
   _menuList = new QListWidget();
   _menuList->setMinimumHeight(100);
 
-  _masterLW = new QListWidgetItem(QIcon(":/images/master.png"),
-				  tr("Master"), _menuList);
+  _masterLW = new QListWidgetItem(tr("Master"), _menuList);
+  _reverbLW = new QListWidgetItem(tr("Reverb"), _menuList);
+  _chorusLW = new QListWidgetItem(tr("Chorus"), _menuList);
+  _partMainLW = new QListWidgetItem(tr("Part: Main"), _menuList);
+  _partRxLW = new QListWidgetItem(tr("Part: Rx & Mode"), _menuList);
+  _partTonesLW = new QListWidgetItem(tr("Part: Tones"), _menuList);
+  _partScaleLW = new QListWidgetItem(tr("Part: Scale Tuning"), _menuList);
+  _partCtrlLW = new QListWidgetItem(tr("Part: Controllers"), _menuList);
+  _drumsLW = new QListWidgetItem(tr("Drums"), _menuList);
+  _displayLW = new QListWidgetItem(tr("Display"), _menuList);
+
+  QPixmap masterPM(":/images/master.png");
+  QPixmap reverbPM(":/images/reverb.png");
+  QPixmap chorusPM(":/images/chorus.png");
+  QPixmap partMainPM(":/images/part.png");
+  QPixmap partRxPM(":/images/rx.png");
+  QPixmap partTonesPM(":/images/tone.png");
+  QPixmap partScalePM(":/images/scale.png");
+  QPixmap partCtrlPM(":/images/controller.png");
+  QPixmap drumsPM(":/images/drum.png");
+  QPixmap displayPM(":/images/display.png");
+
+  // Invert icon colors in case of dark theme
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
+  if (qApp->styleHints()->colorScheme() == Qt::ColorScheme::Dark) {
+    masterPM = _invert_pixmap_color(masterPM);
+    reverbPM = _invert_pixmap_color(reverbPM);
+    chorusPM = _invert_pixmap_color(chorusPM);
+    partMainPM = _invert_pixmap_color(partMainPM);
+    partRxPM = _invert_pixmap_color(partRxPM);
+    partTonesPM = _invert_pixmap_color(partTonesPM);
+    partScalePM = _invert_pixmap_color(partScalePM);
+    partCtrlPM = _invert_pixmap_color(partCtrlPM);
+    drumsPM = _invert_pixmap_color(drumsPM);
+    displayPM = _invert_pixmap_color(displayPM);
+  }
+#endif
+
+  _masterLW->setIcon(masterPM);
+  _reverbLW->setIcon(reverbPM);
+  _chorusLW->setIcon(chorusPM);
+  _partMainLW->setIcon(partMainPM);
+  _partRxLW->setIcon(partRxPM);
+  _partTonesLW->setIcon(partTonesPM);
+  _partScaleLW->setIcon(partScalePM);
+  _partCtrlLW->setIcon(partCtrlPM);
+  _drumsLW->setIcon(drumsPM);
+  _displayLW->setIcon(displayPM);
+
   _menuList->addItem(_masterLW);
-  _reverbLW = new QListWidgetItem(QIcon(":/images/reverb.png"),
-				  tr("Reverb"), _menuList);
   _menuList->addItem(_reverbLW);
-  _chorusLW = new QListWidgetItem(QIcon(":/images/chorus.png"),
-				  tr("Chorus"), _menuList);
   _menuList->addItem(_chorusLW);
-  _partMainLW = new QListWidgetItem(QIcon(":/images/part.png"),
-				    tr("Part: Main"), _menuList);
   _menuList->addItem(_partMainLW);
-  _partRxLW = new QListWidgetItem(QIcon(":/images/rx.png"),
-				  tr("Part: Rx & Mode"), _menuList);
   _menuList->addItem(_partRxLW);
-  _partTonesLW = new QListWidgetItem(QIcon(":/images/tone.png"),
-				     tr("Part: Tones"), _menuList);
   _menuList->addItem(_partTonesLW);
-  _partScaleLW = new QListWidgetItem(QIcon(":/images/scale.png"),
-				     tr("Part: Scale Tuning"), _menuList);
   _menuList->addItem(_partScaleLW);
-  _partCtrlLW = new QListWidgetItem(QIcon(":/images/controller.png"),
-				    tr("Part: Controllers"), _menuList);
   _menuList->addItem(_partCtrlLW);
-  _drumsLW = new QListWidgetItem(QIcon(":/images/drum.png"),
-				 tr("Drums"), _menuList);
   _menuList->addItem(_drumsLW);
-  _displayLW =new QListWidgetItem(QIcon(":/images/display.png"),
-				  tr("Display"), _menuList);
   _menuList->addItem(_displayLW);
 
   _menuList->setFixedWidth(_menuList->sizeHintForColumn(0) + 10 +
@@ -199,6 +230,21 @@ void SynthDialog::_new_stack_item_focus(int index)
 void SynthDialog::accept()
 {
   delete this;
+}
+
+
+QPixmap SynthDialog::_invert_pixmap_color(const QPixmap &pixmap)
+{
+  QPixmap newPixmap(pixmap.size());
+  newPixmap.fill(Qt::transparent);
+
+  QPainter painter(&newPixmap);
+  painter.drawPixmap(0, 0, pixmap);
+  painter.setCompositionMode(QPainter::CompositionMode_SourceIn);
+  painter.fillRect(pixmap.rect(), Qt::white);
+  painter.end();
+
+  return newPixmap;
 }
 
 

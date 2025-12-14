@@ -30,6 +30,7 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QListWidget>
+#include <QPixmap>
 #include <QString>
 #include <QStringList>
 #include <QCheckBox>
@@ -67,6 +68,8 @@ private:
 public:
   explicit PreferencesDialog(Emulator *emulator, Scene *scene, MainWindow *mWindow, QWidget *parent = nullptr);
   ~PreferencesDialog();
+
+  QPixmap _invert_pixmap_color(const QPixmap &pixmap);
 
 private slots:
   void accept(void);

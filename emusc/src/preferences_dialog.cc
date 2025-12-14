@@ -41,6 +41,8 @@
 #include <QStringList>
 #include <QColorDialog>
 #include <QCryptographicHash>
+#include <QPainter>
+#include <QStyleHints>
 
 
 PreferencesDialog::PreferencesDialog(Emulator *emulator, Scene *scene, MainWindow *mWindow, QWidget *parent)
@@ -64,17 +66,34 @@ PreferencesDialog::PreferencesDialog(Emulator *emulator, Scene *scene, MainWindo
   _menuList = new QListWidget();
   _menuList->setMinimumHeight(100);
   
-  _generalLW = new QListWidgetItem(QIcon(":/images/gear.png"),
-				   tr("General"), _menuList);
-  _menuList->addItem(_generalLW);  
-  _audioLW = new QListWidgetItem(QIcon(":/images/speaker.png"),
-				 tr("Audio"), _menuList);
+  _generalLW = new QListWidgetItem(tr("General"), _menuList);
+  _audioLW = new QListWidgetItem(tr("Audio"), _menuList);
+  _midiLW = new QListWidgetItem(tr("MIDI"), _menuList);
+  _romLW = new QListWidgetItem(tr("ROM"), _menuList);
+
+  QPixmap generalPM(":/images/gear.png");
+  QPixmap audioPM(":/images/speaker.png");
+  QPixmap midiPM(":/images/midi.png");
+  QPixmap romPM(":/images/rom.png");
+
+  // Invert icon colors in case of dark theme
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
+  if (qApp->styleHints()->colorScheme() == Qt::ColorScheme::Dark) {
+    generalPM = _invert_pixmap_color(generalPM);
+    audioPM = _invert_pixmap_color(audioPM);
+    midiPM = _invert_pixmap_color(midiPM);
+    romPM = _invert_pixmap_color(romPM);
+  }
+#endif
+
+  _generalLW->setIcon(generalPM);
+  _audioLW->setIcon(audioPM);
+  _midiLW->setIcon(midiPM);
+  _romLW->setIcon(romPM);
+
+  _menuList->addItem(_generalLW);
   _menuList->addItem(_audioLW);
-  _midiLW = new QListWidgetItem(QIcon(":/images/midi.png"),
-				tr("MIDI"), _menuList);
   _menuList->addItem(_midiLW);
-  _romLW = new QListWidgetItem(QIcon(":/images/rom.png"),
-			       tr("ROM"), _menuList);
   _menuList->addItem(_romLW);
 
   _menuList->setFixedWidth(_menuList->sizeHintForColumn(0) + 10 +
@@ -128,6 +147,21 @@ void PreferencesDialog::reset()
     _romSettings->reset();
   else
     std::cerr << "EmuSC: Internal error, reset unkown menu widget" << std::endl;
+}
+
+
+QPixmap PreferencesDialog::_invert_pixmap_color(const QPixmap &pixmap)
+{
+  QPixmap newPixmap(pixmap.size());
+  newPixmap.fill(Qt::transparent);
+
+  QPainter painter(&newPixmap);
+  painter.drawPixmap(0, 0, pixmap);
+  painter.setCompositionMode(QPainter::CompositionMode_SourceIn);
+  painter.fillRect(pixmap.rect(), Qt::white);
+  painter.end();
+
+  return newPixmap;
 }
 
 

@@ -27,6 +27,7 @@
 #include <QDialog>
 #include <QLineEdit>
 #include <QLabel>
+#include <QPixmap>
 #include <QString>
 #include <QSlider>
 #include <QCheckBox>
@@ -72,6 +73,8 @@ private:
 
   void keyPressEvent(QKeyEvent *keyEvent);
   void keyReleaseEvent(QKeyEvent *keyEvent);
+
+  QPixmap _invert_pixmap_color(const QPixmap &pixmap);
 
 public:
   explicit SynthDialog(Emulator *emulator, Scene *s, QWidget *parent = nullptr);
