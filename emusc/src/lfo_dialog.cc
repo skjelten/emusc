@@ -126,6 +126,7 @@ LFODialog::LFODialog(Emulator *emulator, Scene *scene, QWidget *parent)
   _legendL[2] = new QLabel("LFO2P2");
 
   QGridLayout *gridLayout = new QGridLayout();
+  gridLayout->setColumnMinimumWidth(0, 55);
   for (int i = 0; i < 3; i++) {
     _waveformPML[i] = new QLabel();
     gridLayout->addWidget(_waveformPML[i], 0, i * 2, Qt::AlignRight | Qt::AlignVCenter);
