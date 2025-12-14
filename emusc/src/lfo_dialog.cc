@@ -351,9 +351,9 @@ void LFODialog::_update_instrument_info(void)
                                                   Qt::KeepAspectRatio,
                                                   Qt::SmoothTransformation));
         _waveformNameL[0]->setText(_get_qstring_from_waveform(iRom.LFO1Waveform & 0x0f));
-        _rateValueL[0]->setText(QString::number((_emulator->get_lfo_rate_LUT(iRom.LFO1Rate)) / 512.0, 'f', 1) + " Hz");
-        _delayValueL[0]->setText(QString::number(512.0 / (_emulator->get_lfo_delay_fade_LUT(iRom.LFO1Delay)), 'f', 1) + " s");
-        _fadeValueL[0]->setText(QString::number(512.0 / (_emulator->get_lfo_delay_fade_LUT(iRom.LFO1Fade)), 'f', 1) + " s");
+        _rateValueL[0]->setText(QString::number((125.0 * _emulator->get_lfo_rate_LUT(iRom.LFO1Rate)) / 65535.0, 'f', 1) + " Hz");
+        _delayValueL[0]->setText(QString::number(65535.0 / (125.0 * _emulator->get_lfo_delay_fade_LUT(iRom.LFO1Delay)), 'f', 1) + " s");
+        _fadeValueL[0]->setText(QString::number(65535.0 / (125.0 *_emulator->get_lfo_delay_fade_LUT(iRom.LFO1Fade)), 'f', 1) + " s");
         _enable_lfo_column(true, 0);
         _activeLFO[0] = true;
         QPixmap p(15, 15);
@@ -376,9 +376,9 @@ void LFODialog::_update_instrument_info(void)
         _set_waveform_image(iRom.partials[0].LFO2Waveform & 0x0f,
                             _waveformPML[1]);
         _waveformNameL[1]->setText(_get_qstring_from_waveform(iRom.partials[0].LFO2Waveform & 0x0f));
-        _rateValueL[1]->setText(QString::number((_emulator->get_lfo_rate_LUT(iRom.partials[0].LFO2Rate)) / 512.0, 'f', 1) + " Hz");
-        _delayValueL[1]->setText(QString::number(512.0 / (_emulator->get_lfo_delay_fade_LUT(iRom.partials[0].LFO2Delay)), 'f', 1) + " s");
-        _fadeValueL[1]->setText(QString::number(512.0 / (_emulator->get_lfo_delay_fade_LUT(iRom.partials[0].LFO2Fade)), 'f', 1) + " s");
+        _rateValueL[1]->setText(QString::number((125.0 * _emulator->get_lfo_rate_LUT(iRom.partials[0].LFO2Rate)) / 65535.0, 'f', 1) + " Hz");
+        _delayValueL[1]->setText(QString::number(65535.0 / (125.0 * _emulator->get_lfo_delay_fade_LUT(iRom.partials[0].LFO2Delay)), 'f', 1) + " s");
+        _fadeValueL[1]->setText(QString::number(65535.0 / (125.0 * _emulator->get_lfo_delay_fade_LUT(iRom.partials[0].LFO2Fade)), 'f', 1) + " s");
         _enable_lfo_column(true, 1);
         _activeLFO[1] = true;
         QPixmap p(15, 15);
@@ -402,9 +402,9 @@ void LFODialog::_update_instrument_info(void)
       _set_waveform_image(iRom.partials[1].LFO2Waveform & 0x0f,
                           _waveformPML[2]);
       _waveformNameL[2]->setText(_get_qstring_from_waveform(iRom.partials[1].LFO2Waveform & 0x0f));
-      _rateValueL[2]->setText(QString::number((_emulator->get_lfo_rate_LUT(iRom.partials[1].LFO2Rate)) / 512.0, 'f', 1) + " Hz");
-        _delayValueL[2]->setText(QString::number(512.0 / (_emulator->get_lfo_delay_fade_LUT(iRom.partials[1].LFO2Delay)), 'f', 1) + " s");
-        _fadeValueL[2]->setText(QString::number(512.0 / (_emulator->get_lfo_delay_fade_LUT(iRom.partials[1].LFO2Fade)), 'f', 1) + " s");
+      _rateValueL[2]->setText(QString::number((125.0 * _emulator->get_lfo_rate_LUT(iRom.partials[1].LFO2Rate)) / 65535.0, 'f', 1) + " Hz");
+      _delayValueL[2]->setText(QString::number(65535.0 / (125.0 * _emulator->get_lfo_delay_fade_LUT(iRom.partials[1].LFO2Delay)), 'f', 1) + " s");
+      _fadeValueL[2]->setText(QString::number(65535.0 / (125.0 * _emulator->get_lfo_delay_fade_LUT(iRom.partials[1].LFO2Fade)), 'f', 1) + " s");
       _enable_lfo_column(true, 2);
       _activeLFO[2] = true;
       QPixmap p(15, 15);
