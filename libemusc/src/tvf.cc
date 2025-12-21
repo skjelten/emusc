@@ -144,18 +144,19 @@ void TVF::note_off()
 }
 
 
+// TODO: Re-add support for controller input
 void TVF::update_params(void)
 {
   if (_bqFilter == nullptr)                       // TVF disabled
     return;
 
-  _accLFO1Depth = (_instPartial.TVFLFO1Depth & 0x7f) +
-    _settings->get_param(PatchParam::Acc_LFO1TVFDepth, _partId);
+  _accLFO1Depth = (_instPartial.TVFLFO1Depth & 0x7f);
+  // + _settings->get_param(PatchParam::Acc_LFO1TVFDepth, _partId);
   if (_accLFO1Depth < 0) _accLFO1Depth = 0;
   if (_accLFO1Depth > 127) _accLFO1Depth = 127;
 
-  _accLFO2Depth = (_instPartial.TVFLFO2Depth & 0x7f) +
-    _settings->get_param(PatchParam::Acc_LFO2TVFDepth, _partId);
+  _accLFO2Depth = (_instPartial.TVFLFO2Depth & 0x7f);
+  // + _settings->get_param(PatchParam::Acc_LFO2TVFDepth, _partId);
   if (_accLFO2Depth < 0) _accLFO2Depth = 0;
   if (_accLFO2Depth > 127) _accLFO2Depth = 127;
 

@@ -152,19 +152,19 @@ void WaveGenerator::update(void)
       _fade = 0xffff;
   }
 
+  // To calculate the rate we need to use the LUT for converting ROM and
+  // "Vibrato Rate" (only LFO1) values. Controller values for LFO1/2 rates are
+  // pre-caclculated and just needs to be added. Max rate is 0x28f6.
   int index = _instRate;
   if (_id == 0)
-    index += _settings->get_param(PatchParam::VibratoRate, _partId) - 0x80 +
-             _settings->get_param(PatchParam::Acc_LFO1RateControl, _partId);
-  else
-    index += _settings->get_param(PatchParam::Acc_LFO2RateControl, _partId)
-             - 0x40;
-
-  // Save time by skipping LFO calculations if LFO rate is stalled
-  if (index == 0)
-    return;
+    index += _settings->get_param(PatchParam::VibratoRate, _partId) - 0x40;
 
   int rate =  _LUT.LFORate[std::clamp(index, 0, 127)];
+  if (_id == 0)
+    rate += _settings->get_acc_control_param(Settings::ControllerParam::LFO1Rate, _partId);
+  else
+    rate += _settings->get_acc_control_param(Settings::ControllerParam::LFO2Rate, _partId);
+
   rate = std::clamp(rate, 0, 0x28f6);
 
   // FIXME: There is an unknwon multiplication that we are missing

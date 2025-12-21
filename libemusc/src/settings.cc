@@ -589,81 +589,6 @@ void Settings::_initialize_patch_params(enum Mode m)
     _patchParams[(int) PatchParam::CC2_LFO2TVFDepth    |(partAddr << 8)] = 0x00;
     _patchParams[(int) PatchParam::CC2_LFO2TVADepth    |(partAddr << 8)] = 0x00;
 
-    // Controller input list  --- TO BE DELETED?? AUTOGENERATE AT START?
-    _patchParams[(int) PatchParam::CtM_PitchControl    |(partAddr << 8)] = 0x40;
-    _patchParams[(int) PatchParam::CtM_TVFCutoffControl|(partAddr << 8)] = 0x40;
-    _patchParams[(int) PatchParam::CtM_AmplitudeControl|(partAddr << 8)] = 0x40;
-    _patchParams[(int) PatchParam::CtM_LFO1RateControl |(partAddr << 8)] = 0x40;
-    _patchParams[(int) PatchParam::CtM_LFO1PitchDepth  |(partAddr << 8)] = 0x00;
-    _patchParams[(int) PatchParam::CtM_LFO1TVFDepth    |(partAddr << 8)] = 0x00;
-    _patchParams[(int) PatchParam::CtM_LFO1TVADepth    |(partAddr << 8)] = 0x00;
-    _patchParams[(int) PatchParam::CtM_LFO2RateControl |(partAddr << 8)] = 0x40;
-    _patchParams[(int) PatchParam::CtM_LFO2PitchDepth  |(partAddr << 8)] = 0x00;
-    _patchParams[(int) PatchParam::CtM_LFO2TVFDepth    |(partAddr << 8)] = 0x00;
-    _patchParams[(int) PatchParam::CtM_LFO2TVADepth    |(partAddr << 8)] = 0x00;
-
-    _patchParams[(int) PatchParam::CtB_PitchControl    |(partAddr << 8)] = 0x42;
-    _patchParams[(int) PatchParam::CtB_TVFCutoffControl|(partAddr << 8)] = 0x40;
-    _patchParams[(int) PatchParam::CtB_AmplitudeControl|(partAddr << 8)] = 0x40;
-    _patchParams[(int) PatchParam::CtB_LFO1RateControl |(partAddr << 8)] = 0x40;
-    _patchParams[(int) PatchParam::CtB_LFO1PitchDepth  |(partAddr << 8)] = 0x00;
-    _patchParams[(int) PatchParam::CtB_LFO1TVFDepth    |(partAddr << 8)] = 0x00;
-    _patchParams[(int) PatchParam::CtB_LFO1TVADepth    |(partAddr << 8)] = 0x00;
-    _patchParams[(int) PatchParam::CtB_LFO2RateControl |(partAddr << 8)] = 0x40;
-    _patchParams[(int) PatchParam::CtB_LFO2PitchDepth  |(partAddr << 8)] = 0x00;
-    _patchParams[(int) PatchParam::CtB_LFO2TVFDepth    |(partAddr << 8)] = 0x00;
-    _patchParams[(int) PatchParam::CtB_LFO2TVADepth    |(partAddr << 8)] = 0x00;
-
-    _patchParams[(int) PatchParam::CtC_PitchControl    |(partAddr << 8)] = 0x40;
-    _patchParams[(int) PatchParam::CtC_TVFCutoffControl|(partAddr << 8)] = 0x40;
-    _patchParams[(int) PatchParam::CtC_AmplitudeControl|(partAddr << 8)] = 0x40;
-    _patchParams[(int) PatchParam::CtC_LFO1RateControl |(partAddr << 8)] = 0x40;
-    _patchParams[(int) PatchParam::CtC_LFO1PitchDepth  |(partAddr << 8)] = 0x00;
-    _patchParams[(int) PatchParam::CtC_LFO1TVFDepth    |(partAddr << 8)] = 0x00;
-    _patchParams[(int) PatchParam::CtC_LFO1TVADepth    |(partAddr << 8)] = 0x00;
-    _patchParams[(int) PatchParam::CtC_LFO2RateControl |(partAddr << 8)] = 0x40;
-    _patchParams[(int) PatchParam::CtC_LFO2PitchDepth  |(partAddr << 8)] = 0x00;
-    _patchParams[(int) PatchParam::CtC_LFO2TVFDepth    |(partAddr << 8)] = 0x00;
-    _patchParams[(int) PatchParam::CtC_LFO2TVADepth    |(partAddr << 8)] = 0x00;
-
-    _patchParams[(int) PatchParam::CtP_PitchControl    |(partAddr << 8)] = 0x40;
-    _patchParams[(int) PatchParam::CtP_TVFCutoffControl|(partAddr << 8)] = 0x40;
-    _patchParams[(int) PatchParam::CtP_AmplitudeControl|(partAddr << 8)] = 0x40;
-    _patchParams[(int) PatchParam::CtP_LFO1RateControl |(partAddr << 8)] = 0x40;
-    _patchParams[(int) PatchParam::CtP_LFO1PitchDepth  |(partAddr << 8)] = 0x00;
-    _patchParams[(int) PatchParam::CtP_LFO1TVFDepth    |(partAddr << 8)] = 0x00;
-    _patchParams[(int) PatchParam::CtP_LFO1TVADepth    |(partAddr << 8)] = 0x00;
-    _patchParams[(int) PatchParam::CtP_LFO2RateControl |(partAddr << 8)] = 0x40;
-    _patchParams[(int) PatchParam::CtP_LFO2PitchDepth  |(partAddr << 8)] = 0x00;
-    _patchParams[(int) PatchParam::CtP_LFO2TVFDepth    |(partAddr << 8)] = 0x00;
-    _patchParams[(int) PatchParam::CtP_LFO2TVADepth    |(partAddr << 8)] = 0x00;
-
-    _patchParams[(int) PatchParam::Ct1_PitchControl    |(partAddr << 8)] = 0x40;
-    _patchParams[(int) PatchParam::Ct1_TVFCutoffControl|(partAddr << 8)] = 0x40;
-    _patchParams[(int) PatchParam::Ct1_AmplitudeControl|(partAddr << 8)] = 0x40;
-    _patchParams[(int) PatchParam::Ct1_LFO1RateControl |(partAddr << 8)] = 0x40;
-    _patchParams[(int) PatchParam::Ct1_LFO1PitchDepth  |(partAddr << 8)] = 0x00;
-    _patchParams[(int) PatchParam::Ct1_LFO1TVFDepth    |(partAddr << 8)] = 0x00;
-    _patchParams[(int) PatchParam::Ct1_LFO1TVADepth    |(partAddr << 8)] = 0x00;
-    _patchParams[(int) PatchParam::Ct1_LFO2RateControl |(partAddr << 8)] = 0x40;
-    _patchParams[(int) PatchParam::Ct1_LFO2PitchDepth  |(partAddr << 8)] = 0x00;
-    _patchParams[(int) PatchParam::Ct1_LFO2TVFDepth    |(partAddr << 8)] = 0x00;
-    _patchParams[(int) PatchParam::Ct1_LFO2TVADepth    |(partAddr << 8)] = 0x00;
-
-    _patchParams[(int) PatchParam::Ct2_PitchControl    |(partAddr << 8)] = 0x40;
-    _patchParams[(int) PatchParam::Ct2_TVFCutoffControl|(partAddr << 8)] = 0x40;
-    _patchParams[(int) PatchParam::Ct2_AmplitudeControl|(partAddr << 8)] = 0x40;
-    _patchParams[(int) PatchParam::Ct2_LFO1RateControl |(partAddr << 8)] = 0x40;
-    _patchParams[(int) PatchParam::Ct2_LFO1PitchDepth  |(partAddr << 8)] = 0x00;
-    _patchParams[(int) PatchParam::Ct2_LFO1TVFDepth    |(partAddr << 8)] = 0x00;
-    _patchParams[(int) PatchParam::Ct2_LFO1TVADepth    |(partAddr << 8)] = 0x00;
-    _patchParams[(int) PatchParam::Ct2_LFO2RateControl |(partAddr << 8)] = 0x40;
-    _patchParams[(int) PatchParam::Ct2_LFO2PitchDepth  |(partAddr << 8)] = 0x00;
-    _patchParams[(int) PatchParam::Ct2_LFO2TVFDepth    |(partAddr << 8)] = 0x00;
-    _patchParams[(int) PatchParam::Ct2_LFO2TVADepth    |(partAddr << 8)] = 0x00;
-
-    _update_controller_input_acc(PatchParam::PitchBend, p);
-
     // Controller values
     _patchParams[(int) PatchParam::PitchBend       | (partAddr << 8)] = 0x20;
     _patchParams[(int) PatchParam::PitchBend + 1   | (partAddr << 8)] = 0x00;
@@ -1018,141 +943,163 @@ void Settings::_run_macro_reverb(uint8_t value)
 // These parameters are accumulated from each of the controllers. Note that
 // accumulated values are only updated when a controller changes value - and
 // not when a controller parameter is changed.
-void Settings::_update_controller_input(enum PatchParam pp, uint8_t value,
-					int8_t part)
+// This function updates all 11 parameters for a specific controller
+void Settings::_update_controller_input(enum PatchParam pp, int value, int part)
 {
-  uint8_t partAddr = _convert_to_roland_part_id_LUT[part];
-  int ctrlId;
+  int ctrlInt;
 
-  switch ((int) pp)
-    {
+  switch ((int) pp) {
     case ((int) PatchParam::Modulation):
-      ctrlId = 0x00;
+      ctrlInt = static_cast<int>(Controller::Modulation);
       break;
     case ((int) PatchParam::PitchBend):
-      ctrlId = 0x10;
+      ctrlInt = static_cast<int>(Controller::PitchBend);
       break;
     case ((int) PatchParam::ChannelPressure):
-      ctrlId = 0x20;
+      ctrlInt = static_cast<int>(Controller::ChannelPressure);
       break;
     case ((int) PatchParam::PolyKeyPressure):
-      ctrlId = 0x30;
+      ctrlInt = static_cast<int>(Controller::PolyKeyPressure);
       break;
     case ((int) PatchParam::CC1Controller):
-      ctrlId = 0x40;
+      ctrlInt = static_cast<int>(Controller::CC1);
       break;
     case ((int) PatchParam::CC2Controller):
-      ctrlId = 0x50;
+      ctrlInt = static_cast<int>(Controller::CC2);
       break;
     default:
       std::cerr << "libEmuSC: Internal error (unkown controller)" << std::endl;
       return;
+  }
+
+  int ppMemOffset = ctrlInt *  0x10;
+  uint8_t partAddr = _convert_to_roland_part_id_LUT[part];
+
+  _controlParams[part][static_cast<int>(ControllerParam::Pitch)][ctrlInt] =
+    (((_patchParams[((int) PatchParam::MOD_PitchControl | (partAddr << 8))
+                    + ppMemOffset] - 0x40) * value) / 1);
+
+  _controlParams[part][static_cast<int>(ControllerParam::TVFCutoff)][ctrlInt] =
+    (((_patchParams[((int) PatchParam::MOD_TVFCutoffControl | (partAddr << 8))
+                    + ppMemOffset] - 0x40) * value) / 2);
+
+  _controlParams[part][static_cast<int>(ControllerParam::Amplitude)][ctrlInt] =
+    (((_patchParams[((int) PatchParam::MOD_AmplitudeControl | (partAddr << 8))
+                    + ppMemOffset] - 0x40) * value) / 2);
+
+  _controlParams[part][static_cast<int>(ControllerParam::LFO1Rate)][ctrlInt] =
+    (((_patchParams[((int) PatchParam::MOD_LFO1RateControl | (partAddr << 8))
+                    + ppMemOffset] - 0x40) * value) / 2);
+
+  _controlParams[part][static_cast<int>(ControllerParam::LFO1PitchDepth)][ctrlInt] =
+    (((_patchParams[((int) PatchParam::MOD_LFO1PitchDepth | (partAddr << 8))
+                    + ppMemOffset]) * value) / 4);
+
+  _controlParams[part][static_cast<int>(ControllerParam::LFO1TVFDepth)][ctrlInt] =
+    (((_patchParams[((int) PatchParam::MOD_LFO1TVFDepth | (partAddr << 8))
+                    + ppMemOffset]) * value) / 4);
+
+  _controlParams[part][static_cast<int>(ControllerParam::LFO1TVADepth)][ctrlInt] =
+    (((_patchParams[((int) PatchParam::MOD_LFO1TVADepth | (partAddr << 8))
+                    + ppMemOffset]) * value) / 4);
+
+  _controlParams[part][static_cast<int>(ControllerParam::LFO2Rate)][ctrlInt] =
+    (((_patchParams[((int) PatchParam::MOD_LFO2RateControl | (partAddr << 8))
+                    + ppMemOffset] - 0x40) * value) / 2);
+
+  _controlParams[part][static_cast<int>(ControllerParam::LFO2PitchDepth)][ctrlInt] =
+    (((_patchParams[((int) PatchParam::MOD_LFO2PitchDepth | (partAddr << 8))
+                    + ppMemOffset]) * value) / 4);
+
+  _controlParams[part][static_cast<int>(ControllerParam::LFO2TVFDepth)][ctrlInt] =
+    (((_patchParams[((int) PatchParam::MOD_LFO2TVFDepth | (partAddr << 8))
+                    + ppMemOffset]) * value) / 4);
+
+  _controlParams[part][static_cast<int>(ControllerParam::LFO2TVADepth)][ctrlInt] =
+    (((_patchParams[((int) PatchParam::MOD_LFO2TVADepth | (partAddr << 8))
+                    + ppMemOffset]) * value) / 4);
+
+
+  if (0) {
+    for (int i = 0; i < _controlParams[0].size(); i ++) {
+      for (int j = 0; j < _controlParams[0][i].size(); j ++) {
+	std::cout << _controlParams[0][i][j] << "," << std::flush;
+      }
+      std::cout << std::endl;
     }
-
-  // Pitch control is the only controller input that uses 16 bit data to store
-  // its value. This is only relevant for the combination of pitchbend
-  // controller input controlling pitch bend (?).
-  /*
-  if (pp == PatchParam::PitchBend) {
-    uint16_t pitchBend =
-      (_patchParams[((int) PatchParam::PB_PitchControl | (partAddr << 8))] - 0x40) *
-      (value / 8192) * (((value & 0x7f) << 7) + (lsb & 0x7f));
-    set_param_uint14(PatchParam::CtM_PitchControl, pitchBend, part);
-  } else {
-    _patchParams[((int) PatchParam::CtM_PitchControl | (partAddr << 8)) + ctrlId] =
-      0x40 + (_patchParams[((int) PatchParam::MOD_PitchControl | (partAddr << 8)) + ctrlId] - 0x40) * (value / 127.0);
+  std::cout << std::endl;
   }
-  */
-  _patchParams[((int) PatchParam::CtM_TVFCutoffControl | (partAddr << 8)) + ctrlId] =
-    0x40 + (_patchParams[((int) PatchParam::MOD_TVFCutoffControl | (partAddr << 8)) + ctrlId] - 0x40) * (value / 127.0);
-  _patchParams[((int) PatchParam::CtM_AmplitudeControl | (partAddr << 8)) + ctrlId] =
-    0x40 + (_patchParams[((int) PatchParam::MOD_AmplitudeControl | (partAddr << 8)) + ctrlId] - 0x40) * (value / 127.0);
-  _patchParams[((int) PatchParam::CtM_LFO1RateControl | (partAddr << 8)) + ctrlId] =
-    + 0x40 + (_patchParams[((int) PatchParam::MOD_LFO1RateControl | (partAddr << 8)) + ctrlId] - 0x40) * (value / 127.0);
-  _patchParams[((int) PatchParam::CtM_LFO1PitchDepth | (partAddr << 8)) + ctrlId] =
-    _patchParams[((int) PatchParam::MOD_LFO1PitchDepth | (partAddr << 8)) + ctrlId] * (value / 127.0);
-  _patchParams[((int) PatchParam::CtM_LFO1TVFDepth | (partAddr << 8)) + ctrlId] =
-    _patchParams[((int) PatchParam::MOD_LFO1TVFDepth | (partAddr << 8)) + ctrlId] * (value / 127.0);
-  _patchParams[((int) PatchParam::CtM_LFO1TVADepth | (partAddr << 8)) + ctrlId] =
-    _patchParams[((int) PatchParam::MOD_LFO1TVADepth | (partAddr << 8)) + ctrlId] * (value / 127.0);
-  _patchParams[((int) PatchParam::CtM_LFO2RateControl | (partAddr << 8)) + ctrlId] =
-    0x40 + (_patchParams[((int) PatchParam::MOD_LFO2RateControl | (partAddr << 8)) + ctrlId] - 0x40) * (value / 127.0);
-  _patchParams[((int) PatchParam::CtM_LFO2PitchDepth | (partAddr << 8)) + ctrlId] =
-    _patchParams[((int) PatchParam::MOD_LFO2PitchDepth | (partAddr << 8)) + ctrlId] * (value / 127.0);
-  _patchParams[((int) PatchParam::CtM_LFO2TVFDepth | (partAddr << 8)) + ctrlId] =
-    _patchParams[((int) PatchParam::MOD_LFO2TVFDepth | (partAddr << 8)) + ctrlId] * (value / 127.0);
-  _patchParams[((int) PatchParam::CtM_LFO2TVADepth | (partAddr << 8)) + ctrlId] =
-    _patchParams[((int) PatchParam::MOD_LFO2TVADepth | (partAddr << 8)) + ctrlId] * (value / 127.0);
 
-  // Update list of accumulated controller values with new values
-  _update_controller_input_acc(pp, part);
+  // FIXME: Should this one run once at 125Hz for each part? Move to Part calss?
+  _update_controller_input_acc(part);
 }
 
 
-// TODO: Remove pp if not needed by pitch bend
-void Settings::_update_controller_input_acc(enum PatchParam pp, int8_t part)
+void Settings::_update_controller_input_acc(int8_t part)
 {
-  uint8_t partAddr = _convert_to_roland_part_id_LUT[part];
+  _accControlParams[part][static_cast<int>(ControllerParam::Pitch)] =
+    _calc_controller_value(ControllerParam::Pitch, part, 0xbe8, 8 * 0xfbf8);
 
-  // TODO: Add support for pitch bend
-  // FIXME: part? Not use partAddr?
+  _accControlParams[part][static_cast<int>(ControllerParam::TVFCutoff)] =
+    _calc_controller_value(ControllerParam::TVFCutoff, part, 0xfa0, 8 * 0xc49c);
 
-  _accumulate_controller_values(PatchParam::CtM_TVFCutoffControl,
-				PatchParam::Acc_TVFCutoffControl,
-				part, -64, 63, true);
-  _accumulate_controller_values(PatchParam::CtM_AmplitudeControl,
-				PatchParam::Acc_AmplitudeControl,
-				part, 0, 127, true);
-  _accumulate_controller_values(PatchParam::CtM_LFO1RateControl,
-				PatchParam::Acc_LFO1RateControl,
-				part, 0, 127, true);
-  _accumulate_controller_values(PatchParam::CtM_LFO1PitchDepth,
-				PatchParam::Acc_LFO1PitchDepth,
-				part, 0, 127, false);
-  _accumulate_controller_values(PatchParam::CtM_LFO1TVFDepth,
-				PatchParam::Acc_LFO1TVFDepth,
-				part, 0, 127, false);
-  _accumulate_controller_values(PatchParam::CtM_LFO1TVADepth,
-				PatchParam::Acc_LFO1TVADepth,
-				part, 0, 127, false);
-  _accumulate_controller_values(PatchParam::CtM_LFO2RateControl,
-				PatchParam::Acc_LFO2RateControl,
-				part, 0, 127, true);
-  _accumulate_controller_values(PatchParam::CtM_LFO2PitchDepth,
-				PatchParam::Acc_LFO2PitchDepth,
-				part, 0, 127, false);
-  _accumulate_controller_values(PatchParam::CtM_LFO2TVFDepth,
-				PatchParam::Acc_LFO2TVFDepth,
-				part, 0, 127, false);
-  _accumulate_controller_values(PatchParam::CtM_LFO2TVADepth,
-				PatchParam::Acc_LFO2TVADepth,
-				part, 0, 127, false);
+  _accControlParams[part][static_cast<int>(ControllerParam::Amplitude)] =
+    _calc_controller_value(ControllerParam::Amplitude, part, 0xfa0, 16 * 0x820d);
+
+  _accControlParams[part][static_cast<int>(ControllerParam::LFO1Rate)] =
+    _calc_controller_value(ControllerParam::LFO1Rate, part, 0xfa0, 2 * 0xa7c7);
+
+  _accControlParams[part][static_cast<int>(ControllerParam::LFO1PitchDepth)] =
+    _calc_controller_value(ControllerParam::LFO1PitchDepth, part, 0xfc0, 2 * 0xbe7a);
+
+  _accControlParams[part][static_cast<int>(ControllerParam::LFO1TVFDepth)] =
+    _calc_controller_value(ControllerParam::LFO1TVFDepth, part, 0xfc0, 2 * 0xc30d);
+
+  _accControlParams[part][static_cast<int>(ControllerParam::LFO1TVADepth)] =
+    _calc_controller_value(ControllerParam::LFO1TVADepth, part, 0xfc0, 16 * 0x8105);
+
+  _accControlParams[part][static_cast<int>(ControllerParam::LFO2Rate)] =
+  _calc_controller_value(ControllerParam::LFO2Rate, part, 0xfa0, 2 * 0xa7c7);
+
+  _accControlParams[part][static_cast<int>(ControllerParam::LFO2PitchDepth)] =
+    _calc_controller_value(ControllerParam::LFO2PitchDepth, part, 0xfc0, 2 * 0xbe7a);
+
+  _accControlParams[part][static_cast<int>(ControllerParam::LFO2TVFDepth)] =
+    _calc_controller_value(ControllerParam::LFO2TVFDepth, part, 0xfc0, 2 * 0xc30d);
+
+  _accControlParams[part][static_cast<int>(ControllerParam::LFO2TVADepth)] =
+    _calc_controller_value(ControllerParam::LFO2TVADepth, part, 0xfc0, 16 * 0x8105);
+
+
+  if (0) {
+    std::cout << "Calculated control values per part:" << std::endl;
+    for (int p = 0; p < 16; p++) {
+      std::cout << "Part " << p << ": ";
+      for (int i = 0; i < _accControlParams[0].size(); i ++) {
+        std::cout << _accControlParams[p][i] << ",";
+      }
+      std::cout << std::endl;
+    }
+    std::cout << std::endl;
+  }
 }
 
 
-void Settings::_accumulate_controller_values(enum PatchParam ctm,
-					     enum PatchParam acc,
-					     int8_t part, int min, int max, bool center)
+int16_t Settings::_calc_controller_value(ControllerParam cp, int part, int max, int mul)
 {
-  if (part < 0 || part > 15)
-    return;
-
-  uint8_t partAddr = _convert_to_roland_part_id_LUT[part];
   int accValue = 0;
-
-  // Assuming we recieve the PatchParam from the first controller, and that each
-  // controller is separated by 0x10 in RAM
-  for (int i = 0; i < 6; i++) {
-    if (center)
-      accValue += _patchParams[((int) ctm | (partAddr << 8)) + (i * 0x10)] - 0x40;
-    else
-      accValue += _patchParams[((int) ctm | (partAddr << 8)) + (i * 0x10)];
+  for (const auto& cValue : _controlParams[part][static_cast<int>(cp)]) {
+    accValue += cValue;
   }
 
-  if (center) accValue += 0x40;
-  accValue = std::min(accValue, max);
-  accValue = std::max(accValue, min);
-  _patchParams[(int) acc | (partAddr << 8)] = accValue;
+  int output = accValue;
+  if (accValue < 0) output = -output;
+  if (output > max) output = max;
+  output *= mul;
+  output >>= 16;
+  if (accValue < 0) output = -output;
+
+  return output;
 }
 
 }

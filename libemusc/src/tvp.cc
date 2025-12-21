@@ -91,16 +91,17 @@ void TVP::note_off()
 }
 
 
+// TODO: Re-add support for controller input
 void TVP::update_dynamic_params(void)
 {
   _accLFO1Depth = _LFO1Depth +
-    (_settings->get_param(PatchParam::VibratoDepth, _partId) - 0x40) * 2 +
-    _settings->get_param(PatchParam::Acc_LFO1PitchDepth, _partId);
+    (_settings->get_param(PatchParam::VibratoDepth, _partId) - 0x40) * 2;
+  //  + _settings->get_param(PatchParam::Acc_LFO1PitchDepth, _partId);
   if (_accLFO1Depth < 0) _accLFO1Depth = 0;
   if (_accLFO1Depth > 127) _accLFO1Depth = 127;
 
-  _accLFO2Depth = _LFO2Depth +
-    _settings->get_param(PatchParam::Acc_LFO2PitchDepth, _partId);
+  _accLFO2Depth = _LFO2Depth;
+  // + _settings->get_param(PatchParam::Acc_LFO2PitchDepth, _partId);
   if (_accLFO2Depth < 0) _accLFO2Depth = 0;
   if (_accLFO2Depth > 127) _accLFO2Depth = 127;
 

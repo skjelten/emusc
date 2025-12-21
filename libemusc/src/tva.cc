@@ -139,17 +139,17 @@ void TVA::note_off()
 }
 
 
-// TODO: Figure out how often this update is supposed to happen (new thread?)
+// TODO: Re-add support for controller input
 void TVA::update_dynamic_params(bool reset)
 {
   // Update LFO inputs
-  _accLFO1Depth = (_instPartial.TVALFO1Depth & 0x7f) +
-    _settings->get_param(PatchParam::Acc_LFO1TVADepth, _partId);
+  _accLFO1Depth = (_instPartial.TVALFO1Depth & 0x7f);
+  // + _settings->get_param(PatchParam::Acc_LFO1TVADepth, _partId);
   if (_accLFO1Depth < 0) _accLFO1Depth = 0;
   if (_accLFO1Depth > 127) _accLFO1Depth = 127;
 
-  _accLFO2Depth = (_instPartial.TVALFO2Depth & 0x7f) +
-    _settings->get_param(PatchParam::Acc_LFO2TVADepth, _partId);
+  _accLFO2Depth = (_instPartial.TVALFO2Depth & 0x7f);
+  // + _settings->get_param(PatchParam::Acc_LFO2TVADepth, _partId);
   if (_accLFO2Depth < 0) _accLFO2Depth = 0;
   if (_accLFO2Depth > 127) _accLFO2Depth = 127;
 
@@ -159,8 +159,8 @@ void TVA::update_dynamic_params(bool reset)
                                                         _drumSet - 1, _key)];
 
   // Accumulated volume control from controllers
-  _ctrlVol =
-    _settings->get_param(PatchParam::Acc_AmplitudeControl, _partId) / 64.0;
+  _ctrlVol = 1;
+  //  _settings->get_param(PatchParam::Acc_AmplitudeControl, _partId) / 64.0;
 
   // Update panpot if not locked in random mode
   if (_panpotLocked)

@@ -26,6 +26,7 @@
 
 #include <stdint.h>
 
+#include <algorithm>
 #include <array>
 #include <string>
 
@@ -52,6 +53,29 @@ public:
     Nearest = 0,
     Linear  = 1,
     Cubic   = 2
+  };
+
+  enum class Controller {
+    Modulation      = 0,
+    PitchBend       = 1,
+    ChannelPressure = 2,
+    PolyKeyPressure = 3,
+    CC1             = 4,
+    CC2             = 5
+  };
+
+  enum class ControllerParam {
+    Pitch          =  0,
+    TVFCutoff      =  1,
+    Amplitude      =  2,
+    LFO1Rate       =  3,
+    LFO1PitchDepth =  4,
+    LFO1TVFDepth   =  5,
+    LFO1TVADepth   =  6,
+    LFO2Rate       =  7,
+    LFO2PitchDepth =  8,
+    LFO2TVFDepth   =  9,
+    LFO2TVADepth   = 10
   };
 
   // Retrieve settings from Config paramters
@@ -113,10 +137,19 @@ public:
   void set_interpolation_mode(enum InterpMode im) { _interpMode = im; }
   inline enum InterpMode interpolation_mode(void) { return _interpMode; }
 
+  int get_acc_control_param(enum ControllerParam cp, int part)
+  { part = std::clamp(part, 0, 15);
+    return _accControlParams[part][static_cast<int>(cp)]; }
+
 private:
   std::array<uint8_t, 0x0100> _systemParams;  // Both SysEx and non-SysEx data
   std::array<uint8_t, 0x4000> _patchParams;
   std::array<uint8_t, 0x2000> _drumParams;
+
+  // Controller paramter values generated when controllers change - all parts
+  std::array<std::array<std::array<int, 6>, 11>, 16> _controlParams{{{}}};
+  // Accumulated controller parameter values per value category - all parts
+  std::array<std::array<int16_t, 11>, 16> _accControlParams{{}};
 
   ControlRom &_ctrlRom;
 
@@ -140,11 +173,9 @@ private:
   void _run_macro_chorus(uint8_t value);
   void _run_macro_reverb(uint8_t value);
 
-  // Update accumulated controller inputs
-  void _update_controller_input(enum PatchParam pp, uint8_t value, int8_t part);
-  void _update_controller_input_acc(enum PatchParam pp, int8_t part);
-  void _accumulate_controller_values(enum PatchParam ctm, enum PatchParam acc,
-				     int8_t partm, int min, int max, bool center);
+  void _update_controller_input(enum PatchParam pp, int value, int part);
+  void _update_controller_input_acc(int8_t part);
+  int16_t _calc_controller_value(ControllerParam cp, int part, int max,int mul);
 
   // Temporary storage for pitchbend
   float _PBController[16];
