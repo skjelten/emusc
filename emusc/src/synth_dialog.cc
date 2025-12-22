@@ -1655,7 +1655,7 @@ void PartRxModeSettings::_rxBankSelect_changed(int value)
 void PartRxModeSettings::update_all_widgets(void)
 {
   _partC->setCurrentIndex(_partId);
-  
+
   _polyModeC->setCurrentIndex(_emulator->get_param(EmuSC::PatchParam::PolyMode, _partId));
   _assignModeC->setCurrentIndex(_emulator->get_param(EmuSC::PatchParam::AssignMode, _partId));
 
@@ -1715,7 +1715,7 @@ PartToneSettings::PartToneSettings(Emulator *emulator, int8_t &partId,
 
   QLabel *spacerL = new QLabel();
   spacerL->setFixedHeight(8);
-  
+
   QGridLayout *gridLayout = new QGridLayout();
   gridLayout->addWidget(new QLabel("Vibrato Rate"),     0, 0);
   gridLayout->addWidget(new QLabel("Vibrato Depth"),    1, 0);
@@ -1747,7 +1747,7 @@ PartToneSettings::PartToneSettings(Emulator *emulator, int8_t &partId,
   _TVFAEnvDecayL->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
   _TVFAEnvReleaseL->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
   */
- 
+
   // Set static width for slider value labels
   QFontMetrics fontMetrics(_vibratoRateL->font());
   int labelWidth = fontMetrics.horizontalAdvance("-888");
@@ -2307,57 +2307,56 @@ PartControllerSettings::PartControllerSettings(Emulator *emulator,
   _pitchCtrlS = new QSlider(Qt::Horizontal);
   _pitchCtrlS->setRange(40, 88);
   _pitchCtrlS->setTickPosition(QSlider::TicksBelow);
-  _pitchCtrlS->setTickInterval(1);
+  _pitchCtrlS->setTickInterval(2);
+  _pitchCtrlS->setToolTip("Pitch: -24 - 24 [semitones]");
 
   _tvfCutoffS = new QSlider(Qt::Horizontal);
   _tvfCutoffS->setRange(0, 127);
   _tvfCutoffS->setTickPosition(QSlider::TicksBelow);
-  _tvfCutoffS->setTickInterval(2400);
+  _tvfCutoffS->setTickInterval(32);
+  _tvfCutoffS->setToolTip("TVF Cutoff: -9600 - 9450 [cent]");
 
   _amplitudeS = new QSlider(Qt::Horizontal);
   _amplitudeS->setRange(0, 127);
   _amplitudeS->setTickPosition(QSlider::TicksBelow);
-  _amplitudeS->setTickInterval(25);
+  _amplitudeS->setTickInterval(32);
+  _amplitudeS->setToolTip("Amplitude: -100 - 98.4 [%]");
 
   _lfo1RateS = new QSlider(Qt::Horizontal);
   _lfo1RateS->setRange(0, 127);
   _lfo1RateS->setTickPosition(QSlider::TicksBelow);
-  _lfo1RateS->setTickInterval(100);
+  _lfo1RateS->setTickInterval(32);
+  _lfo1RateS->setToolTip("LFO1 Rate: -10.0 - 9.8 [Hz]");
 
   _lfo1PitchDepthS = new QSlider(Qt::Horizontal);
   _lfo1PitchDepthS->setRange(0, 127);
-  _lfo1PitchDepthS->setTickPosition(QSlider::TicksBelow);
-  _lfo1PitchDepthS->setTickInterval(150);
+  _lfo1PitchDepthS->setToolTip("LFO1 Pitch Depth: 0 - 600 [cent]");
 
   _lfo1TVFDepthS = new QSlider(Qt::Horizontal);
   _lfo1TVFDepthS->setRange(0, 127);
-  _lfo1TVFDepthS->setTickPosition(QSlider::TicksBelow);
-  _lfo1TVFDepthS->setTickInterval(600);
+  _lfo1TVFDepthS->setToolTip("LFO1 TVF Depth: 0 - 2400 [cent]");
 
   _lfo1TVADepthS = new QSlider(Qt::Horizontal);
   _lfo1TVADepthS->setRange(0, 127);
-  _lfo1TVADepthS->setTickPosition(QSlider::TicksBelow);
-  _lfo1TVADepthS->setTickInterval(25);
+  _lfo1TVADepthS->setToolTip("LFO1 TVA Depth: 0 - 100 [%]");
 
   _lfo2RateS = new QSlider(Qt::Horizontal);
   _lfo2RateS->setRange(0, 127);
   _lfo2RateS->setTickPosition(QSlider::TicksBelow);
-  _lfo2RateS->setTickInterval(100);
+  _lfo2RateS->setTickInterval(32);
+  _lfo2RateS->setToolTip("LFO2 Rate: -10.0 - 9.8 [Hz]");
 
   _lfo2PitchDepthS = new QSlider(Qt::Horizontal);
   _lfo2PitchDepthS->setRange(0, 127);
-  _lfo2PitchDepthS->setTickPosition(QSlider::TicksBelow);
-  _lfo2PitchDepthS->setTickInterval(150);
+  _lfo2PitchDepthS->setToolTip("LFO2 Pitch Depth: 0 - 600 [cent]");
 
   _lfo2TVFDepthS = new QSlider(Qt::Horizontal);
   _lfo2TVFDepthS->setRange(0, 127);
-  _lfo2TVFDepthS->setTickPosition(QSlider::TicksBelow);
-  _lfo2TVFDepthS->setTickInterval(32);
+  _lfo2TVFDepthS->setToolTip("LFO2 TVF Depth: 0 - 2400 [cent]");
 
   _lfo2TVADepthS = new QSlider(Qt::Horizontal);
   _lfo2TVADepthS->setRange(0, 127);
-  _lfo2TVADepthS->setTickPosition(QSlider::TicksBelow);
-  _lfo2TVADepthS->setTickInterval(25);
+  _lfo2TVADepthS->setToolTip("LFO2 TVA Depth: 0 - 100 [%]");
 
   gridLayout->addWidget(_pitchCtrlS,      0, 2);
   gridLayout->addWidget(_tvfCutoffS,      1, 2);
@@ -2445,7 +2444,7 @@ void PartControllerSettings::update_all_widgets(void)
     _pitchCtrlS->setRange(40, 88);
     _pitchCtrlS->setValue(_emulator->get_patch_param((uint16_t) EmuSC::PatchParam::MOD_PitchControl + 0x10 * _controllerId, _partId));
   }
-  
+
   _tvfCutoffS->setValue(_emulator->get_patch_param((uint16_t) EmuSC::PatchParam::MOD_TVFCutoffControl + 0x10 * _controllerId, _partId));
   _amplitudeS->setValue(_emulator->get_patch_param((uint16_t) EmuSC::PatchParam::MOD_AmplitudeControl + 0x10 * _controllerId, _partId));
   _lfo1RateS->setValue(_emulator->get_patch_param((uint16_t) EmuSC::PatchParam::MOD_LFO1RateControl + 0x10 * _controllerId, _partId));
@@ -2458,31 +2457,18 @@ void PartControllerSettings::update_all_widgets(void)
   _lfo2TVADepthS->setValue(_emulator->get_patch_param((uint16_t) EmuSC::PatchParam::MOD_LFO2TVADepth + 0x10 * _controllerId, _partId));
 
   _pitchCtrlL->setText(": " + QString::number(_pitchCtrlS->value() - 0x40));
+  _tvfCutoffL->setText(": " + QString::number((_tvfCutoffS->value() - 64) * 150));
+  _amplitudeL->setText(": " + QString::number((_amplitudeS->value() - 64) * (100 / 64.0), 'f', 1));
 
-  if (_tvfCutoffS->value() == 0x40)       // Fix rounding error for 0 (center)
-    _tvfCutoffL->setText(": 0");
-  else
-    _tvfCutoffL->setText(": " + QString::number(_tvfCutoffS->value() * 19200 / 127 - 9600));
-
-  _amplitudeL->setText(": " + QString::number(_amplitudeS->value() * 200 / 127 - 100));
-
-  if (_lfo1RateS->value() == 0x40)       // Fix rounding error for 0 (center)
-    _tvfCutoffL->setText(": 0");
-  else
-    _lfo1RateL->setText(": " + QString::number(_lfo1RateS->value() * 20 / 127.0 - 10, 'f', 1));
-
+  _lfo1RateL->setText(": " + QString::number((_lfo1RateS->value() - 64) * (10 / 64.0), 'f', 1));
   _lfo1PitchDepthL->setText(": " + QString::number(_lfo1PitchDepthS->value() * 600 / 127));
   _lfo1TVFDepthL->setText(": " + QString::number(_lfo1TVFDepthS->value() * 2400 / 127));
-  _lfo1TVADepthL->setText(": " + QString::number((float) _lfo1TVADepthS->value() * 100 / 127.0, 'f', 1));
+  _lfo1TVADepthL->setText(": " + QString::number(_lfo1TVADepthS->value() * 100 / 127.0, 'f', 1));
 
-  if (_lfo2RateS->value() == 0x40)       // Fix rounding error for 0 (center)
-    _tvfCutoffL->setText(": 0");
-  else
-    _lfo2RateL->setText(": " + QString::number((float) _lfo2RateS->value() * 20 / 127.0 - 10, 'f', 1));
-  
+  _lfo2RateL->setText(": " + QString::number((_lfo2RateS->value() - 64) * (10 / 64.0), 'f', 1));
   _lfo2PitchDepthL->setText(": " + QString::number(_lfo2PitchDepthS->value() * 600 / 127));
   _lfo2TVFDepthL->setText(": " + QString::number(_lfo2TVFDepthS->value() * 2400 / 127));
-  _lfo2TVADepthL->setText(": " + QString::number((float) _lfo2TVADepthS->value() * 100 / 127.0, 'f', 1));
+  _lfo2TVADepthL->setText(": " + QString::number(_lfo2TVADepthS->value() * 100 / 127.0, 'f', 1));
 }
 
 
@@ -2508,6 +2494,7 @@ void PartControllerSettings::_cc2_changed(int value)
 		       _partId);  
 }
 
+
 void PartControllerSettings::_controller_changed(int value)
 {
   _controllerId = value;
@@ -2525,7 +2512,7 @@ void PartControllerSettings::_pitchCtrl_changed(int value)
 
 void PartControllerSettings::_tvfCutoff_changed(int value)
 {
-  _tvfCutoffL->setText(": " + QString::number(value * 19200 / 127 - 9600));
+  _tvfCutoffL->setText(": " + QString::number((value - 64) * 150));
   _emulator->set_patch_param((uint16_t) EmuSC::PatchParam::MOD_TVFCutoffControl+
 			     0x10 * _controllerId, (uint8_t) value, _partId);
 }
@@ -2533,7 +2520,7 @@ void PartControllerSettings::_tvfCutoff_changed(int value)
 
 void PartControllerSettings::_amplitude_changed(int value)
 {
-  _amplitudeL->setText(": " + QString::number((float) value * 200 / 127.0 - 100, 'f', 1));
+  _amplitudeL->setText(": " + QString::number((value - 64) * (100 / 64.0), 'f', 1));
   _emulator->set_patch_param((uint16_t) EmuSC::PatchParam::MOD_AmplitudeControl+
 			     0x10 * _controllerId, (uint8_t) value, _partId);
 }
@@ -2541,7 +2528,7 @@ void PartControllerSettings::_amplitude_changed(int value)
 
 void PartControllerSettings::_lfo1Rate_changed(int value)
 {
-  _lfo1RateL->setText(": " + QString::number((float) (value * 20 / 127.0 - 10), 'f', 1));
+  _lfo1RateL->setText(": " + QString::number((value - 64) * (10 / 64.0), 'f', 1));
   _emulator->set_patch_param((uint16_t) EmuSC::PatchParam::MOD_LFO1RateControl +
 			     0x10 * _controllerId, (uint8_t) value, _partId);
 }
@@ -2573,7 +2560,7 @@ void PartControllerSettings::_lfo1TVADepth_changed(int value)
 
 void PartControllerSettings::_lfo2Rate_changed(int value)
 {
-  _lfo2RateL->setText(": " + QString::number((float) (value * 20 / 127.0 - 10), 'f', 1));
+  _lfo2RateL->setText(": " + QString::number((value - 64) * (10 / 64.0), 'f', 1));
   _emulator->set_patch_param((uint16_t) EmuSC::PatchParam::MOD_LFO2RateControl +
 			     0x10 * _controllerId, (uint8_t) value, _partId);
 }
