@@ -203,7 +203,7 @@ public:
     std::array<uint8_t,  64> TVFEnvScale;
     std::array<int,     256> TVAEnvExpChange;
     std::array<uint8_t, 130> TVABiasLevel;
-    std::array<uint8_t, 128> TVAPanpot;
+    std::array<uint8_t, 129> TVAPanpot;
     std::array<uint8_t, 128> TVALevelIndex;
     std::array<uint8_t, 256> TVALevel;
   };
@@ -322,6 +322,7 @@ private:
   int _read_lut_16bit(std::ifstream &ifs, int pos, std::array<int, 11> &lut);
   int _read_lut_16bit(std::ifstream &ifs, int pos, std::array<int, 21> &lut);
   int _read_lut_16bit(std::ifstream &ifs, int pos, std::array<int, 128> &lut);
+  int _read_lut_16bit(std::ifstream &ifs, int pos, std::array<int, 129> &lut);
   int _read_lut_16bit(std::ifstream &ifs, int pos, std::array<int, 130> &lut);
   int _read_lut_16bit(std::ifstream &ifs, int pos, std::array<int, 136> &lut);
   int _read_lut_16bit(std::ifstream &ifs, int pos, std::array<int, 256> &lut);

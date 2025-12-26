@@ -620,7 +620,7 @@ int ControlRom::_read_lookup_tables_cpurom(std::ifstream &romFile)
   romFile.seekg(CPUmmLUT->TVABiasLevel);
   romFile.read(reinterpret_cast<char*> (&lookupTables.TVABiasLevel), 130);
   romFile.seekg(CPUmmLUT->TVAPanpot);
-  romFile.read(reinterpret_cast<char*> (&lookupTables.TVAPanpot), 128);
+  romFile.read(reinterpret_cast<char*> (&lookupTables.TVAPanpot), 129);
   romFile.seekg(CPUmmLUT->TVALevelIndex);
   romFile.read(reinterpret_cast<char*> (&lookupTables.TVALevelIndex), 128);
   romFile.seekg(CPUmmLUT->TVALevel);
@@ -699,6 +699,25 @@ int ControlRom::_read_lut_16bit(std::ifstream &ifs, int pos,
   }
 
   return 128;
+}
+
+
+int ControlRom::_read_lut_16bit(std::ifstream &ifs, int pos,
+                                std::array<int, 129> &lut)
+{
+  ifs.seekg(pos);
+
+  for (int i = 0; i < 129; i ++) {
+    uint16_t value;
+    if (!ifs.read(reinterpret_cast<char*>(&value), sizeof(value))) {
+      std::cerr << "libEmuSC: Error reading LUT from ROM" << std::endl;
+      return i;
+    }
+
+    lut[i] = static_cast<int>(_native_endian_uint16((uint8_t *) &value));
+  }
+
+  return 129;
 }
 
 

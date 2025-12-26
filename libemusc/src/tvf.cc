@@ -252,7 +252,7 @@ int TVF::_read_cutoff_freq_vel_sens(int cofvsROM)
 int TVF::_get_level_init(int level)
 {
   int depth = (_envDepth * _coFreqVSens) * 2;
-  int scale = _LUT.TVFEnvScale[std::abs(level - 0x40)];
+  int scale = _LUT.TVFEnvScale[std::clamp(std::abs(level - 0x40), 0, 63)];
   int tmp = (scale * ((depth & 0xffff0000) >> 16)) * 2;
   int res = ((tmp & 0x0000ff00) >> 8) + ((tmp & 0x00ff0000) >> 8);
 
