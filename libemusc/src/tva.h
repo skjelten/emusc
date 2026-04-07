@@ -26,41 +26,45 @@
 #include "settings.h"
 #include "wave_generator.h"
 
-#include <stdint.h>
-
-#include <array>
+#include <cstdint>
 
 
 namespace EmuSC {
 
 
-class TVA
+class TVA : public Envelope
 {
 public:
-  TVA(ControlRom::InstPartial &instPartial, uint8_t key, uint8_t velocity,
-      ControlRom::Sample *ctrlSample, WaveGenerator *LFO1, WaveGenerator *LFO2,
-      ControlRom::LookupTables &LUT, Settings *settings, int8_t partId,
-      int instVolAtt);
+  TVA(ControlRom &ctrlRom, uint8_t key, uint8_t velocity, int sampleIndex,
+      WaveGenerator *LFO1, WaveGenerator *LFO2, Settings *settings,
+      int8_t partId, uint16_t instrumentIndex, int partialId);
   ~TVA();
 
-  void update_dynamic_params(bool reset = false);
-
+  void update(bool reset = false);
   void apply(double *sample);
-  float get_current_value()
-  { if (_envelope) return _envelope->get_current_value(); return 0; }
-
   void note_off();
-  bool finished(void);
 
 private:
   int _dynLevel;
+  int _dynLevelMode;
+  int _smoothDynLevel = 0;
+  int _smoothEnvLevel = 0;
+
+  int _intEnvValue;
+  int _output;
 
   uint32_t _sampleRate;
 
   WaveGenerator *_LFO1;
   WaveGenerator *_LFO2;
 
+  bool _lfo1FadeComplete;
+  bool _lfo2FadeComplete;
+  int _lfo1Depth;
+  int _lfo2Depth;
+
   ControlRom::LookupTables &_LUT;
+  ControlRom::InstPartial &_instPartial;
 
   uint8_t _key;
   int _drumSet;
@@ -70,11 +74,6 @@ private:
   int _panpotR;
   bool _panpotLocked;
 
-  Envelope *_envelope;
-  bool _finished;
-  
-  ControlRom::InstPartial &_instPartial;
-
   Settings *_settings;
   int8_t _partId;
 
@@ -82,8 +81,18 @@ private:
 
   void _init_envelope(int levelIndex, uint8_t velocity);
 
+  uint16_t _calc_smoothed_target_volume(void);
+  uint16_t _calc_smoothed_target_envelope(void);
+
+  void _update_dynamic_level(void);
+  void _update_panpot_level(bool reset);
+  void _update_lfo_depth(int lfo);
+
   int _get_bias_level(int biasPoint);
   int _get_velocity_from_vcurve(uint8_t velocity);
+
+  void _init_new_phase(enum Phase newPhase);
+  void _iterate_phase(void);
 };
 
 }

@@ -27,15 +27,13 @@
 #include "settings.h"
 #include "wave_generator.h"
 
-#include <stdint.h>
-
-#include <array>
+#include <cstdint>
 
 
 namespace EmuSC {
 
 
-class TVF
+class TVF : public Envelope
 {
 public:
   TVF(ControlRom::InstPartial &instPartial, uint8_t key, uint8_t velocity,
@@ -44,13 +42,9 @@ public:
   ~TVF();
 
   void apply(double *sample);
-  void update_params(void);
+  void update(void);
 
   void note_off();
-  inline bool finished(void) { if (_envelope) return _envelope->finished(); }
-
-  float get_current_value()
-  { if (_envelope) return _envelope->get_current_value(); return 0; }
 
 private:
   uint32_t _sampleRate;
@@ -58,7 +52,13 @@ private:
   WaveGenerator *_LFO1;
   WaveGenerator *_LFO2;
 
+  bool _lfo1FadeComplete;
+  bool _lfo2FadeComplete;
+  int _lfo1Depth;
+  int _lfo2Depth;
+
   ControlRom::LookupTables &_LUT;
+  ControlRom::InstPartial &_instPartial;
 
   int _L1Init;
   int _L2Init;
@@ -66,13 +66,21 @@ private:
   int _L4Init;
   int _L5Init;
 
-  int _accLFO1Depth;
-  int _accLFO2Depth;
+  int _currentEnvTime;
+  int _currentLevelInit;
+  int _prevLevelInit;
 
   int _coFreqIndex;
 
   int _resIndexROM;
   int _resIndexFreq;
+  int _resIndexUsed;
+
+  int _resIndexEnv;
+
+  int _intEnvValue;
+  int _output;
+
 
   float _filterFreq;
   float _filterRes;
@@ -85,11 +93,8 @@ private:
   int _keyFollow;
 
   int _envDepth;
-  Envelope *_envelope;
 
   BiquadFilter *_bqFilter;
-
-  ControlRom::InstPartial &_instPartial;
 
   Settings *_settings;
   int8_t _partId;
@@ -101,16 +106,18 @@ private:
   void _init_envelope(void);
   void _init_freq_and_res(void);
 
-  float _calc_cutoff_frequency(float index);
+  void _update_lfo_depth(int lfo);
 
   int _get_cof_key_follow(int cofkfROM);
+  int _get_level_init(int level);
 
   int _read_cutoff_freq_vel_sens(int cofvsROM);
 
-  int _get_level_init(int level);
-
   inline bool _le_native(void) { uint16_t n = 1; return (*(uint8_t *) & n); }
   uint16_t _native_endian_uint16(uint8_t *ptr);
+
+  void _init_new_phase(enum Phase newPhase);
+  void _iterate_phase(void);
 };
 
 }

@@ -44,17 +44,15 @@ public:
 
   struct Sample {         // 16 bytes
     uint8_t  volume;      // Volume attenuation (0x7f - 0)
-    uint32_t address;     // Offset on vsc, bank + scrambled address on SC55.
+    uint32_t address;     // Bank + scrambled address on SC55.
                           // Bits above 20 are wave bank.
-    uint16_t attackEnd;   // boundry between attack and decay? Unconfirmed.
-    uint16_t sampleLen;   // Sample Size
+    uint16_t attackStart; // Offset to start of playback for looping samples
+    uint16_t sampleLen;   // Sample size
     uint16_t loopLen;     // Loop point, used as sample_len - loop_len - 1
-    uint8_t  loopMode;    // 2 if not a looping sound, 1 forward then back,
-                          // 0 forward only.
+    uint8_t  loopMode;    // 2 = No loop, 1 = ping-pong loop, 0 = forward loop
     uint8_t  rootKey;     // Base pitch of the sample
-    uint16_t pitch;       // Fine pitch adjustment, 2048 to 0. Pos. incr. pitch.
-    uint16_t fineVolume;  // Always 0x400 on VSC, appears to be 1000ths of a
-                          // decibel. Positive is higher volume.
+    uint16_t pitchInit;   // Pitch offset for first playback until loop point
+    uint16_t pitchSust;   // Pitch offset used from first loop
   };
 
   struct Partial {        // 48 bytes in total
@@ -64,10 +62,12 @@ public:
   };                      // and above corresponds to breakpoints
 
   struct InstPartial {      // 92 bytes in total
-    uint8_t LFO2Waveform;
-    uint8_t LFO2Rate;       // LFO frequency
-    uint8_t LFO2Delay;      // LFO delay before LFO Fade starts
-    uint8_t LFO2Fade;       // LFO fade in, linear increase
+    uint8_t rootKeyOffset;  // Root key offset
+
+    uint8_t LFO2Waveform;   // LFO2 waveform
+    uint8_t LFO2Rate;       // LFO2 frequency
+    uint8_t LFO2Delay;      // LFO2 delay before LFO Fade starts
+    uint8_t LFO2Fade;       // LFO2 fade-in, linear increase
 
     uint8_t TVFFlags;       // TVF feature flags (always 0xff, used for debug?)
 
@@ -93,9 +93,13 @@ public:
     uint8_t pitchEnvT4;     // Pitch Envelope T4 (Decay2)
     uint8_t pitchEnvT5;     // Pitch Envelope T5 (Release)
 
+    uint8_t pitchETKeyFP14; // Pitch Envelope Time Key Follow Pre-calc (T1 - T4)
+    uint8_t pitchETKeyFP5;  // Pitch Envelope Time Key Follow Pre-calc (T5)
     uint8_t pitchETKeyF14;  // Pitch Envelope Time Key Follow (T1 - T4)
     uint8_t pitchETKeyF5;   // Pitch Envelope Time Key Follow (T5)
     uint8_t pitchEnvVSens;  // Pitch Envelope Velocity Sensitivity
+    uint8_t pitchEnvTVSens; // Pitch Envelope Time Velocity Sensitivity
+
     uint8_t TVFCOFVelCur;   // TVF Cutoff Velocity Curve
     int8_t TVFBaseFlt;
     int8_t TVFResonance;
@@ -185,8 +189,9 @@ public:
     std::vector<uint8_t> KeyMapper;
 
     // CPUROM
-    std::array<uint8_t,  21> TimeKeyFollowDiv;
-    std::array<int,     256> TimeKeyFollow;
+    std::array<int,      21> PitchParamScale;
+    std::array<uint8_t,  21> EnvTimeKeyFollowSens;
+    std::array<int,     256> EnvTimeScale;
     std::array<int,     128> envelopeTime;
     std::array<int,     128> LFORate;
     std::array<int,     128> LFODelayTime;
@@ -196,16 +201,23 @@ public:
     std::array<int,      21> TVFCutoffFreqKF;
     std::array<int,      11> TVFCutoffVSens;
     std::array<int,     128> TVFEnvDepth;
-    std::array<int,     128> TVFCutoffFreq;
+    std::array<int,     129> TVFCutoffFreq;
     std::array<uint8_t, 256> TVFResonanceFreq;
     std::array<uint8_t, 128> TVFResonance;
+    std::array<int,      11> PitchEnvVelSens1;
+    std::array<int,      11> PitchEnvVelSens2;
     std::array<int,     128> PitchEnvDepth;
     std::array<uint8_t,  64> TVFEnvScale;
-    std::array<int,     256> TVAEnvExpChange;
+    std::array<int,     128> PortamentoRate;
+    std::array<uint8_t,  12> EnvSegmentStep;
+    std::array<uint8_t,   9> EnvSegmentCurve;
+    std::array<int,     257> TVAEnvExpChange;
     std::array<uint8_t, 130> TVABiasLevel;
     std::array<uint8_t, 129> TVAPanpot;
     std::array<uint8_t, 128> TVALevelIndex;
     std::array<uint8_t, 256> TVALevel;
+    std::array<int, 256> PitchFineExp;
+    std::array<int, 47> PitchCoarseExp;
   };
   struct LookupTables lookupTables;
 
@@ -285,8 +297,9 @@ private:
     0x3d1e8, 0x3dd7c, 0x3de8c };
 
   struct _CPUMemoryMapLUT {
-    int TimeKeyFollowDiv;
-    int TimeKeyFollow;
+    int PitchParamScale;
+    int EnvTimeKeyFollowSens;
+    int EnvTimeScale;
     int EnvelopeTime;
     int LFORate;
     int LFODelayTime;
@@ -299,33 +312,44 @@ private:
     int TVFCutoffFreq;
     int TVFResonanceFreq;
     int TVFResonance;
+    int PitchEnvVelSens1;
+    int PitchEnvVelSens2;
     int PitchEnvDepth;
     int TVFEnvScale;
+    int PortamentoRate;
+    int EnvSegmentStep;
+    int EnvSegmentCurve;
     int TVAEnvExpChange;
     int TVABiasLevel;
     int TVAPanpot;
     int TVALevelIndex;
     int TVALevel;
+    int PitchFineExp;
+    int PitchCoarseExp;
   };
 
   const _CPUMemoryMapLUT SC55_1_21_CPU_LUT {
-    0x679a, 0x67c6, 0x6f12, 0x7012, 0x7112, 0x7212, 0x7312, 0x7412,
-    0x74d2, 0x74fc, 0x7512, 0x7612, 0x7714, 0x7816, 0x78f2, 0x79f2,
-    0x6d10, 0x69c6, 0x6c8f, 0x6b0f, 0x6b8f };
+    0x14c6, 0x679a, 0x67c6, 0x6f12, 0x7012, 0x7112, 0x7212, 0x7312,
+    0x7412, 0x74d2, 0x74fc, 0x7512, 0x7612, 0x7714, 0x7816, 0x78c6,
+    0x78dc, 0x78f2, 0x79f2, 0x7a32, 0x67ba, 0x6b06, 0x6d10, 0x69c6,
+    0x6c8f, 0x6b0f, 0x6b8f, 0x7b7a, 0x7d7a };
   const _CPUMemoryMapLUT SC55mkII_1_01_CPU_LUT {
-    0x650e, 0x653a, 0x6c86, 0x6486, 0x6e86, 0x6f86, 0x7086, 0x7186,
-    0x74fb, 0x7511, 0x7286, 0x7386, 0x7489, 0x758a, 0x7765, 0x7766,
-    0x6a84, 0x673a, 0x6a03, 0x6883, 0x6903 };
+    0x1310, 0x650e, 0x653a, 0x6c86, 0x6486, 0x6e86, 0x6f86, 0x7086,
+    0x7186, 0x7246, 0x7270, 0x7286, 0x7386, 0x7488, 0x758a, 0x763a,
+    0x7650, 0x7666, 0x7766, 0x77a6, 0x652e, 0x687a, 0x6a84, 0x673a,
+    0x6a03, 0x6883, 0x6903, 0x78ee, 0x7aee };
 
   int _read_lookup_tables_progrom(std::ifstream &romFile);
   int _read_lookup_tables_cpurom(std::ifstream &romFile);
   int _read_lut_16bit(std::ifstream &ifs, int pos, std::array<int, 11> &lut);
   int _read_lut_16bit(std::ifstream &ifs, int pos, std::array<int, 21> &lut);
+  int _read_lut_16bit(std::ifstream &ifs, int pos, std::array<int, 47> &lut);
   int _read_lut_16bit(std::ifstream &ifs, int pos, std::array<int, 128> &lut);
   int _read_lut_16bit(std::ifstream &ifs, int pos, std::array<int, 129> &lut);
   int _read_lut_16bit(std::ifstream &ifs, int pos, std::array<int, 130> &lut);
   int _read_lut_16bit(std::ifstream &ifs, int pos, std::array<int, 136> &lut);
   int _read_lut_16bit(std::ifstream &ifs, int pos, std::array<int, 256> &lut);
+  int _read_lut_16bit(std::ifstream &ifs, int pos, std::array<int, 257> &lut);
 
   int _identify_model(std::ifstream &romFile);
   const std::vector<uint32_t> &_banks(void);

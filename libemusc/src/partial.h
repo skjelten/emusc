@@ -23,11 +23,11 @@
 
 #include "control_rom.h"
 #include "pcm_rom.h"
+#include "pitch.h"
 #include "resample.h"
 #include "settings.h"
 #include "tva.h"
 #include "tvf.h"
-#include "tvp.h"
 #include "wave_generator.h"
 
 #include <cmath>
@@ -45,19 +45,19 @@ public:
 	  WaveGenerator *LFO1, Settings *settings, int8_t partId);
   ~Partial();
 
-  bool get_next_sample(float *sampleOut);
+  bool get_next_sample(float *noteSample);
 
   void stop(void);
   void update(void);
 
   inline int get_current_lfo(void)
   { if (_LFO2) return _LFO2->value(); return 0; }
-  float get_current_tvp(void)
-  { if (_tvp) return _tvp->get_current_value(); return 0;}
-  float get_current_tvf(void)
-  { if (_tvf) return _tvf->get_current_value(); return 0;}
-  float get_current_tva(void)
-  { if (_tva) return _tva->get_current_value(); return 0;}
+  int get_current_pitch(void)
+  { if (_pitch) return _pitch->get_envelope_value(); return 0;}
+  int get_current_tvf(void)
+  { if (_tvf) return _tvf->get_envelope_value(); return 0;}
+  int get_current_tva(void)
+  { if (_tva) return _tva->get_envelope_value(); return 0;}
 
 private:
   struct ControlRom::InstPartial &_instPartial;
@@ -65,9 +65,14 @@ private:
 
   std::vector<float> *_pcmSamples;
 
+  unsigned int _phase = 0;
   int _lastPos;           // Last read sample position
   float _index;           // Sample position in number of samples from start
   bool _isLooping;        // Have we entered the loop region? Important for determining previous position
+  bool _firstSampleIt;    // True if this is the first time we run the sample
+
+  // Testing
+  float _pitchAdj = 0;
 
   Settings *_settings;
   int8_t _partId;
@@ -77,14 +82,14 @@ private:
 
   WaveGenerator *_LFO2;
 
-  TVP *_tvp;
+  Pitch *_pitch;
   TVF *_tvf;
   TVA *_tva;
 
   enum Settings::InterpMode _interpMode;
   double _sample;
 
-  bool _next_sample_from_rom(float timeStep);
+  bool _next_sample_from_rom(void);
 };
 
 }

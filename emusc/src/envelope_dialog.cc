@@ -78,13 +78,13 @@ EnvelopeDialog::EnvelopeDialog(Emulator *emulator, Scene *scene, QWidget *parent
 
   _tvpYAxis = new QValueAxis();
   _tvpYAxis->setTickCount(5);
-  _tvpYAxis->setRange(-64, 64);
+  _tvpYAxis->setRange(0, 0x1ffff);
   _tvfYAxis = new QValueAxis();
   _tvfYAxis->setTickCount(5);
   _tvfYAxis->setRange(0, 128);
   _tvaYAxis = new QValueAxis();
   _tvaYAxis->setTickCount(5);
-  _tvaYAxis->setRange(0, 1);
+  _tvaYAxis->setRange(0, 256);
 
   _tvpChart->addAxis(_tvpXAxis, Qt::AlignBottom);
   _tvfChart->addAxis(_tvfXAxis, Qt::AlignBottom);

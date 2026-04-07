@@ -32,6 +32,8 @@ add_library(emusc
   partial.h
   pcm_rom.cc
   pcm_rom.h
+  pitch.cc
+  pitch.h
   resample.cc
   resample.h
   reverb.cc
@@ -46,8 +48,6 @@ add_library(emusc
   tva.h
   tvf.cc
   tvf.h
-  tvp.cc
-  tvp.h
   wave_generator.cc
   wave_generator.h)
 

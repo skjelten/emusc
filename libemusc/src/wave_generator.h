@@ -55,8 +55,10 @@ public:
   ~WaveGenerator();
 
   void update(void);
-  inline int value(void) { return _currentValueNorm; }
+  inline int16_t value(void) { return (int16_t) _currentValueNorm; }
   inline float value_float(void) { return (float) _currentValueNorm / 32767.0; }
+
+  inline int fade(void) { return _fade; }
 
 private:
   WaveGenerator();

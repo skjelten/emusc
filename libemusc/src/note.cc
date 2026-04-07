@@ -54,14 +54,27 @@ Note::Note(uint8_t key, uint8_t velocity, ControlRom &ctrlRom, PcmRom &pcmRom,
   _LFO1 = new WaveGenerator(ctrlRom.instrument(instrumentIndex),
                             ctrlRom.lookupTables, settings, partId);
 
-  // Every instrument in the Sound Canvas line has up to two partials
+  // Every instrument in the Sound Canvas line has up to two partials.
+  // But there are instances where there is a mismatch in the Control ROM,
+  // where a defined partial have fewer sample IDs than break points. This is
+  // most likely bugs by Roland, but the SC-55 simply ignores these partials.
   std::bitset<2> partialBits(ctrlRom.instrument(instrumentIndex).partialsUsed);
-  if (partialBits.test(0))
-    _partial[0] = new Partial(0, key, velocity, instrumentIndex, ctrlRom,
-			      pcmRom, _LFO1, settings, partId);
-  if (partialBits.test(1))
-    _partial[1] = new Partial(1, key, velocity, instrumentIndex, ctrlRom,
-			      pcmRom, _LFO1, settings, partId);
+  if (partialBits.test(0)) {
+    try {
+      _partial[0] = new Partial(0, key, velocity, instrumentIndex, ctrlRom,
+				pcmRom, _LFO1, settings, partId);
+    } catch (std::string errorMsg) {
+      _partial[0] = NULL;
+    }
+  }
+  if (partialBits.test(1)) {
+    try {
+      _partial[1] = new Partial(1, key, velocity, instrumentIndex, ctrlRom,
+				pcmRom, _LFO1, settings, partId);
+    } catch (std::string errorMsg) {
+      _partial[1] = NULL;
+    }
+  }
 }
 
 
@@ -171,16 +184,16 @@ int Note::get_current_lfo(int lfo)
 }
 
 
-float Note::get_current_tvp(bool partial)
+int Note::get_current_pitch(bool partial)
 {
   if (!_partial[partial])
     return 0;
 
-  return _partial[partial]->get_current_tvp();
+  return _partial[partial]->get_current_pitch();
 }
 
 
-float Note::get_current_tvf(bool partial)
+int Note::get_current_tvf(bool partial)
 {
   if (!_partial[partial])
     return 0;
@@ -189,7 +202,7 @@ float Note::get_current_tvf(bool partial)
 }
 
 
-float Note::get_current_tva(bool partial)
+int Note::get_current_tva(bool partial)
 {
   if (!_partial[partial])
     return 0;

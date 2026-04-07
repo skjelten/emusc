@@ -35,79 +35,80 @@ namespace EmuSC {
 class Envelope
 {
 public:
-  enum class Type {
-    Pitch,
-    TVF,
-    TVA
+  Envelope(ControlRom::LookupTables &LUT);
+  virtual ~Envelope() = 0;
+
+  enum class Phase {
+    Init       = 0,
+    Attack1    = 1,
+    Attack2    = 2,
+    Decay1     = 3,
+    Decay2     = 4,
+    Release    = 5,
+    Sustain    = 6,
+    TermTVADyn = 7,
+    TermTVAEnv = 8,
+    Terminated = 9
   };
 
-  Envelope(float value[6], uint8_t duration[6], bool shape[6], int key,
-           ControlRom::LookupTables &LUT, Settings *settings, int8_t partId,
-           enum Type type);
-  ~Envelope();
-
-  void start(void);
-  float get_next_value(void);
-  float get_current_value(void) { return _currentValue; }
-
-  void release(void);
+  virtual void set_phase(enum Phase newPhase);
 
   inline bool finished(void) { return _finished; }
 
-  void set_time_key_follow(bool phase, int etkfROM, int etkpROM = 0);
-  void set_time_velocity_sensitivity(bool phase, int etvsROM, int velocity);
+  int get_envelope_value(void) { return _envOutput; }
 
-private:
-  float  _phaseValue[6];
-  uint8_t _phaseDuration[6];
-  bool    _phaseShape[6];       // 0 => linear, 1 => exponential
+protected:
+  virtual void _init_new_phase(enum Phase newPhase) = 0;
+  virtual void _iterate_phase(void) = 0;
 
-  ControlRom::LookupTables &_LUT;
 
-  bool _finished;               // Flag indicating whether enveolope is finished
-
-  uint32_t _sampleRate;
-
-  uint32_t _phaseSampleIndex;
-  uint32_t _phaseSampleNum;
-  uint32_t _phaseSampleLen;
-
-  float _phaseInitValue;
-  float _currentValue;
-
-  float _linearChange;
-
-  enum class Phase {
-    Off     = -1,
-    Init    =  0,
-    Attack1 =  1,
-    Attack2 =  2,
-    Decay1  =  3,
-    Decay2  =  4,
-    Release =  5
+  enum class Type {
+    TVA,
+    TVF,
+    Pitch
   };
-  enum Phase _phase;
 
-  int _key;
+  void set_time_key_follow(enum Type, bool phase, int key, int etkfROM,
+                           int etkpROM = 0);
+  void set_time_velocity_sensitivity(enum Type, bool phase, int etvsROM,
+                                     int velocity);
 
-  Settings *_settings;
-  int8_t _partId;
+  int _phaseLevel[6];
+  int _phaseTime[6];
+
+  int  _phaseValueInit[6];         // Initial phase value from ROM
+  int  _phaseDurationInit[6];      // Initial phase duration from ROM
+  bool _phaseShape[6];             // 0 => linear, 1 => exponential
+
+  int _phaseDuration;              // Calculated complete phase duration
+  int _phaseStepSize;              // Increase phase duration
+  int _phasePosition;              // 0x08 Normalized phase accumulator
+  int _phaseRemainder;             // 0x12 / 0x14 Fractional reminder TVA / TVF
+
+  bool _finished;                  // Flag indicating if enveolope is finished
+
+  int _phaseSampleIndex;
+  int _phaseSampleNum;
+  int _phaseSampleLen;
+
+  int _phaseStartValue;
+  int _phaseEndValue;
+
+  int _envOutput;                  // Envelope value to GUI callback
 
   int _timeKeyFlwT1T4;
   int _timeKeyFlwT5;
-
   int _timeVelSensT1T2;
   int _timeVelSensT3T5;
 
-  enum Type _type;
-  const char *_typeName[3] = { "Pitch", "TVF", "TVA" };
-  const char *_phaseName[6] = { "Init", "Attack 1", "Attack 2", "Decay 1",
-				"Decay 2 (S)", "Release" };
+  enum Phase _phase;
+  const char *_phaseName[10] = { "Init", "Attack 1", "Attack 2", "Decay 1",
+				 "Decay 2", "Release", "Sustain",
+				 "Term TVA dynamic", "Term TVA envelope",
+				 "Terminated" };
 
-  Envelope();
-
-  void _init_new_phase(enum Phase newPhase);
-  float _calc_exp_change(float index);
+private:
+  ControlRom::LookupTables &_LUT;
 
 };
 

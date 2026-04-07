@@ -257,7 +257,7 @@ int ControlRom::_read_instruments(std::ifstream &romFile)
     if (x == banks[1])
       x = banks[3];
 
-    char data[88];
+    char data[92];
     romFile.seekg(x);
     struct Instrument i;
 
@@ -281,84 +281,86 @@ int ControlRom::_read_instruments(std::ifstream &romFile)
 
     // We have 2 partial parameters sets; starting in bank position 34 & 126
     for (int p = 0; p < 2; p++) {
-      romFile.seekg(x + 34 + (p * 92));
-      romFile.read(data, 2);
-      i.partials[p].partialIndex = _native_endian_uint16((uint8_t *) data);
-
-      romFile.read(data, 88);
-      i.partials[p].LFO2Waveform = data[0];
-      i.partials[p].LFO2Rate     = data[1];
-      i.partials[p].LFO2Delay    = data[2];
-      i.partials[p].LFO2Fade     = data[3];
-      i.partials[p].TVFFlags     = data[4];
-      i.partials[p].panpot       = data[5];
-      i.partials[p].coarsePitch  = data[6];
-      i.partials[p].finePitch    = data[7];
-      i.partials[p].randPitch    = data[8];
-      i.partials[p].pitchKeyFlw  = data[9];
-      i.partials[p].TVPLFO1Depth = data[10];
-      i.partials[p].TVPLFO2Depth = data[11];
-      i.partials[p].pitchEnvDepth= data[12];
-      i.partials[p].pitchEnvL0   = data[14];
-      i.partials[p].pitchEnvL1   = data[15];
-      i.partials[p].pitchEnvL2   = data[16];
-      i.partials[p].pitchEnvL3   = data[17];
-      i.partials[p].pitchEnvL5   = data[18];
-      i.partials[p].pitchEnvT1   = data[19];
-      i.partials[p].pitchEnvT2   = data[20];
-      i.partials[p].pitchEnvT3   = data[21];
-      i.partials[p].pitchEnvT4   = data[22];
-      i.partials[p].pitchEnvT5   = data[23];
-      i.partials[p].pitchETKeyF14= data[28];
-      i.partials[p].pitchETKeyF5 = data[29];
-      i.partials[p].pitchEnvVSens= data[30];
-      i.partials[p].TVFCOFVelCur = data[32];
-      i.partials[p].TVFBaseFlt   = data[33];
-      i.partials[p].TVFResonance = data[34];
-      i.partials[p].TVFType      = data[35];
-      i.partials[p].TVFCFKeyFlwC = data[36];
-      i.partials[p].TVFCFKeyFlw  = data[37];
-      i.partials[p].TVFLFO1Depth = data[38];
-      i.partials[p].TVFLFO2Depth = data[39];
-      i.partials[p].TVFEnvDepth  = data[40];
-      i.partials[p].TVFEnvL1     = data[41];
-      i.partials[p].TVFEnvL2     = data[42];
-      i.partials[p].TVFEnvL3     = data[43];
-      i.partials[p].TVFEnvL4     = data[44];
-      i.partials[p].TVFEnvL5     = data[45];
-      i.partials[p].TVFEnvT1     = data[46];
-      i.partials[p].TVFEnvT2     = data[47];
-      i.partials[p].TVFEnvT3     = data[48];
-      i.partials[p].TVFEnvT4     = data[49];
-      i.partials[p].TVFEnvT5     = data[50];
-      i.partials[p].TVFETKeyFP14 = data[53];
-      i.partials[p].TVFETKeyFP5  = data[54];
-      i.partials[p].TVFETKeyF14  = data[55];
-      i.partials[p].TVFETKeyF5   = data[56];
-      i.partials[p].TVFCOFVSens  = data[57];
-      i.partials[p].TVFETVSens12 = data[58];
-      i.partials[p].TVFETVSens35 = data[59];
-      i.partials[p].TVALvlVelCur = data[60];
-      i.partials[p].volume       = data[65];
-      i.partials[p].TVABiasPoint = data[66];
-      i.partials[p].TVABiasLevel = data[67];
-      i.partials[p].TVALFO1Depth = data[68];
-      i.partials[p].TVALFO2Depth = data[69];
-      i.partials[p].TVAEnvL1     = data[70];
-      i.partials[p].TVAEnvL2     = data[71];
-      i.partials[p].TVAEnvL3     = data[72];
-      i.partials[p].TVAEnvL4     = data[73];
-      i.partials[p].TVAEnvT1     = data[74];
-      i.partials[p].TVAEnvT2     = data[75];
-      i.partials[p].TVAEnvT3     = data[76];
-      i.partials[p].TVAEnvT4     = data[77];
-      i.partials[p].TVAEnvT5     = data[78];
-      i.partials[p].TVAETKeyFP14 = data[81];
-      i.partials[p].TVAETKeyFP5  = data[82];
-      i.partials[p].TVAETKeyF14  = data[83];
-      i.partials[p].TVAETKeyF5   = data[84];
-      i.partials[p].TVAETVSens12 = data[85];
-      i.partials[p].TVAETVSens35 = data[86];
+      romFile.seekg(x + 32 + (p * 92));
+      romFile.read(data, 92);
+      i.partials[p].rootKeyOffset = data[1];
+      i.partials[p].partialIndex  = _native_endian_uint16((uint8_t *) data + 2);
+      i.partials[p].LFO2Waveform  = data[4];
+      i.partials[p].LFO2Rate      = data[5];
+      i.partials[p].LFO2Delay     = data[6];
+      i.partials[p].LFO2Fade      = data[7];
+      i.partials[p].TVFFlags      = data[8];
+      i.partials[p].panpot        = data[9];
+      i.partials[p].coarsePitch   = data[10];
+      i.partials[p].finePitch     = data[11];
+      i.partials[p].randPitch     = data[12];
+      i.partials[p].pitchKeyFlw   = data[13];
+      i.partials[p].TVPLFO1Depth  = data[14];
+      i.partials[p].TVPLFO2Depth  = data[15];
+      i.partials[p].pitchEnvDepth = data[16];
+      i.partials[p].pitchEnvL0    = data[18];
+      i.partials[p].pitchEnvL1    = data[19];
+      i.partials[p].pitchEnvL2    = data[20];
+      i.partials[p].pitchEnvL3    = data[21];
+      i.partials[p].pitchEnvL5    = data[22];
+      i.partials[p].pitchEnvT1    = data[23];
+      i.partials[p].pitchEnvT2    = data[24];
+      i.partials[p].pitchEnvT3    = data[25];
+      i.partials[p].pitchEnvT4    = data[26];
+      i.partials[p].pitchEnvT5    = data[27];
+      i.partials[p].pitchETKeyFP14= data[30];
+      i.partials[p].pitchETKeyFP5 = data[31];
+      i.partials[p].pitchETKeyF14 = data[32];
+      i.partials[p].pitchETKeyF5  = data[33];
+      i.partials[p].pitchEnvVSens = data[34];
+      i.partials[p].pitchEnvTVSens= data[35];
+      i.partials[p].TVFCOFVelCur  = data[36];
+      i.partials[p].TVFBaseFlt    = data[37];
+      i.partials[p].TVFResonance  = data[38];
+      i.partials[p].TVFType       = data[39];
+      i.partials[p].TVFCFKeyFlwC  = data[40];
+      i.partials[p].TVFCFKeyFlw   = data[41];
+      i.partials[p].TVFLFO1Depth  = data[42];
+      i.partials[p].TVFLFO2Depth  = data[43];
+      i.partials[p].TVFEnvDepth   = data[44];
+      i.partials[p].TVFEnvL1      = data[45];
+      i.partials[p].TVFEnvL2      = data[46];
+      i.partials[p].TVFEnvL3      = data[47];
+      i.partials[p].TVFEnvL4      = data[48];
+      i.partials[p].TVFEnvL5      = data[49];
+      i.partials[p].TVFEnvT1      = data[50];
+      i.partials[p].TVFEnvT2      = data[51];
+      i.partials[p].TVFEnvT3      = data[52];
+      i.partials[p].TVFEnvT4      = data[53];
+      i.partials[p].TVFEnvT5      = data[54];
+      i.partials[p].TVFETKeyFP14  = data[57];
+      i.partials[p].TVFETKeyFP5   = data[58];
+      i.partials[p].TVFETKeyF14   = data[59];
+      i.partials[p].TVFETKeyF5    = data[60];
+      i.partials[p].TVFCOFVSens   = data[61];
+      i.partials[p].TVFETVSens12  = data[62];
+      i.partials[p].TVFETVSens35  = data[63];
+      i.partials[p].TVALvlVelCur  = data[64];
+      i.partials[p].volume        = data[69];
+      i.partials[p].TVABiasPoint  = data[70];
+      i.partials[p].TVABiasLevel  = data[71];
+      i.partials[p].TVALFO1Depth  = data[72];
+      i.partials[p].TVALFO2Depth  = data[73];
+      i.partials[p].TVAEnvL1      = data[74];
+      i.partials[p].TVAEnvL2      = data[75];
+      i.partials[p].TVAEnvL3      = data[76];
+      i.partials[p].TVAEnvL4      = data[77];
+      i.partials[p].TVAEnvT1      = data[78];
+      i.partials[p].TVAEnvT2      = data[79];
+      i.partials[p].TVAEnvT3      = data[80];
+      i.partials[p].TVAEnvT4      = data[81];
+      i.partials[p].TVAEnvT5      = data[82];
+      i.partials[p].TVAETKeyFP14  = data[85];
+      i.partials[p].TVAETKeyFP5   = data[86];
+      i.partials[p].TVAETKeyF14   = data[87];
+      i.partials[p].TVAETKeyF5    = data[88];
+      i.partials[p].TVAETVSens12  = data[89];
+      i.partials[p].TVAETVSens35  = data[90];
     }
 
     _instruments.push_back(i);
@@ -472,13 +474,13 @@ int ControlRom::_read_samples(std::ifstream &romFile)
     romFile.read(data, 16);
     s.volume = data[0];
     s.address = _native_endian_3bytes_uint32((uint8_t *) &data[1]);
-    s.attackEnd = _native_endian_uint16((uint8_t *) &data[4]);
+    s.attackStart = _native_endian_uint16((uint8_t *) &data[4]);
     s.sampleLen = _native_endian_uint16((uint8_t *) &data[6]);
     s.loopLen = _native_endian_uint16((uint8_t *) &data[8]);
     s.loopMode = data[10];
     s.rootKey = data[11];
-    s.pitch = _native_endian_uint16((uint8_t *) &data[12]);
-    s.fineVolume = _native_endian_uint16((uint8_t *) &data[14]);
+    s.pitchInit = _native_endian_uint16((uint8_t *) &data[12]);
+    s.pitchSust = _native_endian_uint16((uint8_t *) &data[14]);
     
     if (s.sampleLen) {                          // Ignore empty parts
       _samples.push_back(s);
@@ -486,13 +488,13 @@ int ControlRom::_read_samples(std::ifstream &romFile)
       if (0)
 	std::cout << "  -> Sample " << std::setw(3) << _samples.size()
 		  << ": V=" << std::setw(3) << +s.volume
-		  << " AE=" << std::setw(5) << +s.attackEnd
+		  << " AE=" << std::setw(5) << +s.attackStart
 		  << " SL=" << std::setw(5) << +s.sampleLen
 		  << " LL=" << std::setw(5) << +s.loopLen
 		  << " LM=" << std::setw(3) << +s.loopMode
 		  << " RK=" << std::setw(3) << +s.rootKey
-		  << " P="  << std::setw(5) << +s.pitch - 1024
-		  << " FV=" << std::setw(4) << +s.fineVolume - 1024
+		  << " PI=" << std::setw(5) << +s.pitchInit - 1024
+		  << " PS=" << std::setw(4) << +s.pitchSust - 1024
 		  << std::endl;
     }
   }
@@ -607,8 +609,8 @@ int ControlRom::_read_lookup_tables_cpurom(std::ifstream &romFile)
     }
 
   // 8-bit values
-  romFile.seekg(CPUmmLUT->TimeKeyFollowDiv);
-  romFile.read(reinterpret_cast<char*> (&lookupTables.TimeKeyFollowDiv), 21);
+  romFile.seekg(CPUmmLUT->EnvTimeKeyFollowSens);
+  romFile.read(reinterpret_cast<char*> (&lookupTables.EnvTimeKeyFollowSens),21);
   romFile.seekg(CPUmmLUT->TVFResonanceFreq);
   romFile.read(reinterpret_cast<char*> (&lookupTables.TVFResonanceFreq), 256);
   romFile.seekg(CPUmmLUT->TVFResonance);
@@ -625,9 +627,15 @@ int ControlRom::_read_lookup_tables_cpurom(std::ifstream &romFile)
   romFile.read(reinterpret_cast<char*> (&lookupTables.TVALevelIndex), 128);
   romFile.seekg(CPUmmLUT->TVALevel);
   romFile.read(reinterpret_cast<char*> (&lookupTables.TVALevel), 256);
+  romFile.seekg(CPUmmLUT->EnvSegmentStep);
+  romFile.read(reinterpret_cast<char*> (&lookupTables.EnvSegmentStep), 12);
+  romFile.seekg(CPUmmLUT->EnvSegmentCurve);
+  romFile.read(reinterpret_cast<char*> (&lookupTables.EnvSegmentCurve), 9);
 
   // 16-bit values
-  _read_lut_16bit(romFile, CPUmmLUT->TimeKeyFollow, lookupTables.TimeKeyFollow);
+  _read_lut_16bit(romFile, CPUmmLUT->PitchParamScale, lookupTables.PitchParamScale);
+  _read_lut_16bit(romFile, CPUmmLUT->EnvTimeScale, lookupTables.EnvTimeScale);
+  _read_lut_16bit(romFile, CPUmmLUT->PortamentoRate, lookupTables.PortamentoRate);
   _read_lut_16bit(romFile, CPUmmLUT->TVFEnvDepth, lookupTables.TVFEnvDepth);
   _read_lut_16bit(romFile, CPUmmLUT->TVFCutoffFreq, lookupTables.TVFCutoffFreq);
   _read_lut_16bit(romFile, CPUmmLUT->EnvelopeTime, lookupTables.envelopeTime);
@@ -635,11 +643,14 @@ int ControlRom::_read_lookup_tables_cpurom(std::ifstream &romFile)
   _read_lut_16bit(romFile, CPUmmLUT->LFODelayTime, lookupTables.LFODelayTime);
   _read_lut_16bit(romFile, CPUmmLUT->LFOTVFDepth, lookupTables.LFOTVFDepth);
   _read_lut_16bit(romFile, CPUmmLUT->LFOTVPDepth, lookupTables.LFOTVPDepth);
+  _read_lut_16bit(romFile, CPUmmLUT->PitchEnvVelSens1, lookupTables.PitchEnvVelSens1);
+  _read_lut_16bit(romFile, CPUmmLUT->PitchEnvVelSens2, lookupTables.PitchEnvVelSens2);
   _read_lut_16bit(romFile, CPUmmLUT->PitchEnvDepth, lookupTables.PitchEnvDepth);
   _read_lut_16bit(romFile, CPUmmLUT->TVAEnvExpChange, lookupTables.TVAEnvExpChange);
   _read_lut_16bit(romFile, CPUmmLUT->TVFCutoffVSens, lookupTables.TVFCutoffVSens);
-  _read_lut_16bit(romFile, CPUmmLUT->TVFCutoffFreqKF,
-		  lookupTables.TVFCutoffFreqKF);
+  _read_lut_16bit(romFile, CPUmmLUT->TVFCutoffFreqKF, lookupTables.TVFCutoffFreqKF);
+  _read_lut_16bit(romFile, CPUmmLUT->PitchFineExp, lookupTables.PitchFineExp);
+  _read_lut_16bit(romFile, CPUmmLUT->PitchCoarseExp, lookupTables.PitchCoarseExp);
 
   return 0;
 }
@@ -680,6 +691,25 @@ int ControlRom::_read_lut_16bit(std::ifstream &ifs, int pos,
   }
 
   return 21;
+}
+
+
+int ControlRom::_read_lut_16bit(std::ifstream &ifs, int pos,
+                                std::array<int, 47> &lut)
+{
+  ifs.seekg(pos);
+
+  for (int i = 0; i < 47; i ++) {
+    uint16_t value;
+    if (!ifs.read(reinterpret_cast<char*>(&value), sizeof(value))) {
+      std::cerr << "libEmuSC: Error reading LUT from ROM" << std::endl;
+      return i;
+    }
+
+    lut[i] = static_cast<int>(_native_endian_uint16((uint8_t *) &value));
+  }
+
+  return 47;
 }
 
 
@@ -775,6 +805,25 @@ int ControlRom::_read_lut_16bit(std::ifstream &ifs, int pos,
   }
 
   return 256;
+}
+
+
+int ControlRom::_read_lut_16bit(std::ifstream &ifs, int pos,
+                                std::array<int, 257> &lut)
+{
+  ifs.seekg(pos);
+
+  for (int i = 0; i < 257; i ++) {
+    uint16_t value;
+    if (!ifs.read(reinterpret_cast<char*>(&value), sizeof(value))) {
+      std::cerr << "libEmuSC: Error reading LUT from ROM" << std::endl;
+      return i;
+    }
+
+    lut[i] = static_cast<int>(_native_endian_uint16((uint8_t *) &value));
+  }
+
+  return 257;
 }
 
 
@@ -938,25 +987,25 @@ std::vector<std::vector<std::string>> ControlRom::get_samples_list(void)
   // First row is header
   std::vector<std::string> headerVector;
   headerVector.push_back("Volume");
-  headerVector.push_back("Attack End");
+  headerVector.push_back("Attack Start");
   headerVector.push_back("Sample Length");
   headerVector.push_back("Loop Length");
   headerVector.push_back("Loop Mode");
   headerVector.push_back("Root Key");
-  headerVector.push_back("Pitch");
-  headerVector.push_back("Fine Volume");
+  headerVector.push_back("Initial Pitch");
+  headerVector.push_back("Sustained Pitch");
   samplesListVector.push_back(headerVector);
   
   for (struct Sample sample: _samples) {
     std::vector<std::string> sampleVector;
     sampleVector.push_back(std::to_string(sample.volume));
-    sampleVector.push_back(std::to_string(sample.attackEnd));
+    sampleVector.push_back(std::to_string(sample.attackStart));
     sampleVector.push_back(std::to_string(sample.sampleLen));
     sampleVector.push_back(std::to_string(sample.loopLen));
     sampleVector.push_back(std::to_string(sample.loopMode));
     sampleVector.push_back(std::to_string(sample.rootKey));
-    sampleVector.push_back(std::to_string(sample.pitch));
-    sampleVector.push_back(std::to_string(sample.fineVolume));
+    sampleVector.push_back(std::to_string(sample.pitchInit));
+    sampleVector.push_back(std::to_string(sample.pitchSust));
 
     samplesListVector.push_back(sampleVector);
   }

@@ -346,12 +346,6 @@ int Synth::get_next_sample(int16_t *sampleOut)
   // Finished working MIDI data
   midiMutex.unlock();
 
-  // Apply master volume conversion
-  uint8_t volume = _settings->get_param(SystemParam::Volume);
-
-  accumulatedSample[0] *= (volume / 127.0);
-  accumulatedSample[1] *= (volume / 127.0);
-
   // Check if sound is too loud => clipping
   if (accumulatedSample[0] > 1 || accumulatedSample[0] < -1) {
     std::cout << "EmuSC: Warning - audio clipped (too loud)" << std::endl;

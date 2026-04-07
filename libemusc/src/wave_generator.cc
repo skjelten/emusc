@@ -42,6 +42,8 @@
 // All waveforms can be 0, 90, 180 or 270 degrees phase shifted.
 // Rate, delay and fade values are all defined by lookup tables in the CPU ROM.
 
+// During LFO1 Fade parameter the LFO will also update TVA / TVF / Pitch depth.
+
 
 #include "wave_generator.h"
 
@@ -92,6 +94,8 @@ WaveGenerator::WaveGenerator(struct ControlRom::Instrument &instrument,
               << _delayIncLUT << " -> " << 512.0 / _delayIncLUT << " s"
               << " Fade=" << (int) instrument.LFO1Fade << " -> " << _fadeIncLUT
               << " -> " << 512.0 / _fadeIncLUT << " s" << std::endl;
+
+  update();
 }
 
 

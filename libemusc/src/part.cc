@@ -90,15 +90,15 @@ int Part::get_next_sample(float *sampleOut)
 
     // Export envelopes and LFOs to external client
     if (_callbackTrigger) {
-      if (_envelopeCallback)
-        _envelopeCallback(_notes.front()->get_current_tvp(0),
-                          _notes.front()->get_current_tvp(1),
+      if (_envelopeCallback && !_notes.empty())
+        _envelopeCallback(_notes.front()->get_current_pitch(0),
+                          _notes.front()->get_current_pitch(1),
                           _notes.front()->get_current_tvf(0),
                           _notes.front()->get_current_tvf(1),
                           _notes.front()->get_current_tva(0),
                           _notes.front()->get_current_tva(1));
 
-      if (_lfoCallback)
+      if (_lfoCallback && !_notes.empty())
         _lfoCallback(_notes.front()->get_current_lfo(0),
                      _notes.front()->get_current_lfo(1),
                      _notes.front()->get_current_lfo(2));
@@ -125,8 +125,10 @@ int Part::get_next_sample(float *sampleOut)
 
   _notesMutex->unlock();
 
+  if (_id == 0) {
+//  std::cout << "sample out" << sampleOut[0] << std::endl;
   _systemEffects->apply(sampleOut);
-
+  }
   _callbackTrigger = false;
 
   return 0;
@@ -394,6 +396,9 @@ int Part::control_change(uint8_t msgId, uint8_t value)
       else
 	_settings->set_param(PatchParam::Soft, (uint8_t)1,_id);
     }
+
+  } else if (msgId == 84) {                            // Portamento control
+    _settings->set_param(PatchParam::PortamentoControl, value, _id);
 
   } else if (msgId == 91) {                            // Reverb
     _settings->set_param(PatchParam::ReverbSendLevel, value, _id);

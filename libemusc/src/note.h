@@ -50,9 +50,9 @@ public:
   bool get_next_sample(float *sampleOut);
   int get_num_partials(void);
 
-  float get_current_tvp(bool partial);
-  float get_current_tvf(bool partial);
-  float get_current_tva(bool partial);
+  int get_current_pitch(bool partial);
+  int get_current_tvf(bool partial);
+  int get_current_tva(bool partial);
   int get_current_lfo(int lfo);
 
 private:

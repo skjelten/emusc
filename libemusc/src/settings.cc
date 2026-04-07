@@ -21,11 +21,13 @@
 #include "config.h"
 
 #include <cmath>
+#include <cstdlib>
 #include <iostream>
 
 #include <vector>
 #include <algorithm>
 #include <iterator>
+
 
 namespace EmuSC {
 

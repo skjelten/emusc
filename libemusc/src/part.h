@@ -118,7 +118,7 @@ private:
   // Envelopes and LFOs callback for external clients
   std::function<void(const int)> _changeCallback = NULL;
   std::function<void(const float, const float,
-                     const float, const float,
+                     const int, const int,
                      const float, const float)> _envelopeCallback = NULL;
   std::function<void(const int, const int, const int)> _lfoCallback = NULL;
   bool _callbackTrigger;

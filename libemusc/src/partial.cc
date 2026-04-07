@@ -73,10 +73,11 @@ Partial::Partial(int partialId, uint8_t key, uint8_t velocity,
     _lastPos(0),
     _index(0),
     _isLooping(false),
+    _firstSampleIt(true),
     _settings(settings),
     _partId(partId),
     _LFO2(NULL),
-    _tvp(NULL),
+    _pitch(NULL),
     _tvf(NULL),
     _tva(NULL),
     _interpMode(static_cast<Settings::InterpMode>(settings->interpolation_mode())),
@@ -86,50 +87,20 @@ Partial::Partial(int partialId, uint8_t key, uint8_t velocity,
   if (_drumSet)
     _drumRxNoteOff = _settings->get_param(DrumParam::RxNoteOff, _drumSet-1,key);
 
-  // Find static coarse tuning (key shift) as this affects sample selection
-  int keyShift = settings->get_param(PatchParam::PitchCoarseTune, partId) -0x40;
-  if (!_drumSet) {
-    keyShift += settings->get_param(SystemParam::KeyShift) - 0x40 +
-                settings->get_param(PatchParam::PitchKeyShift, partId) - 0x40;
+  _LFO2 = new WaveGenerator(_instPartial, ctrlRom.lookupTables,settings,partId);
 
-  } else {
-    if (ctrlRom.generation() >= ControlRom::SynthGen::SC55mk2)
-      keyShift += settings->get_param(PatchParam::PitchKeyShift, partId) - 0x40;
-  }
+  _pitch = new Pitch(ctrlRom, instrumentIndex, partialId, key, velocity, LFO1,
+                     _LFO2, settings, partId);
 
-  // Find sample index from break table while adjusting key with key shift
-  uint16_t sampleIndex;
-  uint16_t pIndex =
-    ctrlRom.instrument(instrumentIndex).partials[partialId].partialIndex;
-  for (int j = 0; j < 16; j ++) {
-    if (ctrlRom.partial(pIndex).breaks[j] >= (key + keyShift) ||
-	ctrlRom.partial(pIndex).breaks[j] == 0x7f) {
-      sampleIndex = ctrlRom.partial(pIndex).samples[j];
-      if (sampleIndex == 0xffff) {              // This should never happen
-	std::cerr << "libEmuSC: Internal error when reading sample index"
-		  << std::endl;
-	return;// TODO: Verify that we are in a usable state!
-      }
-      break;
-    }
-  }
-
-  // Update internal class data pointers
+  int sampleIndex = _pitch->get_sample_id();
   _pcmSamples = &pcmRom.samples(sampleIndex).samplesF;
   _ctrlSample = &ctrlRom.sample(sampleIndex);
 
-  // 7. Partial specific LFO2
-  _LFO2 = new WaveGenerator(_instPartial, ctrlRom.lookupTables,settings,partId);
-
-  // 8. Create TVP/F/A & envelope classes
-  int pitchCurve = ctrlRom.instrument(instrumentIndex).pitchCurve;
-  _tvp = new TVP(_instPartial, key, velocity, keyShift, _ctrlSample, LFO1,
-                 _LFO2, pitchCurve, ctrlRom.lookupTables, settings, partId);
   _tvf = new TVF(_instPartial, key, velocity, LFO1, _LFO2,
                  ctrlRom.lookupTables, settings, partId);
-  _tva = new TVA(_instPartial, key, velocity, _ctrlSample, LFO1, _LFO2,
-		 ctrlRom.lookupTables, settings, partId,
-                 ctrlRom.instrument(instrumentIndex).volume);
+
+  _tva = new TVA(ctrlRom, key, velocity, sampleIndex, LFO1, _LFO2, settings,
+                 partId, instrumentIndex, partialId);
 
   // FIXME: A few sample definitions in the SC-55 ROM have loop length >
   // sample length. This makes EmuSC crash as it loops outside range. The
@@ -146,7 +117,7 @@ Partial::Partial(int partialId, uint8_t key, uint8_t velocity,
 
 Partial::~Partial()
 {
-  delete _tvp;
+  delete _pitch;
   delete _tvf;
   delete _tva;
 
@@ -162,15 +133,13 @@ bool Partial::get_next_sample(float *noteSample)
   if  (_tva->finished())
     return 1;
 
-  float pitchAdj = _settings->get_pitchBend_factor(_partId) * _tvp->get_next_value();
-
-  if (_next_sample_from_rom(pitchAdj))
+  if (_next_sample_from_rom())
     return 1;
 
   double sample[2] = {0, 0};
   sample[0] = _sample * 0.5;      // Reduce audio volume to avoid overflow
 
-  _tvf->apply(&sample[0]);
+//  _tvf->apply(&sample[0]);
   _tva->apply(&sample[0]);
 
   // Finally add samples to the sample pointers (always 2 channels / stereo)
@@ -181,7 +150,7 @@ bool Partial::get_next_sample(float *noteSample)
 }
 
 
-bool Partial::_next_sample_from_rom(float timeStep)
+bool Partial::_next_sample_from_rom()
 {
   float loopEnd = _ctrlSample->sampleLen;
   float loopLen = _ctrlSample->loopLen;
@@ -191,6 +160,12 @@ bool Partial::_next_sample_from_rom(float timeStep)
   if (_index > loopStart && _ctrlSample->loopMode != 2) _isLooping = true;
 
   if (_index >= loopEnd + 1.f) {
+    if (_firstSampleIt) {
+      _firstSampleIt = false;
+      _pitch->first_sample_run_complete();
+    }
+
+    // This could probably be replaced by first_loop_complete to TVA/F
     if (_ctrlSample->loopMode == 2) {
       // One-shot: sample is finished; exit
       return 1;
@@ -198,6 +173,8 @@ bool Partial::_next_sample_from_rom(float timeStep)
 
     // Restart loop
     _index -= (loopLen + 1.f);
+
+    _phase = (int) _index << 14;
   }
 
   int idx0 = (int) floor(_index);
@@ -233,18 +210,19 @@ bool Partial::_next_sample_from_rom(float timeStep)
       break;
     }
   }
-  _index += timeStep;
+
+  _phase += _pitchAdj;
+  _index = _phase >> 14;
 
   return 0;
 }
-
 
 
 void Partial::stop(void)
 {
   // Ignore note off for uninterruptible drums (set by drum set flag)
   if (!(_drumSet && !_drumRxNoteOff)) {
-    if (_tvp) _tvp->note_off();
+    if (_pitch) _pitch->note_off();
     if (_tvf) _tvf->note_off();
     if (_tva) _tva->note_off();
   }
@@ -254,9 +232,13 @@ void Partial::stop(void)
 // Update parameters every 256th sample @32k
 void Partial::update(void)
 {
-  if (_tvp) _tvp->update_dynamic_params();
-  if (_tvf) _tvf->update_params();
-  if (_tva) _tva->update_dynamic_params();
+  if (_pitch) {
+    _pitch->update();
+    _pitchAdj = _settings->get_pitchBend_factor(_partId) *
+                _pitch->get_scaled_phase_increment();
+  }
+  if (_tvf) _tvf->update();
+  if (_tva) _tva->update();
 
   if (_LFO2) _LFO2->update();
 }

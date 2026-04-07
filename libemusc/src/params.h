@@ -104,7 +104,7 @@ enum class PatchParam : int {
                                    //         2 = Full-Multi
   UseForRhythm        = 0x1015,    // [0 - 3] 0 = Off, 1 = Map1, 2 = Map2
   PitchKeyShift       = 0x1016,    // [0x28 - 0x58 : 0x40] -24 - 24 semitone
-  PitchOffsetFine     = 0x1017,    // 2B [0x08 - 0xf8 : 0x0800] -12.0 - 12.0 Hz
+  PitchOffsetFine     = 0x1017,    // 2B [0x08 - 0xf8 : 0x80] -12.0 - 12.0 Hz
   PitchOffsetFine2    = 0x1018,
   PartLevel           = 0x1019,    // [0x00 - 0x7f : 0x64]
   VelocitySenseDepth  = 0x101a,    // [0x00 - 0x7f : 0x40]
@@ -246,6 +246,7 @@ enum class PatchParam : int {
   Expression          = 0x108a,    // [0x00 - 0x7f : 0xff]
   Portamento          = 0x108b,    // [0 - 1 : 0]
   PortamentoTime      = 0x108c,    // [0x00 - 0x7f : 0]
+  PortamentoControl   = 0x108d,    // [0x00 - 0x7f : 0]
 
   // Current RPN and NRPN
   RPN_LSB             = 0x1090,    // [0x00 - 0x7f : 0]

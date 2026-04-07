@@ -24,7 +24,7 @@
 #include "control_rom.h"
 #include "params.h"
 
-#include <stdint.h>
+#include <cstdint>
 
 #include <algorithm>
 #include <array>
@@ -155,8 +155,8 @@ private:
 
   // Non-native parameters
   int _sampleRate;
-  int _channels;
-  InterpMode _interpMode;
+  int _channels;                        // 1 => mono or 2 => stereo
+  InterpMode _interpMode;               // Sample rate interpolation mode
 
   void _initialize_system_params(enum Mode = Mode::GS);
   void _initialize_patch_params(enum Mode = Mode::GS);
