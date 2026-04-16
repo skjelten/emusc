@@ -106,7 +106,7 @@ void TVA::apply(double *sample)
   // Apply volume correction from envelope and dynamic parameters
 //  sample[0] *= ((_envLevelMode >> 8) * (_dynLevel >> 8)) / (255.0 * 255.0);
 
-  double env = (double) _envLevelMode / 65280.0;   // 0xFF00 = 65280
+  double env = (double) _envLevel / 65280.0;   // 0xFF00 = 65280
   double dyn = (double) _dynLevel / 65280.0;
   double amp =  dyn * env;
   amp *= 3;
@@ -177,6 +177,12 @@ void TVA::update(bool reset)
     _dynLevelMode = 0xff00;
   else
     _dynLevelMode = (_dynLevel & 0xff00) | 0x00b4;
+
+  if (0)
+    std::cout << "TVA dv=0x" << std::hex << _dynLevel
+              << " (mode=0x" << _dynLevelMode
+              << ")  env=0x" << _envLevel
+              << " (mode=0x" << _envLevelMode << ")" << std::endl;
 }
 
 
@@ -551,7 +557,7 @@ void TVA::_init_envelope(ControlRom &ctrlRom, int sampleIndex,
     else
       levelIndex = std::max(1, levelIndex - biasLevel);
   }
-  
+
   levelIndex = std::max(levelIndex - _LUT.TVALevelIndex[cVelocity], 1);
   levelIndex = std::max(levelIndex - _LUT.TVALevelIndex[ctrlRom.sample(sampleIndex).volume], 1);
   levelIndex = std::max(levelIndex - _LUT.TVALevelIndex[ctrlRom.instrument(instrumentIndex).volume], 1);
