@@ -46,7 +46,7 @@ public:
 
   int get_next_sample(float *sampleOut);
   void update(void);
-  float get_last_peak_sample(void);
+  int get_last_peak_sample(void);
   int get_num_partials(void);
 
   // MIDI Channel Voice Messages

@@ -71,7 +71,7 @@ private:
   int _peakHold;                            // Off / Type 1 - 3 [1]
 
   QVector<bool> _barDisplay;
-  std::array<float, 16> _currentPartsAmp;
+  std::array<int, 16> _currentPartsAmp;
 
   bool _playAnimation;
   QVector<enum Animation> _animationList;

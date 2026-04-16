@@ -48,14 +48,14 @@ public:
     Sustain    = 6,
     TermTVADyn = 7,
     TermTVAEnv = 8,
-    Terminated = 9
+    Terminated = 9      // TVA level = 0
   };
 
   virtual void set_phase(enum Phase newPhase);
 
   inline bool finished(void) { return _finished; }
 
-  int get_envelope_value(void) { return _envOutput; }
+  int get_envelope_value(void) { return _envelopeOut; }
 
 protected:
   virtual void _init_new_phase(enum Phase newPhase) = 0;
@@ -94,7 +94,7 @@ protected:
   int _phaseStartValue;
   int _phaseEndValue;
 
-  int _envOutput;                  // Envelope value to GUI callback
+  int _envelopeOut;                // Envelope value to GUI callback
 
   int _timeKeyFlwT1T4;
   int _timeKeyFlwT5;

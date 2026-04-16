@@ -494,7 +494,7 @@ void TVF::_iterate_phase(void)
   accDepth = std::clamp(accDepth + std::abs(accCutoffCtrl), 0, (int) INT16_MAX);
 
   // This is how far the "TVF envelope" goes
-  _envOutput = accDepth >> 8;
+  _envelopeOut = accDepth >> 8;
 
   // Add LFO modulations to cutoff frequency
   int lfoDepth = std::abs(_lfo1Depth +

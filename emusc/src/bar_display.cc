@@ -21,6 +21,7 @@
 
 #include <inttypes.h>
 
+#include <algorithm>
 #include <iostream>
 
 #include <QDataStream>
@@ -182,8 +183,7 @@ void BarDisplay::_update_volume(void)
 		  _type == 5 || _type == 6) ? true : false;
   int partNum = 0;
   for (auto &p : _currentPartsAmp) {
-    int height = p * 100 * 0.7;  // FIXME: Audio values follows function?
-    if (height > 16) height = 16;
+    int height = std::min(p, 16);
 
     // We need to store values to support the peak hold feature
     if (_barDisplayHistVect[partNum].value <= height) {

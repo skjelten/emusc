@@ -364,9 +364,9 @@ int Synth::get_next_sample(int16_t *sampleOut)
 }
 
 
-std::array<float, 16> Synth::get_parts_last_peak_sample(void)
+std::array<int, 16> Synth::get_parts_last_peak_sample(void)
 {
-  std::array<float, 16> partVolumes;
+  std::array<int, 16> partVolumes;
 
   int i = 0;
   for (auto &p : _parts)

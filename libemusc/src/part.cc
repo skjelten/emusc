@@ -145,15 +145,38 @@ void Part::update(void)
 }
 
 
-float Part::get_last_peak_sample(void)
+int Part::get_last_peak_sample(void)
 {
   if (_mute)
     return -1;
 
-  float ret = std::abs(_lastPeakSample);
-  _lastPeakSample = 0;
+  // Formula for peak display level: bars = (max(TVA) * PartScale) / 8;
 
-  return ret;
+  // Calculate part scale
+  int scale = _settings->get_param(PatchParam::Expression, _id) *
+              _settings->get_param(PatchParam::PartLevel, _id) *
+              _settings->get_param(SystemParam::Volume);
+  scale = (((4 * scale) >> 8) & 0xffff);
+  scale = ((scale * 0x8208) >> 16);
+  scale = ((scale * 2) & 0xffff) + 0xff;
+  if (scale >= 0x8000) scale = 0x7f00;
+  scale >>= 8;
+
+  int tvaMax = 0;
+  _notesMutex->lock();
+
+  for (auto &n: _notes)
+    tvaMax = std::max({tvaMax, n->get_current_tva(0), n->get_current_tva(1)});
+
+  _notesMutex->unlock();
+
+  if (0)
+    std::cout << "PartScale=" << std::hex << scale
+              << " tvaMax=" << tvaMax
+              << " => " << ((scale * tvaMax) >> 11)
+              << std::endl;
+
+  return (scale * tvaMax) >> 11;
 }
 
 

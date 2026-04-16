@@ -53,7 +53,7 @@ TVA::TVA(ControlRom &ctrlRom, uint8_t key, uint8_t velocity, int sampleIndex,
     _lfo1FadeComplete(false),
     _lfo2FadeComplete(false),
     _LUT(ctrlRom.lookupTables),
-    _intEnvValue(0),
+    _envLevel(0),
     _key(key),
     _drumSet(settings->get_param(PatchParam::UseForRhythm, partId)),
     _panpot(-1),
@@ -63,16 +63,7 @@ TVA::TVA(ControlRom &ctrlRom, uint8_t key, uint8_t velocity, int sampleIndex,
     _partId(partId)
 {
   int cVelocity = _get_velocity_from_vcurve(velocity);
-
-  // Calculate accumulated level (volume) indexes
-  int levelIndex =
-    _get_bias_level(_instPartial.TVABiasPoint) +
-    _LUT.TVALevelIndex[_instPartial.volume] +
-    _LUT.TVALevelIndex[cVelocity] +
-    _LUT.TVALevelIndex[ctrlRom.sample(sampleIndex).volume] +
-    _LUT.TVALevelIndex[ctrlRom.instrument(instrumentIndex).volume];
-
-  _init_envelope(levelIndex, cVelocity);
+  _init_envelope(ctrlRom, sampleIndex, instrumentIndex, cVelocity);
 
   // Calculate random pan if part pan or drum pan value is 0 (RND)
   // A note is locked to RND if it is started with that setting
@@ -104,7 +95,7 @@ TVA::~TVA()
 //     * 0xff00: Used when very small changes to _dynLevel -> Skip smoothing
 //
 // 2. Envelope output has two variables:
-// * _envTargetOutput (_intEnvValue): 16 bit value of envelope level output
+// * _envTargetOutput (_envLevel): 16 bit value of envelope level output
 // * _envOutputMode, where MSB = MSB of _envTargetOutput and LSB = mode
 //   * Modes:
 //     * 0xaf: Short phase (0 duration)
@@ -113,9 +104,9 @@ TVA::~TVA()
 void TVA::apply(double *sample)
 {
   // Apply volume correction from envelope and dynamic parameters
-//  sample[0] *= ((_output >> 8) * (_dynLevel >> 8)) / (255.0 * 255.0);
+//  sample[0] *= ((_envLevelMode >> 8) * (_dynLevel >> 8)) / (255.0 * 255.0);
 
-  double env = (double) _output / 65280.0;   // 0xFF00 = 65280
+  double env = (double) _envLevelMode / 65280.0;   // 0xFF00 = 65280
   double dyn = (double) _dynLevel / 65280.0;
   double amp =  dyn * env;
   amp *= 3;
@@ -162,14 +153,13 @@ void TVA::update(bool reset)
   // 2. Check if envelope mode is 0xff00 (saturation)
   //   yes: Update smooth level accumulator
   //    no: Run envelope internal level through a smoothing / low-pass filter
-//  if (_output == 0xff00)
-    _smoothEnvLevel = _intEnvValue;
+//  if (_envLevelMode == 0xff00)
+    _smoothEnvLevel = _envLevel;
 //  else
-//    _intEnvValue = _calc_smoothed_target_envelope();
+//    _envLevel = _calc_smoothed_target_envelope();
 
-  // 3. Clamp envelope internal level MSB to 0xfe
-  if (((_intEnvValue >> 8) & 0xff) == 0xff)
-    _intEnvValue = (_intEnvValue & 0x00ff) | (0xfe << 8); // IKKE RIKTIG HELLER!
+  // Update external envelope variable for e.g. bar display (clamp to 0xfe)
+  _envelopeOut = std::min(_envLevel >> 8, 0xfe);
 
   // Iterate 8 ticks for the TVA envelope
   _iterate_phase();
@@ -247,7 +237,7 @@ uint16_t TVA::_calc_smoothed_target_volume(void)
 // WIP: Disabled for now
 uint16_t TVA::_calc_smoothed_target_envelope(void)
 {
-  uint16_t target = _intEnvValue & 0xff80;
+  uint16_t target = _envLevel & 0xff80;
 
   int16_t diff = (int16_t)target - (int16_t)_smoothEnvLevel;
   _smoothEnvLevel += (diff >> 2);
@@ -356,8 +346,9 @@ void TVA::_iterate_phase(void)
 
   } else if (_phase == Phase::Sustain) {
     _phaseRemainder = 0;
-    _output = _phaseEndValue << 8;
-    _intEnvValue = _phaseEndValue << 8;
+    _envLevelMode = 0xff00;
+    _envLevel = _phaseEndValue << 8;
+//    if (_envLevel == 0) _init_new_phase(Phase::Terminated); // Verify behavior before enabling this
     return;
   }
 
@@ -378,24 +369,24 @@ void TVA::_iterate_phase(void)
       return;
     }
 
-  } else if (_phase == Phase::Release && _intEnvValue == 0) {
+  } else if (_phase == Phase::Release && _envLevel == 0) {
     _finished = true;
     return;
   }
 
   int segmentIndex;
-  int prevIntEnvValue = _intEnvValue;
+  int prevIntEnvValue = _envLevel;
   int tvaHigh, tvaLow;
   int phaseAccumulator;
 
   if (_phaseDuration == 0) {
-    _intEnvValue = (_phaseEndValue << 8);
-    _output = (_phaseEndValue << 8) + 0xaf;
+    _envLevel = (_phaseEndValue << 8);
+    _envLevelMode = (_phaseEndValue << 8) + 0xaf;
     _phasePosition = 0xffff;
     return;
 
   } else if (_phaseDuration <= 8) {
-    _intEnvValue = (_phaseEndValue << 8);
+    _envLevel = (_phaseEndValue << 8);
     phaseAccumulator = (_phaseEndValue << 8) - prevIntEnvValue;
     tvaHigh = (_phaseEndValue << 8);
     _phasePosition = 0xffff;
@@ -434,7 +425,7 @@ void TVA::_iterate_phase(void)
     if (_phasePosition >= 0xffff) {
       tvaHigh = _phaseEndValue << 8;
       phaseAccumulator = tvaHigh - prevIntEnvValue;
-      _intEnvValue = tvaHigh; // TODO: Rounding error has been observed
+      _envLevel = tvaHigh; // TODO: Rounding error has been observed
 
     } else {
       int delta = _phaseEndValue - _phaseStartValue;
@@ -460,8 +451,7 @@ void TVA::_iterate_phase(void)
           tvaHigh = (scaled >> 8) + (_phaseEndValue << 8);
         }
 
-        phaseAccumulator = tvaHigh - prevIntEnvValue;
-        _intEnvValue = tvaHigh;
+        phaseAccumulator = _envLevel = tvaHigh;
 
       // Linear curve calculation
       } else {
@@ -472,25 +462,26 @@ void TVA::_iterate_phase(void)
           phaseAccumulator += 1;
         }
 
-        int phaseIncrement = phaseAccumulator - _intEnvValue;
-        _intEnvValue += phaseIncrement;
-        tvaHigh = _intEnvValue;
+        int phaseIncrement = phaseAccumulator - _envLevel;
+        _envLevel += phaseIncrement;
+        tvaHigh = _envLevel;
       }
     }
   }
 
-  if (prevIntEnvValue == tvaHigh) {
-    _output = _intEnvValue;
+  phaseAccumulator -= prevIntEnvValue;
+
+  if (phaseAccumulator == 0) {             // EnvLevel == PrevEnvLevel
+    _envLevelMode = 0xff00;
     return;
 
-  } else if (prevIntEnvValue < tvaHigh) {
-    if ((prevIntEnvValue & 0xff00) == (tvaHigh & 0xff00)) {
-      tvaHigh = std::min(tvaHigh + 0x100, 0xff00);
+  } else if (phaseAccumulator > 0) {
+    if ((prevIntEnvValue & 0xff00) == (_envLevel & 0xff00)) {
+      if ((tvaHigh & 0xff00) < 0xff00)
+        tvaHigh += 0x100;
     }
   } else {
-    if (phaseAccumulator < 0) {
-      phaseAccumulator = -phaseAccumulator;
-    }
+    phaseAccumulator = -phaseAccumulator;
   }
 
   for (int i = 0; i < 8; i++) {
@@ -512,18 +503,14 @@ void TVA::_iterate_phase(void)
   tvaLow |= _LUT.EnvSegmentStep[segmentIndex];
 
   if (tvaLow == 0)
-    _output = _intEnvValue;
+    _envLevelMode = 0xff00;
   else
-    _output = (tvaHigh & 0xff00) + tvaLow;
-
-  _envOutput = _output >> 8; // VERIFY : Move to after smoothening?
+    _envLevelMode = (tvaHigh & 0xff00) + tvaLow;
 }
 
 
-int TVA::_get_bias_level(int biasPoint)
+int TVA::_get_bias_level(int km, int biasPoint)
 {
-  int kmIndex = _LUT.KeyMapperIndex[0 + biasPoint] - _LUT.KeyMapperOffset;
-  int km = _LUT.KeyMapper[kmIndex + _key];
   int kfDiv = _LUT.EnvTimeKeyFollowSens[std::abs(_instPartial.TVABiasLevel - 0x40)];
   int biasLevelIndex = ((std::abs(km - 128) * kfDiv) * 2) >> 8;
 
@@ -544,18 +531,41 @@ int TVA::_get_velocity_from_vcurve(uint8_t velocity)
 }
 
 
-void TVA::_init_envelope(int levelIndex, uint8_t velocity)
+void TVA::_init_envelope(ControlRom &ctrlRom, int sampleIndex,
+                         int instrumentIndex, uint8_t cVelocity)
 {
-  int envL1Index = levelIndex + _LUT.TVALevelIndex[_instPartial.TVAEnvL1];
-  int envL2Index = levelIndex + _LUT.TVALevelIndex[_instPartial.TVAEnvL2];
-  int envL3Index = levelIndex + _LUT.TVALevelIndex[_instPartial.TVAEnvL3];
-  int envL4Index = levelIndex + _LUT.TVALevelIndex[_instPartial.TVAEnvL4];
+  // First step is to calculate correct initial phase levels
+  int levelIndex = std::max(0xff - _LUT.TVALevelIndex[_instPartial.volume], 1);
+  int kmIndex = _LUT.KeyMapperIndex[0 + _instPartial.TVABiasPoint] -
+                _LUT.KeyMapperOffset;
+  int km = _LUT.KeyMapper[kmIndex + _key];
+  int biasLevel = _get_bias_level(km, _instPartial.TVABiasPoint);
+  if (_instPartial.TVABiasLevel >= 0x40) {
+    if (km < 0x80)
+      levelIndex = std::max(1, levelIndex - biasLevel);
+    else
+      levelIndex = std::min(levelIndex + biasLevel, 0xff);
+  } else {
+    if (km < 0x80)
+      levelIndex = std::min(levelIndex + biasLevel, 0xff);
+    else
+      levelIndex = std::max(1, levelIndex - biasLevel);
+  }
+  
+  levelIndex = std::max(levelIndex - _LUT.TVALevelIndex[cVelocity], 1);
+  levelIndex = std::max(levelIndex - _LUT.TVALevelIndex[ctrlRom.sample(sampleIndex).volume], 1);
+  levelIndex = std::max(levelIndex - _LUT.TVALevelIndex[ctrlRom.instrument(instrumentIndex).volume], 1);
+
+  int envL1Index = levelIndex - _LUT.TVALevelIndex[_instPartial.TVAEnvL1];
+  int envL2Index = levelIndex - _LUT.TVALevelIndex[_instPartial.TVAEnvL2];
+  int envL3Index = levelIndex - _LUT.TVALevelIndex[_instPartial.TVAEnvL3];
+  int envL4Index = levelIndex - _LUT.TVALevelIndex[_instPartial.TVAEnvL4];
 
   _phaseValueInit[0] = 0;
-  _phaseValueInit[1] = _LUT.TVALevel[std::max(255 - envL1Index, 0)];
-  _phaseValueInit[2] = _LUT.TVALevel[std::max(255 - envL2Index, 0)];
-  _phaseValueInit[3] = _LUT.TVALevel[std::max(255 - envL3Index, 0)];
-  _phaseValueInit[4] = _LUT.TVALevel[std::max(255 - envL4Index, 0)];
+  _phaseValueInit[1] = _LUT.TVALevel[std::max(0, envL1Index)];
+  _phaseValueInit[2] = _LUT.TVALevel[std::max(0, envL2Index)];
+  _phaseValueInit[3] = _LUT.TVALevel[std::max(0, envL3Index)];
+  _phaseValueInit[4] = _LUT.TVALevel[std::max(0, envL4Index)];
   _phaseValueInit[5] = 0;
 
   _phaseDurationInit[0] = 0;                                     // Never used
@@ -580,9 +590,9 @@ void TVA::_init_envelope(int levelIndex, uint8_t velocity)
 
   // Adjust time for Envelope Time Velocity Sensitivity
   set_time_velocity_sensitivity(Envelope::Type::TVA, 0,
-                                _instPartial.TVAETVSens12 - 0x40, velocity);
+                                _instPartial.TVAETVSens12 - 0x40, cVelocity);
   set_time_velocity_sensitivity(Envelope::Type::TVA, 1,
-                                _instPartial.TVAETVSens35 - 0x40, velocity);
+                                _instPartial.TVAETVSens35 - 0x40, cVelocity);
 
   // Ignoring the pre-run of the envelope for TVA, assuming it is not needed
   // by EmuSC
@@ -601,13 +611,13 @@ void TVA::_init_new_phase(enum Phase newPhase)
     _phaseRemainder = 0;
     _phase = newPhase;
 
-    if (_intEnvValue == 0)
+    if (_envLevel == 0)
       _finished = true;
 
     return;
 
   } else if (newPhase == Phase::Release) {
-    _phaseStartValue = _intEnvValue >> 8;                 // Use current value
+    _phaseStartValue = _envLevel >> 8;                 // Use current value
     _phaseEndValue = _phaseValueInit[static_cast<int>(newPhase)];
 
   } else {

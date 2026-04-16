@@ -26,13 +26,14 @@ namespace EmuSC {
 
 
 Envelope::Envelope(ControlRom::LookupTables &LUT)
-  : _LUT(LUT),
-    _finished(false),
-    _phase(Phase::Init),
+  : _finished(false),
+    _envelopeOut(0),
     _timeKeyFlwT1T4(256),
     _timeKeyFlwT5(256),
     _timeVelSensT1T2(256),
-    _timeVelSensT3T5(256)
+    _timeVelSensT3T5(256),
+    _phase(Phase::Init),
+    _LUT(LUT)
 {}
 
 

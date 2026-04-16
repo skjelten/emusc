@@ -270,8 +270,7 @@ void Pitch::_apply_key_follow_bp(void)
     if (sign < 0) _basePitchC = -_basePitchC;
   }
 
-  _basePitchC += 0x3c + _instPartial.coarsePitch - 0x40;
-  _basePitchC = std::clamp(_basePitchC + initBasePitchC, 0, 0x7f);
+  _basePitchC = std::clamp(_basePitchC + 0x3c + initBasePitchC, 0, 0x7f);
 }
 
 
@@ -542,7 +541,8 @@ void Pitch::_iterate_phase(void)
     _settings->get_acc_control_param(Settings::ControllerParam::Pitch, _partId);
   _targetPitch = std::clamp(_targetPitch, 0, 0x1f018);
 
-  _envOutput = _targetPitch;
+  // This is the envelope part of the pitch calculation
+  _envelopeOut = _targetPitch;
 
   int lfoDepth = _lfo1Depth +
     _settings->get_acc_control_param(Settings::ControllerParam::LFO1PitchDepth,

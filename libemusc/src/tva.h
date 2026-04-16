@@ -48,10 +48,10 @@ private:
   int _dynLevel;
   int _dynLevelMode;
   int _smoothDynLevel = 0;
-  int _smoothEnvLevel = 0;
 
-  int _intEnvValue;
-  int _output;
+  int _envLevel;
+  int _envLevelMode;
+  int _smoothEnvLevel = 0;
 
   uint32_t _sampleRate;
 
@@ -79,7 +79,8 @@ private:
 
   TVA();
 
-  void _init_envelope(int levelIndex, uint8_t velocity);
+  void _init_envelope(ControlRom &ctrlRom, int sampleIndex, int instrumentIndex,
+                      uint8_t cVelocity);
 
   uint16_t _calc_smoothed_target_volume(void);
   uint16_t _calc_smoothed_target_envelope(void);
@@ -88,7 +89,7 @@ private:
   void _update_panpot_level(bool reset);
   void _update_lfo_depth(int lfo);
 
-  int _get_bias_level(int biasPoint);
+  int _get_bias_level(int km, int biasPoint);
   int _get_velocity_from_vcurve(uint8_t velocity);
 
   void _init_new_phase(enum Phase newPhase);
