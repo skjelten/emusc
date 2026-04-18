@@ -50,6 +50,8 @@ public:
   void stop(void);
   void update(void);
 
+  void first_run_cb(void);
+
   inline int get_current_lfo(void)
   { if (_LFO2) return _LFO2->value(); return 0; }
   int get_current_pitch(void)
@@ -65,15 +67,6 @@ private:
 
   std::vector<float> *_pcmSamples;
 
-  unsigned int _phase = 0;
-  int _lastPos;           // Last read sample position
-  float _index;           // Sample position in number of samples from start
-  bool _isLooping;        // Have we entered the loop region? Important for determining previous position
-  bool _firstSampleIt;    // True if this is the first time we run the sample
-
-  // Testing
-  float _pitchAdj = 0;
-
   Settings *_settings;
   int8_t _partId;
 
@@ -82,14 +75,14 @@ private:
 
   WaveGenerator *_LFO2;
 
+  Resample *_resample;
+
   Pitch *_pitch;
   TVF *_tvf;
   TVA *_tva;
 
-  enum Settings::InterpMode _interpMode;
-  double _sample;
-
-  bool _next_sample_from_rom(void);
+  float _pitchAdj;
+  float _sample;
 };
 
 }

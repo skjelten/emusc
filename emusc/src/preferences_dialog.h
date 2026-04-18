@@ -132,13 +132,12 @@ private:
 
   QComboBox *_systemBox;
   QComboBox *_deviceBox;
-  QComboBox *_interpolBox;
 
   QSpinBox *_bufferTimeSB;
   QSpinBox *_periodTimeSB;
   QSpinBox *_sampleRateSB;
   QComboBox *_channelsCB;
- 
+
   QLabel *_filePathLabel;
   QLineEdit *_filePathLE;
   QToolButton *_fileDialogTB;
@@ -165,7 +164,6 @@ private slots:
   void _sampleRateSB_changed(int value);
   void _filePathLE_changed(void);
   void _open_file_path_dialog(void);
-  void _interpolation_box_changed(int index);
 
 };
 

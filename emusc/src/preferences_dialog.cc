@@ -516,27 +516,12 @@ AudioSettings::AudioSettings(Emulator *emulator, QWidget *parent)
   _fileDialogTB->setText("...");
   gridLayout->addWidget(_fileDialogTB, 8, 4);
 
-  gridLayout->setRowMinimumHeight(9, 15);
-
-  gridLayout->addWidget(new QLabel("Interpolation"), 10, 0);
-  _interpolBox = new QComboBox();
-  _interpolBox->addItem("Nearest", 0);
-  _interpolBox->addItem("Linear", 1);
-  _interpolBox->addItem("Cubic", 2);
-
-  QHBoxLayout *interpolLayout = new QHBoxLayout();
-  interpolLayout->addWidget(_interpolBox);
-  interpolLayout->addWidget(new QLabel("Default: Cubic"));
-  interpolLayout->addStretch();
-  gridLayout->addLayout(interpolLayout, 10, 1);
-
   vboxLayout->addLayout(gridLayout);
   vboxLayout->addSpacing(15);
 
   _reverseStereo = new QCheckBox("Reverse Stereo");
   _reverseStereo->setEnabled(false);             // TODO: Not implemented yet
   vboxLayout->addWidget(_reverseStereo);
-
   vboxLayout->addStretch(0);
 
   if (_emulator->running()) {
@@ -592,7 +577,6 @@ AudioSettings::AudioSettings(Emulator *emulator, QWidget *parent)
   _sampleRateSB->setValue(sampleRate);
 //  _channelsCB->setCurrentIndex((int) stereo);
   _filePathLE->setText(settings.value("Audio/wav_file_path").toString());
-  _interpolBox->setCurrentText(settings.value("Audio/interpolation").toString());
 
   connect(_fileDialogTB, SIGNAL(clicked()),
 	  this, SLOT(_open_file_path_dialog()));
@@ -610,14 +594,12 @@ AudioSettings::AudioSettings(Emulator *emulator, QWidget *parent)
 	  this, SLOT(_filePathLE_changed()));
 //  connect(_channelsCB, SIGNAL(currentIndexChanged(int)),
 //	  this, SLOT(_channels_box_changed(int)));
-  connect(_interpolBox, SIGNAL(currentIndexChanged(int)),
-	  this, SLOT(_interpolation_box_changed(int)));
 
   vboxLayout->addStretch(0);
   vboxLayout->insertSpacing(1, 15);
   vboxLayout->insertSpacing(6, 85);
   setLayout(vboxLayout);  
-  }
+}
 
 
 void AudioSettings::reset(void)
@@ -626,13 +608,11 @@ void AudioSettings::reset(void)
   _periodTimeSB->setValue(_defaultPeriodTime);
   _sampleRateSB->setValue(_defaultSampleRate);
 //  _channelsCB->setCurrentIndex(1);                              // Stereo
-  _interpolBox->setCurrentIndex(2);                              // Cubic
 
   QSettings settings;
   settings.setValue("Audio/buffer_time", _defaultBufferTime);
   settings.setValue("Audio/period_time", _defaultPeriodTime);
   settings.setValue("Audio/sample_rate", _defaultSampleRate);
-  settings.setValue("Audio/interpolation", "Cubic");
 }
 
 
@@ -829,14 +809,6 @@ void AudioSettings::_open_file_path_dialog(void)
 }
 
 
-void AudioSettings::_interpolation_box_changed(int index)
-{
-  QSettings settings;
-  settings.setValue("Audio/interpolation", _interpolBox->currentText());
-  _emulator->set_interpolation_mode(index);
-}
-
-
 MidiSettings::MidiSettings(Emulator *emulator, Scene *scene, QWidget *parent)
   : _emulator(emulator)
 {
@@ -847,7 +819,6 @@ MidiSettings::MidiSettings(Emulator *emulator, Scene *scene, QWidget *parent)
   QFont f("Arial", 12, QFont::Bold);
   headerL->setFont(f);
   vboxLayout->addWidget(headerL);
-
 
   QGridLayout *gridLayout = new QGridLayout();
   gridLayout->addWidget(new QLabel("MIDI System"), 0, 0);

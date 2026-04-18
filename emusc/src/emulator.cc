@@ -178,14 +178,6 @@ void Emulator::start(void)
   _lcdDisplay->turn_on(control_rom_changed(),
 		       settings.value("Synth/startup_animations").toString());
 
-  QString interpol = settings.value("Audio/interpolation").toString();
-  if (!interpol.compare("Nearest", Qt::CaseInsensitive))
-    _emuscSynth->set_interpolation_mode(0);
-  else if (!interpol.compare("Linear", Qt::CaseInsensitive))
-    _emuscSynth->set_interpolation_mode(1);
-  else if (!interpol.compare("Cubic", Qt::CaseInsensitive))
-    _emuscSynth->set_interpolation_mode(2);
-
   _emuscSynth->add_part_change_callback(std::bind(&Emulator::_part_change_callback,
                                                   this,
                                                   std::placeholders::_1));
@@ -1433,13 +1425,6 @@ void Emulator::set_param(enum EmuSC::DrumParam dp, uint8_t map, uint8_t *data,
 			 uint8_t length)
 {
   _emuscSynth->set_param(dp, map, data, length);
-}
-
-
-void Emulator::set_interpolation_mode(int mode)
-{
-  if (_emuscSynth)
-    _emuscSynth->set_interpolation_mode(mode);
 }
 
 

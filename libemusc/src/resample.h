@@ -1,3 +1,4 @@
+
 /*
  *  This file is part of libEmuSC, a Sound Canvas emulator library
  *  Copyright (C) 2022-2024  Håkon Skjelten
@@ -16,18 +17,58 @@
  *  along with libEmuSC. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef EMUSC_RESAMPLE_H
-#define EMUSC_RESAMPLE_H
 
-#define EMUSC_INTERP_MAX 256
-#define emusc_float_to_row(_x) ((unsigned int)((_x) * EMUSC_INTERP_MAX))
+#ifndef __RESAMPLE_H__
+#define __RESAMPLE_H__
+
+
+#include "control_rom.h"
+
+#include <functional>
+#include <vector>
 
 
 namespace EmuSC {
-extern double interp_coeff_cubic[EMUSC_INTERP_MAX][4];
-extern double interp_coeff_linear[EMUSC_INTERP_MAX][2];
 
-void init_interp_tables();
-} // namespace EmuSC
 
-#endif //EMUSC_RESAMPLE_H
+class Resample
+{
+public:
+  Resample(ControlRom::Sample *ctrlSample, std::vector<float> *pcmSamples,
+           std::function<void(void)> cb);
+  ~Resample();
+
+  float get_next_sample(float rate);
+
+private:
+  int _sampleStart;           // 0 or sample attack end if portamento is active
+  int _sampleEnd;             // _sampleStart + sample set length
+  int _loopStart;             // _sampleEnd - sample set loop length
+  int _loopLength;            // Sample set loop length
+
+  std::vector<float> *_pcmSamples;
+
+  float _phase;               // Phase fraction 0.0 - 1.0
+  int _index;                 // Integer index
+
+  // 4x sample points (sliding window)
+  float y0, y1, y2, y3;
+
+  enum class LoopMode {
+    Forward  = 0,
+    PingPong = 1,
+    NoLoop   = 2
+  };
+  enum LoopMode _loopMode;
+
+  // External function call for signaling end of first run of sample set
+  std::function<void(void)> _firstRunCompleteCallback = NULL;
+  bool _firstRunComplete;
+
+  float _fetch_sample(int index);
+  float _interpolate_cubic(float t);
+};
+
+}
+
+#endif // __RESAMPLE_H__

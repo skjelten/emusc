@@ -48,13 +48,6 @@ public:
     // TODO: What about GM mode?
   };
 
-  // Interpolation modes
-  enum class InterpMode {
-    Nearest = 0,
-    Linear  = 1,
-    Cubic   = 2
-  };
-
   enum class Controller {
     Modulation      = 0,
     PitchBend       = 1,
@@ -134,9 +127,6 @@ public:
   void set_channels(int channels) { _channels = channels; }
   inline int channels(void) { return _channels; }
 
-  void set_interpolation_mode(enum InterpMode im) { _interpMode = im; }
-  inline enum InterpMode interpolation_mode(void) { return _interpMode; }
-
   int get_acc_control_param(enum ControllerParam cp, int part)
   { part = std::clamp(part, 0, 15);
     return _accControlParams[part][static_cast<int>(cp)]; }
@@ -156,7 +146,6 @@ private:
   // Non-native parameters
   int _sampleRate;
   int _channels;                        // 1 => mono or 2 => stereo
-  InterpMode _interpMode;               // Sample rate interpolation mode
 
   void _initialize_system_params(enum Mode = Mode::GS);
   void _initialize_patch_params(enum Mode = Mode::GS);

@@ -609,8 +609,9 @@ void TVA::_init_envelope(ControlRom &ctrlRom, int sampleIndex,
 void TVA::_init_new_phase(enum Phase newPhase)
 {
   if (newPhase == Phase::Terminated) {
-    std::cerr << "libEmuSC: Internal error, envelope in illegal state"
-	      << std::endl;
+    // TVA dynamic and envelope levels are supposed to be 0 => kill now
+    _dynLevel = _envLevel = 0;
+    _finished = true;
     return;
 
   } else if (newPhase == Phase::Sustain) {

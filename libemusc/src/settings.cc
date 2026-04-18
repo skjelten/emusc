@@ -39,8 +39,7 @@ constexpr std::array<uint8_t, 16> Settings::_convert_from_roland_part_id_LUT;
 Settings::Settings(ControlRom &ctrlRom)
   : _ctrlRom(ctrlRom),
     _sampleRate(44100),
-    _channels(2),
-    _interpMode(InterpMode::Cubic)
+    _channels(2)
 {
   // TODO: Add SC-55/88 to master settings
   _initialize_system_params();

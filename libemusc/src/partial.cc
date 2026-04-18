@@ -45,23 +45,6 @@
 #include <iostream>
 #include <cmath>
 
-namespace {
-struct InterpIndexes {
-  int i0, i1, i2, i3;
-};
-
-static InterpIndexes get_cubic_indexes(int i, int loopStart, int loopEnd, bool isLooping) {
-  if (i == loopEnd - 1) {
-    return {i-1, i, isLooping ? loopStart : i+1, isLooping ? loopStart+1 : i+1};
-  } else if (i == loopEnd) {
-    return {i-1, i, isLooping ? loopStart : i, isLooping ? loopStart+1 : i};
-  } else if (i == 0) {
-    return {isLooping ? loopEnd : i, i, i+1, i+2};
-  } else {
-    return {i-1, i, i+1, i+2};
-  }
-}
-}
 
 namespace EmuSC {
 
@@ -70,17 +53,13 @@ Partial::Partial(int partialId, uint8_t key, uint8_t velocity,
 		 uint16_t instrumentIndex, ControlRom &ctrlRom, PcmRom &pcmRom,
 		 WaveGenerator *LFO1, Settings *settings, int8_t partId)
   : _instPartial(ctrlRom.instrument(instrumentIndex).partials[partialId]),
-    _lastPos(0),
-    _index(0),
-    _isLooping(false),
-    _firstSampleIt(true),
     _settings(settings),
     _partId(partId),
     _LFO2(NULL),
     _pitch(NULL),
     _tvf(NULL),
     _tva(NULL),
-    _interpMode(static_cast<Settings::InterpMode>(settings->interpolation_mode())),
+    _pitchAdj(0),
     _sample(0)
 {
   _drumSet = settings->get_param(PatchParam::UseForRhythm, partId);
@@ -92,15 +71,17 @@ Partial::Partial(int partialId, uint8_t key, uint8_t velocity,
   _pitch = new Pitch(ctrlRom, instrumentIndex, partialId, key, velocity, LFO1,
                      _LFO2, settings, partId);
 
-  int sampleIndex = _pitch->get_sample_id();
-  _pcmSamples = &pcmRom.samples(sampleIndex).samplesF;
-  _ctrlSample = &ctrlRom.sample(sampleIndex);
-
   _tvf = new TVF(_instPartial, key, velocity, LFO1, _LFO2,
                  ctrlRom.lookupTables, settings, partId);
 
+  int sampleIndex = _pitch->get_sample_id();
   _tva = new TVA(ctrlRom, key, velocity, sampleIndex, LFO1, _LFO2, settings,
                  partId, instrumentIndex, partialId);
+
+  _ctrlSample = &ctrlRom.sample(sampleIndex);
+  _pcmSamples = &pcmRom.samples(sampleIndex).samplesF;
+  _resample = new Resample(_ctrlSample, _pcmSamples,
+                           std::bind(&Partial::first_run_cb, this));
 
   // FIXME: A few sample definitions in the SC-55 ROM have loop length >
   // sample length. This makes EmuSC crash as it loops outside range. The
@@ -121,6 +102,8 @@ Partial::~Partial()
   delete _tvf;
   delete _tva;
 
+  delete _resample;
+
   delete _LFO2;
 }
 
@@ -133,11 +116,10 @@ bool Partial::get_next_sample(float *noteSample)
   if  (_tva->finished())
     return 1;
 
-  if (_next_sample_from_rom())
-    return 1;
+  _sample = _resample->get_next_sample(_pitchAdj);
 
   double sample[2] = {0, 0};
-  sample[0] = _sample * 0.5;      // Reduce audio volume to avoid overflow
+  sample[0] = _sample * 1.0;      // Reduce audio volume to avoid overflow
 
 //  _tvf->apply(&sample[0]);
   _tva->apply(&sample[0]);
@@ -145,74 +127,6 @@ bool Partial::get_next_sample(float *noteSample)
   // Finally add samples to the sample pointers (always 2 channels / stereo)
   noteSample[0] += sample[0];
   noteSample[1] += sample[1];
-
-  return 0;
-}
-
-
-bool Partial::_next_sample_from_rom()
-{
-  float loopEnd = _ctrlSample->sampleLen;
-  float loopLen = _ctrlSample->loopLen;
-  float loopStart = loopEnd - loopLen;
-  const double *coeffs;
-
-  if (_index > loopStart && _ctrlSample->loopMode != 2) _isLooping = true;
-
-  if (_index >= loopEnd + 1.f) {
-    if (_firstSampleIt) {
-      _firstSampleIt = false;
-      _pitch->first_sample_run_complete();
-    }
-
-    // This could probably be replaced by first_loop_complete to TVA/F
-    if (_ctrlSample->loopMode == 2) {
-      // One-shot: sample is finished; exit
-      return 1;
-    }
-
-    // Restart loop
-    _index -= (loopLen + 1.f);
-
-    _phase = (int) _index << 14;
-  }
-
-  int idx0 = (int) floor(_index);
-  float frac = _index - floor(_index);
-
-  switch (_interpMode) {
-    case Settings::InterpMode::Nearest: {
-      _sample = _pcmSamples->at(idx0);
-      break;
-    }
-    case Settings::InterpMode::Linear: {
-      int idx1 = idx0 + 1;
-      if (idx1 > (int) loopEnd) {
-        idx1 = _isLooping ? (int) loopStart : idx0;
-      }
-
-      coeffs = interp_coeff_linear[emusc_float_to_row(frac)];
-      _sample = coeffs[0] * _pcmSamples->at(idx0) +
-                coeffs[1] * _pcmSamples->at(idx1);
-      break;
-    }
-    case Settings::InterpMode::Cubic: {
-      auto indexes = get_cubic_indexes(idx0,
-                                       _ctrlSample->sampleLen - _ctrlSample->loopLen,
-                                       _ctrlSample->sampleLen,
-                                       _isLooping);
-
-      coeffs = interp_coeff_cubic[emusc_float_to_row(frac)];
-      _sample = coeffs[0] * _pcmSamples->at(indexes.i0) +
-                coeffs[1] * _pcmSamples->at(indexes.i1) +
-                coeffs[2] * _pcmSamples->at(indexes.i2) +
-                coeffs[3] * _pcmSamples->at(indexes.i3);
-      break;
-    }
-  }
-
-  _phase += _pitchAdj;
-  _index = _phase >> 14;
 
   return 0;
 }
@@ -241,6 +155,17 @@ void Partial::update(void)
   if (_tva) _tva->update();
 
   if (_LFO2) _LFO2->update();
+}
+
+
+void Partial::first_run_cb(void)
+{
+  // Looping samples have their pitch tuned after the first loop point
+  // Non-looping samples shall be terminated (if not complete already)
+  if (_ctrlSample->loopMode != 2)
+    _pitch->first_sample_run_complete();
+  else
+    _tva->set_phase(Envelope::Phase::Terminated);
 }
 
 }

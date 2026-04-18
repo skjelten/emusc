@@ -454,7 +454,6 @@ void Pitch::_init_envelope(uint8_t velocity)
 void Pitch::first_sample_run_complete(void)
 {
   _samplePitchOffsetActive = _samplePitchOffsetSust;
-
   _cachedPFineTune = 0;                   // Reset fine tune cache
 }
 

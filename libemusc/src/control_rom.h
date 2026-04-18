@@ -46,7 +46,7 @@ public:
     uint8_t  volume;      // Volume attenuation (0x7f - 0)
     uint32_t address;     // Bank + scrambled address on SC55.
                           // Bits above 20 are wave bank.
-    uint16_t attackStart; // Offset to start of playback for looping samples
+    uint16_t portaOffset; // Start offset for samples during portamento
     uint16_t sampleLen;   // Sample size
     uint16_t loopLen;     // Loop point, used as sample_len - loop_len - 1
     uint8_t  loopMode;    // 2 = No loop, 1 = ping-pong loop, 0 = forward loop

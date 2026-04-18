@@ -35,7 +35,6 @@
 #include <iomanip>
 
 #include "config.h"
-#include "resample.h"
 
 
 namespace EmuSC {
@@ -53,8 +52,6 @@ Synth::Synth(ControlRom &controlRom, PcmRom &pcmRom, SoundMap map)
   _settings = new Settings(controlRom);
 
   _parts.reserve(16);
-
-  init_interp_tables();
 
   if (map == SoundMap::GS) {
     std::cout << "libEmuSC: GS sound map initialized" << std::endl;
@@ -387,13 +384,6 @@ void Synth::set_audio_format(uint32_t sampleRate, uint8_t channels)
   _init_parts();
 
   _updateSkipSamples = (256.0 * (float) sampleRate / 32000.0);
-}
-
-
-void Synth::set_interpolation_mode(int mode)
-{
-  if (mode >= 0 && mode <= 2)
-    _settings->set_interpolation_mode(static_cast<Settings::InterpMode>(mode));
 }
 
 

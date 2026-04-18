@@ -48,7 +48,7 @@ public:
 
   inline int get_phase_increment(void) { return _phaseIncrement; }
   inline float get_scaled_phase_increment(void)
-  { return _phaseIncrement * _sampleRateScale; }
+  { return (_phaseIncrement / 16384.0) * _sampleRateScale; }
 
   inline uint16_t get_sample_id(void) { return _sampleIndex; }
 

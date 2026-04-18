@@ -474,7 +474,7 @@ int ControlRom::_read_samples(std::ifstream &romFile)
     romFile.read(data, 16);
     s.volume = data[0];
     s.address = _native_endian_3bytes_uint32((uint8_t *) &data[1]);
-    s.attackStart = _native_endian_uint16((uint8_t *) &data[4]);
+    s.portaOffset = _native_endian_uint16((uint8_t *) &data[4]);
     s.sampleLen = _native_endian_uint16((uint8_t *) &data[6]);
     s.loopLen = _native_endian_uint16((uint8_t *) &data[8]);
     s.loopMode = data[10];
@@ -488,7 +488,7 @@ int ControlRom::_read_samples(std::ifstream &romFile)
       if (0)
 	std::cout << "  -> Sample " << std::setw(3) << _samples.size()
 		  << ": V=" << std::setw(3) << +s.volume
-		  << " AE=" << std::setw(5) << +s.attackStart
+		  << " AE=" << std::setw(5) << +s.portaOffset
 		  << " SL=" << std::setw(5) << +s.sampleLen
 		  << " LL=" << std::setw(5) << +s.loopLen
 		  << " LM=" << std::setw(3) << +s.loopMode
@@ -999,7 +999,7 @@ std::vector<std::vector<std::string>> ControlRom::get_samples_list(void)
   for (struct Sample sample: _samples) {
     std::vector<std::string> sampleVector;
     sampleVector.push_back(std::to_string(sample.volume));
-    sampleVector.push_back(std::to_string(sample.attackStart));
+    sampleVector.push_back(std::to_string(sample.portaOffset));
     sampleVector.push_back(std::to_string(sample.sampleLen));
     sampleVector.push_back(std::to_string(sample.loopLen));
     sampleVector.push_back(std::to_string(sample.loopMode));

@@ -121,8 +121,6 @@ public:
   void set_lfo_callback(int partId, LFODialog *dialog);
   void clear_lfo_callback(int partId);
 
-  void set_interpolation_mode(int mode);
-
   int get_lfo_rate_LUT(int index);
   int get_lfo_delay_fade_LUT(int index);
 

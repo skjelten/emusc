@@ -170,24 +170,20 @@ int PcmRom::_read_samples(std::vector<char> &romData,
     s.samplesF.push_back(sample);
   }
 
+  // Due to DPCM encoding we want to continue ping-pong loops for one cycle.
+  // To keep other parts of the codebase sane we do not alter the sample struct.
   if (ctrlSample.loopMode == 1) {
-    // Unwrap ping-pong loops.
-    // This helps to simplify interpolation logic.
     int loopLen = ctrlSample.loopLen + 1;
     s.samplesF.reserve(ctrlSample.sampleLen + loopLen);
     for (int i = 0; i < loopLen; i++) {
       sample = -s.samplesF[ctrlSample.sampleLen - i];
       s.samplesF.push_back(sample);
     }
-    // Convert properties to forward loop.
-    ctrlSample.loopMode = 0;
-    ctrlSample.sampleLen += loopLen;
-    ctrlSample.loopLen += loopLen;
   }
 
   _sampleSets.push_back(s);
 
   return s.samplesF.size();
 }
-  
+
 }
