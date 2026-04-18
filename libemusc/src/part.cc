@@ -125,10 +125,8 @@ int Part::get_next_sample(float *sampleOut)
 
   _notesMutex->unlock();
 
-  if (_id == 0) {
-//  std::cout << "sample out" << sampleOut[0] << std::endl;
   _systemEffects->apply(sampleOut);
-  }
+
   _callbackTrigger = false;
 
   return 0;
