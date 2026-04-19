@@ -268,7 +268,7 @@ void TVA::_update_dynamic_level()
   // 2: Add corrections, different between normal instruments and drums
   if (_drumSet) {
     _dynLevel *= _settings->get_param(DrumParam::Level, _drumSet - 1, _key);
-    _dynLevel = (((_dynLevel * 4) >> 8) & 0xffff);
+    _dynLevel = ((_dynLevel * 2) >> 8) & 0xffff;
     _dynLevel = ((_dynLevel * 0x830e * 2) >> 16);
   } else {
     _dynLevel = ((_dynLevel * 0x8208 * 2) >> 16);
