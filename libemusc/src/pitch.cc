@@ -247,9 +247,17 @@ void Pitch::_apply_key_follow_bp(void)
   int initBasePitchC = _basePitchC;
   _basePitchC = 0;
 
+  int keyCenterDist;
+  int drumSet = _settings->get_param(PatchParam::UseForRhythm, _partId);
+  if (drumSet) {
+    int dKey = _settings->get_param(DrumParam::PlayKeyNumber, drumSet, _key);
+    keyCenterDist = dKey - 60;
+  } else {
+    keyCenterDist = _key - 60;
+  }
+
   // Adjust for Pitch Key Follow parameter in Partial definition
   int keyFollow = _instPartial.pitchKeyFlw - 0x40;
-  int keyCenterDist = _key - 60;
   int sign = (keyCenterDist ^ keyFollow) < 0 ? -1 : 1;
 
   uint16_t ppScale = _LUT.PitchParamScale[std::abs(keyFollow)];
@@ -270,7 +278,10 @@ void Pitch::_apply_key_follow_bp(void)
     if (sign < 0) _basePitchC = -_basePitchC;
   }
 
-  _basePitchC = std::clamp(_basePitchC + 0x3c + initBasePitchC, 0, 0x7f);
+  if (drumSet)
+    _basePitchC = std::clamp(_basePitchC - keyCenterDist + initBasePitchC, 0, 0x7f);
+  else
+    _basePitchC = std::clamp(_basePitchC + 0x3c + initBasePitchC, 0, 0x7f);
 }
 
 
