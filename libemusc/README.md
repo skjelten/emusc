@@ -14,4 +14,4 @@ libEmuSC only depends on C++11 with threads and CMake, and should be portable to
 
 ## License
 
-libEmuSC is released under the LGPL 3+ license.
+libEmuSC is released under the LGPLv2.1+ license.

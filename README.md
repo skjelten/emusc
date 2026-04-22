@@ -34,4 +34,4 @@ Interested in C++ programming, reverse engineering, audio synthesis or synthesiz
 
 EmuSC is free software and released under the GNU general public license:
 * EmuSC is released under the GPLv3+ license.
-* libEmuSC is released under the LGPLv3+ license.
+* libEmuSC is released under the LGPLv2.1+ license.
