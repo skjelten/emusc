@@ -1,6 +1,6 @@
 /*
  *  This file is part of EmuSC, a Sound Canvas emulator
- *  Copyright (C) 2022-2024  Håkon Skjelten
+ *  Copyright (C) 2022-2026  Håkon Skjelten
  *
  *  EmuSC is free software: you can redistribute it and/or modify it
  *  under the terms of the GNU General Public License as published
@@ -470,7 +470,7 @@ void MainWindow::_display_about_dialog()
 			     "libEmuSC version " + libemuscVersion + "\n"
 			     "libQT version " QT_VERSION_STR "\n"
 			     "\n"
-			     "Copyright (C) 2024 Håkon Skjelten\n"
+			     "Copyright (C) 2026 Håkon Skjelten\n"
 			     "\n"
 			     "Licensed under GPL v3 or any later version"));
 }
