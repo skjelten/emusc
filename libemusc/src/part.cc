@@ -104,13 +104,6 @@ int Part::get_next_sample(float *sampleOut)
                      _notes.front()->get_current_lfo(2));
     }
 
-    // Apply volume from part (MIDI channel) and expression (CM11)
-    uint8_t expression = _settings->get_param(PatchParam::Expression, _id);
-    partSample[0] *= _settings->get_param(PatchParam::PartLevel, _id) *
-      _7bScale * (expression * _7bScale);
-    partSample[1] *= _settings->get_param(PatchParam::PartLevel, _id) *
-      _7bScale * (expression * _7bScale);
-
     // Store last (highest) value for future queries (typically for bar display)
     _lastPeakSample =
       (_lastPeakSample >= partSample[0]) ? _lastPeakSample : partSample[0];
