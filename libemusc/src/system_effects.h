@@ -30,48 +30,30 @@
 
 namespace EmuSC {
 
+
 class SystemEffects
 {
 public:
-  SystemEffects(Settings *settings, uint8_t id);
+  SystemEffects(Settings *settings);
   ~SystemEffects();
 
-  int apply(float *sample);
-  void update_params(void);
+  int apply(std::array<std::array<float, 256>, 2> &chorusBus,
+	    std::array<std::array<float, 256>, 2> &reverbBus,
+	    std::array<std::array<float, 256>, 2> &chorusOut,
+	    std::array<std::array<float, 256>, 2> &reverbOut);
+  void update(void);
 
 private:
   Settings *_settings;
-  const uint8_t _partId;
 
-  int _sampleRate;
-  
   Chorus *_chorus;
-  Reverb *_reverb;
-
   uint8_t _chorusLevel;
-  uint8_t _chorusSendLevel;
   uint8_t _chorusSendLevelToReverb;
 
+  Reverb *_reverb;
   uint8_t _reverbLevel;
-  uint8_t _reverbSendLevel;
-
-  float _cLevel;
-  float _rLevel;
-
-  float _chorusOutput[2][2];
-  float _reverbOutput[2][2];
-  bool _outputIndex;
-
-  bool _chorusDisabled;
-  bool _reverbDisabled;
-
-  unsigned int _applyCounter = 0;
-  const double _approxZero = 1e-10;
 
   SystemEffects();
-
-  void _disable_unused_effects(void);
-
 };
 
 }

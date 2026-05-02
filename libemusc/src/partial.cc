@@ -80,8 +80,8 @@ Partial::Partial(int partialId, uint8_t key, uint8_t velocity,
 
   _ctrlSample = &ctrlRom.sample(sampleIndex);
   _pcmSamples = &pcmRom.samples(sampleIndex).samplesF;
-  _resample = new Resample(_ctrlSample, _pcmSamples,
-                           std::bind(&Partial::first_run_cb, this));
+  _waveOscillator = new WaveOscillator(_ctrlSample, _pcmSamples,
+                                       std::bind(&Partial::first_run_cb, this));
 
   // FIXME: A few sample definitions in the SC-55 ROM have loop length >
   // sample length. This makes EmuSC crash as it loops outside range. The
@@ -102,7 +102,7 @@ Partial::~Partial()
   delete _tvf;
   delete _tva;
 
-  delete _resample;
+  delete _waveOscillator;
 
   delete _LFO2;
 }
@@ -116,7 +116,10 @@ bool Partial::get_next_sample(float *noteSample)
   if  (_tva->finished())
     return 1;
 
-  _sample = _resample->get_next_sample(_pitchAdj);
+  _sample =
+    _waveOscillator->get_next_sample(_settings->get_pitchBend_factor(_partId) *
+                                     (_pitch->get_phase_increment() /
+                                      (16384.0)));
 
   double sample[2] = {0, 0};
   sample[0] = _sample * 1.0;      // Reduce audio volume to avoid overflow
@@ -146,11 +149,7 @@ void Partial::stop(void)
 // Update parameters every 256th sample @32k
 void Partial::update(void)
 {
-  if (_pitch) {
-    _pitch->update();
-    _pitchAdj = _settings->get_pitchBend_factor(_partId) *
-                _pitch->get_scaled_phase_increment();
-  }
+  if (_pitch) _pitch->update();
   if (_tvf) _tvf->update();
   if (_tva) _tva->update();
 

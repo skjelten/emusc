@@ -44,8 +44,10 @@ Synth::Synth(ControlRom &controlRom, PcmRom &pcmRom, SoundMap map)
     _channels(0),
     _ctrlRom(controlRom),
     _pcmRom(pcmRom),
-    _updateSkipSamples(-1),
-    _updateSkipSamplesItr(0)
+    _phase(0.0),
+    _updateCounter(0),
+    _hostSampleBufRIndex(0),
+    _hostSampleBufWIndex(0)
 {
   srand (static_cast<unsigned>(time(0)));
 
@@ -62,6 +64,9 @@ Synth::Synth(ControlRom &controlRom, PcmRom &pcmRom, SoundMap map)
     _settings->set_map_mt32();
     std::cout << "libEmuSC: MT-32 sound map initialized" << std::endl;
   }
+
+  _systemEffects = new SystemEffects(_settings);
+  _resampler = new Resampler();
 }
 
 
@@ -69,6 +74,8 @@ Synth::~Synth()
 {
   _parts.clear();
   delete _settings;
+  delete _systemEffects;
+  delete _resampler;
 }
 
 
@@ -314,50 +321,91 @@ void Synth::midi_input_sysex(uint8_t *data, uint16_t length)
 
 int Synth::get_next_sample(int16_t *sampleOut)
 {
-  float partSample[2];
-  float accumulatedSample[2] = { 0, 0 };
+  // If samplerate is not set, just return silence
+  if (_sampleRate == 0) {
+    sampleOut[0] = 0;
+    sampleOut[1] = 0;
 
-  // Write silence
-  for (int i = 0; i < _channels; i++) {
-    sampleOut[i] = 0;
+    return 0;
   }
 
-  midiMutex.lock();
-
-  // Update all parts and note parameters every 256 samples @32k
-  if (_updateSkipSamples >= 0 && _updateSkipSamplesItr-- == 0) {
-    _updateSkipSamplesItr = _updateSkipSamples;
-    for (auto &p : _parts)
-      p.update();
+  // We are out of samples, trigger new control update + 256 samples @ 32 kHz
+  if (_hostSampleBufWIndex == _hostSampleBufRIndex) {
+    _process_samples();
+    _hostSampleBufRIndex = 0;
   }
-
-  // Iterate all parts and ask for next sample
-  for (auto &p : _parts) {
-    partSample[0] = partSample[1] = 0;
-    p.get_next_sample(partSample);
-
-    accumulatedSample[0] += partSample[0];
-    accumulatedSample[1] += partSample[1];
-  }
-
-  // Finished working MIDI data
-  midiMutex.unlock();
 
   // Check if sound is too loud => clipping
-  if (accumulatedSample[0] > 1 || accumulatedSample[0] < -1) {
+  if (_hostSampleBufL[_hostSampleBufRIndex] > 1 ||
+      _hostSampleBufL[_hostSampleBufRIndex] < -1) {
     std::cout << "EmuSC: Warning - audio clipped (too loud)" << std::endl;
-    accumulatedSample[0] = (accumulatedSample[0] > 1) ? 1 : -1;
+    _hostSampleBufL[_hostSampleBufRIndex] =
+      (_hostSampleBufL[_hostSampleBufRIndex] > 1) ? 0.9 : -0.9;
   }
-  if (accumulatedSample[1] > 1 || accumulatedSample[1] < -1) {
+  if (_hostSampleBufR[_hostSampleBufRIndex] > 1 ||
+      _hostSampleBufR[_hostSampleBufRIndex] < -1) {
     std::cout << "EmuSC: Warning - audio clipped (too loud)" << std::endl;
-    accumulatedSample[1] = (accumulatedSample[1] > 1) ? 1 : -1;
+    _hostSampleBufR[_hostSampleBufRIndex] =
+      (_hostSampleBufR[_hostSampleBufRIndex] > 1) ? 0.9 : -0.9;
   }
 
   // Convert to 16 bit and update sample data in audio output driver
-  for (int c = 0; c < _channels; c++)
-    sampleOut[c] += (int16_t) (accumulatedSample[c] * 0xffff);
+  sampleOut[0] = (int16_t) (_hostSampleBufL[_hostSampleBufRIndex] * 0xffff);
+  sampleOut[1] = (int16_t) (_hostSampleBufR[_hostSampleBufRIndex] * 0xffff);
+  _hostSampleBufRIndex++;
 
   return 0;
+}
+
+
+// Do a control update and read 256 samples
+void Synth::_process_samples(void)
+{
+  // Start all samples processings with a control updates
+  for (auto &p : _parts)
+    p.update();
+
+  _systemEffects->update();
+
+  // Clear all relative buffers before accumulating new samples
+  for (int i = 0; i < 2; i++) {
+    _dryBus[i].fill(0.0f);
+    _chorusBus[i].fill(0.0f);
+    _reverbBus[i].fill(0.0f);
+  }
+  std::fill(_hostSampleBufL.begin(), _hostSampleBufL.end(), 0.0f);
+  std::fill(_hostSampleBufR.begin(), _hostSampleBufR.end(), 0.0f);
+
+  midiMutex.lock();
+
+  _hostSampleBufWIndex = 0;
+
+  // Iterate all parts and ask for next sample
+  for (auto &p : _parts) {
+    p.get_sample_set(_dryBus, _chorusBus, _reverbBus);
+  }
+
+  // Add system effects
+  _systemEffects->apply(_chorusBus, _reverbBus, _chorusOut, _reverbOut);
+
+  // Work through the dryBus and genereate samples adapted to host's sample rate
+  for (int i = 0; i < 256; i++) {
+
+    float l = _dryBus[0][i] + _chorusOut[0][i] + _reverbOut[0][i];
+    float r = _dryBus[1][i] + _chorusOut[1][i] + _reverbOut[1][i];
+    _resampler->push(l, r);
+
+    float hostL = 0, hostR = 0;
+    while (_resampler->get_next_sample(hostL, hostR)) {
+      if (_hostSampleBufWIndex < _hostSampleBufL.size()) {
+	_hostSampleBufL[_hostSampleBufWIndex] += hostL;
+	_hostSampleBufR[_hostSampleBufWIndex] += hostR;
+	_hostSampleBufWIndex++;
+      }
+    }
+  }
+
+  midiMutex.unlock();
 }
 
 
@@ -375,6 +423,7 @@ std::array<int, 16> Synth::get_parts_last_peak_sample(void)
 
 void Synth::set_audio_format(uint32_t sampleRate, uint8_t channels)
 {
+  _resampler->set_sample_rate(sampleRate);
   _settings->set_sample_rate(sampleRate);
   _settings->set_channels(channels);
 
@@ -383,7 +432,8 @@ void Synth::set_audio_format(uint32_t sampleRate, uint8_t channels)
 
   _init_parts();
 
-  _updateSkipSamples = (256.0 * (float) sampleRate / 32000.0);
+  _hostSampleBufL.resize(std::ceil(256 * sampleRate / 32000.0) + 1);
+  _hostSampleBufR.resize(std::ceil(256 * sampleRate / 32000.0) + 1);
 }
 
 

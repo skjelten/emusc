@@ -20,14 +20,8 @@
 //  - Chorus (8 types)
 //  - Reverb (8 types)
 //
-// SC-88+ introduced the additional effects:
-//  - Delay (10 types)
-//  - Equalizer (2-band)
-//
-// The SC-88+ also introduced the Insertion Effects, a group of audio effects
-// separate from the System Effects.
-//
-// Only the Chorus and Reverb effects are currently implemented in libemusc.
+// Delay and Equalizer was first introduced to the System Effects in the SC-88
+// model and therefore not part of libEmuSC.
 
 
 #include "system_effects.h"
@@ -39,21 +33,16 @@
 
 namespace EmuSC {
 
-SystemEffects::SystemEffects(Settings *settings, uint8_t partId)
-  : _settings(settings),
-    _partId(partId),
-    _chorus(NULL),
-    _reverb(NULL),
-    _outputIndex(0),
-    _chorusDisabled(true),
-    _reverbDisabled(true)
-{
-  _sampleRate = settings->sample_rate();
 
+SystemEffects::SystemEffects(Settings *settings)
+  : _settings(settings),
+    _chorus(NULL),
+    _reverb(NULL)
+{
   _chorus = new Chorus(settings);
   _reverb = new Reverb(settings);
 
-  update_params();
+  update();
 }
 
 
@@ -64,89 +53,57 @@ SystemEffects::~SystemEffects()
 }
 
 
-// System Effects always produce 2 channel & 32kHz (native) output. Other
-// channel numbers and sample rates are handled by the calling Synth class.
-int SystemEffects::apply(float *sample)
+// System Effects always produce 2 channel & 32kHz (native) output.
+int SystemEffects::apply(std::array<std::array<float, 256>, 2> &chorusBus,
+			 std::array<std::array<float, 256>, 2> &reverbBus,
+			 std::array<std::array<float, 256>, 2> &chorusOut,
+			 std::array<std::array<float, 256>, 2> &reverbOut)
 {
-  float cSample[2] = { 0, 0 };
+  for (int i = 0; i < 256; i ++) {
+    // Apply chorus if active
+    if (_chorusLevel) {
+      float cSample[2] = { 0, 0 };
+      float cInput = ((chorusBus[0][i] + chorusBus[1][i]) / 2);
 
-  // Check regularly if we can disable system effects to save CPU when silent
-  if (++_applyCounter % _sampleRate == 0 && sample[0] == 0 && sample[1] == 0)
-    _disable_unused_effects();
-  if (_chorusDisabled && (sample[0] != 0 || sample[1] != 0))
-    _chorusDisabled = false;
-  if (_reverbDisabled && (sample[0] != 0 || sample[1] != 0))
-    _reverbDisabled = false;
+      _chorus->process_sample(cInput, cSample);
 
-  _outputIndex = !_outputIndex;
-  _chorusOutput[_outputIndex][0] = 0;
-  _chorusOutput[_outputIndex][1] = 0;
-  _reverbOutput[_outputIndex][0] = 0;
-  _reverbOutput[_outputIndex][1] = 0;
+      chorusOut[0][i] = cSample[0] * (_chorusLevel / 128.0);
+      chorusOut[1][i] = cSample[1] * (_chorusLevel / 128.0);
 
-  // Apply chorus
-  if (!_chorusDisabled && _chorusLevel && _chorusSendLevel) {
-    float cInput = ((sample[0] + sample[1]) / 2) * _cLevel;
+    } else {
+      chorusOut[0][i] = 0.0;
+      chorusOut[1][i] = 0.0;
+    }
 
-    _chorus->process_sample(cInput, cSample);
-    _chorusOutput[_outputIndex][0] += cSample[0] * (_chorusLevel / 127.0);
-    _chorusOutput[_outputIndex][1] += cSample[1] * (_chorusLevel / 127.0);
+    // Apply reverb if active
+    if (_reverbLevel) {
+      float rSample[2] = { 0, 0 };
+      float rInput[2];
+      rInput[0] = rInput[1] = ((reverbBus[0][i] + reverbBus[1][i]) / 2) +
+	((chorusBus[0][i] + chorusBus[1][i]) / 2) *
+	(float) _chorusSendLevelToReverb / 128.0;
+
+      _reverb->process_sample(rInput, rSample);
+
+      reverbOut[0][i] = rSample[0] * (_reverbLevel / 128.0);
+      reverbOut[1][i] = rSample[1] * (_reverbLevel / 128.0);
+
+    } else {
+      reverbOut[0][i] = 0.0;
+      reverbOut[1][i] = 0.0;
+    }
   }
-
-  // Apply reverb
-  if (!_reverbDisabled && _reverbLevel && _reverbSendLevel) {
-    float rSample[2] = { 0, 0 };
-
-    // TODO: Figure out if the reverb has mono or stereo input
-    // Current guess is mono input and variable delay to create stereo output
-    float rInput[2];
-    rInput[0] = rInput[1] = ((sample[0] + sample[1]) / 2) * _rLevel +
-      ((cSample[0] + cSample[1]) / 2) * (float) _chorusSendLevelToReverb /127.0;
-
-    _reverb->process_sample(rInput, rSample);
-    _reverbOutput[_outputIndex][0] += rSample[0] * (_reverbLevel / 127.0);
-    _reverbOutput[_outputIndex][1] += rSample[1] * (_reverbLevel / 127.0);
-  }
-
-  // Do we need an audio compressor to compensate for additive audio signals?
-  sample[0] += _chorusOutput[_outputIndex][0] + _reverbOutput[_outputIndex][0];
-  sample[1] += _chorusOutput[_outputIndex][1] + _reverbOutput[_outputIndex][1];
 
   return 0;
 }
 
 
-void SystemEffects::update_params(void)
+void SystemEffects::update(void)
 {
   _chorusLevel = _settings->get_param(PatchParam::ChorusLevel);
-  _chorusSendLevel= _settings->get_param(PatchParam::ChorusSendLevel, _partId);
   _chorusSendLevelToReverb=_settings->get_param(PatchParam::ChorusSendToReverb);
 
   _reverbLevel = _settings->get_param(PatchParam::ReverbLevel);
-  _reverbSendLevel = _settings->get_param(PatchParam::ReverbSendLevel, _partId);
-
-  _cLevel = _chorusSendLevel / 127.0;
-  _rLevel = _reverbSendLevel / 127.0;
-}
-
-
-void SystemEffects::_disable_unused_effects(void)
-{
-  if (!_chorusDisabled) {
-    if (_chorusOutput[0][0] == 0 && _chorusOutput[0][1] == 0 &&
-        _chorusOutput[1][0] == 0 && _chorusOutput[1][1] == 0) {
-      _chorusDisabled = true;
-//      std::cout << "Chorus disabled in part " << (int) _partId << std::endl;
-    }
-  }
-
-  if (!_reverbDisabled) {
-    if (_reverbOutput[0][0] == 0 && _reverbOutput[0][1] == 0 &&
-        _reverbOutput[1][0] == 0 && _reverbOutput[1][1] == 0)  {
-      _reverbDisabled = true;
-//      std::cout << "Reverb disabled in part " << (int)  _partId << std::endl;
-    }
-  }
 }
 
 }

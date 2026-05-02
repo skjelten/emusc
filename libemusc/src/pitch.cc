@@ -44,7 +44,6 @@ Pitch::Pitch(ControlRom &ctrlRom, uint16_t instrumentIndex, int partialId,
              uint8_t key, uint8_t velocity, WaveGenerator *LFO1,
              WaveGenerator *LFO2, Settings *settings, int8_t partId)
   : Envelope(ctrlRom.lookupTables),
-    _sampleRateScale((float) 32000 / (float) settings->sample_rate()),
     _key(key),
     _ctrlRom(ctrlRom),
     _instrumentIndex(instrumentIndex),
@@ -56,6 +55,8 @@ Pitch::Pitch(ControlRom &ctrlRom, uint16_t instrumentIndex, int partialId,
     _lfo2FadeComplete(false),
     _sampleIndex(0xffff),
     _cachedPFineTune(0),
+    _currentInc(0.0),
+    _deltaInc(0.0),
     _settings(settings),
     _partId(partId)
 {
@@ -206,6 +207,8 @@ void Pitch::update(void)
   }
 
   _iterate_phase();
+
+  _deltaInc = (_phaseIncrement - _currentInc) / 256.0;
 }
 
 

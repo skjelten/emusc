@@ -16,16 +16,15 @@
  *  along with libEmuSC. If not, see <http://www.gnu.org/licenses/>.
  */
 
-// The SC-55's interpolator is implemented in the external audio chip, but
-// this four-point Cubic Hermite interpolator gives a pretty good aproximation.
-
+// The wavetable oscillator reads the sample sets and uses four-point Cubic
+// Hermite interpolator.
 // To save runtime CPU usage EmuSC pre-decodes all the DPCM samples to sample
 // sets stored in vectors. To make this work with ping-pong loops the sample
-// sets have been extended with the return path so they basically becomes
-// forward loops.
+// sets have been extended to include the return path so they basically
+// becomes forward loops.
 
 
-#include "resample.h"
+#include "wave_oscillator.h"
 
 #include <algorithm>
 #include <iostream>
@@ -34,9 +33,9 @@
 namespace EmuSC {
 
 
-Resample::Resample(ControlRom::Sample *ctrlSample,
-                   std::vector<float> *pcmSamples,
-                   std::function<void(void)> cb)
+WaveOscillator::WaveOscillator(ControlRom::Sample *ctrlSample,
+                               std::vector<float> *pcmSamples,
+                               std::function<void(void)> cb)
   : _pcmSamples(pcmSamples),
     _phase(0.0f),
     _loopMode{ctrlSample->loopMode},
@@ -56,7 +55,7 @@ Resample::Resample(ControlRom::Sample *ctrlSample,
   _index = _sampleStart;
 
   if (0)
-    std::cout << "Resample: lm=" << (int) ctrlSample->loopMode
+    std::cout << "WaveOscillator: lm=" << (int) ctrlSample->loopMode
               << " ss=" << _sampleStart
               << " sl=" << _sampleEnd
               << " ll=" << ctrlSample->loopLen
@@ -70,11 +69,11 @@ Resample::Resample(ControlRom::Sample *ctrlSample,
 }
 
 
-Resample::~Resample()
+WaveOscillator::~WaveOscillator()
 {}
 
 
-float Resample::get_next_sample(float rate)
+float WaveOscillator::get_next_sample(float rate)
 {
   // Calculate output based on current window & phase
   float output = _interpolate_cubic(_phase);
@@ -106,7 +105,7 @@ float Resample::get_next_sample(float rate)
 }
 
 
-float Resample::_fetch_sample(int index)
+float WaveOscillator::_fetch_sample(int index)
 {
   index = std::clamp(index, 0, (int) _pcmSamples->size() - 1);
 
@@ -122,7 +121,7 @@ float Resample::_fetch_sample(int index)
 
 // Cubic Hermite interpolator
 // Constant of 0.5f is based on reverse engineering of old Roland software
-float Resample::_interpolate_cubic(float t)
+float WaveOscillator::_interpolate_cubic(float t)
 {
   float v1 = (y2 - y0) * 0.5f;
   float v2 = (y3 - y1) * 0.5f;

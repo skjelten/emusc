@@ -33,16 +33,13 @@ Part::Part(uint8_t id, Settings *settings, ControlRom &ctrlRom, PcmRom &pcmRom)
     _lastPeakSample(0),
     _ctrlRom(ctrlRom),
     _pcmRom(pcmRom),
-    _lastPitchBendRange(2),
-    _callbackTrigger(false)
+    _lastPitchBendRange(2)
 {
   // TODO: Rename mode => synthMode and set proper defaults for MT32 mode
   _notesMutex = new std::mutex();
 
   _partialReserve = 2;           // TODO: Add this to settings with propoer val
   _mute = false;                 // TODO: Also move to settings
-
-  _systemEffects = new SystemEffects(settings, (int) id);
 }
 
 
@@ -50,17 +47,14 @@ Part::~Part()
 {
   delete_all_notes();
   delete _notesMutex;
-
-  delete _systemEffects;
 }
 
 
-// Parts always produce 2 channel & 32kHz (native) output. Other channel
-// numbers and sample rates are handled by the calling Synth class.
-int Part::get_next_sample(float *sampleOut)
+// All Sound Canvas modules generates 256 samples per control update.
+int Part::get_sample_set(std::array<std::array<float, 256>, 2> &dryBus,
+			 std::array<std::array<float, 256>, 2> &chorusBus,
+			 std::array<std::array<float, 256>, 2> &reverbBus)
 {
-  float partSample[2] = { 0, 0 };
-
   _notesMutex->lock();
 
   // Only process notes if we have any
@@ -74,53 +68,60 @@ int Part::get_next_sample(float *sampleOut)
       _settings->update_pitchBend_factor(_id);
     }
 
-    // Get next sample from active notes, delete those which are finished
-    std::list<Note*>::iterator itr = _notes.begin();
-    while (itr != _notes.end()) {
-      bool finished = (*itr)->get_next_sample(partSample);
+    // Read the next 256 samples (one control loop)
+    for (int i = 0; i < 256; i ++) {
+      float partSample[2] = { 0, 0 };
 
-      if (finished) {
-//      std::cout << "Both partials have finished -> delete note" << std::endl;
-	delete *itr;
-	itr = _notes.erase(itr);
-      } else {
-	++itr;
+      // Get next sample from active notes, delete those which are finished
+      std::list<Note*>::iterator itr = _notes.begin();
+      while (itr != _notes.end()) {
+	bool finished = (*itr)->get_next_sample(partSample);
+
+	if (finished) {
+ //      std::cout << "Both partials have finished -> delete note" << std::endl;
+	  delete *itr;
+	  itr = _notes.erase(itr);
+	} else {
+	  ++itr;
+	}
       }
-    }
-
-    // Export envelopes and LFOs to external client
-    if (_callbackTrigger) {
-      if (_envelopeCallback && !_notes.empty())
-        _envelopeCallback(_notes.front()->get_current_pitch(0),
-                          _notes.front()->get_current_pitch(1),
-                          _notes.front()->get_current_tvf(0),
-                          _notes.front()->get_current_tvf(1),
-                          _notes.front()->get_current_tva(0),
-                          _notes.front()->get_current_tva(1));
-
-      if (_lfoCallback && !_notes.empty())
-        _lfoCallback(_notes.front()->get_current_lfo(0),
-                     _notes.front()->get_current_lfo(1),
-                     _notes.front()->get_current_lfo(2));
-    }
 
     // Store last (highest) value for future queries (typically for bar display)
-    _lastPeakSample =
-      (_lastPeakSample >= partSample[0]) ? _lastPeakSample : partSample[0];
+      _lastPeakSample =
+	(_lastPeakSample >= partSample[0]) ? _lastPeakSample : partSample[0];
 
-    sampleOut[0] += partSample[0];
-    sampleOut[1] += partSample[1];
+      dryBus[0][i] += partSample[0];
+      dryBus[1][i] += partSample[1];
 
-  } else {     // Send LFO callbacks also when no active notes are running
-    if (_callbackTrigger && _lfoCallback)
+      int chorusSL = _settings->get_param(PatchParam::ChorusSendLevel, _id);
+      chorusBus[0][i] += partSample[0] * chorusSL / 128.0;
+      chorusBus[1][i] += partSample[1] * chorusSL / 128.0;
+
+      int reverbSL = _settings->get_param(PatchParam::ReverbSendLevel, _id);
+      reverbBus[0][i] += partSample[0] * reverbSL / 128.0;
+      reverbBus[1][i] += partSample[1] * reverbSL / 128.0;
+    }
+  }
+
+  // Export envelopes and LFOs to external client
+  if (_envelopeCallback && !_notes.empty())
+    _envelopeCallback(_notes.front()->get_current_pitch(0),
+		      _notes.front()->get_current_pitch(1),
+		      _notes.front()->get_current_tvf(0),
+		      _notes.front()->get_current_tvf(1),
+		      _notes.front()->get_current_tva(0),
+		      _notes.front()->get_current_tva(1));
+
+  if (_lfoCallback) {
+    if (!_notes.empty())
+      _lfoCallback(_notes.front()->get_current_lfo(0),
+		   _notes.front()->get_current_lfo(1),
+		   _notes.front()->get_current_lfo(2));
+    else
       _lfoCallback(0, 0, 0);
   }
 
   _notesMutex->unlock();
-
-  _systemEffects->apply(sampleOut);
-
-  _callbackTrigger = false;
 
   return 0;
 }
@@ -130,9 +131,6 @@ void Part::update(void)
 {
   for (auto &n : _notes)
     n->update();
-
-  _systemEffects->update_params();
-  _callbackTrigger = true;
 }
 
 
@@ -238,7 +236,7 @@ int Part::add_note(uint8_t key, uint8_t keyVelocity)
 	      << " velocity=" << (int) velocity
 	      << " ]" << std::endl;
   
-    return 1;
+  return 1;
 }
 
 
@@ -346,7 +344,6 @@ int Part::control_change(uint8_t msgId, uint8_t value)
 	if (map == 0 || map == 1)
 	  _settings->set_param(DrumParam::ReverbDepth, map, lsb, value);
       }
-    // TODO: SC-88 adds Chorus and Delay
 
   } else if (msgId == 7) {                             // Volume
     if (_settings->get_param(PatchParam::RxVolume, _id)) {

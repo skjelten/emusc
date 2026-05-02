@@ -1,4 +1,3 @@
-
 /*
  *  This file is part of libEmuSC, a Sound Canvas emulator library
  *  Copyright (C) 2022-2024  Håkon Skjelten
@@ -18,8 +17,8 @@
  */
 
 
-#ifndef __RESAMPLE_H__
-#define __RESAMPLE_H__
+#ifndef __WAVE_OSCILLATOR_H__
+#define __WAVE_OSCILLATOR_H__
 
 
 #include "control_rom.h"
@@ -31,12 +30,12 @@
 namespace EmuSC {
 
 
-class Resample
+class WaveOscillator
 {
 public:
-  Resample(ControlRom::Sample *ctrlSample, std::vector<float> *pcmSamples,
+  WaveOscillator(ControlRom::Sample *ctrlSample, std::vector<float> *pcmSamples,
            std::function<void(void)> cb);
-  ~Resample();
+  ~WaveOscillator();
 
   float get_next_sample(float rate);
 
@@ -51,9 +50,10 @@ private:
   float _phase;               // Phase fraction 0.0 - 1.0
   int _index;                 // Integer index
 
-  // 4x sample points (sliding window)
+  // 2x sample points (linear interpolation)
+// float y0, y1;
   float y0, y1, y2, y3;
-
+  
   enum class LoopMode {
     Forward  = 0,
     PingPong = 1,
@@ -66,9 +66,13 @@ private:
   bool _firstRunComplete;
 
   float _fetch_sample(int index);
-  float _interpolate_cubic(float t);
+
+
+
+
+    float _interpolate_cubic(float t);
 };
 
 }
 
-#endif // __RESAMPLE_H__
+#endif // __WAVE_OSCILLATOR_H__

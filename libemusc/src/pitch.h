@@ -46,9 +46,8 @@ public:
 
   void note_off();
 
-  inline int get_phase_increment(void) { return _phaseIncrement; }
-  inline float get_scaled_phase_increment(void)
-  { return (_phaseIncrement / 16384.0) * _sampleRateScale; }
+  inline int get_phase_increment(void) {
+    _currentInc += _deltaInc; return _currentInc; }
 
   inline uint16_t get_sample_id(void) { return _sampleIndex; }
 
@@ -56,8 +55,6 @@ public:
 
 
 private:
-  float _sampleRateScale;
-
   uint8_t _key;                // MIDI key number
 
   ControlRom &_ctrlRom;
@@ -102,6 +99,9 @@ private:
   int _cachedPFineTuneOffset;
 
   int _phaseIncrement;
+
+  float _currentInc;
+  float _deltaInc;
 
   Settings *_settings;
   int8_t _partId;

@@ -24,6 +24,8 @@
 #include "control_rom.h"
 #include "params.h"
 #include "pcm_rom.h"
+#include "resampler.h"
+#include "system_effects.h"
 
 #include <array>
 #include <functional>
@@ -163,8 +165,24 @@ private:
   ControlRom &_ctrlRom;
   PcmRom &_pcmRom;
 
-  int _updateSkipSamples;
-  int _updateSkipSamplesItr;
+  float _phase;              // fractional SC-55 sample position
+  float _phaseIncrement;     // SC-55 samples per host sample
+  int   _updateCounter;      // counts SC-55 samples, fires at 256
+
+  std::vector<float> _hostSampleBufL;
+  std::vector<float> _hostSampleBufR;
+  int _hostSampleBufRIndex;
+  int _hostSampleBufWIndex;
+
+  std::array<std::array<float, 256>, 2> _dryBus;
+  std::array<std::array<float, 256>, 2> _chorusBus;
+  std::array<std::array<float, 256>, 2> _reverbBus;
+
+  std::array<std::array<float, 256>, 2> _chorusOut;
+  std::array<std::array<float, 256>, 2> _reverbOut;
+
+  SystemEffects *_systemEffects;
+  Resampler *_resampler;
 
   // MIDI message types
   static const uint8_t midi_NoteOff         = 0x80;
@@ -180,6 +198,8 @@ private:
   void _add_note(uint8_t midiChannel, uint8_t key, uint8_t velocity);
 
   void _midi_input_sysex_DT1(uint8_t model, uint8_t *data, uint16_t length);
+
+  void _process_samples(void);
 
   Synth();
 };

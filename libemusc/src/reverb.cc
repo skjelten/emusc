@@ -91,7 +91,7 @@ Reverb::~Reverb()
 // Process a single audio sample
 void Reverb::process_sample(float *input, float *output)
 {
-  // TODO: Stereo reverb. For now: mix left and right to MONO
+  // Reverb is mono input and stereo output based on time difference
   float sample = (input[0] + input[1]) / 2;
 
   // Reverb time is guessed to be a linear scale for T60 between 0.0 and 4.0

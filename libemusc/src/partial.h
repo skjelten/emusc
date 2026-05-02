@@ -24,7 +24,7 @@
 #include "control_rom.h"
 #include "pcm_rom.h"
 #include "pitch.h"
-#include "resample.h"
+#include "wave_oscillator.h"
 #include "settings.h"
 #include "tva.h"
 #include "tvf.h"
@@ -75,7 +75,7 @@ private:
 
   WaveGenerator *_LFO2;
 
-  Resample *_resample;
+  WaveOscillator *_waveOscillator;
 
   Pitch *_pitch;
   TVF *_tvf;

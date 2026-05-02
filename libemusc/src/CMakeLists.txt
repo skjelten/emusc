@@ -34,8 +34,8 @@ add_library(emusc
   pcm_rom.h
   pitch.cc
   pitch.h
-  resample.cc
-  resample.h
+  resampler.cc
+  resampler.h
   reverb.cc
   reverb.h
   settings.cc
@@ -49,8 +49,9 @@ add_library(emusc
   tvf.cc
   tvf.h
   wave_generator.cc
-  wave_generator.h)
-
+  wave_generator.h
+  wave_oscillator.cc
+  wave_oscillator.h)
 
 target_compile_features(emusc PUBLIC cxx_std_11)
 target_include_directories(emusc PUBLIC "${CMAKE_CURRENT_BINARY_DIR}")
