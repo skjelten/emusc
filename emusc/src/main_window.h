@@ -30,9 +30,10 @@
 #include <QPointer>
 #include <QTimer>
 
+#include "emulator.h"
+#include "part_list_dialog.h"
 #include "scene.h"
 #include "synth_dialog.h"
-#include "emulator.h"
 
 
 class MainWindow : public QMainWindow
@@ -68,10 +69,12 @@ private:
   QAction *_GSmodeAct;
   QAction *_GMmodeAct;
   QAction *_MT32modeAct;
+  QAction *_partListAct;
   QAction *_panicAct;
   QAction *_aboutAct;
 
   QPointer<SynthDialog> _synthDialog;
+  QPointer<PartListDialog> _partListDialog;
 
   bool _powerState;
   Emulator *_emulator;
@@ -112,6 +115,7 @@ private slots:
   void _display_envelope_dialog(void);
   void _display_preferences_dialog(void);
   void _display_synth_dialog(void);
+  void _display_part_list_dialog(void);
   void _display_about_dialog(void);
 
   void _dump_demo_songs(void);

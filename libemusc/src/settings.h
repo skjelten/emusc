@@ -28,6 +28,7 @@
 
 #include <algorithm>
 #include <array>
+#include <functional>
 #include <string>
 
 
@@ -131,6 +132,9 @@ public:
   { part = std::clamp(part, 0, 15);
     return _accControlParams[part][static_cast<int>(cp)]; }
 
+  void set_part_callback(std::function<void(const int)> cb);
+  void clear_part_callback(void);
+
 private:
   std::array<uint8_t, 0x0100> _systemParams;  // Both SysEx and non-SysEx data
   std::array<uint8_t, 0x4000> _patchParams;
@@ -146,6 +150,8 @@ private:
   // Non-native parameters
   int _sampleRate;
   int _channels;                        // 1 => mono or 2 => stereo
+
+  std::function<void(const int)> _partCallback = NULL;
 
   void _initialize_system_params(enum Mode = Mode::GS);
   void _initialize_patch_params(enum Mode = Mode::GS);

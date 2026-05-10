@@ -290,6 +290,11 @@ void MainWindow::_create_actions(void)
   _modeGroup->setExclusive(true);
   _GSmodeAct->setChecked(true);
 
+  _partListAct = new QAction("View &Part list", this);
+  connect(_partListAct, &QAction::triggered,
+	  this, &MainWindow::_display_part_list_dialog);
+  addAction(_partListAct);
+
   _panicAct = new QAction("&Panic", this);
   _panicAct->setShortcut(tr("CTRL+!"));
   _panicAct->setEnabled(false);
@@ -346,12 +351,13 @@ void MainWindow::_create_menus(void)
   _synthMenu->addAction(_turnOnOffAct);
   _synthMenu->addAction(_synthSettingsAct);
 
-  // TODO: Add SC-88 modes
   _synthModeMenu = _synthMenu->addMenu("Sound Map");
   _synthModeMenu->addAction(_GSmodeAct);
   _synthModeMenu->addAction(_GMmodeAct);
   _synthModeMenu->addAction(_MT32modeAct);
   _synthModeMenu->setEnabled(false);
+
+  _synthMenu->addAction(_partListAct);
 
   _synthMenu->addSeparator();
   _synthMenu->addAction(_panicAct);
@@ -425,6 +431,20 @@ void MainWindow::_display_synth_dialog()
   _synthDialog = new SynthDialog(_emulator, _scene, this);
   _synthDialog->setModal(false);
   _synthDialog->show();
+}
+
+
+void MainWindow::_display_part_list_dialog()
+{
+  if (_partListDialog.isNull()) {
+    _partListDialog = new PartListDialog(_emulator, _scene, this);
+    _partListDialog->setModal(false);
+    _partListDialog->setAttribute(Qt::WA_DeleteOnClose);
+    _partListDialog->show();
+  } else {
+    _partListDialog->raise();
+    _partListDialog->activateWindow();
+  }
 }
 
 

@@ -481,15 +481,13 @@ void Synth::clear_part_midi_mod_callback(void)
 
 void Synth::add_part_change_callback(std::function<void(const int)> callback)
 {
-  for (auto &p : _parts)
-    p.set_change_callback(callback);
+  _settings->set_part_callback(callback);
 }
 
 
 void Synth::clear_part_change_callback()
 {
-  for (auto &p : _parts)
-    p.clear_change_callback();
+  _settings->clear_part_callback();
 }
 
 

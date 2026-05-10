@@ -245,6 +245,9 @@ void Settings::set_param(enum PatchParam pp, uint8_t value, int8_t part)
   } else if ((int) pp >= 0x1080 && (int) pp <= 0x1086) {
     _update_controller_input(pp, value, part);
   }
+
+  // Send part updates for frontends
+  if (_partCallback) _partCallback(part);
 }
 
 
@@ -1102,5 +1105,17 @@ int16_t Settings::_calc_controller_value(ControllerParam cp, int part, int max, 
 
   return output;
 }
+
+void Settings::set_part_callback(std::function<void(const int)> cb)
+{
+  _partCallback = cb;
+}
+
+
+void Settings::clear_part_callback(void)
+{
+  _partCallback = NULL;
+}
+
 
 }
