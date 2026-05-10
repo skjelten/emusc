@@ -18,10 +18,7 @@
 
 
 #include "main_window.h"
-#include "lfo_dialog.h"
-#include "envelope_dialog.h"
 #include "preferences_dialog.h"
-#include "control_rom_info_dialog.h"
 #include "scene.h"
 #include "synth_dialog.h"
 
@@ -428,9 +425,15 @@ void MainWindow::_display_preferences_dialog()
 
 void MainWindow::_display_synth_dialog()
 {
-  _synthDialog = new SynthDialog(_emulator, _scene, this);
-  _synthDialog->setModal(false);
-  _synthDialog->show();
+  if (_synthDialog.isNull()) {
+    _synthDialog = new SynthDialog(_emulator, _scene, this);
+    _synthDialog->setModal(false);
+    _synthDialog->setAttribute(Qt::WA_DeleteOnClose);
+    _synthDialog->show();
+  } else {
+    _synthDialog->raise();
+    _synthDialog->activateWindow();
+  }
 }
 
 
@@ -451,10 +454,15 @@ void MainWindow::_display_part_list_dialog()
 void MainWindow::_display_lfo_dialog()
 {
 #ifdef __USE_QTCHARTS__
-  LFODialog *dialog = new LFODialog(_emulator, _scene, this);
-  dialog->show();
-
-  connect(_emulator, SIGNAL(stopped()), dialog, SLOT(reject()));
+  if (_lfoDialog.isNull()) {
+    _lfoDialog = new LFODialog(_emulator, _scene, this);
+    _lfoDialog->setModal(false);
+    _lfoDialog->setAttribute(Qt::WA_DeleteOnClose);
+    _lfoDialog->show();
+  } else {
+    _lfoDialog->raise();
+    _lfoDialog->activateWindow();
+  }
 #endif
 }
 
@@ -462,20 +470,30 @@ void MainWindow::_display_lfo_dialog()
 void MainWindow::_display_envelope_dialog()
 {
 #ifdef __USE_QTCHARTS__
-  EnvelopeDialog *dialog = new EnvelopeDialog(_emulator, _scene, this);
-  dialog->show();
-
-  connect(_emulator, SIGNAL(stopped()), dialog, SLOT(reject()));
+  if (_envelopeDialog.isNull()) {
+    _envelopeDialog = new EnvelopeDialog(_emulator, _scene, this);
+    _envelopeDialog->setModal(false);
+    _envelopeDialog->setAttribute(Qt::WA_DeleteOnClose);
+    _envelopeDialog->show();
+  } else {
+    _envelopeDialog->raise();
+    _envelopeDialog->activateWindow();
+  }
 #endif
 }
 
 
 void MainWindow::_display_control_rom_info(void)
 {
-  ControlRomInfoDialog *dialog = new ControlRomInfoDialog(_emulator);
-  dialog->show();
-
-  connect(_emulator, SIGNAL(stopped()), dialog, SLOT(accept()));
+  if (_controlRomInfoDialog.isNull()) {
+    _controlRomInfoDialog = new ControlRomInfoDialog(_emulator);
+    _controlRomInfoDialog->setModal(false);
+    _controlRomInfoDialog->setAttribute(Qt::WA_DeleteOnClose);
+    _controlRomInfoDialog->show();
+  } else {
+    _controlRomInfoDialog->raise();
+    _controlRomInfoDialog->activateWindow();
+  }
 }
 
 

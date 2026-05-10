@@ -30,7 +30,10 @@
 #include <QPointer>
 #include <QTimer>
 
+#include "control_rom_info_dialog.h"
 #include "emulator.h"
+#include "envelope_dialog.h"
+#include "lfo_dialog.h"
 #include "part_list_dialog.h"
 #include "scene.h"
 #include "synth_dialog.h"
@@ -73,8 +76,11 @@ private:
   QAction *_panicAct;
   QAction *_aboutAct;
 
-  QPointer<SynthDialog> _synthDialog;
+  QPointer<ControlRomInfoDialog> _controlRomInfoDialog;
+  QPointer<EnvelopeDialog> _envelopeDialog;
+  QPointer<LFODialog> _lfoDialog;
   QPointer<PartListDialog> _partListDialog;
+  QPointer<SynthDialog> _synthDialog;
 
   bool _powerState;
   Emulator *_emulator;
