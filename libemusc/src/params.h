@@ -46,7 +46,7 @@ enum class SystemParam : int {
   RxInstrumentChange  = 0x0093,    // [0 - 1 : 1]
   RxFunctionControl   = 0x0094,    // [0 - 1 : 1]
   DeviceID            = 0x0095,    // [1 - 32 : 17]
-
+  Mute                = 0x0096     // [0 - 1: 0]
 };
 
 
@@ -255,7 +255,8 @@ enum class PatchParam : int {
   NRPN_MSB            = 0x1093,    // [0x00 - 0x7f : 0]
 
   // Other patch parameters from CC / RPN / NRPN / menu
-  PitchCoarseTune     = 0x1094     // [0x28 - 0x58 : 0x40] -24 - 24 semit. RPN#2
+  PitchCoarseTune     = 0x1094,    // [0x28 - 0x58 : 0x40] -24 - 24 semit. RPN#2
+  Mute                = 0x1095     // [0 - 1 : 0]
 };
 
 // All variables for individual parts as defined by the Sound Canvas lineup

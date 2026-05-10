@@ -86,24 +86,9 @@ public:
 
   void panic(void);
 
-  // Mute all parts. Similar to push MUTE-button on real hardware
-  void mute(void);
-
-  // Unmute all parts. Similar to push MUTE-button on real hardware
-  void unmute(void);
-
-  // Mute 1-n parts
-  void mute_parts(std::vector<uint8_t> parts);
-
-  // Unute all parts
-  void unmute_parts(std::vector<uint8_t> parts);
-
   // Returns libEmuSC version as a string
   static std::string version(void);
 
-  // REMOVE!
-  bool get_part_mute(uint8_t partId);
-  void set_part_mute(uint8_t partId, bool mute);
   void set_part_instrument(uint8_t partId, uint8_t index, uint8_t bank);
 
   void add_part_midi_mod_callback(std::function<void(const int)> callback);

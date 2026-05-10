@@ -100,30 +100,6 @@ void Synth::reset(SoundMap sm, bool resetParts)
 }
 
 
-void Synth::mute(void)
-{
-  for (auto &p : _parts) p.set_mute(true);
-}
-
-
-void Synth::unmute(void)
-{
-  for (auto &p : _parts) p.set_mute(true);
-}
-
-
-void Synth::mute_parts(std::vector<uint8_t> mutePartsList)
-{
-  for (auto i : mutePartsList) _parts[i].set_mute(true);
-}
-
-
-void Synth::unmute_parts(std::vector<uint8_t> mutePartsList)
-{
-  for (auto i : mutePartsList) _parts[i].set_mute(false);
-}
-
-
 void Synth::_add_note(uint8_t midiChannel, uint8_t key, uint8_t velocity)
 {
   int partialsUsed = 0;
@@ -447,17 +423,6 @@ void Synth::panic(void)
 {
   for (auto &p : _parts)
     p.delete_all_notes();
-}
-
-
-bool Synth::get_part_mute(uint8_t partId)
-{
-  return _parts[partId].mute();
-}
-
-void Synth::set_part_mute(uint8_t partId, bool mute)
-{
-  _parts[partId].set_mute(mute);
 }
 
 

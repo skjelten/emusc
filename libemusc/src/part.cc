@@ -29,7 +29,6 @@ namespace EmuSC {
 Part::Part(uint8_t id, Settings *settings, ControlRom &ctrlRom, PcmRom &pcmRom)
   : _id(id),
     _settings(settings),
-    _7bScale(1/127.0),
     _lastPeakSample(0),
     _ctrlRom(ctrlRom),
     _pcmRom(pcmRom),
@@ -39,7 +38,6 @@ Part::Part(uint8_t id, Settings *settings, ControlRom &ctrlRom, PcmRom &pcmRom)
   _notesMutex = new std::mutex();
 
   _partialReserve = 2;           // TODO: Add this to settings with propoer val
-  _mute = false;                 // TODO: Also move to settings
 }
 
 
@@ -136,7 +134,8 @@ void Part::update(void)
 
 int Part::get_last_peak_sample(void)
 {
-  if (_mute)
+  if (_settings->get_param(PatchParam::Mute, _id) ||
+      _settings->get_param(SystemParam::Mute))
     return -1;
 
   // Formula for peak display level: bars = (max(TVA) * PartScale) / 8;
@@ -186,7 +185,9 @@ int Part::get_num_partials(void)
 int Part::add_note(uint8_t key, uint8_t keyVelocity)
 {
   // 1. Check if part is muted or rxNoteMessage is disabled
-  if (_mute || !_settings->get_param(PatchParam::RxNoteMessage, _id))
+  if (_settings->get_param(PatchParam::Mute, _id) ||
+      _settings->get_param(SystemParam::Mute) ||
+      !_settings->get_param(PatchParam::RxNoteMessage, _id))
     return 0;
 
   // 2. Check if key is outside part configured key range
@@ -530,7 +531,6 @@ void Part::reset(void)
 
   _partialReserve = 2;
 
-  _mute = false;
   _lastPeakSample = 0;
 }
 

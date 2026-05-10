@@ -417,8 +417,8 @@ Scene::~Scene()
 
 void Scene::_connect_signals(void)
 {
-  connect(_allButton, SIGNAL(clicked()), this, SIGNAL(all_button_clicked()));
-  connect(_muteButton, SIGNAL(clicked()), this, SIGNAL(mute_button_clicked()));
+  connect(_allButton, SIGNAL(clicked(bool)), this, SIGNAL(all_button_clicked(bool)));
+  connect(_muteButton, SIGNAL(toggled(bool)), this, SIGNAL(mute_button_clicked(bool)));
 
   connect(_partLButton, SIGNAL(clicked()),
 	  this, SIGNAL(partL_button_clicked()));

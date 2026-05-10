@@ -406,6 +406,7 @@ void Settings::_initialize_system_params(enum Mode m)
   _systemParams[(int) SystemParam::RxInstrumentChange] = 1;
   _systemParams[(int) SystemParam::RxFunctionControl] = 1;
   _systemParams[(int) SystemParam::DeviceID] = 17;
+  _systemParams[(int) SystemParam::Mute] = 0;
 }
 
 
@@ -614,6 +615,7 @@ void Settings::_initialize_patch_params(enum Mode m)
     _patchParams[(int) PatchParam::NRPN_MSB        | (partAddr << 8)] = 0x7f;
 
     _patchParams[(int) PatchParam::PitchCoarseTune | (partAddr << 8)] = 0x40;
+    _patchParams[(int) PatchParam::Mute            | (partAddr << 8)] = 0x00;
   }
 }
 

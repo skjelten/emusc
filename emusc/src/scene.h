@@ -188,8 +188,8 @@ signals:
   void play_note(uint8_t key, uint8_t velocity);
   void lcd_display_mouse_press_event(Qt::MouseButton button,const QPointF &pos);
 
-  void all_button_clicked(void);
-  void mute_button_clicked(void);
+  void all_button_clicked(bool state);
+  void mute_button_clicked(bool state);
   void partL_button_clicked(void);
   void partR_button_clicked(void);
   void instrumentL_button_clicked(void);

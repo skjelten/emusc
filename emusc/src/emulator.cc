@@ -75,8 +75,8 @@ void Emulator::_connect_signals(void)
   connect(_scene, SIGNAL(play_note(uint8_t,uint8_t)),
 	  this, SLOT(play_note(uint8_t,uint8_t)));
 
-  connect(_scene, SIGNAL(all_button_clicked()), this, SLOT(select_all()));
-  connect(_scene, SIGNAL(mute_button_clicked()), this, SLOT(select_mute()));
+  connect(_scene, SIGNAL(all_button_clicked(bool)), this, SLOT(select_all(bool)));
+  connect(_scene, SIGNAL(mute_button_clicked(bool)), this, SLOT(select_mute(bool)));
 
   connect(_scene, SIGNAL(partL_button_clicked()),
 	  this, SLOT(select_prev_part()));
@@ -709,12 +709,12 @@ bool Emulator::control_rom_changed(void)
 }
 
 
-void Emulator::select_all()
+void Emulator::select_all(bool state)
 {
   if (_emuscSynth == NULL)
     return;
 
-  _allMode = !_allMode;
+  _allMode = state;
 
   emit(all_button_changed(_allMode));
 
@@ -725,15 +725,20 @@ void Emulator::select_all()
 }
 
 
-void Emulator::select_mute()
+void Emulator::select_mute(bool mute)
 {
   if (_emuscSynth == NULL)
     return;
 
-  bool currentMute = _emuscSynth->get_part_mute(_selectedPart);
-  _emuscSynth->set_part_mute(_selectedPart, !currentMute);
+  if (_allMode) {
+    _emuscSynth->set_param(EmuSC::SystemParam::Mute, (uint8_t) mute);
+  } else {
+    if (!_emuscSynth->get_param(EmuSC::SystemParam::Mute))
+      // If "All mute" is active, ignore part mute updates
+      _emuscSynth->set_param(EmuSC::PatchParam::Mute, mute, _selectedPart);
+  }
 
-  emit(mute_button_changed(!currentMute));
+  //  emit(mute_button_changed(!currentMute));
 }
 
 
@@ -773,7 +778,8 @@ void Emulator::_set_all(void)
 
   emit display_midi_channel_updated(" 17");
 
-  emit (all_button_changed(_allMode));
+  if (_allMode)
+    _scene->update_mute_button(_emuscSynth->get_param(EmuSC::SystemParam::Mute));
 }
 
 
@@ -802,8 +808,11 @@ void Emulator::_set_part(uint8_t value)
   _set_midi_channel(_emuscSynth->get_param(EmuSC::PatchParam::RxChannel, value),
 		    false);
 
-
-  emit (mute_button_changed(_emuscSynth->get_part_mute(value)));
+  // TODO: Should be handled by signal / slot when part changes or new part
+  // is selected in display
+  if (!_allMode)
+    _scene->update_mute_button(_emuscSynth->get_param(EmuSC::PatchParam::Mute,
+                                                      _selectedPart));
 }
 
 

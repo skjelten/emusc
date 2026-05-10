@@ -68,9 +68,6 @@ public:
 
   uint8_t id(void) { return _id; }
 
-  bool mute() { return(_mute); }
-  void set_mute(bool mute) { _mute = mute; }
-
   uint8_t midi_channel(void) { return _settings->get_param(PatchParam::RxChannel, _id); }
 
   // Define callback functions for frontends
@@ -92,10 +89,6 @@ private:
   int8_t _drumSet;            // [0-13] drumSet (SC-55)
 
   uint8_t _partialReserve;    // [0-24] Default 2
-
-  bool _mute;                 // Part muted
-
-  const double _7bScale;      // Constant: 1 / 127
 
   float _lastPeakSample;
 

@@ -146,8 +146,8 @@ signals:
   void part_changed(int partId);
 
 public slots:
-  void select_all();
-  void select_mute();
+  void select_all(bool state);
+  void select_mute(bool mute);
 
   void select_next_part();
   void select_prev_part();
