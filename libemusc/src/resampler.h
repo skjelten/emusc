@@ -4,7 +4,7 @@
  *
  *  libEmuSC is free software: you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published
- *  by the Free Software Foundation, either version 3 of the License, or
+ *  by the Free Software Foundation, either version 2.1 of the License, or
  *  (at your option) any later version.
  *
  *  libEmuSC is distributed in the hope that it will be useful, but
@@ -16,14 +16,16 @@
  *  along with libEmuSC. If not, see <http://www.gnu.org/licenses/>.
  */
 
+// EmuSC uses 32000 Hz internal frequency for all internal audio calculations
+// to stay as close to the original hardware as possible. This polyphase
+// windowed sinc resampler converts that audio stream to the host system's
+// sample rate.
+
 
 #ifndef __RESAMPLER_H__
 #define __RESAMPLER_H__
 
 
-#include "control_rom.h"
-
-#include <functional>
 #include <array>
 #include <vector>
 
@@ -35,32 +37,33 @@ class Resampler
 {
 public:
   Resampler();
-  ~Resampler();
 
-  void set_sample_rate(int sampeRate);
+  void set_sample_rate(int sampleRate);
   void push(float left, float right);
   bool get_next_sample(float &outL, float &outR);
 
-  // Tunable parameters
-  static constexpr int   TAPS       = 16;    // Half-length of sinc kernel
-  static constexpr int   PHASES     = 32;    // Polyphase table resolution
-  static constexpr float CUTOFF     = 0.47f; // Normalised to source Nyquist
-                                             // 0.47 * 16000 = 7520 Hz rolloff
+  // Filter design parameters
+  static constexpr int   HALF   = 16;    // Taps each side
+  static constexpr int   NPHASE = 512;   // Polyphase table resolution
+  static constexpr float BETA   = 9.0f;  // Kaiser beta (~ -70 dB stopband)
+
 private:
-  static constexpr int KERNEL_LEN  = TAPS * 2;
-  static constexpr int HISTORY_LEN = KERNEL_LEN + 1;
+  static constexpr int TAPS = 2 * HALF;
+  static constexpr int RING = 64;        // Input ring buffer (> 2*HALF, pow2)
+  static constexpr int RING_MASK = RING - 1;
 
-  float _phase;
-  float _increment;
-  int   _writePos;
+  double _ratio;        // Input samples advanced per output sample (32000/host)
+  double _readPos;      // Continuous read position (abs. input sample index)
+  long   _writeCount;   // Total input frames pushed
 
-  std::array<float, HISTORY_LEN> _history;
-  std::array<float, HISTORY_LEN> _historyR;
-  std::vector<float>             _kernel;
+  std::array<float, RING> _ringL;
+  std::array<float, RING> _ringR;
 
-  void _buildKernel(void);
-  static float _kaiser(float x, float beta);
-  static float _I0(float x);
+  // Polyphase coefficient table: (NPHASE + 1) rows of TAPS coefficients
+  std::vector<float> _table;
+
+  void  _buildTable(float cutoff);
+  static double _i0(double x);     // Modified Bessel I0 for Kaiser window
 };
 
 }

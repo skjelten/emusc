@@ -46,7 +46,7 @@ public:
 
   void note_off();
 
-  inline int get_phase_increment(void) {
+  inline float get_phase_increment(void) {
     _currentInc += _deltaInc; return _currentInc; }
 
   inline uint16_t get_sample_id(void) { return _sampleIndex; }

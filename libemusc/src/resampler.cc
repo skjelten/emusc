@@ -16,131 +16,141 @@
  *  along with libEmuSC. If not, see <http://www.gnu.org/licenses/>.
  */
 
-// EmuSC uses 32000 Hz internal frequency for all internal calculations to
-// stay as close to the original as possible. This resampler uses windowed
-// sinc interpolator to convert audio to host system's sample rate.
-
 
 #include "resampler.h"
 
 #include <algorithm>
 #include <cmath>
-#include <iostream>
 
 
 namespace EmuSC {
 
 
-Resampler::Resampler(void)
-  :  _phase(0.0f),
-     _increment(1.0),
-     _writePos(0)
+Resampler::Resampler()
+  : _ratio(1.0),
+    _readPos(static_cast<double>(HALF)),
+    _writeCount(0)
 {
-  _history.fill(0.0f);
-  _historyR.fill(0.0f);
-  _buildKernel();
+  _ringL.fill(0.0f);
+  _ringR.fill(0.0f);
+
+  // Default to a unity-ratio table; set_sample_rate() rebuilds as needed.
+  _buildTable(0.5f);
 }
-
-
-Resampler::~Resampler()
-{}
 
 
 void Resampler::set_sample_rate(int sampleRate)
 {
-  _increment = 32000.0 / sampleRate;
+  _ratio = 32000.0 / sampleRate;
+
+  float cutoff = 0.5f * std::min(1.0f, static_cast<float>(sampleRate) / 32000.0f);
+  _buildTable(cutoff);
+
+  // Reset stream state
+  _readPos    = static_cast<double>(HALF);
+  _writeCount = 0;
+  _ringL.fill(0.0f);
+  _ringR.fill(0.0f);
 }
 
 
-// Feed one new stereo sample pair from the 32000 Hz SC-55 pipeline.
-// Call this whenever _phase >= 1.0 (i.e. the resampler needs a new input sample).
 void Resampler::push(float left, float right)
 {
-  _history [_writePos] = left;
-  _historyR[_writePos] = right;
-  _writePos = (_writePos + 1) % HISTORY_LEN;
-
-  _phase -= 1.0f;
-  if (_phase < 0.0f) _phase = 0.0f;
+  _ringL[_writeCount & RING_MASK] = left;
+  _ringR[_writeCount & RING_MASK] = right;
+  _writeCount++;
 }
 
 
 bool Resampler::get_next_sample(float &outL, float &outR)
 {
-  if (_phase >= 1.0f)
+  // We need HALF input samples of lookahead beyond the read position before
+  // an output sample can be produced
+  if (_readPos + HALF >= static_cast<double>(_writeCount))
     return false;
 
-  // Which polyphase kernel to use
-  int   phaseIdx  = static_cast<int>(_phase * PHASES);
-  float phaseFrac = _phase * PHASES - phaseIdx;
+  int i = static_cast<int>(std::floor(_readPos));
+  double frac = _readPos - i;
 
-  outL = 0.0f;
-  outR = 0.0f;
+  // Polyphase row selection with linear interpolation between rows
+  double phasePos = frac * NPHASE;
+  int pidx = static_cast<int>(phasePos);
+  float pf = static_cast<float>(phasePos - pidx);
 
-  for (int tap = 0; tap < KERNEL_LEN; ++tap) {
-    // Read history in reverse (most recent first)
-    int hi = (_writePos - 1 - tap + HISTORY_LEN) % HISTORY_LEN;
+  const float *row0 = &_table[pidx       * TAPS];
+  const float *row1 = &_table[(pidx + 1) * TAPS];
 
-    // Linear interpolation between adjacent kernel phases
-    float k0 = _kernel[phaseIdx       * KERNEL_LEN + tap];
-    float k1 = _kernel[(phaseIdx + 1) * KERNEL_LEN + tap];
-    float k  = k0 + phaseFrac * (k1 - k0);
+  float accL = 0.0f;
+  float accR = 0.0f;
 
-    outL += _history [hi] * k;
-    outR += _historyR[hi] * k;
+  for (int k = 0; k < TAPS; ++k) {
+    int n = k - HALF + 1;
+    int idx = (i + n) & RING_MASK;
+    float c = row0[k] + pf * (row1[k] - row0[k]);
+
+    accL += _ringL[idx] * c;
+    accR += _ringR[idx] * c;
   }
 
-  _phase += _increment;
+  outL = accL;
+  outR = accR;
+
+  _readPos += _ratio;
   return true;
 }
 
 
-void Resampler::_buildKernel(void)
+void Resampler::_buildTable(float cutoff)
 {
-  _kernel.resize((PHASES + 1) * KERNEL_LEN);
+  _table.resize((NPHASE + 1) * TAPS);
 
-  for (int p = 0; p <= PHASES; ++p) {
-    // Fractional offset for this phase (0.0 to 1.0)
-    float phaseOffset = static_cast<float>(p) / PHASES;
+  const double i0beta = _i0(BETA);
 
-    for (int tap = 0; tap < KERNEL_LEN; ++tap) {
-      // Sample position relative to interpolation point
-      // tap 0 = most recent sample, tap KERNEL_LEN-1 = oldest
-      float t = (TAPS - 1 - tap) + phaseOffset;
+  for (int p = 0; p <= NPHASE; ++p) {
+    double frac = static_cast<double>(p) / NPHASE;
 
-      // Normalised sinc: sinc(2*fc*t)
-      float sinc;
-      float x = 2.0f * CUTOFF * t;
-      if (std::abs(x) < 1e-6f)
-        sinc = 2.0f * CUTOFF;
+    double sum = 0.0;
+    for (int k = 0; k < TAPS; ++k) {
+      int n = k - HALF + 1;             // Tap offset
+      double x = n - frac;              // Distance from interpolation point
+
+      // Windowed sinc, scaled so the prototype has the right cutoff
+      double arg = 2.0 * cutoff * x;
+      double sinc;
+      if (std::abs(arg) < 1e-9)
+        sinc = 2.0 * cutoff;
       else
-        sinc = std::sin(float(M_PI) * x) / (float(M_PI) * t);
+        sinc = 2.0 * cutoff * std::sin(M_PI * arg) / (M_PI * arg);
 
-      // Kaiser window (beta=6 — good stopband, moderate transition width)
-      float window = _kaiser(2.0f * tap / (KERNEL_LEN - 1) - 1.0f, 6.0f);
+      // Kaiser window over the full support [-HALF, HALF]
+      double wn  = x / HALF;
+      double win = 0.0;
+      if (std::abs(wn) <= 1.0)
+        win = _i0(BETA * std::sqrt(std::max(0.0, 1.0 - wn * wn))) / i0beta;
 
-      _kernel[p * KERNEL_LEN + tap] = sinc * window;
+      double coeff = sinc * win;
+      _table[p * TAPS + k] = static_cast<float>(coeff);
+      sum += coeff;
+    }
+
+    // Normalise each row to unity DC gain
+    if (std::abs(sum) > 1e-12) {
+      float inv = static_cast<float>(1.0 / sum);
+      for (int k = 0; k < TAPS; ++k)
+        _table[p * TAPS + k] *= inv;
     }
   }
 }
 
 
-// Kaiser window function
-float Resampler::_kaiser(float x, float beta)
-{
-  float arg = beta * std::sqrt(std::max(0.0f, 1.0f - x * x));
-  return _I0(arg) / _I0(beta);
-}
-
-
 // Modified Bessel function I0 via polynomial series
-float Resampler::_I0(float x)
+double Resampler::_i0(double x)
 {
-  float sum  = 1.0f;
-  float term = 1.0f;
-  float xh   = x * 0.5f;
+  double sum = 1.0;
+  double term = 1.0;
+  double xh = x * 0.5;
 
-  for (int k = 1; k <= 20; ++k) {
+  for (int k = 1; k <= 25; ++k) {
     term *= xh / k;
     sum  += term * term;
   }

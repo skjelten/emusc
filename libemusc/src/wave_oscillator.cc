@@ -16,13 +16,6 @@
  *  along with libEmuSC. If not, see <http://www.gnu.org/licenses/>.
  */
 
-// The wavetable oscillator reads the sample sets and uses four-point Cubic
-// Hermite interpolator.
-// To save runtime CPU usage EmuSC pre-decodes all the DPCM samples to sample
-// sets stored in vectors. To make this work with ping-pong loops the sample
-// sets have been extended to include the return path so they basically
-// becomes forward loops.
-
 
 #include "wave_oscillator.h"
 
@@ -62,21 +55,15 @@ WaveOscillator::WaveOscillator(ControlRom::Sample *ctrlSample,
               << " ns=" << _pcmSamples->size() << std::endl;
 
   // Priming the sliding window values
-  y0 = _fetch_sample(_index - 1);
-  y1 = _fetch_sample(_index);
-  y2 = _fetch_sample(_index + 1);
-  y3 = _fetch_sample(_index + 2);
+  y0 = _fetch_sample(_index);
+  y1 = _fetch_sample(_index + 1);
 }
-
-
-WaveOscillator::~WaveOscillator()
-{}
 
 
 float WaveOscillator::get_next_sample(float rate)
 {
-  // Calculate output based on current window & phase
-  float output = _interpolate_cubic(_phase);
+  // Linear interpolation
+  float output = y0 + (y1 - y0) * _phase;
 
   _phase += rate;
   while (_phase >= 1.0f) {
@@ -96,10 +83,8 @@ float WaveOscillator::get_next_sample(float rate)
       _index = _loopStart;
   }
 
-  y0 = _fetch_sample(_index - 1);
-  y1 = _fetch_sample(_index);
-  y2 = _fetch_sample(_index + 1);
-  y3 = _fetch_sample(_index + 2);
+  y0 = _fetch_sample(_index);
+  y1 = _fetch_sample(_index + 1);
 
   return output;
 }
@@ -107,31 +92,18 @@ float WaveOscillator::get_next_sample(float rate)
 
 float WaveOscillator::_fetch_sample(int index)
 {
-  index = std::clamp(index, 0, (int) _pcmSamples->size() - 1);
-
-  if ((_loopMode == LoopMode::Forward && index > _sampleEnd) ||
-      (_loopMode == LoopMode::PingPong && index > _sampleEnd + _loopLength)) {
-    index = _loopStart + (index - _sampleEnd - 1);
-    if (index >= (int) _pcmSamples->size()) index = _loopStart;
+  if (_firstRunComplete &&
+      (_loopMode == LoopMode::Forward || _loopMode == LoopMode::PingPong) &&
+      index > _sampleEnd) {
+    int over = index - _sampleEnd - 1;
+    if (_loopLength > 0)
+      index = _loopStart + (over % _loopLength);
+    else
+      index = _loopStart;
   }
 
+  index = std::clamp(index, 0, (int) _pcmSamples->size() - 1);
   return _pcmSamples->at(index);
-}
-
-
-// Cubic Hermite interpolator
-// Constant of 0.5f is based on reverse engineering of old Roland software
-float WaveOscillator::_interpolate_cubic(float t)
-{
-  float v1 = (y2 - y0) * 0.5f;
-  float v2 = (y3 - y1) * 0.5f;
-
-  float a = 2.0f * y1 - 2.0f * y2 + v1 + v2;
-  float b = -3.0f * y1 + 3.0f * y2 - 2.0f * v1 - v2;
-  float c = v1;
-  float d = y1;
-
-  return ((a * t + b) * t + c) * t + d;
 }
 
 }

@@ -1,10 +1,10 @@
 /*
  *  This file is part of libEmuSC, a Sound Canvas emulator library
- *  Copyright (C) 2022-2024  Håkon Skjelten
+ *  Copyright (C) 2022-2026  Håkon Skjelten
  *
  *  libEmuSC is free software: you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published
- *  by the Free Software Foundation, either version 3 of the License, or
+ *  by the Free Software Foundation, either version 2.1 of the License, or
  *  (at your option) any later version.
  *
  *  libEmuSC is distributed in the hope that it will be useful, but
@@ -15,6 +15,13 @@
  *  You should have received a copy of the GNU General Public License
  *  along with libEmuSC. If not, see <http://www.gnu.org/licenses/>.
  */
+
+// The wavetable oscillator reads the sample sets and uses a simple linear
+// interpolation.
+// To save runtime CPU usage EmuSC pre-decodes all the DPCM samples to sample
+// sets stored in vectors. To make this work with ping-pong loops the sample
+// sets have been extended to include the return path so they basically
+// becomes forward loops.
 
 
 #ifndef __WAVE_OSCILLATOR_H__
@@ -35,7 +42,6 @@ class WaveOscillator
 public:
   WaveOscillator(ControlRom::Sample *ctrlSample, std::vector<float> *pcmSamples,
            std::function<void(void)> cb);
-  ~WaveOscillator();
 
   float get_next_sample(float rate);
 
@@ -50,10 +56,8 @@ private:
   float _phase;               // Phase fraction 0.0 - 1.0
   int _index;                 // Integer index
 
-  // 2x sample points (linear interpolation)
-// float y0, y1;
-  float y0, y1, y2, y3;
-  
+  float y0, y1;               // 2 sample points for linear interpolation
+
   enum class LoopMode {
     Forward  = 0,
     PingPong = 1,
@@ -66,11 +70,6 @@ private:
   bool _firstRunComplete;
 
   float _fetch_sample(int index);
-
-
-
-
-    float _interpolate_cubic(float t);
 };
 
 }
