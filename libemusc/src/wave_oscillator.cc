@@ -92,9 +92,8 @@ float WaveOscillator::get_next_sample(float rate)
 
 float WaveOscillator::_fetch_sample(int index)
 {
-  if (_firstRunComplete &&
-      (_loopMode == LoopMode::Forward || _loopMode == LoopMode::PingPong) &&
-      index > _sampleEnd) {
+  if (index > _sampleEnd &&
+      (_loopMode == LoopMode::Forward || _loopMode == LoopMode::PingPong)) {
     int over = index - _sampleEnd - 1;
     if (_loopLength > 0)
       index = _loopStart + (over % _loopLength);
