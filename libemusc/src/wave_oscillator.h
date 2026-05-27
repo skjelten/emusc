@@ -29,6 +29,7 @@
 
 
 #include "control_rom.h"
+#include "pitch.h"
 
 #include <functional>
 #include <vector>
@@ -41,9 +42,10 @@ class WaveOscillator
 {
 public:
   WaveOscillator(ControlRom::Sample *ctrlSample, std::vector<float> *pcmSamples,
-           std::function<void(void)> cb);
+                 std::function<void(void)> cb);
 
-  float get_next_sample(float rate);
+  void get_sample_set(Pitch *pitch, float pitchBend,
+                      std::array<std::array<float, 256>,2> &dryBus);
 
 private:
   int _sampleStart;           // 0 or sample attack end if portamento is active

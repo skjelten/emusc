@@ -53,6 +53,7 @@ TVA::TVA(ControlRom &ctrlRom, uint8_t key, uint8_t velocity, int sampleIndex,
     _lfo1FadeComplete(false),
     _lfo2FadeComplete(false),
     _LUT(ctrlRom.lookupTables),
+    _prevDynLevel(0),
     _envLevel(0),
     _key(key),
     _drumSet(settings->get_param(PatchParam::UseForRhythm, partId)),
@@ -80,45 +81,23 @@ TVA::TVA(ControlRom &ctrlRom, uint8_t key, uint8_t velocity, int sampleIndex,
 }
 
 
-TVA::~TVA()
+// TVA consists of two values: dynamic volume corrections and envelope level.
+// Each of these levels have their own "mode" variable controlling how they are
+// interpolated / smoothed across and inside control loops of 256 samples.
+void TVA::apply_sample_set(std::array<std::array<float, 256>, 2> &dryBus)
 {
-}
+  std::array<float, 256> dynGain, envGain;
+  auto norm = [](float v) { return v / 32768.0f; };
+  _smooth(_dynLevelMode, norm(_prevDynLevel), norm(_dynLevel), dynGain);
+  _smooth(_envLevelMode, norm(_prevEnvLevel), norm(_envLevel), envGain);
 
-
-// TVA volume correction is made up of two parts:
-// 1. Dynamic volume level
-// * _dynLevel: 16 bit value of combined volume corrections
-// * _dynLeveLMode: MASB = MSB of _dynLevel and LSB = mode
-//   * Modes:
-//     * 0xb4: Normal mode (ADSR phases)
-//     * 0xb6: Termination after release phase
-//     * 0xff00: Used when very small changes to _dynLevel -> Skip smoothing
-//
-// 2. Envelope output has two variables:
-// * _envTargetOutput (_envLevel): 16 bit value of envelope level output
-// * _envOutputMode, where MSB = MSB of _envTargetOutput and LSB = mode
-//   * Modes:
-//     * 0xaf: Short phase (0 duration)
-//     * 0xb6: Termination after release phase
-//     * 0xff00: Used when no change in envelope -> skip smoothing
-void TVA::apply(double *sample)
-{
-  // Apply volume correction from envelope and dynamic parameters
-//  sample[0] *= ((_envLevelMode >> 8) * (_dynLevel >> 8)) / (255.0 * 255.0);
-
-  double env = (double) _envLevel / 65280.0;   // 0xFF00 = 65280
-  double dyn = (double) _dynLevel / 65280.0;
-  double amp =  dyn * env;
-  amp *= 3;
-
-//  if (amp > 0.7)
-//    std::cout << "dyn=" << dyn << " env=" << env << " tot=" << amp << std::endl;
-
-  sample[0] *= amp;
-
-  // Apply pan
-  sample[1] = sample[0] * (_panpotL / 127.0);
-  sample[0] *= (_panpotR / 127.0);
+  float panL = _panpotL / 127.0f;
+  float panR = _panpotR / 127.0f;
+  for (int i = 0; i < 256; i++) {
+    float sample = dryBus[0][i] * dynGain[i] * envGain[i];
+    dryBus[0][i] = sample * panR;
+    dryBus[1][i] = sample * panL;
+  }
 }
 
 
@@ -140,24 +119,6 @@ void TVA::update(bool reset)
   if (!_lfo2FadeComplete)
     _update_lfo_depth(2);
 
-  // All smoothening is disabled for now
-
-  // 1. Check if dynamic level mode is 0xff00 (saturation)
-  //   yes: Update smoot level accumulator
-  //    no: Run dynamic level through a smoothing / low-pass filter
-//  if (_dynLevelMode == 0xff00)
-    _smoothDynLevel = _dynLevel;
-//  else
-//    _dynLevel = _calc_smoothed_target_volume();
-
-  // 2. Check if envelope mode is 0xff00 (saturation)
-  //   yes: Update smooth level accumulator
-  //    no: Run envelope internal level through a smoothing / low-pass filter
-//  if (_envLevelMode == 0xff00)
-    _smoothEnvLevel = _envLevel;
-//  else
-//    _envLevel = _calc_smoothed_target_envelope();
-
   // Update external envelope variable for e.g. bar display (clamp to 0xfe)
   _envelopeOut = std::min(_envLevel >> 8, 0xfe);
 
@@ -167,7 +128,6 @@ void TVA::update(bool reset)
   _update_dynamic_level();
   _update_panpot_level(reset);
 
-  // Work on setting the correct flags for _dynLevelMode around ROM:3700
   // 1: Multiply with the fade stuff that is never used...
   int currDynLevel = _dynLevel;
   _dynLevel = (_dynLevel * 0xffff) >> 16;
@@ -217,48 +177,10 @@ void TVA::_update_lfo_depth(int lfo)
 }
 
 
-// WIP: Disabled for now
-uint16_t TVA::_calc_smoothed_target_volume(void)
-{
-  uint16_t target = _dynLevel >> 1;
-  int16_t delta = (int16_t) target - (int16_t) _smoothDynLevel;
-
-  // Proportional step
-  int16_t step = delta >> 1;
-
-  // Prevent too small movement (keeps it moving)
-  if (step == 0 && delta != 0)
-    step = (delta > 0) ? 1 : -1;
-
-  _smoothDynLevel += step;
-
-  // snap when close
-  if (abs(delta) < 0x80)
-    _smoothDynLevel &= 0xFF80;
-
-  return _smoothDynLevel << 1;
-}
-
-
-// WIP: Disabled for now
-uint16_t TVA::_calc_smoothed_target_envelope(void)
-{
-  uint16_t target = _envLevel & 0xff80;
-
-  int16_t diff = (int16_t)target - (int16_t)_smoothEnvLevel;
-  _smoothEnvLevel += (diff >> 2);
-
-  _smoothEnvLevel = _smoothEnvLevel & 0xff80;
-
-  if (_smoothEnvLevel > 0x7F80)
-    _smoothEnvLevel = 0x7F80;
-
-  return _smoothEnvLevel;
-}
-
-
 void TVA::_update_dynamic_level()
 {
+  _prevDynLevel = _dynLevel;
+
   // 1: Read expression, Part level and System level
   _dynLevel = _settings->get_param(PatchParam::Expression, _partId) *
     _settings->get_param(PatchParam::PartLevel, _partId) *
@@ -345,6 +267,8 @@ void TVA::_update_panpot_level(bool reset)
 
 void TVA::_iterate_phase(void)
 {
+  _prevEnvLevel = _envLevel;
+
   if (_phase == Phase::Terminated) {
     std::cerr << "libEmuSC: Internal error, envelope used in Terminated phase"
 	      << std::endl;
@@ -674,6 +598,33 @@ void TVA::_init_new_phase(enum Phase newPhase)
   }
 
   _phase = newPhase;
+}
+
+
+// Simplified linear smoothing used inside control block
+// The SC-55 is observed to do integer math and report back deviation from
+// intended target value to avoid drift. We use float and clamp to target
+// (for now).
+void TVA::_smooth(int mode, float start, float target,
+                  std::array<float, 256> &gain)
+{
+  // 0xff00 => use target as fixed value for all samples
+  if (mode == 0xff00) {
+    for (int i = 0; i < 256; i++)
+      gain[i] = target;
+    return;
+  }
+
+  // All other mode values are ignored => linear ramp
+  float step = (target - start) / 256.0f;
+  float level = start;
+  for (int i = 0; i < 256; i++) {
+    level += step;
+    gain[i] = level;
+  }
+
+  // Clamp to target at last value to avoid any drift
+  gain[255] = target;
 }
 
 }

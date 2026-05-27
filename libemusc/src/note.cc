@@ -134,26 +134,20 @@ void Note::update(void)
 }
 
 
-bool Note::get_next_sample(float *partSample)
+bool Note::get_sample_set(std::array<std::array<float, 256>, 2> &dryBus)
 {
   bool finished[2] = {0, 0};
-
-  // Temporary samples for LEFT and RIGHT channel
-  float sample[2] = {0, 0};
 
   // Iterate both partials
   for (int p = 0; p < 2; p ++) {
     if  (_partial[p] == NULL)
       finished[p] = 1;
     else
-      finished[p] = _partial[p]->get_next_sample(sample);
+      finished[p] = _partial[p]->get_sample_set(dryBus);
   }
 
   if (finished[0] == true && finished[1] == true)
     return 1;
-
-  partSample[0] += sample[0];
-  partSample[1] += sample[1];
 
   return 0;
 }

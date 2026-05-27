@@ -60,33 +60,36 @@ WaveOscillator::WaveOscillator(ControlRom::Sample *ctrlSample,
 }
 
 
-float WaveOscillator::get_next_sample(float rate)
+void WaveOscillator::get_sample_set(Pitch *pitch, float pitchBend,
+                                    std::array<std::array<float,256>,2> &dryBus)
 {
-  // Linear interpolation
-  float output = y0 + (y1 - y0) * _phase;
+  for (int i = 0; i < 256; i ++) {
+    // Linear interpolation
+    float output = y0 + (y1 - y0) * _phase;
 
-  _phase += rate;
-  while (_phase >= 1.0f) {
-    _phase -= 1.0f;
-    _index++;
+    _phase += pitchBend * pitch->get_phase_increment() / 16384.0f;
+    while (_phase >= 1.0f) {
+      _phase -= 1.0f;
+      _index++;
 
-    // Check if we need to send first-run-of-sample-set-complete callback
-    // This triggers a kill on no-loop sets and pitch change on looping sets
-    if (!_firstRunComplete && _index > _sampleEnd) {
-      _firstRunComplete = true;
-      if (_firstRunCompleteCallback) _firstRunCompleteCallback();
+      // Check if we need to send first-run-of-sample-set-complete callback
+      // This triggers a kill on no-loop sets and pitch change on looping sets
+      if (!_firstRunComplete && _index > _sampleEnd) {
+        _firstRunComplete = true;
+        if (_firstRunCompleteCallback) _firstRunCompleteCallback();
+      }
+
+      // Note: Ping-pong loops have been extended to forward-loops in sample set
+      if ((_loopMode == LoopMode::Forward && _index > _sampleEnd) ||
+          (_loopMode == LoopMode::PingPong && _index > _sampleEnd + _loopLength))
+        _index = _loopStart;
     }
 
-    // Note: Ping-pong loops have been extended to forward-loops in sample set
-    if ((_loopMode == LoopMode::Forward && _index > _sampleEnd) ||
-        (_loopMode == LoopMode::PingPong && _index > _sampleEnd + _loopLength))
-      _index = _loopStart;
+    y0 = _fetch_sample(_index);
+    y1 = _fetch_sample(_index + 1);
+
+    dryBus[0][i] = dryBus[1][i] = output;
   }
-
-  y0 = _fetch_sample(_index);
-  y1 = _fetch_sample(_index + 1);
-
-  return output;
 }
 
 

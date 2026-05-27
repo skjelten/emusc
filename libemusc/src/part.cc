@@ -66,39 +66,37 @@ int Part::get_sample_set(std::array<std::array<float, 256>, 2> &dryBus,
       _settings->update_pitchBend_factor(_id);
     }
 
-    // Read the next 256 samples (one control loop)
-    for (int i = 0; i < 256; i ++) {
-      float partSample[2] = { 0, 0 };
+    // Get next sample from active notes, delete those which are finished
+    std::list<Note*>::iterator itr = _notes.begin();
+    while (itr != _notes.end()) {
+      bool finished = (*itr)->get_sample_set(dryBus);
 
-      // Get next sample from active notes, delete those which are finished
-      std::list<Note*>::iterator itr = _notes.begin();
-      while (itr != _notes.end()) {
-	bool finished = (*itr)->get_next_sample(partSample);
-
-	if (finished) {
+      if (finished) {
  //      std::cout << "Both partials have finished -> delete note" << std::endl;
-	  delete *itr;
-	  itr = _notes.erase(itr);
-	} else {
-	  ++itr;
-	}
+        delete *itr;
+        itr = _notes.erase(itr);
+      } else {
+        ++itr;
       }
+    }
 
     // Store last (highest) value for future queries (typically for bar display)
-      _lastPeakSample =
-	(_lastPeakSample >= partSample[0]) ? _lastPeakSample : partSample[0];
+    auto itL = std::max_element(dryBus[0].begin(), dryBus[0].end());
+    _lastPeakSample = *itL;
+    auto itR = std::max_element(dryBus[0].begin(), dryBus[0].end());
+    _lastPeakSample = std::max(_lastPeakSample, *itR);
 
-      dryBus[0][i] += partSample[0];
-      dryBus[1][i] += partSample[1];
+    float chorusSL = _settings->get_param(PatchParam::ChorusSendLevel, _id) / 128.0f;
+    chorusBus = dryBus;
+    auto& elementC = reinterpret_cast<float(&)[2 * 256]>(chorusBus);
+    for (size_t i = 0; i < 2 * 256; ++i)
+      elementC[i] *= chorusSL;
 
-      int chorusSL = _settings->get_param(PatchParam::ChorusSendLevel, _id);
-      chorusBus[0][i] += partSample[0] * chorusSL / 128.0;
-      chorusBus[1][i] += partSample[1] * chorusSL / 128.0;
-
-      int reverbSL = _settings->get_param(PatchParam::ReverbSendLevel, _id);
-      reverbBus[0][i] += partSample[0] * reverbSL / 128.0;
-      reverbBus[1][i] += partSample[1] * reverbSL / 128.0;
-    }
+    float reverbSL = _settings->get_param(PatchParam::ReverbSendLevel, _id) / 128.0f;
+    reverbBus = dryBus;
+    auto& elementR = reinterpret_cast<float(&)[2 * 256]>(reverbBus);
+    for (size_t i = 0; i < 2 * 256; ++i)
+      elementR[i] *= reverbSL;
   }
 
   // Export envelopes and LFOs to external client

@@ -47,7 +47,8 @@ public:
 
   void update(void);
 
-  bool get_next_sample(float *sampleOut);
+  bool get_sample_set(std::array<std::array<float, 256>, 2> &dryBus);
+
   int get_num_partials(void);
 
   int get_current_pitch(bool partial);

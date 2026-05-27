@@ -59,8 +59,7 @@ Partial::Partial(int partialId, uint8_t key, uint8_t velocity,
     _pitch(NULL),
     _tvf(NULL),
     _tva(NULL),
-    _pitchAdj(0),
-    _sample(0)
+    _pitchAdj(0)
 {
   _drumSet = settings->get_param(PatchParam::UseForRhythm, partId);
   if (_drumSet)
@@ -108,28 +107,23 @@ Partial::~Partial()
 }
 
 
-// Pitch is the only variable input for a note's get_next_sample
-// Pitch < 0 => fixed pitch (e.g. for drums)
-bool Partial::get_next_sample(float *noteSample)
+bool Partial::get_sample_set(std::array<std::array<float, 256>, 2> &dryBus)
 {
-  // Terminate this partial if its TVA envelope is finished
-  if  (_tva->finished())
+  if (_tva->finished())
     return 1;
 
-  _sample =
-    _waveOscillator->get_next_sample(_settings->get_pitchBend_factor(_partId) *
-                                     (_pitch->get_phase_increment() /
-                                      (16384.0)));
+  std::array<std::array<float, 256>, 2> partialBuf = {};
+  _waveOscillator->get_sample_set(_pitch,
+                                  _settings->get_pitchBend_factor(_partId),
+                                  partialBuf);
 
-  double sample[2] = {0, 0};
-  sample[0] = _sample * 1.0;      // Reduce audio volume to avoid overflow
+  //  _tvf->apply(&sample[0]);
+  _tva->apply_sample_set(partialBuf);
 
-//  _tvf->apply(&sample[0]);
-  _tva->apply(&sample[0]);
-
-  // Finally add samples to the sample pointers (always 2 channels / stereo)
-  noteSample[0] += sample[0];
-  noteSample[1] += sample[1];
+  for (int i = 0; i < 256; i++) {
+    dryBus[0][i] += partialBuf[0][i];
+    dryBus[1][i] += partialBuf[1][i];
+  }
 
   return 0;
 }

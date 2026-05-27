@@ -26,6 +26,7 @@
 #include "settings.h"
 #include "wave_generator.h"
 
+#include <array>
 #include <cstdint>
 
 
@@ -38,22 +39,21 @@ public:
   TVA(ControlRom &ctrlRom, uint8_t key, uint8_t velocity, int sampleIndex,
       WaveGenerator *LFO1, WaveGenerator *LFO2, Settings *settings,
       int8_t partId, uint16_t instrumentIndex, int partialId);
-  ~TVA();
 
   void update(bool reset = false);
   void apply(double *sample);
+  void apply_sample_set(std::array<std::array<float, 256>, 2> &dryBus);
+
   void note_off();
 
 private:
   int _dynLevel;
   int _dynLevelMode;
-  int _smoothDynLevel = 0;
+  int _prevDynLevel;
 
   int _envLevel;
   int _envLevelMode;
-  int _smoothEnvLevel = 0;
-
-  uint32_t _sampleRate;
+  int _prevEnvLevel;
 
   WaveGenerator *_LFO1;
   WaveGenerator *_LFO2;
@@ -82,9 +82,6 @@ private:
   void _init_envelope(ControlRom &ctrlRom, int sampleIndex, int instrumentIndex,
                       uint8_t cVelocity);
 
-  uint16_t _calc_smoothed_target_volume(void);
-  uint16_t _calc_smoothed_target_envelope(void);
-
   void _update_dynamic_level(void);
   void _update_panpot_level(bool reset);
   void _update_lfo_depth(int lfo);
@@ -94,7 +91,10 @@ private:
 
   void _init_new_phase(enum Phase newPhase);
   void _iterate_phase(void);
-};
+
+  static void _smooth(int mode, float start, float target,
+                      std::array<float, 256> &gain);
+  };
 
 }
 

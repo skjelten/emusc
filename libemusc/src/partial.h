@@ -30,6 +30,7 @@
 #include "tvf.h"
 #include "wave_generator.h"
 
+#include <array>
 #include <cmath>
 #include <stdint.h>
 
@@ -45,7 +46,7 @@ public:
 	  WaveGenerator *LFO1, Settings *settings, int8_t partId);
   ~Partial();
 
-  bool get_next_sample(float *noteSample);
+  bool get_sample_set(std::array<std::array<float, 256>, 2> &dryBus);
 
   void stop(void);
   void update(void);
@@ -82,7 +83,6 @@ private:
   TVA *_tva;
 
   float _pitchAdj;
-  float _sample;
 };
 
 }
