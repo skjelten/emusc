@@ -5,8 +5,6 @@ configure_file(config.h.in config.h)
 add_library(emusc
   allpass_filter.cc
   allpass_filter.h
-  biquad_filter.cc
-  biquad_filter.h
   chorus.cc
   chorus.h
   comb_filter.cc
@@ -17,12 +15,8 @@ add_library(emusc
   delay.h
   envelope.cc
   envelope.h
-  highpass_filter2.cc
-  highpass_filter2.h
   lowpass_filter1.cc
   lowpass_filter1.h
-  lowpass_filter2.cc
-  lowpass_filter2.h
   note.cc
   note.h
   params.h
@@ -40,6 +34,8 @@ add_library(emusc
   reverb.h
   settings.cc
   settings.h
+  svf.cc
+  svf.h
   synth.cc
   synth.h
   system_effects.cc

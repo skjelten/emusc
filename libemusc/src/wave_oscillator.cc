@@ -61,7 +61,7 @@ WaveOscillator::WaveOscillator(ControlRom::Sample *ctrlSample,
 
 
 void WaveOscillator::get_sample_set(Pitch *pitch, float pitchBend,
-                                    std::array<std::array<float,256>,2> &dryBus)
+                                    std::array<float, 256> &dryBus)
 {
   for (int i = 0; i < 256; i ++) {
     // Linear interpolation
@@ -88,7 +88,7 @@ void WaveOscillator::get_sample_set(Pitch *pitch, float pitchBend,
     y0 = _fetch_sample(_index);
     y1 = _fetch_sample(_index + 1);
 
-    dryBus[0][i] = dryBus[1][i] = output;
+    dryBus[i] = output;
   }
 }
 

@@ -115,9 +115,9 @@ bool Partial::get_sample_set(std::array<std::array<float, 256>, 2> &dryBus)
   std::array<std::array<float, 256>, 2> partialBuf = {};
   _waveOscillator->get_sample_set(_pitch,
                                   _settings->get_pitchBend_factor(_partId),
-                                  partialBuf);
+                                  partialBuf[0]);
 
-  //  _tvf->apply(&sample[0]);
+  _tvf->apply_sample_set(partialBuf[0]);
   _tva->apply_sample_set(partialBuf);
 
   for (int i = 0; i < 256; i++) {

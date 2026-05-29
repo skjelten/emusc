@@ -21,12 +21,13 @@
 #define __TVF_H__
 
 
-#include "biquad_filter.h"
+#include "svf.h"
 #include "control_rom.h"
 #include "envelope.h"
 #include "settings.h"
 #include "wave_generator.h"
 
+#include <array>
 #include <cstdint>
 
 
@@ -41,7 +42,8 @@ public:
       Settings *settings, int8_t partId);
   ~TVF();
 
-  void apply(double *sample);
+  void apply(float *sample);
+  void apply_sample_set(std::array<float, 256> &dryBus);
   void update(void);
 
   void note_off();
@@ -66,24 +68,23 @@ private:
   int _L4Init;
   int _L5Init;
 
+  int _ipLevelInit;
+
   int _currentEnvTime;
   int _currentLevelInit;
   int _prevLevelInit;
 
   int _coFreqIndex;
 
-  int _resIndexROM;
   int _resIndexFreq;
   int _resIndexUsed;
+  int _resonance;
 
-  int _resIndexEnv;
+  int _envDepth;
 
-  int _intEnvValue;
-  int _output;
-
-
-  float _filterFreq;
-  float _filterRes;
+  int _envLevel;
+  int _envLevelMode;
+  int _prevEnvLevel;
 
   uint8_t _key;
   int _velocity;
@@ -92,9 +93,7 @@ private:
 
   int _keyFollow;
 
-  int _envDepth;
-
-  BiquadFilter *_bqFilter;
+  SVF *_svf;
 
   Settings *_settings;
   int8_t _partId;

@@ -41,8 +41,6 @@
 
 
 #include "tvf.h"
-#include "lowpass_filter2.h"
-#include "highpass_filter2.h"
 
 #include <algorithm>
 #include <cmath>
@@ -63,20 +61,21 @@ TVF::TVF(ControlRom::InstPartial &instPartial, uint8_t key, uint8_t velocity,
     _lfo1FadeComplete(false),
     _lfo2FadeComplete(false),
     _LUT(LUT),
-    _intEnvValue(0),
-    _key(key),
     _instPartial(instPartial),
+    _resonance(0x40),
+    _envLevel(0),
+    _key(key),
     _settings(settings),
     _partId(partId)
 {
   if (instPartial.TVFType == 0)
-    _bqFilter = new LowPassFilter2(_sampleRate);
+    _svf = new SVF(SVF::Mode::LowPass);
   else if (instPartial.TVFType == 1)
-    _bqFilter = new HighPassFilter2(_sampleRate);
+    _svf = new SVF(SVF::Mode::HighPass);
   else
-    _bqFilter = nullptr;
+    _svf = nullptr;
 
-  if (_bqFilter == nullptr)                       // TVF disabled
+  if (_svf == nullptr)                       // TVF disabled
     return;
 
   _velocity = _get_velocity_from_vcurve(velocity);
@@ -95,54 +94,25 @@ TVF::TVF(ControlRom::InstPartial &instPartial, uint8_t key, uint8_t velocity,
 
 TVF::~TVF()
 {
-  delete _bqFilter;
+  delete _svf;
 }
 
 
 // TODO: Add suport for Cutoff freq V-sens
-void TVF::apply(double *sample)
+// TVF consists of two values: Filter cutoff frequency and resonance.
+// The cutoff frequency is controlled by the envelope generator and have a
+// "mode" variable controlling how the frequency values are interpolated /
+// smoothed across and inside control loops of 256 samples. Resonance is a more
+// static variable controlled by instrument definition and SySEx messsages.
+void TVF::apply_sample_set(std::array<float, 256> &dryBus)
 {
   // Skip filter calculation if filter is disabled for this partial 
-  if (_bqFilter == nullptr)
+  if (_svf == nullptr)
     return;
 
-  // TVF cutoff freq output is output MSB while not saturated, and intEnvValue
-  // MSB otherwise.
-  int coFreq = (_output != 0xff00) ? (_output >> 8) : (_intEnvValue >> 8);
-
-
-  // Envelope
-  float envKey = 0.0;
-  envKey = (0x40 - 0x40) * _envDepth * 0.0001 * 0.62;
-//  envKey = (_envelope->get_next_value() - 0x40) * _envDepth * 0.0001 * 0.62;
-
-  // LFO modulation
-  float lfo1ModFreq = 1; //_LFO1->value_float() * _LUT.LFOTVFDepth[_accLFO1Depth] / 256;
-  float lfo2ModFreq = 1; //_LFO2->value_float() * _LUT.LFOTVFDepth[_accLFO2Depth] / 256;
-
-  float freqIndex = _coFreqIndex + lfo1ModFreq + lfo2ModFreq + envKey +
-                    (_keyFollow >> 8); // + _coFreqVSens;
-  if (_instPartial.TVFCOFVSens < 0x40)
-    freqIndex -= 73.5;
-  if (freqIndex < 0)   freqIndex = 0;
-  if (freqIndex > 127) freqIndex = 127;
-
-//  _filterFreq = _calc_cutoff_frequency(freqIndex);
-
-  _bqFilter->calculate_coefficients(_filterFreq / 4.3, _filterRes);
-  *sample = _bqFilter->apply(*sample);
-
-  if (0)
-    std::cout << "E=" << envKey
-              << " C=" << _coFreqIndex
-              << " V=" << _coFreqVSens
-              << " K=" << (_keyFollow >> 8)
-              << " M=" << lfo1ModFreq + lfo2ModFreq
-              << " D=" << _envDepth
-              << " I=" << freqIndex << "->[" << freqIndex * 2 << "]"
-              << " F=" << _filterFreq << " (" << _filterFreq / 4.3 << "Hz)"
-              << " R=" << _filterRes
-              << std::endl;
+  for (int i = 0; i < 256; i++) {
+    dryBus[i] = _svf->process_sample(dryBus[i]);
+  }
 }
 
 
@@ -155,7 +125,7 @@ void TVF::note_off()
 // Run regularly for every 256 samples @32k sample rate => 125Hz
 void TVF::update(void)
 {
-  if (_bqFilter == nullptr)                       // TVF disabled
+  if (_svf == nullptr)                       // TVF disabled
     return;
 
   // Update LFO depth parameters based on fade-in status
@@ -164,9 +134,15 @@ void TVF::update(void)
   if (!_lfo2FadeComplete)
     _update_lfo_depth(2);
 
-  // TODO: Check if smoothing, setting output mode or other fixes are needed
-
   _iterate_phase();
+
+  // Update filter coefficients
+  _svf->set_cutoff_freq(_envLevel);
+  _svf->set_resonance(_resonance);
+
+  if (0)
+    std::cout << std::hex << "0x" << _envLevel << "  -  " << _resonance
+              << std::endl;
 }
 
 
@@ -299,62 +275,21 @@ void TVF::_init_freq_and_res(void)
   envLevelMax = std::max(envLevelMax, _L4Init);
   envLevelMax = std::max(envLevelMax, _L5Init);
 
-  int baseFilter = _instPartial.TVFBaseFlt;
+  int tm3 = _settings->get_param(PatchParam::TVFCutoffFreq, _partId) - 0x40;
+  tm3 = std::clamp(tm3, -0x32, 0x10);
+  int bptm3 = tm3 < 0 ? _instPartial.TVFBaseFlt + tm3 : _instPartial.TVFBaseFlt;
+  int cofIndex = std::clamp(envLevelMax + (bptm3 << 8), 0, 0x7fff);
+  cofIndex = std::min(cofIndex + 0xff, 0x7fff);
 
-  // TODO: Fix the proper calculation of TVFCutoffFreq from settings
-  // It is -not- a linear function, but depends on several unknown factors
-  int var = (_keyFollow & 0xff00) +
-    _settings->get_param(PatchParam::TVFCutoffFreq, _partId) - 0x40;
-
-  if (var < 0) {
-    baseFilter -= (var & 0x00ff);
-
-    if (_instPartial.TVFBaseFlt < var)
-      baseFilter = 0; //&= 0xff00;
-
-  } else {
-    if (!(_instPartial.TVFFlags & (1 << 2))) {
-      if ((var & 0x00ff) < 0x10) {
-	var = (var & 0xff00) | 0x10;
-
-	baseFilter += var;
-	if (baseFilter < 0)
-	  baseFilter = 0x7f;
-      }
-    }
-  }
-
-  int16_t cofIndex = envLevelMax + (baseFilter << 8);
-  if (envLevelMax < 0 && cofIndex < 0)
-    cofIndex = 0;
-  else if (envLevelMax >= 0 && cofIndex < 0)
-    cofIndex = 0x7fff;
-
-  cofIndex += 0xff;
-  if (cofIndex < 0)
-    cofIndex = 0x7fff;
-
-  cofIndex = (cofIndex >> 8);
-  _filterFreq = _LUT.TVFCutoffFreq[cofIndex];
-
-  int rfIndex = (2 * _filterFreq) + 0xff;
-  if (rfIndex > 0xffff)
-    rfIndex = 0xff00;
-
-  rfIndex &= 0xff00;
-  // Then find the two filter resonance index alternatives
+  int cof = _LUT.TVFCutoffFreq[cofIndex >> 8];
+  int rfIndex = (2 * cof) + 0xff;
+  rfIndex = rfIndex > 0xffff ? 0xff00 : rfIndex;
   _resIndexFreq = _LUT.TVFResonanceFreq[(rfIndex >> 8)];
-  _resIndexROM = (int) _instPartial.TVFResonance;
 
-  _resIndexEnv = _settings->get_param(PatchParam::TVFResonance, _partId) - 0x40;
-  _resIndexEnv = std::min(_instPartial.TVFResonance - std::abs(_resIndexEnv) *2,
-                          _resIndexFreq);
-
-  if (0)
-    std::cout << "Init TVF: COFFreq[" << cofIndex * 2 << "]=" << _filterFreq
-              << " ResIndexFreq[" << (rfIndex >> 8) << "]=" << _resIndexFreq
-              << " ResIndexROM=" << std::hex << _resIndexROM
-              << " ResIndexEnv=" << _resIndexEnv << std::endl;
+  int tm4 = _settings->get_param(PatchParam::TVFResonance, _partId) - 0x40;
+  tm4 = std::clamp(tm4, -0x32, 0x32);
+  _resonance = std::min(_instPartial.TVFResonance - (tm4 * 2), _resIndexFreq);
+  _resonance = std::max(_resonance, 0);
 }
 
 
@@ -405,21 +340,20 @@ void TVF::_iterate_phase(void)
     }
   }
 
-  int ipLevelInit;
   int segmentCurveIndex = 0;          // -0x30  TODO: FIX SUSTAIN -> 8 always!
 
   if (_phase == Phase::Init) {                     // Initialization run
-    ipLevelInit = _keyFollow & 0xffff;
+    _ipLevelInit = _keyFollow & 0xffff;
 
   } else if (_phase == Phase::Sustain) {
     _phaseRemainder = 0;
     segmentCurveIndex = 8;
-    ipLevelInit = _L5Init & 0xffff;
+    _ipLevelInit = _L5Init & 0xffff;
 
   } else if (_phaseDuration <= 8) {               // Very short phase duration
     _phasePosition = 0xffff;
     segmentCurveIndex = _phaseDuration;
-    ipLevelInit = _currentLevelInit & 0xffff;
+    _ipLevelInit = _currentLevelInit & 0xffff;
 
   } else {                                        // Normal phase duration
     _phaseStepSize = (8 << 16) / _phaseDuration;
@@ -440,15 +374,13 @@ void TVF::_iterate_phase(void)
     }
 
     if (phaseStepDelta != 0) {
-      // TODO: REMOVE TMP
-      int tmp = phaseAccInc - 0xffff;
-      if (tmp < 0)
+      if (phaseAccInc < 0xffff)
         phaseStepDelta -= 1;
 
       _phaseRemainder = (phaseStepDelta / _phaseStepSize) & 0xffff;
       _phasePosition = 0xffff;
 
-      ipLevelInit = _currentLevelInit & 0xffff;
+      _ipLevelInit = _currentLevelInit & 0xffff;
 
     } else {
       _phasePosition = phaseAccInc;
@@ -459,7 +391,7 @@ void TVF::_iterate_phase(void)
       int phase = _phasePosition;
 
       if (prev == curr) {
-        ipLevelInit = prev;
+        _ipLevelInit = prev;
 
       } else if ((prev ^ curr) & 0x8000) {             // Different signs
         int16_t absPrev = std::abs(prev);
@@ -469,14 +401,14 @@ void TVF::_iterate_phase(void)
 
         int16_t scaled = (int16_t) ((uint32_t(uint16_t(mag)) * phase) >> 16);
         int16_t magResult = (absCurr >= absPrev) ? absPrev + scaled : absPrev - scaled;
-        ipLevelInit = (curr < 0) ? -magResult : magResult;
+        _ipLevelInit = (curr < 0) ? -magResult : magResult;
 
       } else {                                         // Same signs
         int16_t mag = std::abs(curr - prev);
         if (mag < 0) mag = std::numeric_limits<int16_t>::max();
 
         int16_t scaled = (int16_t) ((uint32_t(uint16_t(mag)) * phase) >> 16);
-        ipLevelInit = (curr >= prev) ? prev + scaled : prev - scaled;
+        _ipLevelInit = (curr >= prev) ? prev + scaled : prev - scaled;
       }
     }
   }
@@ -486,7 +418,7 @@ void TVF::_iterate_phase(void)
   int accCoFreq = std::clamp(_instPartial.TVFBaseFlt + (tmCF - 0x40), 0,
                           (int) _instPartial.TVFBaseFlt);
 
-  uint16_t accDepth = ipLevelInit + (accCoFreq << 8);
+  uint16_t accDepth = _ipLevelInit + (accCoFreq << 8);
   accDepth = std::clamp((int) accDepth, 0, INT16_MAX);
 
   int accCutoffCtrl = _settings->get_acc_control_param(Settings::ControllerParam::TVFCutoff, _partId);
@@ -512,17 +444,18 @@ void TVF::_iterate_phase(void)
   accDepth = std::clamp(accDepth + lfoMod, 0, INT16_MAX);
 
   int tmRes = _settings->get_param(PatchParam::TVFResonance, _partId) - 0x40;
-  tmRes = std::clamp(_instPartial.TVFResonance - std::abs(tmRes) * 2,
+  tmRes = std::clamp(_instPartial.TVFResonance - tmRes * 2,
                      0, _resIndexFreq);
-  if ((tmRes & 0xff) != _resIndexEnv) {
-    if ((tmRes & 0xff) < _resIndexEnv)
-      _resIndexEnv -= 1;
-    else
-      _resIndexEnv += 1;
 
-    int resFreqIndex = std::min(_intEnvValue + 0xff, 0xff00);
+  if ((tmRes & 0xff) != _resonance) {
+    if ((tmRes & 0xff) < _resonance)
+      _resonance -= 1;
+    else
+      _resonance += 1;
+
+    int resFreqIndex = std::min(_envLevel + 0xff, 0xff00);
     int resFreq = _LUT.TVFResonanceFreq[resFreqIndex >> 8];
-    _resIndexEnv = std::min(_resIndexEnv, resFreq);
+    _resonance = std::min(_resonance, resFreq);
   }
 
   int ipCoFreq;
@@ -537,40 +470,40 @@ void TVF::_iterate_phase(void)
   }
 
   ipCoFreq *= 2;
-  _resIndexEnv = std::max(_resIndexEnv, 8);
+  _resonance = std::max(_resonance, 8);
 
-  int res = _LUT.TVFResonance[_resIndexEnv] << 8;
+  int res = _LUT.TVFResonance[_resonance] << 8;
   if (res < ipCoFreq)
     ipCoFreq = res;
 
   ipCoFreq = std::min(ipCoFreq, 0xe600);
 
-  int prevIntEnvValue = _intEnvValue;
-  _intEnvValue = ipCoFreq;
+  _prevEnvLevel = _envLevel;
+  _envLevel = ipCoFreq;
 
-  int intEnvValue = _intEnvValue;
-  if (_intEnvValue == prevIntEnvValue) {
-    _output = 0xff00;
+  int intEnvValue = _envLevel;
+  if (_envLevel == _prevEnvLevel) {
+    _envLevelMode = 0xff00;
     return;
 
-  } else if (_intEnvValue > prevIntEnvValue) {
+  } else if (_envLevel > _prevEnvLevel) {
     intEnvValue &= 0xff00;
-    if (intEnvValue == (prevIntEnvValue & 0xff00)) {
+    if (intEnvValue == (_prevEnvLevel & 0xff00)) {
       intEnvValue += 0x100;
       intEnvValue = std::max(intEnvValue,
-                             _LUT.TVFCutoffFreq[_resIndexEnv] << 8);
+                             _LUT.TVFCutoffFreq[_resonance] << 8);
     }
   }
 
   intEnvValue = std::min(intEnvValue, 0xe600);
 
   if (segmentCurveIndex == 0) {
-    _output = (intEnvValue & 0xff00) | 0xaf;      // Env. segment acc. preload
+    _envLevelMode = (intEnvValue & 0xff00) | 0xaf;      // Env. segment acc. preload
     return;
   }
 
   int segmentStepIndex = _LUT.EnvSegmentCurve[segmentCurveIndex];
-  int phaseAccumulator = _intEnvValue - prevIntEnvValue;
+  int phaseAccumulator = _envLevel - _prevEnvLevel;
   if (phaseAccumulator < 0) phaseAccumulator = -phaseAccumulator;
 
   for (int i = 0; i < 8; i++) {
@@ -593,7 +526,7 @@ void TVF::_iterate_phase(void)
   tvfLow = ((tvfLow >> 3) + 1) >> 1;
   tvfLow |= _LUT.EnvSegmentStep[segmentStepIndex];
 
-  _output = (intEnvValue & 0xff00) + tvfLow;
+  _envLevelMode = (intEnvValue & 0xff00) + tvfLow;
 }
 
 
@@ -643,17 +576,17 @@ void TVF::_init_new_phase(enum Phase newPhase)
   } else if (newPhase == Phase::Sustain) {
     _phase = newPhase;
 
-    if (_intEnvValue == 0)
+    if (_envLevel == 0)
       _finished = true;
 
     return;
 
   } else if (newPhase == Phase::Release) {
-    _prevLevelInit = _L4Init;
+    _prevLevelInit = _ipLevelInit;
     _currentLevelInit = _L5Init;
     _currentEnvTime = _phaseTime[static_cast<int>(newPhase)];
 
-    _phaseStartValue = _intEnvValue >> 8;  //_output; // (_output >> 8);
+    _phaseStartValue = _envLevel >> 8;  //_envLevelMode; // (_envLevelMode >> 8);
     _phaseEndValue = _phaseLevel[static_cast<int>(newPhase)];
   }
 

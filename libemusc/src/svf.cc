@@ -1,4 +1,4 @@
-/*  
+/*
  *  This file is part of libEmuSC, a Sound Canvas emulator library
  *  Copyright (C) 2022-2026  Håkon Skjelten
  *
@@ -17,32 +17,44 @@
  */
 
 
-#ifndef __HIGHPASS_FILTER2_H__
-#define __HIGHPASS_FILTER2_H__
+#include "svf.h"
 
-
-#include "biquad_filter.h"
-
-#include <stdint.h>
+#include <iostream>
 
 
 namespace EmuSC {
 
+SVF::SVF(Mode mode)
+  : _mode(mode),
+    _f(0.0f),
+    _q(2.0f),
+    _lp(0.0f),
+    _bp(0.0f)
+{}
 
-class HighPassFilter2: public BiquadFilter
+
+void SVF::set_cutoff_freq(int coFreq)
 {
-public:
-  HighPassFilter2(int sampleRate);
-  ~HighPassFilter2();
-
-  void calculate_coefficients(float frequency, float q);
-
-private:
-  int _sampleRate;
-
-  HighPassFilter2();
-};
-
+  if (0)
+    std::cout << "TVF COFreq = 0x" << std::hex << coFreq << std::endl;
+  
+  _f = coFreq / 64000.0f;
 }
 
-#endif  // __HIGHPASS_FILTER2_H__
+
+void SVF::set_resonance(int resonance)
+{
+  if (0)
+    std::cout << "TVF resonance = 0x" << std::hex << resonance << std::endl;
+
+  _q = resonance / 127.0;
+}
+
+
+void SVF::clear()
+{
+  _lp = 0.0f;
+  _bp = 0.0f;
+}
+
+}

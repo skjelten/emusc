@@ -45,7 +45,7 @@ public:
                  std::function<void(void)> cb);
 
   void get_sample_set(Pitch *pitch, float pitchBend,
-                      std::array<std::array<float, 256>,2> &dryBus);
+                      std::array<float, 256> &dryBus);
 
 private:
   int _sampleStart;           // 0 or sample attack end if portamento is active
