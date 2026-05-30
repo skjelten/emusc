@@ -16,12 +16,12 @@
  *  along with libEmuSC. If not, see <http://www.gnu.org/licenses/>.
  */
 
-// PCM ROM decoding is based on the SC55_Soundfont generator written by
+// Wave ROM decoding is based on the SC55_Soundfont generator written by
 // Kitrinx and NewRisingSun [ https://github.com/Kitrinx/SC55_Soundfont ]
 
 
-#ifndef __PCM_ROM_H__
-#define __PCM_ROM_H__
+#ifndef __WAVE_ROM_H__
+#define __WAVE_ROM_H__
 
 
 #include "control_rom.h"
@@ -34,7 +34,7 @@
 
 namespace EmuSC {
 
-class PcmRom
+class WaveRom
 {
 private:
   std::string _version;
@@ -55,11 +55,10 @@ private:
                     struct ControlRom::Sample &ctrlSample,
                     enum ControlRom::SynthGen synthGen);
 
-  PcmRom();
+  WaveRom();
 
 public:
-  PcmRom(std::vector<std::string> romPath, ControlRom &ctrlRom);
-  ~PcmRom();
+  WaveRom(std::vector<std::string> romPath, ControlRom &ctrlRom);
 
   inline struct Samples& samples(uint16_t ss) { return _sampleSets[ss]; }
 
@@ -69,4 +68,4 @@ public:
 
 }
 
-#endif  // __PCM_ROM_H__
+#endif  // __WAVE_ROM_H__

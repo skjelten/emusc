@@ -16,11 +16,8 @@
  *  along with libEmuSC. If not, see <http://www.gnu.org/licenses/>.
  */
 
-// PCM ROM decoding is based on the SC55_Soundfont generator written by
-// Kitrinx and NewRisingSun [ https://github.com/Kitrinx/SC55_Soundfont ]
 
-
-#include "pcm_rom.h"
+#include "wave_rom.h"
 
 #include <cmath>
 #include <fstream>
@@ -30,25 +27,25 @@
 namespace EmuSC {
 
 
-PcmRom::PcmRom(std::vector<std::string> romPath, ControlRom &ctrlRom)
+WaveRom::WaveRom(std::vector<std::string> romPath, ControlRom &ctrlRom)
 {
   std::vector<char> romData;
 
   if (romPath.empty())
-    throw (std::string("No PCM ROM file specified"));
+    throw (std::string("No wave ROM file specified"));
 
   for (auto rp : romPath) {
     std::ifstream romFile(rp, std::ios::binary | std::ios::in);
     if (!romFile.is_open()) {
-      throw(std::string("Unable to open PCM ROM file: ") + rp);
+      throw(std::string("Unable to open wave ROM file: ") + rp);
     }
 
     std::vector<char> encBuf((std::istreambuf_iterator<char>(romFile)),
 			     std::istreambuf_iterator<char>());
 
     if (encBuf.size() % 0x100000)
-      throw (std::string("Incorrect file size of PCM ROM file ") + rp +
-	     std::string(". PCM ROM files are always a factor of 1 MB"));
+      throw (std::string("Incorrect file size of Wave ROM file ") + rp +
+	     std::string(". Wave ROM files are always a factor of 1 MB"));
 
     uint32_t offset = romData.size();
     romData.resize(romData.size() + encBuf.size());
@@ -65,7 +62,7 @@ PcmRom::PcmRom(std::vector<std::string> romPath, ControlRom &ctrlRom)
 
   // Debug: Dump complete decrypted ROM to file
   if (0) {
-    std::ofstream dump("/tmp/pcm_rom.bin", std::ios::binary);
+    std::ofstream dump("/tmp/wave_rom.bin", std::ios::binary);
     dump.write(&romData[0], romData.size());
     dump.close();
   }
@@ -81,12 +78,8 @@ PcmRom::PcmRom(std::vector<std::string> romPath, ControlRom &ctrlRom)
 }
 
 
-PcmRom::~PcmRom()
-{}
-
-
 // Discovered and written by NewRisingSun
-uint32_t PcmRom::_unscramble_address(uint32_t address)
+uint32_t WaveRom::_unscramble_address(uint32_t address)
 {
   uint32_t newAddress = 0;
   if (address >= 0x20) {	// The first 32 bytes are not encrypted
@@ -104,7 +97,7 @@ uint32_t PcmRom::_unscramble_address(uint32_t address)
 }
 
 
-int8_t PcmRom::_unscramble_data(int8_t byte)
+int8_t WaveRom::_unscramble_data(int8_t byte)
 {
   uint8_t byteOrder[8] = {2, 0, 4, 5, 7, 6, 3, 1};
   uint32_t newByte = 0;
@@ -117,7 +110,7 @@ int8_t PcmRom::_unscramble_data(int8_t byte)
 }
 
 
-uint32_t PcmRom::_find_samples_rom_address(uint32_t address,
+uint32_t WaveRom::_find_samples_rom_address(uint32_t address,
                                            enum ControlRom::SynthGen synthGen)
 {
   uint32_t bank = 0;
@@ -136,7 +129,7 @@ uint32_t PcmRom::_find_samples_rom_address(uint32_t address,
       bank = 0x200000;
       break;
     default:
-      throw(std::string("Unknown bank ID in PcmRom::get_sample(): ") +
+      throw(std::string("Unknown bank ID in WaveRom::get_sample(): ") +
 	    std::to_string(address & 0x700000));
     }
 
@@ -144,7 +137,7 @@ uint32_t PcmRom::_find_samples_rom_address(uint32_t address,
 }
 
 
-int PcmRom::_read_samples(std::vector<char> &romData,
+int WaveRom::_read_samples(std::vector<char> &romData,
                           struct ControlRom::Sample &ctrlSample,
                           enum ControlRom::SynthGen synthGen)
 {

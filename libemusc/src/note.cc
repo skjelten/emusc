@@ -1,4 +1,4 @@
-/*  
+/*
  *  This file is part of libEmuSC, a Sound Canvas emulator library
  *  Copyright (C) 2022-2026  Håkon Skjelten
  *
@@ -26,7 +26,7 @@
 namespace EmuSC {
 
 
-Note::Note(uint8_t key, uint8_t velocity, ControlRom &ctrlRom, PcmRom &pcmRom,
+Note::Note(uint8_t key, uint8_t velocity, ControlRom &ctrlRom, WaveRom &waveRom,
 	   Settings *settings, int8_t partId)
   : _key(key),
     _sustain(false),
@@ -62,7 +62,7 @@ Note::Note(uint8_t key, uint8_t velocity, ControlRom &ctrlRom, PcmRom &pcmRom,
   if (partialBits.test(0)) {
     try {
       _partial[0] = new Partial(0, key, velocity, instrumentIndex, ctrlRom,
-				pcmRom, _LFO1, settings, partId);
+				waveRom, _LFO1, settings, partId);
     } catch (std::string errorMsg) {
       _partial[0] = NULL;
     }
@@ -70,7 +70,7 @@ Note::Note(uint8_t key, uint8_t velocity, ControlRom &ctrlRom, PcmRom &pcmRom,
   if (partialBits.test(1)) {
     try {
       _partial[1] = new Partial(1, key, velocity, instrumentIndex, ctrlRom,
-				pcmRom, _LFO1, settings, partId);
+				waveRom, _LFO1, settings, partId);
     } catch (std::string errorMsg) {
       _partial[1] = NULL;
     }

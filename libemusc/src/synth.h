@@ -23,9 +23,9 @@
 
 #include "control_rom.h"
 #include "params.h"
-#include "pcm_rom.h"
 #include "resampler.h"
 #include "system_effects.h"
+#include "wave_rom.h"
 
 #include <array>
 #include <functional>
@@ -37,10 +37,10 @@
 /* Public API for libEmuSC
  *
  * This Synth class is responsible for receiving MIDI events from client,
- * process the event based on information in Control and PCM ROMS, and
+ * process the event based on information in Control and Wave ROMS, and
  * finally responding to audio buffer requests.
  *
- * Synth class constructor depends on a valid Control Rom and PCM ROM.
+ * Synth class constructor depends on a valid Control Rom and Wave ROM.
  *
  * MIDI events is sent to the emulator via the midi_input() method using the
  * three bytes from raw MIDI events.
@@ -68,7 +68,7 @@ public:
     MT32                      // MT32 arrangement
   };
 
-  Synth(ControlRom &cRom, PcmRom &pRom, SoundMap map = SoundMap::GS);
+  Synth(ControlRom &cRom, WaveRom &pRom, SoundMap map = SoundMap::GS);
   ~Synth();
 
   // Add start() and stop()? Won't start if sampleRate is not set?
@@ -148,7 +148,7 @@ private:
   std::vector<std::function<void(const int)>> _partChangeCallbacks;
 
   ControlRom &_ctrlRom;
-  PcmRom &_pcmRom;
+  WaveRom &_waveRom;
 
   float _phase;              // fractional SC-55 sample position
   float _phaseIncrement;     // SC-55 samples per host sample

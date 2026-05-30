@@ -22,10 +22,10 @@
 
 
 #include "control_rom.h"
-#include "pcm_rom.h"
 #include "partial.h"
 #include "settings.h"
 #include "wave_generator.h"
+#include "wave_rom.h"
 
 #include <stdint.h>
 
@@ -37,7 +37,7 @@ namespace EmuSC {
 class Note
 {
 public:
-  Note(uint8_t key, uint8_t velocity, ControlRom &ctrlRom, PcmRom &pcmRom,
+  Note(uint8_t key, uint8_t velocity, ControlRom &ctrlRom, WaveRom &waveRom,
        Settings *settings, int8_t partId);
   ~Note();
 

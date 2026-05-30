@@ -22,9 +22,9 @@
 
 
 #include "control_rom.h"
-#include "pcm_rom.h"
 #include "note.h"
 #include "settings.h"
+#include "wave_rom.h"
 
 #include <stdint.h>
 
@@ -40,7 +40,7 @@ namespace EmuSC {
 class Part
 {
 public:
-  Part(uint8_t id, Settings *settings, ControlRom &cRom, PcmRom &pRom);
+  Part(uint8_t id, Settings *settings, ControlRom &cRom, WaveRom &wRom);
   ~Part();
 
   int get_sample_set(std::array<std::array<float, 256>, 2> &dryBus,
@@ -102,7 +102,7 @@ private:
   std::mutex *_notesMutex;
 
   ControlRom &_ctrlRom;
-  PcmRom &_pcmRom;
+  WaveRom &_waveRom;
 
   // Calculated controller values (minimize number of calculations)
   // TODO: Figure out how to do this properly. Only relevant for pitchBend?

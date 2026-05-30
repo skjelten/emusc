@@ -50,7 +50,7 @@ namespace EmuSC {
 
 
 Partial::Partial(int partialId, uint8_t key, uint8_t velocity,
-		 uint16_t instrumentIndex, ControlRom &ctrlRom, PcmRom &pcmRom,
+		 uint16_t instrumentIndex, ControlRom &ctrlRom, WaveRom &waveRom,
 		 WaveGenerator *LFO1, Settings *settings, int8_t partId)
   : _instPartial(ctrlRom.instrument(instrumentIndex).partials[partialId]),
     _settings(settings),
@@ -78,7 +78,7 @@ Partial::Partial(int partialId, uint8_t key, uint8_t velocity,
                  partId, instrumentIndex, partialId);
 
   _ctrlSample = &ctrlRom.sample(sampleIndex);
-  _pcmSamples = &pcmRom.samples(sampleIndex).samplesF;
+  _pcmSamples = &waveRom.samples(sampleIndex).samplesF;
   _waveOscillator = new WaveOscillator(_ctrlSample, _pcmSamples,
                                        std::bind(&Partial::first_run_cb, this));
 

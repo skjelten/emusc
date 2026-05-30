@@ -152,7 +152,7 @@ MainWindow::MainWindow(QWidget *parent)
 
   // Run a "welcome dialog" if both ROM configurations and volume are missing
   if (!settings.contains("Rom/control") &&
-      !settings.contains("Rom/pcm1") &&
+      !settings.contains("Rom/wave1") &&
       !settings.contains("Audio/volume"))
     _display_welcome_dialog();
 }
@@ -384,7 +384,7 @@ void MainWindow::_display_welcome_dialog()
 		  "parameters:"
 		  "</p><p><ul style=\"margin-left:25px; -qt-list-indent: 0;\">"
 		  "<li><b>ROM files</b><br>The emulator needs the ROM files "
-		  "for both the control ROM and the PCM ROMs to operate.</li>"
+		  "for both the control ROM and the Wave ROMs to operate.</li>"
 		  "<li><b>Audio setup</b><br>A proper audio setup must be "
 		  "configured with the desired speaker setup</li>"
 		  "<li><b>MIDI setup</b><br>A MIDI source must be configured. "

@@ -22,13 +22,13 @@
 
 
 #include "control_rom.h"
-#include "pcm_rom.h"
 #include "pitch.h"
 #include "wave_oscillator.h"
 #include "settings.h"
 #include "tva.h"
 #include "tvf.h"
 #include "wave_generator.h"
+#include "wave_rom.h"
 
 #include <array>
 #include <cmath>
@@ -42,7 +42,7 @@ class Partial
 {
 public:
   Partial(int partialId, uint8_t key, uint8_t velocity,
-	  uint16_t instrumentIndex, ControlRom &controlRom, PcmRom &pcmRom,
+	  uint16_t instrumentIndex, ControlRom &controlRom, WaveRom &waveRom,
 	  WaveGenerator *LFO1, Settings *settings, int8_t partId);
   ~Partial();
 

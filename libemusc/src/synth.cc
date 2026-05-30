@@ -39,11 +39,11 @@
 
 namespace EmuSC {
 
-Synth::Synth(ControlRom &controlRom, PcmRom &pcmRom, SoundMap map)
+Synth::Synth(ControlRom &controlRom, WaveRom &waveRom, SoundMap map)
   : _sampleRate(0),
     _channels(0),
     _ctrlRom(controlRom),
-    _pcmRom(pcmRom),
+    _waveRom(waveRom),
     _phase(0.0),
     _updateCounter(0),
     _hostSampleBufRIndex(0),
@@ -82,7 +82,7 @@ Synth::~Synth()
 void Synth::_init_parts(void)
 {
   for (int i = 0; i < 16; i++)
-    _parts.emplace_back(i, _settings, _ctrlRom, _pcmRom);
+    _parts.emplace_back(i, _settings, _ctrlRom, _waveRom);
 }
 
 
@@ -117,7 +117,7 @@ void Synth::_add_note(uint8_t midiChannel, uint8_t key, uint8_t velocity)
 	p.add_note(key, velocity);
 }
 
-/* Not used -> PcmRom as part of sample dump to disk
+/* Not used -> WaveRom as part of sample dump to disk
 int Synth::_export_sample_24(std::vector<int32_t> &sampleSet,
 			     std::string filename)
 {

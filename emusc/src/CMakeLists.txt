@@ -6,7 +6,7 @@ set(CMAKE_AUTORCC ON)
 # Copy include files from libemusc (needed due to directory include path)
 configure_file(../../libemusc/src/control_rom.h include/emusc/control_rom.h COPYONLY)
 configure_file(../../libemusc/src/params.h include/emusc/params.h COPYONLY)
-configure_file(../../libemusc/src/pcm_rom.h include/emusc/pcm_rom.h COPYONLY)
+configure_file(../../libemusc/src/wave_rom.h include/emusc/wave_rom.h COPYONLY)
 configure_file(../../libemusc/src/synth.h include/emusc/synth.h COPYONLY)
 include_directories(include)
 

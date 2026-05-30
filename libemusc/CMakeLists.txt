@@ -20,7 +20,7 @@ include(GNUInstallDirs)
 install(TARGETS emusc DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT lib)
 install(FILES AUTHORS ChangeLog COPYING COPYING.LESSER NEWS README.md DESTINATION ${CMAKE_INSTALL_DOCDIR} COMPONENT lib)
 
-install(FILES src/control_rom.h src/params.h src/pcm_rom.h src/synth.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/emusc COMPONENT dev)
+install(FILES src/control_rom.h src/params.h src/wave_rom.h src/synth.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/emusc COMPONENT dev)
 install(FILES emusc.pc DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig" COMPONENT dev)
 
 if(CMAKE_CURRENT_BINARY_DIR STREQUAL CMAKE_BINARY_DIR)

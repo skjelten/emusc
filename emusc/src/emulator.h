@@ -21,9 +21,9 @@
 #define EMULATOR_H
 
 #include "emusc/control_rom.h"
-#include "emusc/pcm_rom.h"
 #include "emusc/synth.h"
 #include "emusc/params.h"
+#include "emusc/wave_rom.h"
 
 #include "audio_output.h"
 #include "lcd_display.h"
@@ -53,13 +53,13 @@ public:
   void stop(void);
 
   bool has_valid_control_rom(void);
-  bool has_valid_pcm_rom(void);
+  bool has_valid_wave_rom(void);
 
   QString control_rom_model(void);
   QString control_rom_version(void);
   QString control_rom_date(void);
-  QString pcm_rom_version(void);
-  QString pcm_rom_date(void);
+  QString wave_rom_version(void);
+  QString wave_rom_date(void);
 
   EmuSC::ControlRom::Instrument &get_instrument_rom(int bank, int index);
 
@@ -190,7 +190,7 @@ private:
   Scene *_scene;
 
   EmuSC::ControlRom *_emuscControlRom;
-  EmuSC::PcmRom *_emuscPcmRom;
+  EmuSC::WaveRom *_emuscWaveRom;
   EmuSC::Synth *_emuscSynth;
 
   AudioOutput *_audioOutput;
@@ -201,8 +201,8 @@ private:
   QString _ctrlRomModel;
   QString _ctrlRomVersion;
   QString _ctrlRomDate;
-  QString _pcmRomVersion;
-  QString _pcmRomDate;
+  QString _waveRomVersion;
+  QString _waveRomDate;
 
   bool _updateROMs;
 
@@ -222,7 +222,7 @@ private:
   void _start_audio_subsystem();
 
   void _load_control_roms(QString progPath, QString cpuPath);
-  void _load_pcm_roms(QStringList romPaths);
+  void _load_wave_roms(QStringList romPaths);
 
   void _set_all(void);
   void _set_part(uint8_t value);

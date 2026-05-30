@@ -48,7 +48,7 @@
 Emulator::Emulator(Scene *scene)
   : _scene(scene),
     _emuscControlRom(NULL),
-    _emuscPcmRom(NULL),
+    _emuscWaveRom(NULL),
     _emuscSynth(NULL),
     _audioOutput(NULL),
     _midiInput(NULL),
@@ -133,33 +133,33 @@ void Emulator::start(void)
 {
   QSettings settings;
 
-  if (_updateROMs || !_emuscControlRom || !_emuscPcmRom) {
+  if (_updateROMs || !_emuscControlRom || !_emuscWaveRom) {
     _updateROMs = true;
 
     _load_control_roms(settings.value("Rom/prog").toString(),
                        settings.value("Rom/cpu").toString());
 
-    QStringList pcmRomFilePaths;
-    pcmRomFilePaths << settings.value("Rom/wave1").toString()
-		    << settings.value("Rom/wave2").toString()
-		    << settings.value("Rom/wave3").toString();
+    QStringList waveRomFilePaths;
+    waveRomFilePaths << settings.value("Rom/wave1").toString()
+                     << settings.value("Rom/wave2").toString()
+                     << settings.value("Rom/wave3").toString();
 
-    _load_pcm_roms(pcmRomFilePaths);
+    _load_wave_roms(waveRomFilePaths);
 //    _updateROMs == false;
   }
 
   if (!_emuscControlRom)
     throw(QString("Invalid control ROM selected"));
 
-  if (!_emuscPcmRom)
-    throw(QString("Invalid PCM ROM(s) selected"));
+  if (!_emuscWaveRom)
+    throw(QString("Invalid Wave ROM(s) selected"));
 
   if (_emuscSynth) {
     delete _emuscSynth, _emuscSynth = NULL;
   }
 
   try {
-    _emuscSynth = new EmuSC::Synth(*_emuscControlRom, *_emuscPcmRom, _soundMap);
+    _emuscSynth = new EmuSC::Synth(*_emuscControlRom, *_emuscWaveRom, _soundMap);
 
     _start_audio_subsystem();
     _start_midi_subsystem();
@@ -243,18 +243,18 @@ void Emulator::_load_control_roms(QString progPath, QString cpuPath)
 }
 
 
-void Emulator::_load_pcm_roms(QStringList romPaths)
+void Emulator::_load_wave_roms(QStringList romPaths)
 {
-  // We depend on a valid control ROM before loading the PCM ROM
+  // We depend on a valid control ROM before loading the Wave ROM(s)
   if (!_emuscControlRom)
-    throw(QString("Internal error: Control ROM must be loaded before PCM ROMs"));
+    throw(QString("Internal error: Control ROM must be loaded before Wave ROMs"));
   else if (romPaths.isEmpty() || romPaths.first() == "")
     throw(QString("Emulator is unable to start since no Wave ROMs have been "
 		  "selected yet. This can be done in the Preferences dialog."));
 
-  // If we already have a PCM ROM loaded, free it first
-  if (_emuscPcmRom)
-    delete _emuscPcmRom, _emuscPcmRom = NULL;
+  // If we already have a Wave ROM loaded, free it first
+  if (_emuscWaveRom)
+    delete _emuscWaveRom, _emuscWaveRom = NULL;
 
   std::vector<std::string> romPathsStdVect;
   for (auto &filePath : romPaths) {
@@ -267,14 +267,14 @@ void Emulator::_load_pcm_roms(QStringList romPaths)
     }
   }
   try {
-    _emuscPcmRom = new EmuSC::PcmRom(romPathsStdVect, *_emuscControlRom);
+    _emuscWaveRom = new EmuSC::WaveRom(romPathsStdVect, *_emuscControlRom);
   } catch (std::string errorMsg) {
-    delete _emuscPcmRom, _emuscPcmRom = NULL;
+    delete _emuscWaveRom, _emuscWaveRom = NULL;
     throw(QString(errorMsg.c_str()));
   }
 
-  _pcmRomVersion = _emuscPcmRom->version().c_str();
-  _pcmRomDate = _emuscPcmRom->date().c_str();
+  _waveRomVersion = _emuscWaveRom->version().c_str();
+  _waveRomDate = _emuscWaveRom->date().c_str();
 }
 
 
@@ -482,15 +482,15 @@ QString Emulator::control_rom_date(void)
 }
 
 
-QString Emulator::pcm_rom_version(void)
+QString Emulator::wave_rom_version(void)
 {
-    return QString(_pcmRomVersion);
+    return QString(_waveRomVersion);
 }
 
 
-QString Emulator::pcm_rom_date(void)
+QString Emulator::wave_rom_date(void)
 {
-    return QString(_pcmRomDate);
+    return QString(_waveRomDate);
 }
 
 bool Emulator::has_valid_control_rom(void)
@@ -502,9 +502,9 @@ bool Emulator::has_valid_control_rom(void)
 }
 
 
-bool Emulator::has_valid_pcm_rom(void)
+bool Emulator::has_valid_wave_rom(void)
 {
- if (_emuscPcmRom)
+ if (_emuscWaveRom)
      return true;
 
  return false;

@@ -26,12 +26,12 @@
 
 namespace EmuSC {
 
-Part::Part(uint8_t id, Settings *settings, ControlRom &ctrlRom, PcmRom &pcmRom)
+Part::Part(uint8_t id, Settings *settings, ControlRom &ctrlRom, WaveRom &waveRom)
   : _id(id),
     _settings(settings),
     _lastPeakSample(0),
     _ctrlRom(ctrlRom),
-    _pcmRom(pcmRom),
+    _waveRom(waveRom),
     _lastPitchBendRange(2)
 {
   // TODO: Rename mode => synthMode and set proper defaults for MT32 mode
@@ -221,7 +221,7 @@ int Part::add_note(uint8_t key, uint8_t keyVelocity)
 
   _notesMutex->lock();
 
-  Note *n = new Note(key, velocity, _ctrlRom, _pcmRom, _settings, _id);
+  Note *n = new Note(key, velocity, _ctrlRom, _waveRom, _settings, _id);
   _notes.push_back(n);
 
   _notesMutex->unlock();
