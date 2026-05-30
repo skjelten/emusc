@@ -85,7 +85,7 @@ PartListDialog::PartListDialog(Emulator *emulator, Scene *scene, QWidget *parent
     volLayout->addWidget(_volumeS[i]);
     partLayout->addLayout(volLayout, i + 2, 2);
     connect(_volumeS[i], &QSlider::valueChanged, _volumeSB[i], &QSpinBox::setValue);
-    connect(_volumeSB[i], &QSpinBox::valueChanged, _volumeS[i], &QSlider::setValue);
+    connect(_volumeSB[i], QOverload<int>::of(&QSpinBox::valueChanged), _volumeS[i], &QSlider::setValue);
     connect(_volumeS[i], &QSlider::valueChanged, [=](int value)
     { _set_level(i, value); });
 
@@ -100,7 +100,7 @@ PartListDialog::PartListDialog(Emulator *emulator, Scene *scene, QWidget *parent
     panLayout->addWidget(_panS[i]);
     partLayout->addLayout(panLayout, i + 2, 3);
     connect(_panS[i], &QSlider::valueChanged, _panSB[i], &QSpinBox::setValue);
-    connect(_panSB[i], &QSpinBox::valueChanged, _panS[i], &QSlider::setValue);
+    connect(_panSB[i], QOverload<int>::of(&QSpinBox::valueChanged), _panS[i], &QSlider::setValue);
     connect(_panS[i], &QSlider::valueChanged, [=](int value)
     { _set_pan(i, value); });
 
@@ -115,7 +115,7 @@ PartListDialog::PartListDialog(Emulator *emulator, Scene *scene, QWidget *parent
     revLayout->addWidget(_reverbS[i]);
     partLayout->addLayout(revLayout, i + 2, 4);
     connect(_reverbS[i], &QSlider::valueChanged, _reverbSB[i], &QSpinBox::setValue);
-    connect(_reverbSB[i], &QSpinBox::valueChanged, _reverbS[i], &QSlider::setValue);
+    connect(_reverbSB[i], QOverload<int>::of(&QSpinBox::valueChanged), _reverbS[i], &QSlider::setValue);
     connect(_reverbS[i], &QSlider::valueChanged, [=](int value)
     { _set_reverb(i, value); });
 
@@ -130,7 +130,7 @@ PartListDialog::PartListDialog(Emulator *emulator, Scene *scene, QWidget *parent
     choLayout->addWidget(_chorusS[i]);
     partLayout->addLayout(choLayout, i + 2, 5);
     connect(_chorusS[i], &QSlider::valueChanged, _chorusSB[i], &QSpinBox::setValue);
-    connect(_chorusSB[i], &QSpinBox::valueChanged, _chorusS[i], &QSlider::setValue);
+    connect(_chorusSB[i], QOverload<int>::of(&QSpinBox::valueChanged), _chorusS[i], &QSlider::setValue);
     connect(_chorusS[i], &QSlider::valueChanged, [=](int value)
     { _set_chorus(i, value); });
 
