@@ -340,15 +340,14 @@ void TVF::_iterate_phase(void)
     }
   }
 
-  int segmentCurveIndex = 0;          // -0x30  TODO: FIX SUSTAIN -> 8 always!
+  int segmentCurveIndex = 0;
 
-  if (_phase == Phase::Init) {                     // Initialization run
+  if (_phase == Phase::Init) {                    // Initialization run
     _ipLevelInit = _keyFollow & 0xffff;
 
-  } else if (_phase == Phase::Sustain) {
+  } else if (_phase == Phase::Sustain) {          // Sustain phase
     _phaseRemainder = 0;
     segmentCurveIndex = 8;
-    _ipLevelInit = _L5Init & 0xffff;
 
   } else if (_phaseDuration <= 8) {               // Very short phase duration
     _phasePosition = 0xffff;
@@ -393,7 +392,7 @@ void TVF::_iterate_phase(void)
       if (prev == curr) {
         _ipLevelInit = prev;
 
-      } else if ((prev ^ curr) & 0x8000) {             // Different signs
+      } else if ((prev ^ curr) & 0x8000) {        // Different signs
         int16_t absPrev = std::abs(prev);
         int16_t absCurr = std::abs(curr);
         int16_t mag = std::abs(absCurr - absPrev);
@@ -403,7 +402,7 @@ void TVF::_iterate_phase(void)
         int16_t magResult = (absCurr >= absPrev) ? absPrev + scaled : absPrev - scaled;
         _ipLevelInit = (curr < 0) ? -magResult : magResult;
 
-      } else {                                         // Same signs
+      } else {                                    // Same signs
         int16_t mag = std::abs(curr - prev);
         if (mag < 0) mag = std::numeric_limits<int16_t>::max();
 
@@ -498,7 +497,7 @@ void TVF::_iterate_phase(void)
   intEnvValue = std::min(intEnvValue, 0xe600);
 
   if (segmentCurveIndex == 0) {
-    _envLevelMode = (intEnvValue & 0xff00) | 0xaf;      // Env. segment acc. preload
+    _envLevelMode = (intEnvValue & 0xff00) | 0xaf;  // Env. segment acc. preload
     return;
   }
 
