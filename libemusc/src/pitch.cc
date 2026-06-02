@@ -44,6 +44,7 @@ Pitch::Pitch(ControlRom &ctrlRom, uint16_t instrumentIndex, int partialId,
              uint8_t key, uint8_t velocity, WaveGenerator *LFO1,
              WaveGenerator *LFO2, Settings *settings, int8_t partId)
   : Envelope(ctrlRom.lookupTables),
+    _firstUpdate(true),
     _key(key),
     _ctrlRom(ctrlRom),
     _instrumentIndex(instrumentIndex),
@@ -55,8 +56,6 @@ Pitch::Pitch(ControlRom &ctrlRom, uint16_t instrumentIndex, int partialId,
     _lfo2FadeComplete(false),
     _sampleIndex(0xffff),
     _cachedPFineTune(0),
-    _currentInc(0.0),
-    _deltaInc(0.0),
     _settings(settings),
     _partId(partId)
 {
@@ -208,7 +207,14 @@ void Pitch::update(void)
 
   _iterate_phase();
 
-  _deltaInc = (_phaseIncrement - _currentInc) / 256.0;
+  // TODO: Is there a pre-run of the envelope logic to find _deltaInc?
+  if (_firstUpdate) {
+    _currentInc = _phaseIncrement;
+    _deltaInc = 0.0f;
+    _firstUpdate = false;
+  } else {
+    _deltaInc = (_phaseIncrement - _currentInc) / 256.0;
+  }
 }
 
 
@@ -382,7 +388,7 @@ void Pitch::_init_envelope(uint8_t velocity)
   int pMode = _settings->get_param(PatchParam::PolyMode, _partId); // 0 = mono
   // But how do we know of other keys being down? legato is trouble..
   bool usePortamento = (pOn && !pMode) ? true : false;
-  _portamentoDelta = _init_portamento(usePortamento, 0);
+  _portamentoDelta = usePortamento ? _init_portamento(usePortamento, 0) : 0;
 
   int pCtrl = _settings->get_param(PatchParam::PortamentoControl, _partId) +
               _instPartial.coarsePitch - 0x40;

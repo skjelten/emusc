@@ -55,6 +55,7 @@ public:
 
 
 private:
+  bool _firstUpdate;
   uint8_t _key;                // MIDI key number
 
   ControlRom &_ctrlRom;
