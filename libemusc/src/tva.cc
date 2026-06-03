@@ -94,7 +94,7 @@ void TVA::apply_sample_set(std::array<std::array<float, 256>, 2> &dryBus)
   float panL = _panpotL / 127.0f;
   float panR = _panpotR / 127.0f;
   for (int i = 0; i < 256; i++) {
-    float sample = dryBus[0][i] * dynGain[i] * envGain[i];
+    float sample = dryBus[0][i] * dynGain[i] * envGain[i] * 0.5f;
     dryBus[0][i] = sample * panR;
     dryBus[1][i] = sample * panL;
   }
