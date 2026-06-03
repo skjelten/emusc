@@ -38,7 +38,7 @@ void SVF::set_cutoff_freq(int coFreq)
   if (0)
     std::cout << "TVF COFreq = 0x" << std::hex << coFreq << std::endl;
   
-  _f = coFreq / 64000.0f;
+  _f = coFreq / 50000.0f;
 }
 
 
