@@ -155,23 +155,11 @@ int WaveRom::_read_samples(std::vector<char> &romData,
     uint8_t sNibble = (sAddress & 0x10) ? (sByte >> 4 ) : (sByte & 0x0F);
     int32_t final = ((data << sNibble) << 14);
 
-    // Convert to float
+    // Convert to float and accumulate (interpret as DPCM)
     float ffinal = (float) final / (1 << 31);
-    // Accumulate (interpret as DPCM)
     sample += ffinal;
 
     s.samplesF.push_back(sample);
-  }
-
-  // Due to DPCM encoding we want to continue ping-pong loops for one cycle.
-  // To keep other parts of the codebase sane we do not alter the sample struct.
-  if (ctrlSample.loopMode == 1) {
-    int loopLen = ctrlSample.loopLen + 1;
-    s.samplesF.reserve(ctrlSample.sampleLen + loopLen);
-    for (int i = 0; i < loopLen; i++) {
-      sample = -s.samplesF[ctrlSample.sampleLen - i];
-      s.samplesF.push_back(sample);
-    }
   }
 
   _sampleSets.push_back(s);

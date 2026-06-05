@@ -48,10 +48,12 @@ public:
                       std::array<float, 256> &dryBus);
 
 private:
-  int _sampleStart;           // 0 or sample attack end if portamento is active
-  int _sampleEnd;             // _sampleStart + sample set length
+  int _sampleStart;           // 0 or portamento offset if portamento is active
+  int _sampleEnd;             // Sample set length
   int _loopStart;             // _sampleEnd - sample set loop length
   int _loopLength;            // Sample set loop length
+
+  bool _pingPongReverse;
 
   std::vector<float> *_pcmSamples;
 

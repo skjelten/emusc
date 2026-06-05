@@ -29,7 +29,8 @@ namespace EmuSC {
 WaveOscillator::WaveOscillator(ControlRom::Sample *ctrlSample,
                                std::vector<float> *pcmSamples,
                                std::function<void(void)> cb)
-  : _pcmSamples(pcmSamples),
+  : _pingPongReverse(false),
+    _pcmSamples(pcmSamples),
     _phase(0.0f),
     _loopMode{ctrlSample->loopMode},
     _firstRunCompleteCallback(cb),
@@ -47,13 +48,6 @@ WaveOscillator::WaveOscillator(ControlRom::Sample *ctrlSample,
 
   _index = _sampleStart;
 
-  if (0)
-    std::cout << "WaveOscillator: lm=" << (int) ctrlSample->loopMode
-              << " ss=" << _sampleStart
-              << " sl=" << _sampleEnd
-              << " ll=" << ctrlSample->loopLen
-              << " ns=" << _pcmSamples->size() << std::endl;
-
   // Priming the sliding window values
   y0 = _fetch_sample(_index);
   y1 = _fetch_sample(_index + 1);
@@ -63,47 +57,60 @@ WaveOscillator::WaveOscillator(ControlRom::Sample *ctrlSample,
 void WaveOscillator::get_sample_set(Pitch *pitch, float pitchBend,
                                     std::array<float, 256> &dryBus)
 {
-  for (int i = 0; i < 256; i ++) {
+  for (int i = 0; i < 256; i++) {
     // Linear interpolation
     float output = y0 + (y1 - y0) * _phase;
+
+    // Ping-pong backward pass uses point-reflection (mirror + invert)
+    if (_pingPongReverse)
+      output = -output;
+
+    dryBus[i] = output;
 
     _phase += pitchBend * pitch->get_phase_increment() / 16384.0f;
     while (_phase >= 1.0f) {
       _phase -= 1.0f;
-      _index++;
 
-      // Check if we need to send first-run-of-sample-set-complete callback
-      // This triggers a kill on no-loop sets and pitch change on looping sets
-      if (!_firstRunComplete && _index > _sampleEnd) {
+      // First-run-complete callback (pitch init->sustain switch on looping
+      // samples, termination on one-shots). Fires once when we first reach
+      // the end of the sample.
+      if (!_firstRunComplete && _index >= _sampleEnd) {
         _firstRunComplete = true;
         if (_firstRunCompleteCallback) _firstRunCompleteCallback();
       }
 
-      // Note: Ping-pong loops have been extended to forward-loops in sample set
-      if ((_loopMode == LoopMode::Forward && _index > _sampleEnd) ||
-          (_loopMode == LoopMode::PingPong && _index > _sampleEnd + _loopLength))
-        _index = _loopStart;
+      if (_loopMode == LoopMode::PingPong && _firstRunComplete) {
+        // Reflective ping-pong over [_loopStart .. _sampleEnd].
+        if (!_pingPongReverse) {
+          _index++;
+          if (_index >= _sampleEnd) {             // Reached top -> turn
+            _index = _sampleEnd;
+            _pingPongReverse = true;
+          }
+        } else {
+          _index--;
+          if (_index <= _loopStart - 2) {         // Reached bottom -> turn
+            _index = _loopStart;
+            _pingPongReverse = false;
+          }
+        }
+      } else {
+        // Forward (and the initial forward pass before the first loop).
+        _index++;
+
+        if (_loopMode == LoopMode::Forward && _index > _sampleEnd)
+          _index = _loopStart;
+      }
     }
 
     y0 = _fetch_sample(_index);
-    y1 = _fetch_sample(_index + 1);
-
-    dryBus[i] = output;
+    y1 = _fetch_sample(_pingPongReverse ? _index - 1 : _index + 1);
   }
 }
 
 
 float WaveOscillator::_fetch_sample(int index)
 {
-  if (index > _sampleEnd &&
-      (_loopMode == LoopMode::Forward || _loopMode == LoopMode::PingPong)) {
-    int over = index - _sampleEnd - 1;
-    if (_loopLength > 0)
-      index = _loopStart + (over % _loopLength);
-    else
-      index = _loopStart;
-  }
-
   index = std::clamp(index, 0, (int) _pcmSamples->size() - 1);
   return _pcmSamples->at(index);
 }
