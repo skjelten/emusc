@@ -34,9 +34,11 @@
 #include <QComboBox>
 #include <QDialog>
 #include <QKeyEvent>
+#include <QLabel>
 #include <QMutex>
 #include <QTimer>
 #include <QtCharts/QChart>
+#include <QtCharts/QChartView>
 #include <QtCharts/QLineSeries>
 #include <QtCharts/QValueAxis>
 
@@ -70,6 +72,8 @@ private:
   QTimer _chartTimer;
   QMutex _dataMutex;
 
+  QLabel *_instrumentTitle;
+
   QList<std::pair<float, qint64>> _tvpData1;
   QList<std::pair<float, qint64>> _tvpData2;
   QList<std::pair<float, qint64>> _tvfData1;
@@ -95,9 +99,14 @@ private:
   QLineSeries *_tvaP1Series;
   QLineSeries *_tvaP2Series;
 
-  QComboBox *_partCB;
+  QChartView *_tvpChartView;
+  QChartView *_tvfChartView;
+  QChartView *_tvaChartView;
 
-  int _partId;
+  QComboBox *_partCB;
+  QComboBox *_envelopeCB;
+
+  int _selectedPart;
 
   int _timePeriod;
   qint64 _timeStart;
@@ -108,10 +117,13 @@ private:
   void keyPressEvent(QKeyEvent *keyEvent);
   void keyReleaseEvent(QKeyEvent *keyEvent);
 
+  void _update_chart_view(int view);
   void _clear_series(void);
 
 private slots:
   void _partCB_changed(int value);
+  void _envelopeCB_changed(int value);
+  void _part_changed(int partId);
   void _reset_view(void);
 };
 

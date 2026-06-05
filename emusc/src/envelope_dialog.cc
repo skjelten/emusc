@@ -28,10 +28,9 @@
 #include <QApplication>
 #include <QDateTime>
 #include <QDialogButtonBox>
-#include <QLabel>
+#include <QFont>
 #include <QHBoxLayout>
 #include <QVBoxLayout>
-#include <QtCharts/QChartView>
 
 
 EnvelopeDialog::EnvelopeDialog(Emulator *emulator, Scene *scene, QWidget *parent)
@@ -39,7 +38,7 @@ EnvelopeDialog::EnvelopeDialog(Emulator *emulator, Scene *scene, QWidget *parent
     _emulator(emulator),
     _scene(scene),
     _timePeriod(10),
-    _partId(0),
+    _selectedPart(0),
     _callbackReceived(0),
     _reset(0)
 {
@@ -47,6 +46,11 @@ EnvelopeDialog::EnvelopeDialog(Emulator *emulator, Scene *scene, QWidget *parent
                    this, &EnvelopeDialog::chart_timeout);
   _chartTimer.setInterval(100);
   _chartTimer.setTimerType(Qt::PreciseTimer);
+
+  _instrumentTitle = new QLabel();
+  QFont font = _instrumentTitle->font();
+  font.setBold(true);
+  _instrumentTitle->setFont(font);
 
   _tvpChart = new QChart();
   _tvfChart = new QChart();
@@ -81,10 +85,10 @@ EnvelopeDialog::EnvelopeDialog(Emulator *emulator, Scene *scene, QWidget *parent
   _tvpYAxis->setRange(0, 0x1ffff);
   _tvfYAxis = new QValueAxis();
   _tvfYAxis->setTickCount(5);
-  _tvfYAxis->setRange(0, 128);
+  _tvfYAxis->setRange(0, 100);
   _tvaYAxis = new QValueAxis();
   _tvaYAxis->setTickCount(5);
-  _tvaYAxis->setRange(0, 256);
+  _tvaYAxis->setRange(0, 100);
 
   _tvpChart->addAxis(_tvpXAxis, Qt::AlignBottom);
   _tvfChart->addAxis(_tvfXAxis, Qt::AlignBottom);
@@ -115,41 +119,58 @@ EnvelopeDialog::EnvelopeDialog(Emulator *emulator, Scene *scene, QWidget *parent
   _tvaP1Series->setName("TVA P1");
   _tvaP2Series->setName("TVA P2");
 
-  QChartView *tvpChartView = new QChartView(_tvpChart);
-  QChartView *tvfChartView = new QChartView(_tvfChart);
-  QChartView *tvaChartView = new QChartView(_tvaChart);
-  tvpChartView->setRenderHint(QPainter::Antialiasing);
-  tvfChartView->setRenderHint(QPainter::Antialiasing);
-  tvaChartView->setRenderHint(QPainter::Antialiasing);
+  _tvpChartView = new QChartView(_tvpChart);
+  _tvfChartView = new QChartView(_tvfChart);
+  _tvaChartView = new QChartView(_tvaChart);
+  _tvpChartView->setRenderHint(QPainter::Antialiasing);
+  _tvfChartView->setRenderHint(QPainter::Antialiasing);
+  _tvaChartView->setRenderHint(QPainter::Antialiasing);
 
-  tvpChartView->setRubberBand(QChartView::HorizontalRubberBand);
-  tvfChartView->setRubberBand(QChartView::HorizontalRubberBand);
-  tvaChartView->setRubberBand(QChartView::HorizontalRubberBand);
-  
+  _tvpChartView->setRubberBand(QChartView::HorizontalRubberBand);
+  _tvfChartView->setRubberBand(QChartView::HorizontalRubberBand);
+  _tvaChartView->setRubberBand(QChartView::HorizontalRubberBand);
+
   QDialogButtonBox *buttonBox = new QDialogButtonBox(QDialogButtonBox::Reset |
                                                      QDialogButtonBox::Close);
   connect(buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
   connect(buttonBox->button(QDialogButtonBox::Reset), SIGNAL(clicked()),
 	  this, SLOT(_reset_view()));
 
-  
   QHBoxLayout *hboxLayout = new QHBoxLayout;
-  hboxLayout->addWidget(new QLabel("Part:"));
   _partCB = new QComboBox();
-  for (int i = 1; i <= 16; i++) {               // TODO: SC-88 => A1-16 + B1-16
+  for (int i = 1; i <= 16; i++) {
     _partCB->addItem(QString::number(i));
   }
   _partCB->setEditable(false);
+
+  _envelopeCB = new QComboBox();
+  _envelopeCB->addItem("TVA");
+  _envelopeCB->addItem("TVF");
+  _envelopeCB->addItem("Pitch");
+  _envelopeCB->addItem("All");
+  _envelopeCB->setEditable(false);
+
+  hboxLayout->addWidget(new QLabel("Part:"));
   hboxLayout->addWidget(_partCB);
+  hboxLayout->addSpacing(15);
+  hboxLayout->addWidget(new QLabel("Envelope:"));
+  hboxLayout->addWidget(_envelopeCB);
+  hboxLayout->addStretch(1);
+
   hboxLayout->addStretch(1);
 
   connect(_partCB, SIGNAL(currentIndexChanged(int)),
 	  this, SLOT(_partCB_changed(int)));
+  connect(_envelopeCB, SIGNAL(currentIndexChanged(int)),
+	  this, SLOT(_envelopeCB_changed(int)));
+  connect(_emulator, SIGNAL(part_changed(int)),
+	  this, SLOT(_part_changed(int)));
 
   QVBoxLayout *mainLayout = new QVBoxLayout;
-  mainLayout->addWidget(tvpChartView);
-  mainLayout->addWidget(tvfChartView);
-  mainLayout->addWidget(tvaChartView);
+  mainLayout->addWidget(_instrumentTitle, 0, Qt::AlignHCenter);
+  mainLayout->addWidget(_tvpChartView, 1);
+  mainLayout->addWidget(_tvfChartView, 1);
+  mainLayout->addWidget(_tvaChartView, 1);
   mainLayout->addLayout(hboxLayout);
   mainLayout->addWidget(buttonBox);
   setLayout(mainLayout);
@@ -157,18 +178,52 @@ EnvelopeDialog::EnvelopeDialog(Emulator *emulator, Scene *scene, QWidget *parent
   setWindowTitle(tr("Envelopes monitor dialog"));
   setModal(false);
 
-  resize(600, 750);
+  resize(700, 600);
+
+  // Update view before show to hide unused charts
+  _update_chart_view(_envelopeCB->currentIndex());
+  _part_changed(0);
   show();
 
   _chartTimer.start();
 
-  _emulator->set_envelope_callback(_partId, this);
+  _emulator->set_envelope_callback(_selectedPart, this);
 }
 
 
 EnvelopeDialog::~EnvelopeDialog()
 {
-  _emulator->clear_envelope_callback(_partId);
+  _emulator->clear_envelope_callback(_selectedPart);
+}
+
+
+void EnvelopeDialog::_update_chart_view(int view)
+{
+  switch(view)
+    {
+    case 0:                                       // TVA
+      _tvpChartView->hide();
+      _tvfChartView->hide();
+      _tvaChartView->show();
+      break;
+    case 1:                                       // TVF
+      _tvpChartView->hide();
+      _tvfChartView->show();
+      _tvaChartView->hide();
+      break;
+    case 2:                                       // Pitch
+      _tvpChartView->show();
+      _tvfChartView->hide();
+      _tvaChartView->hide();
+      break;
+    case 3:                                       // All combined
+      _tvpChartView->show();
+      _tvfChartView->show();
+      _tvaChartView->show();
+      break;
+    default:
+      std::cerr << "Internal error: Unknown chart view selected!" << std::endl;
+    }
 }
 
 
@@ -208,7 +263,7 @@ void EnvelopeDialog::chart_timeout(void)
     if (_reset) {
       _clear_series();
       _reset = false;
-      _timeStart = QDateTime::currentMSecsSinceEpoch();
+      _timeStart = -1;
     }
   }
 
@@ -239,20 +294,31 @@ void EnvelopeDialog::chart_timeout(void)
 
   _dataMutex.unlock();
 
+  // Add T0 = 0 for TVA envelopes
+  if (_timeStart < 0) {
+    _timeStart = tvpData1[0].second - 1;
+    _tvaP1Series->append(0, 0);
+    _tvaP2Series->append(0, 0);
+  }
+
   for (auto &value : tvpData1)
     _tvpP1Series->append((value.second - _timeStart) / 1000.0, value.first);
   for (auto &value : tvpData2)
     _tvpP2Series->append((value.second - _timeStart) / 1000.0, value.first);
 
   for (auto &value : tvfData1)
-    _tvfP1Series->append((value.second - _timeStart) / 1000.0, value.first);
+    _tvfP1Series->append((value.second - _timeStart) / 1000.0,
+                         value.first / 1.28f);
   for (auto &value : tvfData2)
-    _tvfP2Series->append((value.second - _timeStart) / 1000.0, value.first);
+    _tvfP2Series->append((value.second - _timeStart) / 1000.0,
+                         value.first / 1.28f);
 
   for (auto &value : tvaData1)
-    _tvaP1Series->append((value.second - _timeStart) / 1000.0, value.first);
+    _tvaP1Series->append((value.second - _timeStart) / 1000.0,
+                         value.first / 2.56f);
   for (auto &value : tvaData2)
-    _tvaP2Series->append((value.second - _timeStart) / 1000.0, value.first);
+    _tvaP2Series->append((value.second - _timeStart) / 1000.0,
+                         value.first / 2.56f);
 }
 
 
@@ -293,12 +359,41 @@ void EnvelopeDialog::keyReleaseEvent(QKeyEvent *keyEvent)
 
 void EnvelopeDialog::_partCB_changed(int value)
 {
-  _emulator->clear_envelope_callback(_partId);
+  _emulator->clear_envelope_callback(_selectedPart);
 
-  _partId = value;
+  _selectedPart = value;
 
-  _partCB->setCurrentIndex(_partId);
-  _emulator->set_envelope_callback(_partId, this);
+  _partCB->setCurrentIndex(_selectedPart);
+  _emulator->set_envelope_callback(_selectedPart, this);
+  _part_changed(value);
+}
+
+void EnvelopeDialog::_envelopeCB_changed(int value)
+{
+  _update_chart_view(value);
+}
+
+
+void EnvelopeDialog::_part_changed(int partId)
+{
+  if (partId != _selectedPart)
+    return;
+
+  uint8_t rhythm =
+    _emulator->get_param(EmuSC::PatchParam::UseForRhythm, _selectedPart);
+  if (!rhythm) {
+    uint8_t *tone =
+      _emulator->get_param_ptr(EmuSC::PatchParam::ToneNumber, _selectedPart);
+    EmuSC::ControlRom::Instrument &iRom =
+      _emulator->get_instrument_rom(tone[0], tone[1]);
+
+    _instrumentTitle->setText(QString::fromStdString(iRom.name));
+
+  } else {  // Drumset
+    std::string name((char *) _emulator->get_param_ptr(EmuSC::DrumParam::DrumsMapName,
+                                                       rhythm - 1), 12);
+    _instrumentTitle->setText(QString::fromStdString("Drumset: " + name));
+  }
 }
 
 
