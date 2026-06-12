@@ -46,6 +46,7 @@ Pitch::Pitch(ControlRom &ctrlRom, uint16_t instrumentIndex, int partialId,
   : Envelope(ctrlRom.lookupTables),
     _firstUpdate(true),
     _key(key),
+    _drumSet(settings->get_param(PatchParam::UseForRhythm, partId)),
     _ctrlRom(ctrlRom),
     _instrumentIndex(instrumentIndex),
     _instPartial(ctrlRom.instrument(instrumentIndex).partials[partialId]),
@@ -59,6 +60,9 @@ Pitch::Pitch(ControlRom &ctrlRom, uint16_t instrumentIndex, int partialId,
     _settings(settings),
     _partId(partId)
 {
+  if (_drumSet)
+    _dKey = _settings->get_param(DrumParam::PlayKeyNumber, _drumSet, key);
+
   _keyFollowOffset = (std::abs(_key - 60) *
       _LUT.PitchParamScale[std::abs(_instPartial.pitchKeyFlw - 0x49)] & 0xffff);
 
@@ -220,8 +224,10 @@ void Pitch::update(void)
 
 void Pitch::_init_base_pitch(void)
 {
+  int key = _drumSet ? _dKey : _key;
+
   _basePitchF = 0;
-  _basePitchC = _instPartial.coarsePitch - 0x40;
+  _basePitchC = std::clamp(_instPartial.coarsePitch - 0x40 + key, 0, 0x7f);
 
   _apply_key_shifts_bp();
   _apply_key_follow_bp();
@@ -232,18 +238,14 @@ void Pitch::_init_base_pitch(void)
 void Pitch::_apply_key_shifts_bp(void)
 {
   // Base pitch is based on MIDI key + key shifts
-  int drumSet = _settings->get_param(PatchParam::UseForRhythm, _partId);
-  if (drumSet == 0) {
+  if (!_drumSet) {
     int mKeyShift = _settings->get_param(SystemParam::KeyShift);
     int pKeyShift = _settings->get_param(PatchParam::PitchKeyShift, _partId);
     _basePitchC = std::clamp(_basePitchC + mKeyShift - 0x40, 0, 0x7f);
     _basePitchC = std::clamp(_basePitchC + pKeyShift - 0x40, 0, 0x7f);
 
   } else {
-    int dKey = _settings->get_param(DrumParam::PlayKeyNumber, drumSet, _key);
-    _basePitchC = std::clamp(_basePitchC + dKey, 0, 0x7f);
-
-    if (0) { // TODO: Verify if this is only supposed to happen on mk2 models
+    if (1) { // TODO: Verify if this is only supposed to happen on mk2 models
       int pKeyShift = _settings->get_param(PatchParam::PitchKeyShift, _partId);
       _basePitchC = std::clamp(_basePitchC + pKeyShift - 0x40, 0, 0x7f);
     }
@@ -256,16 +258,8 @@ void Pitch::_apply_key_follow_bp(void)
   int initBasePitchC = _basePitchC;
   _basePitchC = 0;
 
-  int keyCenterDist;
-  int drumSet = _settings->get_param(PatchParam::UseForRhythm, _partId);
-  if (drumSet) {
-    int dKey = _settings->get_param(DrumParam::PlayKeyNumber, drumSet, _key);
-    keyCenterDist = dKey - 60;
-  } else {
-    keyCenterDist = _key - 60;
-  }
-
-  // Adjust for Pitch Key Follow parameter in Partial definition
+  int key = _drumSet ? _dKey : _key;
+  int keyCenterDist = key - 60;
   int keyFollow = _instPartial.pitchKeyFlw - 0x40;
   int sign = (keyCenterDist ^ keyFollow) < 0 ? -1 : 1;
 
@@ -287,10 +281,7 @@ void Pitch::_apply_key_follow_bp(void)
     if (sign < 0) _basePitchC = -_basePitchC;
   }
 
-  if (drumSet)
-    _basePitchC = std::clamp(_basePitchC - keyCenterDist + initBasePitchC, 0, 0x7f);
-  else
-    _basePitchC = std::clamp(_basePitchC + 0x3c + initBasePitchC, 0, 0x7f);
+  _basePitchC = std::clamp(_basePitchC + 0x3c + initBasePitchC - key, 0, 0x7f);
 }
 
 

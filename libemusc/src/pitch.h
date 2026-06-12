@@ -56,7 +56,9 @@ public:
 
 private:
   bool _firstUpdate;
-  uint8_t _key;                // MIDI key number
+  int _key;                   // MIDI key number for normal instruments
+  int _dKey;                  // MIDI key number for drumsets
+  int _drumSet;               // 0 = normal inst., 1 = drumset1, 2 = drumset2
 
   ControlRom &_ctrlRom;
   uint16_t _instrumentIndex;
