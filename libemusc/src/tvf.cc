@@ -537,7 +537,7 @@ void TVF::_init_new_phase(enum Phase newPhase)
     return;
 
   } else if (newPhase == Phase::Attack1) {
-    _prevLevelInit = _L2Init;
+    _prevLevelInit = _ipLevelInit;                // Output from pre-run
     _currentLevelInit = _L1Init;
 
     _currentEnvTime = _phaseTime[static_cast<int>(newPhase)];
