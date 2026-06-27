@@ -127,6 +127,15 @@ void Emulator::_connect_signals(void)
   connect(_scene,SIGNAL(lcd_display_mouse_press_event(Qt::MouseButton,QPointF)),
 	  _lcdDisplay, SLOT(mouse_press_event(Qt::MouseButton, QPointF)));
 
+  connect(this, SIGNAL(display_instrument_updated(QString)),
+	  _scene, SLOT(update_lcd_instrument_text(QString)));
+  connect(this, SIGNAL(display_part_updated(QString)),
+	  _scene, SLOT(update_lcd_part_text(QString)));
+  connect(this, SIGNAL(display_key_shift_updated(QString)),
+	  _scene, SLOT(update_lcd_kshift_text(QString)));
+  connect(this, SIGNAL(display_midi_channel_updated(QString)),
+	  _scene, SLOT(update_lcd_midich_text(QString)));
+
   connect(this, SIGNAL(part_changed(int)),
           this, SLOT(update_active_part_LCD_display(int)));
 }
