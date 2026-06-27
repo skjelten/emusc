@@ -27,9 +27,11 @@
 #include <QDialog>
 #include <QCheckBox>
 #include <QLineEdit>
+#include <QMenu>
 #include <QSlider>
 #include <QSpinBox>
 #include <QString>
+#include <QToolButton>
 
 
 class PartListDialog : public QDialog
@@ -44,7 +46,9 @@ private:
   Emulator *_emulator;
   Scene *_scene;
 
-  QLineEdit *_instNameQLE[16];
+  QToolButton *_instNameQTB[16];
+  QMenu *_mainMenu;
+  QMenu *_categoryMenu[17];
 
   QCheckBox *_muteCB[16];
 
@@ -58,19 +62,22 @@ private:
   QSlider *_reverbS[16];
   QSlider *_chorusS[16];
 
+  void _set_instrument(int partId, int drumSet, int bank, int index);
   void _set_level(int partId, int value);
   void _set_pan(int partId, int value);
   void _set_reverb(int partId, int value);
   void _set_chorus(int partId, int value);
 
+  void create_instrument_menu(void);
+  QMenu *_create_instrument_submenu(QString categoryName, int index,
+                                    const std::array<std::array<uint16_t, 128>, 128>& varTableROM,
+                                    int partId);
+  QMenu *_create_drumSet_subMenu(QString categoryName, int index, int partId);
+
 public slots:
   void accept(void);
 
   void update_part(int partId);
-  
 };
-
-
-
 
 #endif // PART_LIST_DIALOG_H

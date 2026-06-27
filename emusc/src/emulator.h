@@ -66,8 +66,10 @@ public:
   QStandardItemModel *get_instruments_list(void);
   QStandardItemModel *get_partials_list(void);
   QStandardItemModel *get_samples_list(void);
-  QStandardItemModel *get_variations_list(void);
+  QStandardItemModel *get_variations_list(void);            // TODO: REMOVE!
   QStandardItemModel *get_drum_sets_list(void);
+
+  std::array<std::array<uint16_t, 128>, 128> get_variations_table(void);
 
   int dump_demo_songs(QString path);
   bool control_rom_changed(void);
@@ -116,6 +118,8 @@ public:
   void set_param(enum EmuSC::DrumParam dp, uint8_t map, uint8_t *data,
 		 uint8_t length);
 
+  int set_part_instrument(int part, int index, int bank);
+
   void set_envelope_callback(int partId, EnvelopeDialog *dialog);
   void clear_envelope_callback(int partId);
   void set_lfo_callback(int partId, LFODialog *dialog);
@@ -143,7 +147,7 @@ signals:
   void all_button_changed(bool state);
   void mute_button_changed(bool state);
 
-  void part_changed(int partId);
+  void part_changed(int part);
 
 public slots:
   void select_all(bool state);
@@ -173,8 +177,10 @@ public slots:
   void play_note(uint8_t key, uint8_t velocity);
 
   std::vector<EmuSC::ControlRom::DrumSet> &get_drumsets_ref(void);
+  std::array<uint8_t, 128> get_drumsets_LUT(void);
 
   void update_LCD_display(int8_t part = -1);
+  void update_active_part_LCD_display(int part);
 
   void reset(void);
   void set_gs_map(void);

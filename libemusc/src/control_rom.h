@@ -250,6 +250,7 @@ public:
   inline struct Partial& partial(int p) { return _partials[p]; }
   inline struct Sample& sample(int s) { return _samples[s]; }
   inline struct DrumSet& drumSet(int ds) { return _drumSets[ds]; }
+  inline const std::array<std::array<uint16_t, 128>, 128>& variations() { return _variations; }
   inline const std::array<uint16_t, 128>& variation(int v) const { return _variations[v]; }
 
   inline int numSampleSets(void) { return _samples.size(); }
@@ -373,7 +374,6 @@ private:
   std::vector<Partial> _partials;
   std::vector<Sample> _samples;
   std::vector<DrumSet> _drumSets;
-  // TODO: define constants for variation table dimensions
   std::array<std::array<uint16_t, 128>, 128> _variations;
 
   ControlRom();

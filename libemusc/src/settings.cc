@@ -247,7 +247,9 @@ void Settings::set_param(enum PatchParam pp, uint8_t value, int8_t part)
   }
 
   // Send part updates for frontends
-  if (_partCallback) _partCallback(part);
+  // To avoid double update on instrument updates we can ignore ToneNumber2
+  if (_partCallback && pp != PatchParam::ToneNumber2)
+    _partCallback(part);
 }
 
 

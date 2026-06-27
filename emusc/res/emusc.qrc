@@ -33,6 +33,9 @@
         <file>images/wf_triangle.png</file>
         <file>images/wf_samplehold.png</file>
         <file>images/wf_random.png</file>
+        <file>images/gm_text.svg</file>
+        <file>images/gs_text.svg</file>
+        <file>images/mt_text.svg</file>
     </qresource>
 
     <qresource>

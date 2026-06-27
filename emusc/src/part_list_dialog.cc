@@ -63,14 +63,11 @@ PartListDialog::PartListDialog(Emulator *emulator, Scene *scene, QWidget *parent
   for (int i = 0; i < 16; i++) {
     partLayout->addWidget(new QLabel(QString::number(i + 1)), i + 2, 0, Qt::AlignCenter);
 
-    _instNameQLE[i] = new QLineEdit("");
-    _instNameQLE[i]->setMaxLength(12);
- 
-//    QFontMetrics fm(_instNameQLE[i]->font());
-//    int width = 12 * fm.horizontalAdvance('x') +
-//              _instNameQLE[i]->frameSize().width() - _instNameQLE[i]->width();
-//    _instNameQLE[i]->setFixedWidth(width);
-    partLayout->addWidget(_instNameQLE[i], i + 2, 1);
+    _instNameQTB[i] = new QToolButton();
+    _instNameQTB[i]->setPopupMode(QToolButton::InstantPopup);
+
+    partLayout->addWidget(_instNameQTB[i], i + 2, 1);
+//    partLayout->addWidget(_instNameQLE[i], i + 2, 1);
 
     // Volume
     _muteCB[i] = new QCheckBox();
@@ -137,6 +134,14 @@ PartListDialog::PartListDialog(Emulator *emulator, Scene *scene, QWidget *parent
     update_part(i);
   }
 
+  // Set fixed size for instrument buttons where "MutedTrumpet" is the longest name
+  QFontMetrics fm(_instNameQTB[0]->font());
+  int width = fm.horizontalAdvance("MutedTrumpet") + 30;
+  for (int i = 0; i < 16; i ++)
+    _instNameQTB[i]->setFixedWidth(width);
+
+  create_instrument_menu();
+
   mainLayout->addLayout(partLayout);
   mainLayout->addWidget(buttonBox);
 
@@ -171,17 +176,43 @@ void PartListDialog::update_part(int partId)
   if (!rhythm) {
     uint8_t *tone = _emulator->get_param_ptr(EmuSC::PatchParam::ToneNumber, partId);
     EmuSC::ControlRom::Instrument &iRom = _emulator->get_instrument_rom(tone[0], tone[1]);
-    _instNameQLE[partId]->setText(iRom.name.c_str());
+    _instNameQTB[partId]->setText(QString(iRom.name.c_str()).leftJustified(12));
 
   } else {
     std::string name((char *) _emulator->get_param_ptr(EmuSC::DrumParam::DrumsMapName, rhythm - 1), 12);
-    _instNameQLE[partId]->setText(name.c_str());
+    _instNameQTB[partId]->setText(name.c_str());
   }
-  
+
+  _volumeS[partId]->blockSignals(true);
   _volumeS[partId]->setValue(_emulator->get_param(EmuSC::PatchParam::PartLevel, partId));
+  _volumeS[partId]->blockSignals(false);
+
+  _panS[partId]->blockSignals(true);
   _panS[partId]->setValue(_emulator->get_param(EmuSC::PatchParam::PartPanpot, partId) - 0x40);
+  _panS[partId]->blockSignals(false);
+
+  _reverbS[partId]->blockSignals(true);
   _reverbS[partId]->setValue(_emulator->get_param(EmuSC::PatchParam::ReverbSendLevel, partId));
+  _reverbS[partId]->blockSignals(false);
+
+  _chorusS[partId]->blockSignals(true);
   _chorusS[partId]->setValue(_emulator->get_param(EmuSC::PatchParam::ChorusSendLevel, partId));
+  _chorusS[partId]->blockSignals(false);
+}
+
+
+void PartListDialog::_set_instrument(int partId, int drumSet, int index, int bank)
+{
+  if (drumSet < 0 || drumSet > 2)
+    return;
+
+  // Only update rhythm mode if necessary
+  uint8_t rhythm = _emulator->get_param(EmuSC::PatchParam::UseForRhythm,partId);
+  if (rhythm != drumSet)
+    _emulator->set_param(EmuSC::PatchParam::UseForRhythm, (uint8_t) drumSet,
+                         partId);
+
+  _emulator->set_part_instrument(partId, index, bank);
 }
 
 
@@ -190,11 +221,13 @@ void PartListDialog::_set_level(int partId, int value)
   _emulator->set_param(EmuSC::PatchParam::PartLevel, (uint8_t) value, partId);
 }
 
+
 void PartListDialog::_set_pan(int partId, int value)
 {
   _emulator->set_param(EmuSC::PatchParam::PartPanpot, (uint8_t) value + 0x40,
 		       partId);
 }
+
 
 void PartListDialog::_set_reverb(int partId, int value)
 {
@@ -202,8 +235,109 @@ void PartListDialog::_set_reverb(int partId, int value)
 		       partId);
 }
 
+
 void PartListDialog::_set_chorus(int partId, int value)
 {
   _emulator->set_param(EmuSC::PatchParam::ChorusSendLevel, (uint8_t) value,
 		       partId);
+}
+
+
+void PartListDialog::create_instrument_menu(void)
+{
+  std::array<std::array<uint16_t, 128>, 128> varTableROM = _emulator->get_variations_table();
+
+  for (int i = 0; i < 16; i++) {
+    QMenu* buttonMenu = new QMenu(this);
+    _instNameQTB[i]->setMenu(buttonMenu);
+
+    connect(buttonMenu, &QMenu::aboutToShow, this, [this, buttonMenu, varTableROM, i]() {
+      buttonMenu->clear();
+      buttonMenu->addMenu(_create_instrument_submenu("Piano", 0, varTableROM, i));
+      buttonMenu->addMenu(_create_instrument_submenu("Chromatic Percussion", 8, varTableROM, i));
+      buttonMenu->addMenu(_create_instrument_submenu("Organ", 16, varTableROM, i));
+      buttonMenu->addMenu(_create_instrument_submenu("Guitar", 24, varTableROM, i));
+      buttonMenu->addMenu(_create_instrument_submenu("Bass", 32, varTableROM, i));
+      buttonMenu->addMenu(_create_instrument_submenu("Orchestra", 40, varTableROM, i));
+      buttonMenu->addMenu(_create_instrument_submenu("Ensemble", 48, varTableROM, i));
+      buttonMenu->addMenu(_create_instrument_submenu("Brass", 56, varTableROM, i));
+      buttonMenu->addMenu(_create_instrument_submenu("Reed", 64, varTableROM, i));
+      buttonMenu->addMenu(_create_instrument_submenu("Pipe", 72, varTableROM, i));
+      buttonMenu->addMenu(_create_instrument_submenu("Synth Lead", 80, varTableROM, i));
+      buttonMenu->addMenu(_create_instrument_submenu("Synth Pad", 88, varTableROM, i));
+      buttonMenu->addMenu(_create_instrument_submenu("Synth SFX", 96, varTableROM, i));
+      buttonMenu->addMenu(_create_instrument_submenu("Ethnic", 104, varTableROM, i));
+      buttonMenu->addMenu(_create_instrument_submenu("Percussive", 112, varTableROM, i));
+      buttonMenu->addMenu(_create_instrument_submenu("SFX", 120, varTableROM, i));
+      buttonMenu->addSeparator();
+      buttonMenu->addMenu(_create_drumSet_subMenu("Map 1", 1, i));
+      buttonMenu->addMenu(_create_drumSet_subMenu("Map 2", 2, i));
+    });
+  }
+}
+
+
+QMenu *PartListDialog::_create_instrument_submenu(QString categoryName,
+                                                  int index,
+                                                  const std::array<std::array<uint16_t, 128>, 128>& varTableROM,
+                                                  int partId)
+{
+  QMenu *categoryMenu = new QMenu(categoryName);
+
+  int rowNum = 0;
+  for (const auto& row : varTableROM) {
+    for (int colNum = index; colNum < index + 8; colNum++) {
+      int instrumentId = row.at(colNum);
+
+      // Instrument id 0xffff => unused, and row 126 is observed to contain junk
+      if (instrumentId != 0xffff && rowNum != 126) {
+        EmuSC::ControlRom::Instrument &inst =
+          _emulator->get_instrument_rom(rowNum, colNum);
+
+        QAction* action = categoryMenu->addAction(inst.name.c_str());
+        if (rowNum == 0) {
+          action->setIcon(QIcon(":/images/gm_text.svg"));
+        } else if (rowNum != 127) {
+          action->setIcon(QIcon(":/images/gs_text.svg"));
+        } else {
+          action->setIcon(QIcon(":/images/mt_text.svg"));
+        }
+
+        connect(action, &QAction::triggered,
+                this, [this, colNum, rowNum, partId]() {
+                  _set_instrument(partId, 0, colNum, rowNum);
+                });
+      }
+    }
+
+    rowNum ++;
+  }
+
+  return categoryMenu;
+}
+
+
+QMenu *PartListDialog::_create_drumSet_subMenu(QString categoryName, int map,
+                                               int partId)
+{
+  QMenu *categoryMenu = new QMenu(categoryName);
+
+  const std::vector drumSetList = _emulator->get_drumsets_ref();
+  std::array<uint8_t, 128> drumSetsLUT = _emulator->get_drumsets_LUT();
+
+  int index = 0;
+  for (const auto& drumSet : drumSetList) {
+    QAction* action = categoryMenu->addAction(drumSet.name.c_str());
+
+    auto it = std::find(drumSetsLUT.begin(), drumSetsLUT.end(), index);
+    int lutIndex = std::min(127, (int) std::distance(drumSetsLUT.begin(), it));
+
+    connect(action, &QAction::triggered, this, [this, partId, map, lutIndex]() {
+      _set_instrument(partId, map, lutIndex, 0);
+    });
+
+    index ++;
+  }
+
+  return categoryMenu;
 }

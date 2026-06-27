@@ -543,8 +543,6 @@ int Part::set_program(uint8_t index, int8_t bank, bool ignRxFlags)
 
   if (bank < 0)
     bank = _settings->get_param(PatchParam::ToneNumber, _id);
-  else
-    _settings->set_param(PatchParam::ToneNumber, bank, _id);
 
   _settings->set_param(PatchParam::ToneNumber2, index, _id);
 

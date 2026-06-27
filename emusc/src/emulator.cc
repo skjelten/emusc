@@ -126,6 +126,9 @@ void Emulator::_connect_signals(void)
 	  this, SLOT(lcd_display_init_complete()));
   connect(_scene,SIGNAL(lcd_display_mouse_press_event(Qt::MouseButton,QPointF)),
 	  _lcdDisplay, SLOT(mouse_press_event(Qt::MouseButton, QPointF)));
+
+  connect(this, SIGNAL(part_changed(int)),
+          this, SLOT(update_active_part_LCD_display(int)));
 }
 
 
@@ -683,6 +686,17 @@ QStandardItemModel *Emulator::get_drum_sets_list(void)
 }
 
 
+std::array<std::array<uint16_t, 128>, 128> Emulator::get_variations_table(void)
+{
+  if (!_emuscControlRom) {
+    std::array<std::array<uint16_t, 128>, 128> empty;
+    return empty;
+  }
+
+  return _emuscControlRom->variations();
+}
+
+
 int Emulator::dump_demo_songs(QString path)
 {
   if (!_emuscControlRom)
@@ -690,6 +704,7 @@ int Emulator::dump_demo_songs(QString path)
 
   return _emuscControlRom->dump_demo_songs(path.toStdString());
 }
+
 
 void Emulator::panic(void)
 {
@@ -1450,6 +1465,12 @@ std::vector<EmuSC::ControlRom::DrumSet> &Emulator::get_drumsets_ref(void)
 }
 
 
+std::array<uint8_t, 128> Emulator::get_drumsets_LUT(void)
+{
+  return _emuscControlRom->get_drum_sets_LUT();
+}
+
+
 void Emulator::update_LCD_display(int8_t part)
 {
   if (part < 0 && _allMode)
@@ -1458,6 +1479,15 @@ void Emulator::update_LCD_display(int8_t part)
     _set_part(part);
   else if (part < 0 && !_allMode)
     _set_part(_selectedPart);
+}
+
+
+void Emulator::update_active_part_LCD_display(int part)
+{
+  if (_selectedPart != part || _allMode || part < 0 || part > 15)
+    return;
+
+  _set_part(part);
 }
 
 
@@ -1531,4 +1561,14 @@ int Emulator::get_lfo_delay_fade_LUT(int index)
     throw (QString("Internal error: LFO Delay / Fade lookup out of range!"));
 
   return _emuscControlRom->lookupTables.LFODelayTime[index];
+}
+
+
+int Emulator::set_part_instrument(int part, int index, int bank)
+{
+  if (!_emuscSynth)
+    return -1;
+
+  _emuscSynth->set_part_instrument(part, index, bank);
+  return 0;
 }
