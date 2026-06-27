@@ -1014,42 +1014,6 @@ std::vector<std::vector<std::string>> ControlRom::get_samples_list(void)
 }
 
 
-std::vector<std::vector<std::string>> ControlRom::get_variations_list(void)
-{
-  std::vector<std::vector<std::string>> varListVector;
-
-  // First row is header
-  std::vector<std::string> headerVector;
-  for (int i = 0; i < 128; i++)
-    headerVector.push_back(std::to_string(i));
-  varListVector.push_back(headerVector);
-
-  for (auto v : _variations) {
-    std::vector<std::string> varVector;
-    for (int i = 0; i < 128; i++)
-      varVector.push_back(std::to_string(v[i]));
-    varListVector.push_back(varVector);
-  }
-
-  return varListVector;
-}
-
-
-std::vector<std::string> ControlRom::get_drum_sets_list(void)
-{
-  std::vector<std::string> drumSetsVector;
-
-  // First row is header
-  drumSetsVector.push_back("Name");
-
-  for (struct DrumSet drumSet: _drumSets) {
-    drumSetsVector.push_back(drumSet.name);
-  }
-
-  return drumSetsVector;
-}
-
-
 bool ControlRom::intro_anim_available(void)
 {
   // TODO: Use SHA256 and proper ROM list to identify ROMs with intro animations

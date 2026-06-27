@@ -65,10 +65,6 @@ ControlRomInfoDialog::ControlRomInfoDialog(Emulator *emulator, QWidget *parent)
 }
 
 
-ControlRomInfoDialog::~ControlRomInfoDialog()
-{}
-
-
 void ControlRomInfoDialog::accept()
 {
   delete this;
@@ -124,10 +120,6 @@ InstrumentsTab::InstrumentsTab(Emulator *emulator, QWidget *parent)
   vboxLayout->addWidget(_table);
   setLayout(vboxLayout);
 }
-
-
-InstrumentsTab::~InstrumentsTab()
-{}
 
 
 void InstrumentsTab::search(const QString searchStr)
@@ -195,10 +187,6 @@ PartialsTab::PartialsTab(Emulator *emulator, QWidget *parent)
 }
 
 
-PartialsTab::~PartialsTab()
-{}
-
-
 void PartialsTab::set_active_row(int row)
 {
   _table->selectRow(row);
@@ -229,13 +217,10 @@ SamplesTab::SamplesTab(Emulator *emulator, QWidget *parent)
   _table->setModel(model);
   _table->setEditTriggers(QAbstractItemView::NoEditTriggers);
   _table->resizeColumnsToContents();
- 
+
   vboxLayout->addWidget(_table);
   setLayout(vboxLayout);
 }
-
-SamplesTab::~SamplesTab()
-{}
 
 
 void SamplesTab::set_active_row(int row)
@@ -249,16 +234,60 @@ VariationsTab::VariationsTab(Emulator *emulator, QWidget *parent)
 {
   QVBoxLayout *vboxLayout = new QVBoxLayout();
   QTableView *table = new QTableView();
-  QStandardItemModel *model = emulator->get_variations_list();
 
-  // Hack to make y axis count from 0
-  for (int i = 0; i < model->rowCount(); i++)
-    model->setHeaderData(i, Qt::Vertical, i);
+  std::array<std::array<uint16_t, 128>, 128> varTableROM =
+    emulator->get_variations_table();
+
+  QStringList headers;
+  headers.reserve(128);
+  for (int i = 0; i <= 127; i++)
+    headers.append(QString::number(i));
+
+  QStandardItemModel *model = new QStandardItemModel(128, 0);
+  model->setHorizontalHeaderLabels(headers);
+
+  // Iterate the variations table and create a Qt model
+  int rowNum = 0;
+  for (const auto& row : varTableROM) {
+    int colNum = 0;
+    for (const auto& col : row) {
+      QModelIndex index = model->index(rowNum, colNum, QModelIndex());
+      if (col != 0xffff) {
+        model->setData(index, QVariant(col));
+      } else {
+        model->setData(index, QVariant(""));
+      }
+
+      colNum ++;
+    }
+
+    rowNum ++;
+  }
+
+  // Update vertical header data
+  model->setHeaderData(0, Qt::Vertical, QString("Capital"));
+  for (int i = 1; i < model->rowCount() - 1; i++)
+    model->setHeaderData(i, Qt::Vertical, QString("Var #") + QString::number(i));
+  model->setHeaderData(127, Qt::Vertical, QString("MT-32"));
 
   table->setModel(model);
   table->setEditTriggers(QAbstractItemView::NoEditTriggers);
   table->resizeColumnsToContents();
-  
+
+  // Hide empty variations rows
+  for (int row = 0; row <= 128; row++) {
+    bool hide = true;
+    for (int col = 0; col < 128; col++) {
+      QStandardItem* item = model->item(row, col);
+      if (item && item->text() != "" &&
+           item->data(Qt::UserRole).toInt() != 0xffff && row != 126) {
+        hide = false;
+        break;
+      }
+    }
+    table->setRowHidden(row, hide);
+  }
+
   connect(table, SIGNAL(doubleClicked(QModelIndex)),
 	  this, SLOT(select_partial(QModelIndex)));
   connect(this, SIGNAL(change_tab(QString)),
@@ -267,9 +296,6 @@ VariationsTab::VariationsTab(Emulator *emulator, QWidget *parent)
   vboxLayout->addWidget(table);
   setLayout(vboxLayout);
 }
-
-VariationsTab::~VariationsTab()
-{}
 
 
 void VariationsTab::select_partial(const QModelIndex index)
@@ -285,13 +311,26 @@ void VariationsTab::select_partial(const QModelIndex index)
 DrumSetsTab::DrumSetsTab(Emulator *emulator, QWidget *parent)
   : QWidget(parent)
 {
+  const std::vector drumSetList = emulator->get_drumsets_ref();
+  std::array<uint8_t, 128> drumSetsLUT = emulator->get_drumsets_LUT();
+
   QVBoxLayout *vboxLayout = new QVBoxLayout();
   QTableView *table = new QTableView();
-  QStandardItemModel *model = emulator->get_drum_sets_list();
+  QStandardItemModel *model = new QStandardItemModel(drumSetList.size(), 1);
 
-  // Hack to make y axis count from 0
-  for (int i = 0; i < model->rowCount(); i++)
-    model->setHeaderData(i, Qt::Vertical, i);
+  int rowNum = 0;
+  for (const auto& drumSet : drumSetList) {
+    QModelIndex mIndex = model->index(rowNum, 0, QModelIndex());
+    model->setData(mIndex, QVariant(drumSet.name.c_str()));
+
+    auto it = std::find(drumSetsLUT.begin(), drumSetsLUT.end(), rowNum);
+    int lutIndex = std::min(127, (int) std::distance(drumSetsLUT.begin(), it));
+    model->setHeaderData(rowNum, Qt::Vertical, lutIndex + 1);
+
+    rowNum ++;
+  }
+
+  model->setHeaderData(0, Qt::Horizontal, "Name");
 
   table->setModel(model);
   table->setEditTriggers(QAbstractItemView::NoEditTriggers);
@@ -299,7 +338,3 @@ DrumSetsTab::DrumSetsTab(Emulator *emulator, QWidget *parent)
   vboxLayout->addWidget(table);
   setLayout(vboxLayout);
 }
-
-
-DrumSetsTab::~DrumSetsTab()
-{}

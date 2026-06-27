@@ -243,8 +243,6 @@ public:
   std::vector<std::vector<std::string>> get_instruments_list(void);
   std::vector<std::vector<std::string>> get_partials_list(void);
   std::vector<std::vector<std::string>> get_samples_list(void);
-  std::vector<std::vector<std::string>> get_variations_list(void);
-  std::vector<std::string> get_drum_sets_list(void);
 
   inline struct Instrument& instrument(int i) { return _instruments[i]; }
   inline struct Partial& partial(int p) { return _partials[p]; }

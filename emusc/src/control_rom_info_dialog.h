@@ -35,7 +35,6 @@ class ControlRomInfoDialog : public QDialog
 
 public:
   ControlRomInfoDialog(Emulator *emulator, QWidget *parent = nullptr);
-  virtual ~ControlRomInfoDialog();
 
 private:
   Emulator *_emulator;
@@ -67,7 +66,6 @@ private slots:
 
 public:
   explicit InstrumentsTab(Emulator *emulator, QWidget *parent = nullptr);
-  virtual ~InstrumentsTab();
 
   void set_active_row(int row);
 
@@ -87,7 +85,6 @@ private slots:
 
 public:
   explicit PartialsTab(Emulator *emulator, QWidget *parent = nullptr);
-  virtual ~PartialsTab();
 
   void set_active_row(int row);
 
@@ -105,7 +102,6 @@ private:
 
 public:
   explicit SamplesTab(Emulator *emulator, QWidget *parent = nullptr);
-  virtual ~SamplesTab();
 
   void set_active_row(int row);
 };
@@ -123,7 +119,6 @@ private slots:
 
 public:
   explicit VariationsTab(Emulator *emulator, QWidget *parent = nullptr);
-  virtual ~VariationsTab();
 
 signals:
   void change_tab(QString index);
@@ -138,7 +133,6 @@ private:
 
 public:
   explicit DrumSetsTab(Emulator *emulator, QWidget *parent = nullptr);
-  virtual ~DrumSetsTab();
 };
 
 

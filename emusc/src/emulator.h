@@ -66,10 +66,10 @@ public:
   QStandardItemModel *get_instruments_list(void);
   QStandardItemModel *get_partials_list(void);
   QStandardItemModel *get_samples_list(void);
-  QStandardItemModel *get_variations_list(void);            // TODO: REMOVE!
-  QStandardItemModel *get_drum_sets_list(void);
 
   std::array<std::array<uint16_t, 128>, 128> get_variations_table(void);
+  std::vector<EmuSC::ControlRom::DrumSet> &get_drumsets_ref(void);
+  std::array<uint8_t, 128> get_drumsets_LUT(void);
 
   int dump_demo_songs(QString path);
   bool control_rom_changed(void);
@@ -175,9 +175,6 @@ public slots:
   void change_volume(int volume);
 
   void play_note(uint8_t key, uint8_t velocity);
-
-  std::vector<EmuSC::ControlRom::DrumSet> &get_drumsets_ref(void);
-  std::array<uint8_t, 128> get_drumsets_LUT(void);
 
   void update_LCD_display(int8_t part = -1);
   void update_active_part_LCD_display(int part);
