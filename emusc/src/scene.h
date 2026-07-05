@@ -32,11 +32,19 @@
 #include <QGraphicsEllipseItem>
 #include <QKeyEvent>
 #include <QMouseEvent>
+#include <QPainter>
 #include <QPaintEvent>
 #include <QPushButton>
 #include <QRadialGradient>
+#include <QSvgRenderer>
 #include <QTimer>
 #include <QVector>
+
+#if QT_VERSION < QT_VERSION_CHECK(6,0,0)
+#include <QGraphicsSvgItem>
+#else
+#include <QtSvgWidgets/QGraphicsSvgItem>
+#endif
 
 
 class VolumeDial;
@@ -80,13 +88,13 @@ private:
   QGraphicsTextItem *_lcdKshiftText;
   QGraphicsTextItem *_lcdMidichText;
 
-  QGraphicsTextItem *_modelNameText;
+  QGraphicsSvgItem *_sc55mk2Text;
 
   QPushButton *_allButton;
   QPushButton *_muteButton;
 
-  QPushButton *_partLButton;
-  QPushButton *_partRButton;
+  SynthButton *_partLButton;
+  SynthButton *_partRButton;
   SynthButton *_instrumentLButton;
   SynthButton *_instrumentRButton;
   SynthButton *_panRButton;
@@ -217,14 +225,41 @@ class SynthButton : public QPushButton
   Q_OBJECT
 
 public:
-  SynthButton(QWidget *parent = nullptr);
-  virtual ~SynthButton();
+  enum Direction { Left, Right };
+  enum Shape { Rectangle, Round };
+  SynthButton(Direction direction, Shape shape = Rectangle,
+              QWidget *parent = nullptr);
 
-  protected:
-    void mousePressEvent(QMouseEvent *event) override;
+protected:
+  void mousePressEvent(QMouseEvent *event) override;
+  void paintEvent(QPaintEvent* e) override;
 
-  signals:
-    void rightClicked();
+signals:
+  void rightClicked();
+
+private:
+  Direction _direction;
+  Shape _shape;
+  qreal _hOffset;
+};
+
+
+class RoundedRectItem : public QGraphicsRectItem {
+public:
+  RoundedRectItem(qreal x, qreal y, qreal w, qreal h, qreal radius)
+    : QGraphicsRectItem(x, y, w, h), _radius(radius) {}
+
+protected:
+  void paint(QPainter *painter, const QStyleOptionGraphicsItem *option,
+             QWidget *widget) override {
+    painter->setRenderHint(QPainter::Antialiasing);
+    painter->setPen(Qt::NoPen);
+    painter->setBrush(QColor(0, 0, 0));
+    painter->drawRoundedRect(rect(), _radius, _radius);
+  }
+
+private:
+  qreal _radius;
 };
 
 
@@ -248,6 +283,9 @@ public:
 
 protected:
   void paintEvent(QPaintEvent *event);
+
+private:
+  QSvgRenderer *_knob;
 };
 
 

@@ -25,9 +25,11 @@
 #include <QApplication>
 #include <QCommandLineOption>
 #include <QCommandLineParser>
+#include <QFile>
 #include <QSettings>
 #include <QString>
 #include <QStringList>
+#include <QTextStream>
 
 #ifdef Q_OS_WINDOWS
 #include <Windows.h>
@@ -58,10 +60,20 @@ void print_config()
 }
 
 
+static QString loadQss(const QString& path)
+{
+    QFile f(path);
+    if (!f.open(QFile::ReadOnly | QFile::Text))
+        return {};
+    return QTextStream(&f).readAll();
+}
+
+
 int main(int argc, char *argv[])
 {
   QApplication app(argc, argv);
   app.setWindowIcon(QIcon(":/icon-256.png"));
+  app.setStyleSheet(loadQss(":/styles/emusc.qss"));
 
   QCoreApplication::setOrganizationName("emusc");
   QCoreApplication::setApplicationName("EmuSC");

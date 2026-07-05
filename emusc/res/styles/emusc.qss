@@ -1,0 +1,137 @@
+/** EmuSC - Qt Style Sheets **/
+
+/* Base dark background with a top-left to bottom-right gradient */
+QPushButton#PowerButton {
+    background-color: qlineargradient(
+        x1: 0, y1: 0, 
+        x2: 1, y2: 1, 
+        stop: 0 #3d3d3d,
+        stop: 0.3 #222222, 
+        stop: 0.8 #151515, 
+        stop: 1.0 #0e0e0e
+    );
+
+    border: 4px solid #080808;
+    border-radius: 6px;
+    
+    color: #e0e0e0;
+    padding: 6px 12px;
+}
+
+/* Invert the gradient when pressed to simulate the button physicaly pressed */
+QPushButton#PowerButton:pressed {
+    background-color: qlineargradient(
+        x1: 0, y1: 0, 
+        x2: 1, y2: 1, 
+        stop: 0 #1d1d1d,   /* Top-left goes dark as it moves away from light */
+        stop: 0.5 #111111, 
+        stop: 1.0 #1c1c1c  /* Bottom-right catches a bit of ambient bounce light */
+    );
+    padding-top: 7px;      /* Subtle layout shift to simulate a physical click */
+    padding-left: 13px;
+}
+
+
+QPushButton#AllButton {
+    color: #aaa;
+    border: 1px solid #000;
+    border-radius: 15px;
+    border-style: outset;
+    background: qradialgradient(cx: 0.3, cy: -0.4,
+    fx: 0.3, fy: -0.4,radius: 1.35,
+    stop: 0 #ada29f, stop: 1 #4d423f);
+    padding: 5px
+}
+
+QPushButton#AllButton::checked {
+    background: qradialgradient(cx: 0.3, cy: -0.4,
+    fx: 0.3, fy: -0.4,radius: 1.35,
+    stop: 0 #ffad76, stop: 1 #e64d16);
+}
+
+
+QPushButton#MuteButton {
+    color: #aaa;
+    border: 1px solid #000;
+    border-radius: 15px;
+    border-style: outset;
+    background: qradialgradient(cx: 0.3, cy: -0.4,
+    fx: 0.3, fy: -0.4,radius: 1.35,
+    stop: 0 #ada29f, stop: 1 #4d423f);
+    padding: 5px
+}
+
+QPushButton#MuteButton::checked {
+    background: qradialgradient(cx: 0.3, cy: -0.4,
+    fx: 0.3, fy: -0.4,radius: 1.35,
+    stop: 0 #ffad76, stop: 1 #e64d16);
+}
+
+
+/* Base dark background with a top-left to bottom-right gradient */
+SynthButton {
+    background-color: qlineargradient(
+        x1: 0, y1: 0, 
+        x2: 1, y2: 1, 
+        stop: 0 #3d3d3d,   /* Light source intensifies slightly */
+        stop: 0.3 #222222, 
+        stop: 0.8 #151515, 
+        stop: 1.0 #0e0e0e
+    );
+    
+    border: 1px solid #080808;
+    border-radius: 4px;
+
+    color: #e0e0e0;
+    padding: 6px 12px;
+}
+
+/* Invert the gradient when pressed to simulate the button physicaly pressed */
+SynthButton:pressed {
+    background-color: qlineargradient(
+        x1: 0, y1: 0, 
+        x2: 1, y2: 1, 
+        stop: 0 #1d1d1d,   /* Top-left goes dark as it moves away from light */
+        stop: 0.5 #111111, 
+        stop: 1.0 #1c1c1c  /* Bottom-right catches a bit of ambient bounce light */
+    );
+    padding-top: 7px;      /* Subtle layout shift to simulate a physical click */
+    padding-left: 13px;
+}
+
+
+/* Base dark background with a top-left to bottom-right gradient */
+SynthButton#Round {
+    background-color: qlineargradient(
+        x1: 0, y1: 0, 
+        x2: 1, y2: 1, 
+        stop: 0 #3d3d3d,   /* Light source intensifies slightly */
+        stop: 0.3 #222222, 
+        stop: 0.8 #151515, 
+        stop: 1.0 #0e0e0e
+    );
+
+    border: 1px solid #080808;
+    border-radius: 10px;
+
+    color: #e0e0e0;
+    padding: 6px 12px;
+}
+
+/* Invert the gradient when pressed to simulate the button physically pressed */
+SynthButton#Round:pressed {
+    background-color: qlineargradient(
+        x1: 0, y1: 0, 
+        x2: 1, y2: 1, 
+        stop: 0 #1d1d1d,   /* Top-left goes dark as it moves away from light */
+        stop: 0.5 #111111, 
+        stop: 1.0 #1c1c1c  /* Bottom-right catches a bit of ambient bounce light */
+    );
+    padding-top: 7px;      /* Subtle layout shift to simulate a physical click */
+    padding-left: 13px;
+}
+
+
+VolumeDial {
+    background-color: #00000000;
+}

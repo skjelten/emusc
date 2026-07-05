@@ -77,6 +77,11 @@ target_link_libraries(emusc-client emusc)
 target_link_libraries(emusc-client Qt${QT_VERSION_MAJOR}::Core)
 target_link_libraries(emusc-client Qt${QT_VERSION_MAJOR}::Widgets)
 target_link_libraries(emusc-client Qt${QT_VERSION_MAJOR}::Gui)
+target_link_libraries(emusc-client Qt${QT_VERSION_MAJOR}::Svg)
+
+if (QT_VERSION_MAJOR EQUAL 6)
+  target_link_libraries(emusc-client Qt6::SvgWidgets)
+endif()
 
 if (Qt${QT_VERSION_MAJOR}Multimedia_FOUND)
   target_link_libraries(emusc-client Qt${QT_VERSION_MAJOR}::Multimedia)

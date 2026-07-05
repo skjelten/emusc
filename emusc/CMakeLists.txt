@@ -24,8 +24,13 @@ set(WIN32_MIDI "no")
 
 set(USE_QTCHARTS "no")
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Widgets Gui)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Widgets Gui)
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Widgets Gui Svg)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Widgets Gui Svg)
+
+if (QT_VERSION_MAJOR EQUAL 6)
+  find_package(Qt6 REQUIRED COMPONENTS SvgWidgets)
+endif()
+
 find_package(Qt${QT_VERSION_MAJOR} QUIET OPTIONAL_COMPONENTS Multimedia Charts)
 
 if (Qt${QT_VERSION_MAJOR}Multimedia_FOUND)

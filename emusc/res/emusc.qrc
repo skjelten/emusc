@@ -8,11 +8,13 @@
     </qresource>
 
     <qresource>
-        <file>images/gm_logo.png</file>
-        <file>images/gs_logo.png</file>
+        <file>styles/emusc.qss</file>
+    </qresource>
+
+    <qresource>
+        <file>images/gm_logo.svg</file>
+        <file>images/gs_logo.svg</file>
         <file>images/synth_bkg.png</file>
-        <file>images/left_arrow.png</file>
-        <file>images/right_arrow.png</file>
         <file>images/gear.png</file>
         <file>images/speaker.png</file>
         <file>images/midi.png</file>
@@ -36,10 +38,27 @@
         <file>images/gm_text.svg</file>
         <file>images/gs_text.svg</file>
         <file>images/mt_text.svg</file>
+        <file>images/volume_knob.svg</file>
     </qresource>
 
     <qresource>
         <file>animations/emusc.anm</file>
         <file>animations/sc-55.anm</file>
+    </qresource>
+
+    <qresource>
+        <file>text/all.svg</file>
+        <file>text/mute.svg</file>
+        <file>text/part.svg</file>
+        <file>text/instrument.svg</file>
+        <file>text/level.svg</file>
+        <file>text/pan.svg</file>
+        <file>text/reverb.svg</file>
+        <file>text/chorus.svg</file>
+        <file>text/key_shift.svg</file>
+        <file>text/midi_ch.svg</file>
+        <file>text/power.svg</file>
+        <file>text/volume.svg</file>
+        <file>text/sc-55mkII.svg</file>
     </qresource>
 </RCC>

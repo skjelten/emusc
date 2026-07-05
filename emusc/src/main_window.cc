@@ -55,24 +55,28 @@ MainWindow::MainWindow(QWidget *parent)
     _emulator(nullptr),
     _scene(nullptr),
     _resizeTimer(nullptr),
-    _aspectRatio(1150/258.0),
+    _aspectRatio(1000/240.0f),
     _hasMovedEvent(false)
 {
   // TODO: Update minumum size based on *bars and compact mode state
-  setMinimumSize(300, 120);
+  setMinimumSize(300, 100);
 
   _create_actions();
   _create_menus();
 
   _scene = new Scene(this);
-  _scene->setSceneRect(0, -10, 1100, 200);
+  _scene->setSceneRect(-8, -10, 1072, 200);
 
   _emulator = new Emulator(_scene);
 
   _synthView = new QGraphicsView(this);
+  _synthView->setFrameShape(QFrame::NoFrame);
   _synthView->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
   _synthView->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
   _synthView->setScene(_scene);
+
+  _synthView->setRenderHint(QPainter::Antialiasing);
+  _synthView->setRenderHint(QPainter::SmoothPixmapTransform);
 
   if (_emulator->has_valid_control_rom() &&
       _emulator->get_synth_generation() > EmuSC::ControlRom::SynthGen::SC55)
@@ -652,8 +656,8 @@ void MainWindow::_set_normal_layout(void)
   int newWidth = width() * (float) (1150 / 660.0);
   resize(newWidth, height());
 
-  _scene->setSceneRect(0, -10, 1100, 200);
-  _aspectRatio = 1150 / 258.0;
+  _scene->setSceneRect(-8, -10, 1072, 200);
+  _aspectRatio = 1000 / 240.0f;
   resize_timeout();
 
   _normalLayoutAct->setChecked(true);
@@ -730,7 +734,7 @@ void MainWindow::resize_timeout(void)
 
   // Do not enforce aspect ration in fullscreen mode (TODO: need black bars!)
   if (isFullScreen()) {
-    _scene->setSceneRect(0, -10, 1100, 200);
+    _scene->setSceneRect(-8, -10, 1072, 200);
     return;
   }
 

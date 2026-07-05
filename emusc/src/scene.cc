@@ -25,7 +25,6 @@
 #include <QGraphicsProxyWidget>
 #include <QHBoxLayout>
 #include <QMessageBox>
-#include <QPainter>
 #include <QSettings>
 #include <QToolButton>
 
@@ -86,19 +85,28 @@ Scene::Scene(QWidget *parent)
   addItem(frameBottom);
 
   // Add sunken button rectangles
-  addItem(new GrooveRect(760, -10, 353, 35));
-  addItem(new GrooveRect(760, 45, 353, 35));
-  addItem(new GrooveRect(760, 100, 353, 35));
-  addItem(new GrooveRect(760, 155, 353, 35));
-  addItem(new GrooveRect(-15, 8, 100, 35));
+  addItem(new GrooveRect(760, -10, 313, 35));
+  addItem(new GrooveRect(760,  45, 313, 35));
+  addItem(new GrooveRect(760, 100, 313, 35));
+  addItem(new GrooveRect(760, 155, 313, 35));
+  addItem(new GrooveRect(-15,   8, 100, 35));
 
   _add_lcd_display_items();
 
   // Set black vertical bar background
-  QGraphicsRectItem *blackBackground = new QGraphicsRectItem(0, 0, 110, 280);
+  QGraphicsRectItem *blackBackground = new QGraphicsRectItem(0, 0, 113, 280);
   blackBackground->setBrush(QColor(0, 0, 0));
-  blackBackground->setPen(QColor(0, 0, 0, 0));
-  blackBackground->setPos(QPointF(637, -50));
+  blackBackground->setPos(QPointF(636, -50));
+  blackBackground->setPen(Qt::NoPen);
+
+  // Add some transparent transitions to the vertical bar
+  QLinearGradient gradient(0, 0, 113, 0);
+  gradient.setColorAt(0.0, Qt::transparent);
+  gradient.setColorAt(0.03, Qt::black);
+  gradient.setColorAt(0.97, Qt::black);
+  gradient.setColorAt(1.0, Qt::transparent);
+  blackBackground->setBrush(QBrush(gradient));
+
   addItem(blackBackground);
 
 //    QGraphicsTextItem *logoText = new QGraphicsTextItem;
@@ -106,56 +114,52 @@ Scene::Scene(QWidget *parent)
 //    logoText->setPos(QPointF(500, -35));
 //    addItem(logoText);
 
-  _modelNameText = new QGraphicsTextItem;
-  QFont *font = new QFont;
-  font->setStretch(140);
-  _modelNameText->setFont(*font);
-  _modelNameText->setPos(QPointF(450, 180));
-  addItem(_modelNameText);
+  // Note: This stays hidden and is turned on if mk2 ROM is selected on power on
+  _sc55mk2Text = new QGraphicsSvgItem(":/text/sc-55mkII.svg");
+  _sc55mk2Text->setScale(1.85);
+  _sc55mk2Text->setPos(440, 192);
+  _sc55mk2Text->setOpacity(0.85);
+  _sc55mk2Text->setVisible(false);
+  addItem(_sc55mk2Text);
 
-  QGraphicsTextItem *partHeaderText = new QGraphicsTextItem;
-  partHeaderText->setHtml(_generate_sans_text_html("PART", 10));
-  partHeaderText->setDefaultTextColor(0xbbbbbb);
-  partHeaderText->setPos(QPointF(110, -30));
-  addItem(partHeaderText);
+  QGraphicsSvgItem *partTopText = new QGraphicsSvgItem(":/text/part.svg");
+  partTopText->setScale(1.02);
+  partTopText->setPos(110, -21);
+  partTopText->setOpacity(0.85);
+  addItem(partTopText);
 
-  QGraphicsTextItem *instrumentHeaderText = new QGraphicsTextItem;
-  instrumentHeaderText->setHtml(_generate_sans_text_html("INSTRUMENT", 10));
-  instrumentHeaderText->setDefaultTextColor(0xbbbbbb);
-  instrumentHeaderText->setPos(QPointF(192, -30));
-  addItem(instrumentHeaderText);
-
-  QGraphicsTextItem *partBottomText = new QGraphicsTextItem;
-  partBottomText->setHtml(_generate_sans_text_html("PART", 10));
-  partBottomText->setDefaultTextColor(0xbbbbbb);
-  partBottomText->setPos(QPointF(385, 180));
+  QGraphicsSvgItem *partBottomText = new QGraphicsSvgItem(":/text/part.svg");
+  partBottomText->setScale(1.02);
+  partBottomText->setPos(392, 187);
+  partBottomText->setOpacity(0.85);
   addItem(partBottomText);
 
-  QGraphicsTextItem *powerText = new QGraphicsTextItem;
-  powerText->setHtml(_generate_sans_text_html("POWER", 12));
-  powerText->setDefaultTextColor(0xbbbbbb);
-  powerText->setPos(QPointF(0, -20));
+  QGraphicsSvgItem *instrumentTopText = new QGraphicsSvgItem(":/text/instrument.svg");
+  instrumentTopText->setScale(1.02);
+  instrumentTopText->setPos(200, -21);
+  instrumentTopText->setOpacity(0.85);
+  addItem(instrumentTopText);
+
+  QGraphicsSvgItem *powerText = new QGraphicsSvgItem(":/text/power.svg");
+  powerText->setScale(1.38);
+  powerText->setPos(0, -13);
+  powerText->setOpacity(0.85);
   addItem(powerText);
 
-  QGraphicsTextItem *volumeText = new QGraphicsTextItem;
-  volumeText->setHtml(_generate_sans_text_html("VOLUME", 12));
-  volumeText->setDefaultTextColor(0xbbbbbb);
-  volumeText->setPos(QPointF(0, 55));
+  QGraphicsSvgItem *volumeText = new QGraphicsSvgItem(":/text/volume.svg");
+  volumeText->setScale(1.38);
+  volumeText->setPos(-5, 65);
+  volumeText->setOpacity(0.85);
   addItem(volumeText);
 
   _powerButton = new QPushButton();
   _powerButton->setGeometry(QRect(-5, 13, 78, 25));
-  _powerButton->setStyleSheet("background-color: #111111; \
-                             border-style: outset;	    \
-                             border-width: 2px;		    \
-                             border-radius: 5px;	    \
-                             border-color: #333333;");
   _powerButton->setAttribute(Qt::WA_TranslucentBackground);
+  _powerButton->setObjectName("PowerButton");
   QGraphicsProxyWidget *pwrProxy = addWidget(_powerButton);
 
   _volumeDial = new VolumeDial();
-  _volumeDial->setGeometry(QRect(-2, 78, 75, 75));
-  _volumeDial->setStyleSheet("background-color: #00000000;");
+  _volumeDial->setGeometry(QRect(-5, 85, 80, 84));
   _volumeDial->setRange(0,100);
 
   // Default value
@@ -175,225 +179,203 @@ Scene::Scene(QWidget *parent)
   // Add all / mute buttons
   _allButton = new QPushButton();
   _allButton->setCheckable(true);
-  _allButton->setGeometry(QRect(693, 0, 34, 34));
-  _allButton->setStyleSheet("QPushButton { "		\
-			     "color: #aaa;"		\
-			     "border: 2px solid #555; " \
-			     "border-radius: 17px;"     \
-			     "border-style: outset;"	\
-			     "background: qradialgradient(cx: 0.3, cy: -0.4," \
-			     "fx: 0.3, fy: -0.4,radius: 1.35, stop: 0 #fff, stop: 1 #888);" \
-			     "padding: 5px }"		\
-			     "QPushButton::checked"	\
-                             "{background-color : #ff7a45;}");
+  _allButton->setGeometry(QRect(700, -7, 30, 30));
   _allButton->setAttribute(Qt::WA_TranslucentBackground);
+  _allButton->setObjectName("AllButton");
+
   QGraphicsProxyWidget *allBtnProxy = addWidget(_allButton);
 
   _muteButton = new QPushButton();
   _muteButton->setCheckable(true);
-  _muteButton->setGeometry(QRect(693, 50, 34, 34));
-  _muteButton->setStyleSheet("QPushButton { "		\
-			     "color: #aaa;"		\
-			     "border: 2px solid #555; " \
-			     "border-radius: 17px;"     \
-			     "border-style: outset;"	\
-			     "background: qradialgradient(cx: 0.3, cy: -0.4," \
-			     "fx: 0.3, fy: -0.4,radius: 1.35, stop: 0 #fff, stop: 1 #888);" \
-			     "padding: 5px }"		\
-			     "QPushButton::checked"	\
-                             "{background-color : #ff7a45;}");
+  _muteButton->setGeometry(QRect(700, 43, 30, 30));
   _muteButton->setAttribute(Qt::WA_TranslucentBackground);
+  _muteButton->setObjectName("MuteButton");
+
   QGraphicsProxyWidget *muteBtnProxy = addWidget(_muteButton);
 
-  // Add partL / mute buttons
-  _partLButton = new QPushButton();
-  _partLButton->setGeometry(QRect(802, -5, 26, 26));
-  _partLButton->setStyleSheet("color: #aaa;"	       \
-			    "border: 2px solid #555; " \
-			    "border-radius: 13px;"     \
-			    "border-style: outset;"    \
-			      "background: black;"     \
-			    "padding: 5px");
+  // Drop down shadows behind synth buttons
+  RoundedRectItem * partLBtnShadow = new RoundedRectItem(797, -4.5, 24, 24, 12);
+  RoundedRectItem * partRBtnShadow = new RoundedRectItem(857, -4.5, 24, 24, 12);
+  RoundedRectItem * instBtnShadow = new RoundedRectItem(932, -4.5, 124, 24, 2);
+  RoundedRectItem * levelBtnShadow = new RoundedRectItem(777, 50.5, 124, 24, 2);
+  RoundedRectItem * panBtnShadow = new RoundedRectItem(932, 50.5, 124, 24, 2);
+  RoundedRectItem * reverbBtnShadow = new RoundedRectItem(777, 105.5, 124, 24, 2);
+  RoundedRectItem * chorusBtnShadow = new RoundedRectItem(932, 105.5, 124, 24, 2);
+  RoundedRectItem * kShiftBtnShadow = new RoundedRectItem(777, 160.5, 124, 24, 2);
+  RoundedRectItem * midiChBtnShadow = new RoundedRectItem(932, 160.5, 124, 24, 2);
+  addItem(partLBtnShadow);
+  addItem(partRBtnShadow);
+  addItem(instBtnShadow);
+  addItem(levelBtnShadow);
+  addItem(panBtnShadow);
+  addItem(reverbBtnShadow);
+  addItem(chorusBtnShadow);
+  addItem(kShiftBtnShadow);
+  addItem(midiChBtnShadow);
+
+  // Add part L/R round buttons
+  _partLButton = new SynthButton(SynthButton::Left, SynthButton::Round);
+  _partLButton->setGeometry(QRect(799, -3, 20, 20));
   _partLButton->setAttribute(Qt::WA_TranslucentBackground);
-  _partLButton->setIcon(QPixmap(":/images/left_arrow.png"));
-  _partLButton->setIconSize(QSize(9, 9));
+  _partLButton->setObjectName("Round");
   _partLButton->setAutoRepeat(true);
   _partLButton->setAutoRepeatDelay(500);
   _partLButton->setAutoRepeatInterval(120);
   QGraphicsProxyWidget *partLBtnProxy = addWidget(_partLButton);
 
-  _partRButton = new QPushButton();
-  _partRButton->setGeometry(QRect(874, -5, 26, 26));
-  _partRButton->setStyleSheet("color: #aaa;"	       \
-			    "border: 2px solid #555; " \
-			    "border-radius: 13px;"     \
-			    "border-style: outset;"    \
-			    "background: black;"     \
-			    "padding: 5px");
+  _partRButton = new SynthButton(SynthButton::Right, SynthButton::Round);
+  _partRButton->setGeometry(QRect(859, -3, 20, 20));
   _partRButton->setAttribute(Qt::WA_TranslucentBackground);
-  _partRButton->setIcon(QPixmap(":/images/right_arrow.png"));
-  _partRButton->setIconSize(QSize(9, 9));
+  _partRButton->setObjectName("Round");
   _partRButton->setAutoRepeat(true);
   _partRButton->setAutoRepeatDelay(500);
   _partRButton->setAutoRepeatInterval(120);
   QGraphicsProxyWidget *partRBtnProxy = addWidget(_partRButton);
 
   // Add instrument L/R buttons
-  _instrumentLButton = new SynthButton();
-  _instrumentLButton->setGeometry(QRect(945, -5, 70, 25));
-  _instrumentLButton->setIcon(QPixmap(":/images/left_arrow.png"));
+  _instrumentLButton = new SynthButton(SynthButton::Left);
+  _instrumentLButton->setGeometry(QRect(935, -2, 58, 19));
   QGraphicsProxyWidget *instLBtnProxy = addWidget(_instrumentLButton);
 
-  _instrumentRButton = new SynthButton();
-  _instrumentRButton->setGeometry(QRect(1018, -5, 70, 25));
-  _instrumentRButton->setIcon(QPixmap(":/images/right_arrow.png"));
+  _instrumentRButton = new SynthButton(SynthButton::Right);
+  _instrumentRButton->setGeometry(QRect(995, -2, 58, 19));
   QGraphicsProxyWidget *instRBtnProxy = addWidget(_instrumentRButton);
 
-  // Add pan L/R buttons
-  _panLButton = new SynthButton();
-  _panLButton->setGeometry(QRect(945, 50, 70, 25));
-  _panLButton->setIcon(QPixmap(":/images/left_arrow.png"));
-  QGraphicsProxyWidget *panLBtnProxy = addWidget(_panLButton);
-
-  _panRButton = new SynthButton();
-  _panRButton->setGeometry(QRect(1018, 50, 70, 25));
-  _panRButton->setIcon(QPixmap(":/images/right_arrow.png"));
-  QGraphicsProxyWidget *panRBtnProxy = addWidget(_panRButton);
-
-  // Add chorus L/R buttons
-  _chorusLButton = new SynthButton();
-  _chorusLButton->setGeometry(QRect(945, 105, 70, 25));
-  _chorusLButton->setIcon(QPixmap(":/images/left_arrow.png"));
-  QGraphicsProxyWidget *chorusLBtnProxy = addWidget(_chorusLButton);
-
-  _chorusRButton = new SynthButton();
-  _chorusRButton->setGeometry(QRect(1018, 105, 70, 25));
-  _chorusRButton->setIcon(QPixmap(":/images/right_arrow.png"));
-  QGraphicsProxyWidget *chorusRBtnProxy = addWidget(_chorusRButton);
-
-  // Add midich L/R buttons
-  _midichLButton = new SynthButton();
-  _midichLButton->setGeometry(QRect(945, 160, 70, 25));
-  _midichLButton->setIcon(QPixmap(":/images/left_arrow.png"));
-  QGraphicsProxyWidget *midichLBtnProxy = addWidget(_midichLButton);
-
-  _midichRButton = new SynthButton();
-  _midichRButton->setGeometry(QRect(1018, 160, 70, 25));
-  _midichRButton->setIcon(QPixmap(":/images/right_arrow.png"));
-  QGraphicsProxyWidget *midichRBtnProxy = addWidget(_midichRButton);
-
   // Add level L/R buttons
-  _levelLButton = new SynthButton();
-  _levelLButton->setGeometry(QRect(780, 50, 70, 25));
-  _levelLButton->setIcon(QPixmap(":/images/left_arrow.png"));
+  _levelLButton = new SynthButton(SynthButton::Left);
+  _levelLButton->setGeometry(QRect(780, 53, 58, 19));
   QGraphicsProxyWidget *levelLBtnProxy = addWidget(_levelLButton);
 
-  _levelRButton = new SynthButton();
-  _levelRButton->setGeometry(QRect(853, 50, 70, 25));
-  _levelRButton->setIcon(QPixmap(":/images/right_arrow.png"));
+  _levelRButton = new SynthButton(SynthButton::Right);
+  _levelRButton->setGeometry(QRect(840, 53, 58, 19));
   QGraphicsProxyWidget *levelRBtnProxy = addWidget(_levelRButton);
 
+  // Add pan L/R buttons
+  _panLButton = new SynthButton(SynthButton::Left);
+  _panLButton->setGeometry(QRect(935, 53, 58, 19));
+  QGraphicsProxyWidget *panLBtnProxy = addWidget(_panLButton);
+
+  _panRButton = new SynthButton(SynthButton::Right);
+  _panRButton->setGeometry(QRect(995, 53, 58, 19));
+  QGraphicsProxyWidget *panRBtnProxy = addWidget(_panRButton);
+
   // Add reverb L/R buttons
-  _reverbLButton = new SynthButton();
-  _reverbLButton->setGeometry(QRect(780, 105, 70, 25));
-  _reverbLButton->setIcon(QPixmap(":/images/left_arrow.png"));
+  _reverbLButton = new SynthButton(SynthButton::Left);
+  _reverbLButton->setGeometry(QRect(780, 108, 58, 19));
   QGraphicsProxyWidget *reverbLBtnProxy = addWidget(_reverbLButton);
 
-  _reverbRButton = new SynthButton();
-  _reverbRButton->setGeometry(QRect(853, 105, 70, 25));
-  _reverbRButton->setIcon(QPixmap(":/images/right_arrow.png"));
+  _reverbRButton = new SynthButton(SynthButton::Right);
+  _reverbRButton->setGeometry(QRect(840, 108, 58, 19));
   QGraphicsProxyWidget *reverbRBtnProxy = addWidget(_reverbRButton);
 
+  // Add chorus L/R buttons
+  _chorusLButton = new SynthButton(SynthButton::Left);
+  _chorusLButton->setGeometry(QRect(935, 108, 58, 19));
+  QGraphicsProxyWidget *chorusLBtnProxy = addWidget(_chorusLButton);
+
+  _chorusRButton = new SynthButton(SynthButton::Right);
+  _chorusRButton->setGeometry(QRect(995, 108, 58, 19));
+  QGraphicsProxyWidget *chorusRBtnProxy = addWidget(_chorusRButton);
+
   // Add keyshift L/R buttons
-  _keyshiftLButton = new SynthButton();
-  _keyshiftLButton->setGeometry(QRect(780, 160, 70, 25));
-  _keyshiftLButton->setIcon(QPixmap(":/images/left_arrow.png"));
+  _keyshiftLButton = new SynthButton(SynthButton::Left);
+  _keyshiftLButton->setGeometry(QRect(780, 163, 58, 19));
   QGraphicsProxyWidget *keyshiftLBtnProxy = addWidget(_keyshiftLButton);
 
-  _keyshiftRButton = new SynthButton();
-  _keyshiftRButton->setGeometry(QRect(853, 160, 70, 25));
-  _keyshiftRButton->setIcon(QPixmap(":/images/right_arrow.png"));
+  _keyshiftRButton = new SynthButton(SynthButton::Right);
+  _keyshiftRButton->setGeometry(QRect(840, 163, 58, 19));
   QGraphicsProxyWidget *keyshiftRBtnProxy = addWidget(_keyshiftRButton);
 
-  QGraphicsTextItem *allBtnText = new QGraphicsTextItem;
-  allBtnText->setHtml(_generate_sans_text_html("ALL", 10.5));
-  allBtnText->setPos(QPointF(690 - allBtnText->boundingRect().right(), 3));
-  allBtnText->setDefaultTextColor(0xbbbbbb);
+  // Add midich L/R buttons
+  _midichLButton = new SynthButton(SynthButton::Left);
+  _midichLButton->setGeometry(QRect(935, 163, 58, 19));
+  QGraphicsProxyWidget *midichLBtnProxy = addWidget(_midichLButton);
+
+  _midichRButton = new SynthButton(SynthButton::Right);
+  _midichRButton->setGeometry(QRect(995, 163, 58, 19));
+  QGraphicsProxyWidget *midichRBtnProxy = addWidget(_midichRButton);
+
+  QGraphicsSvgItem *allBtnText = new QGraphicsSvgItem(":/text/all.svg");
+  allBtnText->setScale(1.22);
+  allBtnText->setPos(661, 3);
+  allBtnText->setOpacity(0.66);
   addItem(allBtnText);
 
-  QGraphicsTextItem *muteBtnText = new QGraphicsTextItem;
-  muteBtnText->setHtml(_generate_sans_text_html("MUTE", 10.5));
-  muteBtnText->setPos(QPointF(690 - muteBtnText->boundingRect().right(), 56));
-  muteBtnText->setDefaultTextColor(0xbbbbbb);
+  QGraphicsSvgItem *muteBtnText = new QGraphicsSvgItem(":/text/mute.svg");
+  muteBtnText->setScale(1.22);
+  muteBtnText->setPos(647, 53);
+  muteBtnText->setOpacity(0.66);
   addItem(muteBtnText);
 
-  QGraphicsTextItem *partBtnText = new QGraphicsTextItem;
-  partBtnText->setHtml(_generate_sans_text_html("PART", 10.5));
-  partBtnText->setPos(QPointF(855 - partBtnText->boundingRect().center().x(), -33));
-  partBtnText->setDefaultTextColor(0xbbbbbb);
+  QGraphicsSvgItem *partBtnText = new QGraphicsSvgItem(":/text/part.svg");
+  partBtnText->setScale(1.22);
+  partBtnText->setPos(820, -25);
+  partBtnText->setOpacity(0.66);
   addItem(partBtnText);
 
-  QGraphicsTextItem *instrumentBtnText = new QGraphicsTextItem;
-  instrumentBtnText->setHtml(_generate_sans_text_html("INSTRUMENT", 10.5));
-  instrumentBtnText->setPos(QPointF(1015 - instrumentBtnText->boundingRect().center().x(), -33));
-  instrumentBtnText->setDefaultTextColor(0xbbbbbb);
+  QGraphicsSvgItem *instrumentBtnText = new QGraphicsSvgItem(":/text/instrument.svg");
+  instrumentBtnText->setScale(1.22);
+  instrumentBtnText->setPos(942, -25);
+  instrumentBtnText->setOpacity(0.66);
   addItem(instrumentBtnText);
 
-  QGraphicsTextItem *levelBtnText = new QGraphicsTextItem;
-  levelBtnText->setHtml(_generate_sans_text_html("LEVEL", 10.5));
-  levelBtnText->setPos(QPointF(855 - levelBtnText->boundingRect().center().x(), 22));
-  levelBtnText->setDefaultTextColor(0xbbbbbb);
+  QGraphicsSvgItem *levelBtnText = new QGraphicsSvgItem(":/text/level.svg");
+  levelBtnText->setScale(1.22);
+  levelBtnText->setPos(815, 30);
+  levelBtnText->setOpacity(0.66);
   addItem(levelBtnText);
 
-  QGraphicsTextItem *panBtnText = new QGraphicsTextItem;
-  panBtnText->setHtml(_generate_sans_text_html("PAN", 10.5));
-  panBtnText->setPos(QPointF(1015 - panBtnText->boundingRect().center().x(), 22));
-  panBtnText->setDefaultTextColor(0xbbbbbb);
+  QGraphicsSvgItem *panBtnText = new QGraphicsSvgItem(":/text/pan.svg");
+  panBtnText->setScale(1.22);
+  panBtnText->setPos(980, 30);
+  panBtnText->setOpacity(0.66);
   addItem(panBtnText);
 
-  QGraphicsTextItem *reverbBtnText = new QGraphicsTextItem;
-  reverbBtnText->setHtml(_generate_sans_text_html("REVERB", 10.5));
-  reverbBtnText->setPos(QPointF(855 - reverbBtnText->boundingRect().center().x(), 77));
-  reverbBtnText->setDefaultTextColor(0xbbbbbb);
+  QGraphicsSvgItem *reverbBtnText = new QGraphicsSvgItem(":/text/reverb.svg");
+  reverbBtnText->setScale(1.22);
+  reverbBtnText->setPos(810, 85);
+  reverbBtnText->setOpacity(0.66);
   addItem(reverbBtnText);
 
-  QGraphicsTextItem *chorusBtnText = new QGraphicsTextItem;
-  chorusBtnText->setHtml(_generate_sans_text_html("CHORUS", 10.5));
-  chorusBtnText->setPos(QPointF(1015 - chorusBtnText->boundingRect().center().x(), 77));
-  chorusBtnText->setDefaultTextColor(0xbbbbbb);
+  QGraphicsSvgItem *chorusBtnText = new QGraphicsSvgItem(":/text/chorus.svg");
+  chorusBtnText->setScale(1.22);
+  chorusBtnText->setPos(959, 85);
+  chorusBtnText->setOpacity(0.66);
   addItem(chorusBtnText);
 
-  QGraphicsTextItem *keyshiftBtnText = new QGraphicsTextItem;
-  keyshiftBtnText->setHtml(_generate_sans_text_html("KEY SHIFT", 10.5));
-  keyshiftBtnText->setPos(QPointF(855 - keyshiftBtnText->boundingRect().center().x(), 132));
-  keyshiftBtnText->setDefaultTextColor(0xbbbbbb);
-  addItem(keyshiftBtnText);
+  QGraphicsSvgItem *keyShiftBtnText = new QGraphicsSvgItem(":/text/key_shift.svg");
+  keyShiftBtnText->setScale(1.22);
+  keyShiftBtnText->setPos(795, 140);
+  keyShiftBtnText->setOpacity(0.66);
+  addItem(keyShiftBtnText);
 
-  QGraphicsTextItem *midichBtnText = new QGraphicsTextItem;
-  midichBtnText->setHtml(_generate_sans_text_html("MIDI CH", 10.5));
-  midichBtnText->setPos(QPointF(1015 - midichBtnText->boundingRect().center().x(), 132));
-  midichBtnText->setDefaultTextColor(0xbbbbbb);
-  addItem(midichBtnText);
+  QGraphicsSvgItem *midiChBtnText = new QGraphicsSvgItem(":/text/midi_ch.svg");
+  midiChBtnText->setScale(1.22);
+  midiChBtnText->setPos(960, 140);
+  midiChBtnText->setOpacity(0.66);
+  addItem(midiChBtnText);
 
   // TODO: Show GM / GS logo based on ROM version
-  QGraphicsPixmapItem *gmLogo = new QGraphicsPixmapItem(QPixmap(":/images/gm_logo.png"));
+  QGraphicsSvgItem *gmLogo = new QGraphicsSvgItem(":/images/gm_logo.svg");
+  gmLogo->setScale(0.56);
   gmLogo->setPos(645, 170);
   addItem(gmLogo);
 
-  QGraphicsPixmapItem *gsLogo = new QGraphicsPixmapItem(QPixmap(":/images/gs_logo.png"));
-  gsLogo->setPos(695, 170);
+  QGraphicsSvgItem *gsLogo = new QGraphicsSvgItem(":/images/gs_logo.svg");
+  gsLogo->setScale(0.024);
+  gsLogo->setPos(695, 177);
   addItem(gsLogo);
 
   // Add LED button
-  _ledOnGradient = new QRadialGradient(35, 179, 20);
+  _ledOnGradient = new QRadialGradient(35, 190, 20);
   _ledOnGradient->setColorAt(.0, 0x2fafff);
   _ledOnGradient->setColorAt(.6, 0x0000ff);
 
-  _ledOffGradient = new QRadialGradient(35, 179, 20);
+  _ledOffGradient = new QRadialGradient(35, 190, 20);
   _ledOffGradient->setColorAt(.0, 0x000090);
   _ledOffGradient->setColorAt(.9, Qt::black);
 
-  _midiActLed = new QGraphicsRectItem(25, 175, 20, 8);
+  _midiActLed = new QGraphicsRectItem(25, 190, 20, 8);
   _midiActLed->setPen(QColor(40, 40, 40));
   _midiActLed->setBrush(*_ledOffGradient);
   addItem(_midiActLed);
@@ -551,9 +533,9 @@ void Scene::display_off(void)
   // Finally turn off backlight
   _lcdBackground->setBrush(_lcdOffBackgroundColor);
 
-  // And turn off buttons
-  _allButton->setDown(false);
-  _muteButton->setDown(false);
+  // And turn off check buttons
+  _allButton->setChecked(false);
+  _muteButton->setChecked(false);
 }
 
 
@@ -698,12 +680,13 @@ void Scene::set_lcd_inactive_on_color(QColor color)
 }
 
 
+// TODO: Rename to set_model_layout() and add proper logo placements as well?
 void Scene::set_model_name(QString name, QString version)
 {
   if (name == "SC-55mkII")
-    _modelNameText->setHtml("<html><head><body style=\" white-space: pre-wrap; font-family:Sans Serif; font-style:italic; text-decoration:none;\"><font style=\"font-size:17pt; font-weight:normal; color: #e6a124\">SC-55mkII</font>");
+    _sc55mk2Text->show();
   else
-    _modelNameText->setPlainText("");
+    _sc55mk2Text->hide();
 }
 
 
@@ -1035,25 +1018,18 @@ void Scene::_init_lcd_text(QGraphicsTextItem **item, QFont &font, QColor &color,
 }
 
 
-SynthButton::SynthButton(QWidget *parent)
-  : QPushButton(parent)
+SynthButton::SynthButton(enum Direction direction, enum Shape shape,
+                         QWidget *parent)
+  : QPushButton(parent),
+    _direction(direction),
+    _shape(shape),
+    _hOffset(2)
 {
-  setStyleSheet("color: #aaa;"			\
-		"border: 2px solid #555; "	\
-		"border-radius: 5px;"		\
-		"border-style: outset;"		\
-		"background: black;"		\
-		"padding: 5px");
   setAttribute(Qt::WA_TranslucentBackground);
   setAutoRepeat(true);
   setAutoRepeatDelay(500);
   setAutoRepeatInterval(120);
-  setIconSize(QSize(9, 9));
 }
-
-
-SynthButton::~SynthButton()
-{}
 
 
 void SynthButton::mousePressEvent(QMouseEvent *event)
@@ -1062,6 +1038,40 @@ void SynthButton::mousePressEvent(QMouseEvent *event)
     emit rightClicked();
   else
     QPushButton::mousePressEvent(event);
+}
+
+
+void SynthButton::paintEvent(QPaintEvent* e)
+{
+  QPushButton::paintEvent(e);            // Draw the normal button first
+
+  QPainter p(this);
+  p.setRenderHint(QPainter::Antialiasing, true);
+  p.setPen(Qt::NoPen);
+  p.setBrush(QColor(0x81, 0x81, 0x81));
+
+  const QRectF r = rect();
+  const qreal cy = r.center().y();
+  qreal cx = r.center().x();
+  cx += (_direction == Right) ? _hOffset : -_hOffset;
+
+  // Triangle size
+  const qreal h = r.height() * 0.45;
+  const qreal w = h * 1.1;
+
+  QPointF apex, top, bot;
+  if (_direction == Right) {
+    apex = { cx + w/2, cy };
+    top  = { cx - w/2, cy - h/2 };
+    bot  = { cx - w/2, cy + h/2 };
+  } else {
+    apex = { cx - w/2, cy };
+    top  = { cx + w/2, cy - h/2 };
+    bot  = { cx + w/2, cy + h/2 };
+  }
+  QPolygonF tri;
+  tri << apex << top << bot;
+  p.drawPolygon(tri);
 }
 
 
@@ -1084,7 +1094,10 @@ void GrooveRect::paint(QPainter *painter, const QStyleOptionGraphicsItem *option
 
 
 VolumeDial::VolumeDial(QWidget *parent)
-{}
+{
+  _knob = new QSvgRenderer{QStringLiteral(":/images/volume_knob.svg")};
+}
+
 
 void VolumeDial::paintEvent(QPaintEvent *event)
 {
@@ -1096,19 +1109,55 @@ void VolumeDial::paintEvent(QPaintEvent *event)
   // Max / min dots
   painter.setBrush(QColor(0xbb, 0xbb, 0xbb));
   painter.setPen(QColor(0, 0, 0, 0));
-  painter.drawEllipse(15, 70, 5, 5);
-  painter.drawEllipse(55, 70, 5, 5);
+  painter.drawEllipse(15, 79, 5, 5);
+  painter.drawEllipse(60, 79, 5, 5);
 
-  // Background
-  painter.setBrush(QColor(0x2b, 0x2b, 0x2b));
-  painter.drawEllipse(5, 5, 65, 65);
+  // Black outer background circle
+  painter.setBrush(QColor(0, 0, 0));
+  painter.drawEllipse(0, 0, 80, 80);
 
-  // Knob
-  QPointF center(width() / 2., height() / 2.);
+  // Grey middle circle
+  painter.setBrush(QColor(0x3b, 0x3b, 0x3b));
+  painter.drawEllipse(2, 2, 76, 76);
+
+  // Black inner circle
+  painter.setBrush(QColor(0, 0, 0));
+  painter.drawEllipse(5, 5, 70, 70);
+
+  const QPointF center(width() / 2.0, height() / 2.0 - 2);
+  const qreal knobSize   = 65.0;
+  const qreal knobRadius = knobSize * 0.454;
+  const QRectF target(-knobSize / 2.0, -knobSize / 2.0, knobSize, knobSize);
+
+  // Rotating knob
+  painter.save();
   painter.translate(center);
   painter.rotate(-150 + 3 * value());
-  painter.setBrush(QColor(0, 0, 0));
-  painter.drawEllipse(-25, -25, 50, 50);
-  painter.setBrush(QColor(0xa9, 0xa9, 0x70));
-  painter.drawRect(-1, -25, 5, 12);
+  _knob->render(&painter, target);
+  painter.restore();
+
+  // Light effect on rotating knob
+  painter.save();
+  QPainterPath clip;
+  clip.addEllipse(center, knobRadius, knobRadius);
+  painter.setClipPath(clip);
+
+  // Bright at top-left, fading out. Plain source-over so it actually lightens
+  // the black body
+  QRadialGradient hi(center.x() - knobRadius * 0.45,
+                     center.y() - knobRadius * 0.45,
+                     knobRadius * 1.5);
+  hi.setColorAt(0.0, QColor(255, 255, 255, 90));
+  hi.setColorAt(0.6, QColor(255, 255, 255, 0));
+  painter.fillPath(clip, hi);
+
+  // Shadow toward bottom-right
+  QRadialGradient sh(center.x() + knobRadius * 0.5,
+                     center.y() + knobRadius * 0.5,
+                     knobRadius * 1.5);
+  sh.setColorAt(0.0, QColor(0, 0, 0, 90));
+  sh.setColorAt(0.7, QColor(0, 0, 0, 0));
+  painter.fillPath(clip, sh);
+
+  painter.restore();
 }
