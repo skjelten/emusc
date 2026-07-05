@@ -1,28 +1,20 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<!-- Created with Inkscape (http://www.inkscape.org/) -->
 
 <svg
-   width="5.5717487mm"
-   height="3.9873536mm"
-   viewBox="0 0 5.5717487 3.9873536"
+   width="5.5717506mm"
+   height="3.9718502mm"
+   viewBox="0 0 5.5717506 3.9718502"
    version="1.1"
    id="svg1"
    xmlns="http://www.w3.org/2000/svg"
    xmlns:svg="http://www.w3.org/2000/svg">
-  <defs
-     id="defs1" />
   <g
-     id="layer1"
-     transform="translate(-49.715414,-40.306613)">
-    <text
-       xml:space="preserve"
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:6.35px;line-height:1.25;font-family:'Liberation Sans Narrow';-inkscape-font-specification:'Liberation Sans Narrow, Normal';font-variant-ligatures:none;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#b3b3b3;stroke-width:0.264583"
-       x="49.414654"
-       y="44.293964"
-       id="text3"><tspan
-         id="tspan3"
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:6.35px;font-family:Uroob;-inkscape-font-specification:Uroob;font-variant-ligatures:none;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#b3b3b3;stroke-width:0.264583"
-         x="49.414654"
-         y="44.293964">GM</tspan></text>
+     transform="translate(-49.715411,-40.322114)">
+    <path
+       style="fill:#b3ccb3;fill-opacity:1;stroke-width:0.264583"
+       d="m 52.419121,40.486445 q 0,-0.179834 0.297657,-0.161231 0.07131,0.0062 0.117822,0.0062 v 0.0031 h 0.06511 l 0.95188,2.154907 0.954981,-2.154907 h 0.03411 v -0.0031 h 0.260449 q 0.111621,0 0.167432,0.09302 0.0186,0.0279 0.0186,0.06201 v 3.807519 H 54.716655 V 41.8414 l -0.595313,1.413867 h -0.536401 l -0.595313,-1.283642 v 2.322338 H 52.41912 Z" />
+    <path
+       style="fill:#b3ccb3;fill-opacity:1;stroke-width:0.264583"
+       d="m 51.901324,42.253779 q 0.189135,0 0.189135,0.142627 v 1.897558 h -0.539502 v -0.16123 q -0.186035,0.16123 -0.434082,0.16123 h -0.713134 q -0.285254,0 -0.486792,-0.182934 -0.201538,-0.182935 -0.201538,-0.458887 v -2.675806 q 0,-0.282153 0.235644,-0.468188 0.235645,-0.186035 0.520899,-0.186035 h 0.936377 q 0.275952,0 0.47749,0.189136 0.198437,0.189135 0.198437,0.465087 v 0.254249 h -0.561206 q 0,-0.20774 -0.02481,-0.275953 -0.04961,-0.142627 -0.220141,-0.142627 h -0.768945 q -0.120923,0 -0.176734,0.07752 -0.05581,0.07751 -0.05581,0.189136 v 2.499072 q 0,0.232544 0.232544,0.232544 h 0.570507 q 0.176734,0 0.303858,-0.124023 0.127124,-0.124024 0.127124,-0.297657 V 42.793286 H 51.00835 v -0.396875 q 0,-0.111621 0.05581,-0.130225 0.05581,-0.0186 0.111622,-0.0124 z" />
   </g>
 </svg>
