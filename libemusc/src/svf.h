@@ -25,10 +25,6 @@
 #define __SVF_H__
 
 
-#include <cmath>
-#include <algorithm>
-
-
 namespace EmuSC {
 
 class SVF
