@@ -1,4 +1,5 @@
-# EmuSC
+![EmuSC_logo](https://raw.githubusercontent.com/wiki/skjelten/emusc/images/emusc-logo.png)
+---
 
 EmuSC is a software synthesizer that aims to emulate the Roland Sound Canvas SC-55 lineup to recreate the original sounds of these '90s era synthesizers. Emulation is done by extracting relevant information from the original control and PCM ROMs and reimplement the synth's behavior in modern C++.
 
