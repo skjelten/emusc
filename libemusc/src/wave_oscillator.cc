@@ -29,8 +29,7 @@ namespace EmuSC {
 WaveOscillator::WaveOscillator(ControlRom::Sample *ctrlSample,
                                std::vector<float> *pcmSamples,
                                std::function<void(void)> cb)
-  : _pingPongReverse(false),
-    _pcmSamples(pcmSamples),
+  : _pcmSamples(pcmSamples),
     _phase(0.0f),
     _loopMode{ctrlSample->loopMode},
     _firstRunCompleteCallback(cb),
@@ -46,11 +45,12 @@ WaveOscillator::WaveOscillator(ControlRom::Sample *ctrlSample,
   _loopStart = _sampleEnd - ctrlSample->loopLen;
   _loopLength = ctrlSample->loopLen;
 
-  _index = _sampleStart;
+  if (_loopMode == LoopMode::PingPong) {
+    _sampleEnd = ctrlSample->sampleLen + _loopLength + 1;
+    _loopStart = _sampleEnd - 2 * ctrlSample->loopLen - 1;
+  }
 
-  // Priming the sliding window values
-  y0 = _fetch_sample(_index);
-  y1 = _fetch_sample(_index + 1);
+  _index = _sampleStart;
 }
 
 
@@ -58,53 +58,22 @@ void WaveOscillator::get_sample_set(Pitch *pitch, float pitchBend,
                                     std::array<float, 256> &dryBus)
 {
   for (int i = 0; i < 256; i++) {
-    // Linear interpolation
-    float output = y0 + (y1 - y0) * _phase;
-
-    // Ping-pong backward pass uses point-reflection (mirror + invert)
-    if (_pingPongReverse)
-      output = -output;
-
+    float output = _interpolate();
     dryBus[i] = output;
 
     _phase += pitchBend * pitch->get_phase_increment() / 16384.0f;
     while (_phase >= 1.0f) {
       _phase -= 1.0f;
 
-      // First-run-complete callback (pitch init->sustain switch on looping
-      // samples, termination on one-shots). Fires once when we first reach
-      // the end of the sample.
       if (!_firstRunComplete && _index >= _sampleEnd) {
         _firstRunComplete = true;
         if (_firstRunCompleteCallback) _firstRunCompleteCallback();
       }
 
-      if (_loopMode == LoopMode::PingPong && _firstRunComplete) {
-        // Reflective ping-pong over [_loopStart .. _sampleEnd].
-        if (!_pingPongReverse) {
-          _index++;
-          if (_index >= _sampleEnd) {             // Reached top -> turn
-            _index = _sampleEnd;
-            _pingPongReverse = true;
-          }
-        } else {
-          _index--;
-          if (_index <= _loopStart - 2) {         // Reached bottom -> turn
-            _index = _loopStart;
-            _pingPongReverse = false;
-          }
-        }
-      } else {
-        // Forward (and the initial forward pass before the first loop).
-        _index++;
-
-        if (_loopMode == LoopMode::Forward && _index > _sampleEnd)
-          _index = _loopStart;
-      }
+      _index++;
+      if (_index > _sampleEnd)
+	_index = _loopStart;
     }
-
-    y0 = _fetch_sample(_index);
-    y1 = _fetch_sample(_pingPongReverse ? _index - 1 : _index + 1);
   }
 }
 
@@ -115,4 +84,33 @@ float WaveOscillator::_fetch_sample(int index)
   return _pcmSamples->at(index);
 }
 
+
+// Interpolation algorithm is based on information from the Nuked-SC55 project
+// by nukeykt
+float WaveOscillator::_interpolate()
+{
+  int i = _index;
+  auto step = [&]() {
+    i++;
+    if (i > _sampleEnd)
+      i = _loopStart;
+  };
+
+  float s0 = _fetch_sample(i);  step();
+  float s1 = _fetch_sample(i);  step();
+  float s2 = _fetch_sample(i);  step();
+  float s3 = _fetch_sample(i);
+
+  // Hardware uses only the top 7 bits of the fractional phase.
+  int r = static_cast<int>(_phase * 128.0f) & 127;
+
+  constexpr float q = 1.0f / 4096.0f;
+  float c0 = _interpolationLUT[0][r] * q;
+  float c1 = _interpolationLUT[1][r] * q;
+  float c2 = _interpolationLUT[2][r] * q;
+
+  return s0 + c0 * (s1 - s0) + c1 * (s2 - s1) + c2 * (s3 - s2);
 }
+
+
+} // namespace EmuSC

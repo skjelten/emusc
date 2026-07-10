@@ -138,33 +138,52 @@ uint32_t WaveRom::_find_samples_rom_address(uint32_t address,
 
 
 int WaveRom::_read_samples(std::vector<char> &romData,
-                          struct ControlRom::Sample &ctrlSample,
-                          enum ControlRom::SynthGen synthGen)
+                           struct ControlRom::Sample &ctrlSample,
+                           enum ControlRom::SynthGen synthGen)
 {
-  uint32_t romAddress = _find_samples_rom_address(ctrlSample.address, synthGen);
-
-  float sample = 0;
   struct Samples s;
-  s.samplesF.reserve(ctrlSample.sampleLen + 1);
+  float sample = 0;
 
-  // Read PCM samples from ROM
-  for (int i = 0; i <= ctrlSample.sampleLen; i++) {
+  const int sampleLen = ctrlSample.sampleLen;
+  const int loopStart = sampleLen - ctrlSample.loopLen;
+  const int span      = ctrlSample.loopLen;
+  const bool pingPong = (ctrlSample.loopMode == 1);
+
+  const uint32_t romAddress =
+    _find_samples_rom_address(ctrlSample.address, synthGen);
+
+  s.samplesF.reserve(sampleLen + 1 + (pingPong ? span + 1 : 0));
+
+  // Forward decode for all loop variations
+  for (int i = 0; i <= sampleLen; i++) {
     uint32_t sAddress = romAddress + i;
-    int8_t data = romData[sAddress];
-    uint8_t sByte = romData[((sAddress & 0xFFFFF) >> 5)|(sAddress & 0xF00000)];
-    uint8_t sNibble = (sAddress & 0x10) ? (sByte >> 4 ) : (sByte & 0x0F);
-    int32_t final = ((data << sNibble) << 14);
-
-    // Convert to float and accumulate (interpret as DPCM)
-    float ffinal = (float) final / (1 << 31);
-    sample += ffinal;
-
+    int8_t  data    = romData[sAddress];
+    uint8_t sByte   = romData[((sAddress & 0xFFFFF) >> 5) | (sAddress & 0xF00000)];
+    uint8_t sNibble = (sAddress & 0x10) ? (sByte >> 4) : (sByte & 0x0F);
+    int32_t final   = ((data << sNibble) << 14);
+    sample += (float) final / (1 << 31);
     s.samplesF.push_back(sample);
   }
 
-  _sampleSets.push_back(s);
+  // Ping-pong loop: Append the turn + reflected reverse segment
+  // (span + 1 extra entries; total cycle = 2*span + 2 positions)
+  if (pingPong && span > 0) {
+    const float sL = (loopStart > 0) ? s.samplesF[loopStart - 1] : 0.0f;
+    const float sE   = s.samplesF[sampleLen - 1];
+    const float sEd  = s.samplesF[sampleLen];
+    s.samplesF.push_back(sL + (sEd - sE));
 
+    // Reverse pass: vertical reflection about s[L]: 2*s[L] - s[E-m]
+    for (int m = 1; m < span; m++)
+      s.samplesF.push_back(2.0f * sL - s.samplesF[sampleLen - m - 1]);
+
+    // Bottom-turn stall value: s[L].
+    s.samplesF.push_back(sL);
+  }
+
+  _sampleSets.push_back(s);
   return s.samplesF.size();
 }
+
 
 }
