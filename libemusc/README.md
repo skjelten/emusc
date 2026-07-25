@@ -9,7 +9,7 @@ Note that this project is in no way endorsed by or affiliated with Roland Corp.
 
 ## Dependencies
 
-libEmuSC only depends on C++11 with threads and CMake, and should be portable to almost any system. See [the wiki](https://github.com/skjelten/emusc/wiki/Build-Instructions) for detailed build instructions.
+libEmuSC only depends on C++17 with threads and CMake, and should be portable to almost any system. See [the wiki](https://github.com/skjelten/emusc/wiki/Build-Instructions) for detailed build instructions.
 
 
 ## License
