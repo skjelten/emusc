@@ -1,4 +1,4 @@
-/*  
+/*
  *  This file is part of libEmuSC, a Sound Canvas emulator library
  *  Copyright (C) 2022-2026  Håkon Skjelten
  *
@@ -16,19 +16,10 @@
  *  along with libEmuSC. If not, see <http://www.gnu.org/licenses/>.
  */
 
-// Initial version of reverb system effect using networks of 3 series allpass
-// filters and 4 parallel comb filters for reverb mode 1-6.
-// Mode 7 and 8 are implemented using only a delay line
-
-// TODO: Verify correct structure for sound canvas reverb filters and adjust
-// parameters for correct room size. Fix proper paning for Panning delay mode.
-
 
 #include "reverb.h"
 
 #include <algorithm>
-#include <iostream>
-#include <vector>
 #include <cmath>
 
 
@@ -37,121 +28,215 @@ namespace EmuSC {
 
 Reverb::Reverb(Settings *settings)
   : _settings(settings),
-    _effectMix(0.3),
-    _sampleRate(settings->sample_rate()),
-    _time(1.0),
-    _panning(0),
-    _lp1Filter(_sampleRate),
+    _sweepIndex(0),
+    _preLpfState(0.0f),
+    _preLpfA(0.0f),
+    _preLpfB(1.0f),
+    _dampA(0.0f),
+    _dampB(0.0f),
+    _gLoop(0.0f),
+    _outGain(0.0f),
+    _character(-1),
     _preLPF(-1),
     _reverbTime(-1),
     _delayFeedback(-1)
 {
-  const int maxDelay = 2000;                       // Number of samples
-
-  // FreeVerb inspired delay lengths for 44100 Hz sample rate
-  int delayLengths[9] = { 225, 341, 441, 1116, 1356, 1422, 1617, 211, 179 };
-  if (_sampleRate != 44100) {
-    float scaler = _sampleRate / 44100;
-    for (auto &length : delayLengths) {      
-      int scaledDelay = (int) std::floor(scaler * length);
-      if ( (scaledDelay & 1) == 0) scaledDelay++;
-      length = scaledDelay;
-    }
-  }
-
-  // Initialize all-pass filters
-  allPassFilters.emplace_back(maxDelay, delayLengths[0]);
-  allPassFilters.emplace_back(maxDelay, delayLengths[1]);
-  allPassFilters.emplace_back(maxDelay, delayLengths[2]);
-
-  // Initialize comb filters
-  combFilters.emplace_back(maxDelay, delayLengths[3], _sampleRate);
-  combFilters.emplace_back(maxDelay, delayLengths[4], _sampleRate);
-  combFilters.emplace_back(maxDelay, delayLengths[5], _sampleRate);
-  combFilters.emplace_back(maxDelay, delayLengths[6], _sampleRate);
-
-  // Delay testing: Min delay=0, Max delay=0.425s
-  _delayFilter = new Delay(0.5 * _sampleRate, 100);
-  _delayFilter->set_feedback(0);
-
-  _delayLeft = new Delay(maxDelay, delayLengths[7]);
-  _delayRight = new Delay(maxDelay, delayLengths[8]);
+  _rBuffer.fill(0.0f);
 }
 
 
-Reverb::~Reverb()
+void Reverb::update(void)
 {
-  delete _delayFilter;
+  int character = _settings->get_param(PatchParam::ReverbCharacter);
+  if (character != _character) {
+    _set_character(character);
+    _reverbTime = -1;
+    _delayFeedback = -1;
+  }
 
-  delete _delayLeft;
-  delete _delayRight;
+  int preLPF = _settings->get_param(PatchParam::ReverbPreLPF);
+  if (preLPF != _preLPF)
+    _set_pre_lpf(preLPF);
+
+  int reverbTime = _settings->get_param(PatchParam::ReverbTime);
+  if (reverbTime != _reverbTime)
+    _set_reverb_time(reverbTime);
+
+  int delayFeedback = _settings->get_param(PatchParam::ReverbDelayFeedback);
+  if (delayFeedback != _delayFeedback)
+    _set_delay_feedback(delayFeedback);
+
+  _set_level(_settings->get_param(PatchParam::ReverbLevel));
 }
 
 
-// Process a single audio sample
-void Reverb::process_sample(float *input, float *output)
+// Reverb algorithm based on information from the Nuked-SC55 project by nukeykt
+void Reverb::process_sample(float input, float output[2])
 {
-  // Reverb is mono input and stereo output based on time difference
-  float sample = (input[0] + input[1]) / 2;
-
-  // Reverb time is guessed to be a linear scale for T60 between 0.0 and 4.0
-  if (_reverbTime != _settings->get_param(PatchParam::ReverbTime)) {
-    _reverbTime = _settings->get_param(PatchParam::ReverbTime);
-
-    for (auto& cFilter : combFilters)
-      cFilter.set_coefficient((float) _reverbTime / 32.0);
-
-    _delayFilter->set_delay((_reverbTime / 127.0) * _sampleRate * 0.430);
+  if (_character < 0 || _character > 7) {
+    output[0] = output[1] = 0;
+    return;
   }
 
-  // Run through pre lowpass filter
-  if (_preLPF != _settings->get_param(PatchParam::ReverbPreLPF)) {
-    _preLPF = _settings->get_param(PatchParam::ReverbPreLPF);
-    _lp1Filter.calculate_alpha(_lpCutoffFreq[_preLPF]);
-  }
-  float inputAP = _lp1Filter.apply(sample);
+  auto read = [&](uint16_t base) -> float {
+    return _rBuffer[(base + _sweepIndex) & rBufferMask];
+  };
 
-  if (_settings->get_param(PatchParam::ReverbCharacter) < 6) {
+  auto write = [&](uint16_t base, float v) {
+    _rBuffer[(base + _sweepIndex) & rBufferMask] = v;
+  };
 
-    // Process allpass filters in series
-    for (auto &aFilter : allPassFilters)
-      inputAP = aFilter.process_sample(inputAP);
+  _preLpfState = _preLpfA * _preLpfState + _preLpfB * input;
+  float x = _preLpfState * uByte(_activeCharRegs.c4, true);
 
-    // Process comb filters in parallell
-    float combOutput = 0.0f;
-    for (auto& cFilter : combFilters)
-      combOutput += cFilter.process_sample(inputAP);
+  const float dLo   = uByte(_activeCharRegs.c4, false);
+  const float d4Lo  = uByte(_activeCharRegs.c5, false);
+  const bool  dEn   = (_activeCharRegs.c4 & 0x30) != 0;
+  const bool  d4En  = (_activeCharRegs.c5 & 0x30) != 0;
+  const float aTank = sByte(_activeCharRegs.c6, true);
+  const float bTank = uByte(_activeCharRegs.c6, false);
 
-    output[0] = output[1] = (1.0 - _effectMix) * (*input);
-    output[0] += _effectMix * (_delayLeft->process_sample(combOutput));
-    output[1] += _effectMix * (_delayRight->process_sample(combOutput));
+  float D1 = read(_activeCharRegs.p28[1]);
+  float n1 = dEn ? (x - 0.5f * D1) : x;
+  float o1 = dLo * n1 + D1;
 
-  // Delay modes
-  } else if (_settings->get_param(PatchParam::ReverbCharacter) >= 6) {
-    if (_delayFeedback !=_settings->get_param(PatchParam::ReverbDelayFeedback)){
-      _delayFeedback = _settings->get_param(PatchParam::ReverbDelayFeedback);
-      _delayFilter->set_feedback(_delayFeedback / 180.0);
-    }
+  float D2 = read(_activeCharRegs.p28[2]);
+  float n2 = dEn ? (o1 - 0.5f * D2) : o1;
+  float o2 = dLo * n2 + D2;
 
-    // Delay mode
-    if (_settings->get_param(PatchParam::ReverbCharacter) == 6) {
-      float outputAP = _delayFilter->process_sample(inputAP);
+  float D3 = read(_activeCharRegs.p28[3]);
+  float n3 = dEn ? (o2 - 0.5f * D3) : o2;
+  float o3 = dLo * n3 + D3;
 
-      // FIXME: Add stereo mixer
-      output[0] = output[1] = outputAP;
+  float dA1 = read(_activeCharRegs.p28[5]);
 
-    // Panning delay mode
-    } else {
-      if (!_panning)
-	output[0] = _delayFilter->process_sample(inputAP);
-      else
-	output[1] = _delayFilter->process_sample(inputAP);
+  float D4 = read(_activeCharRegs.p28[4]);
+  float n4 = d4En ? (o3 - 0.5f * D4) : o3;
+  float o4 = d4Lo * n4 + D4;
 
-      if (!(_delayFilter->get_readIndex() % (int) (_reverbTime * _sampleRate * 0.430)))
-//      if (_delayFilter->get_readIndex() == 0)
-	_panning = !_panning;
-    }
+  float dB1 = read(_activeCharRegs.p29[1]);
+  float fbA = read(_activeCharRegs.p29[0]);
+  write(_activeCharRegs.p28[0], n1);
+  float fbB = read(_activeCharRegs.p29[8]);
+  write(_activeCharRegs.p28[1], n2);
+  write(_activeCharRegs.p28[2], n3);
+  write(_activeCharRegs.p28[3], n4);
+
+  _dampA = uByte(_activeCharRegs.c7, true) * _dampA +
+           sByte(_activeCharRegs.c7, false) * fbA;
+  _dampB = uByte(_activeCharRegs.c8, true) * _dampB +
+           sByte(_activeCharRegs.c8, false) * fbB;
+
+  float inA = o4 + _gLoop * _dampA;
+  float vA1 = inA + aTank * dA1;
+  float mA1 = dA1 + bTank * vA1;
+
+  float dA2  = read(_activeCharRegs.p28[9]);
+  float dB2  = read(_activeCharRegs.p29[5]);
+  float inA2 = read(_activeCharRegs.p28[8]);
+  write(_activeCharRegs.p28[4], vA1);
+  float inB2 = read(_activeCharRegs.p29[4]);
+  write(_activeCharRegs.p28[5], mA1);
+
+  float inB = o4 + _gLoop * _dampB;
+  float vB1 = inB + aTank * dB1;
+  float mB1 = dB1 + bTank * vB1;
+  write(_activeCharRegs.p29[0], vB1);
+
+  float wetL = read(_activeCharRegs.p28[6]) + read(_activeCharRegs.p28[10]) +
+               read(_activeCharRegs.p29[2]) + read(_activeCharRegs.p29[6]);
+  float wetR = read(_activeCharRegs.p28[7]) + read(_activeCharRegs.p28[11]) +
+               read(_activeCharRegs.p29[3]) + read(_activeCharRegs.p29[7]);
+
+  float vA2 = inA2 + aTank * dA2;
+  float mA2 = dA2 + bTank * vA2;
+  float vB2 = inB2 + aTank * dB2;
+  float mB2 = dB2 + bTank * vB2;
+  write(_activeCharRegs.p29[1], mB1);
+  write(_activeCharRegs.p28[8], vA2);
+  write(_activeCharRegs.p28[9], mA2);
+  write(_activeCharRegs.p29[4], vB2);
+  write(_activeCharRegs.p29[5], mB2);
+
+  _sweepIndex = (_sweepIndex - 1) & rBufferMask;
+
+  output[0] = wetL * _outGain;
+  output[1] = wetR * _outGain;
+}
+
+
+void Reverb::_set_character(int character)
+{
+  _character = character;
+
+  // TODO: Firmware fades out before starting with the new character.
+  //       We simply reset the ring buffer and switch character instantly, but
+  //       must add the following:
+  //        - Fade-out (measured to ~165 ms)
+  //        - Silent reset time (measured to ~280 ms)
+
+  // Room1-3, Hall1-2, Plate
+  if (character >= 0 && character < 6) {
+    _activeCharRegs = *_charRegs[character];
+
+    std::fill(_rBuffer.begin(), _rBuffer.end(), 0.0f);
+    _dampA = _dampB = 0.0f;
+    _preLpfState = 0.0f;
+
+  // Delay, Panning Delay
+  } else if (character == 6 || character == 7) {
+    _activeCharRegs = _crDelayBase;
+    std::fill(_rBuffer.begin(), _rBuffer.end(), 0.0f);
+    _dampA = _dampB = 0.0f;
+    _preLpfState = 0.0f;
   }
 }
 
+
+void Reverb::_set_reverb_time(int reverbTime)
+{
+  _reverbTime = reverbTime;
+
+  int rt = std::clamp(reverbTime, 0, 127);
+  if (_character >= 0 && _character <= 5) {
+    _gLoop = (_timeTargetLUT[rt] >> 1) / 64.0f;         // Measured & verified
+
+  } else if (_character == 6 || _character == 7) {      // Measured & verified
+    uint16_t tapR = (uint16_t)(0x16 + 112 * rt);
+    uint16_t tapL = (_character == 7) ? (uint16_t)(0x16 + 56 * rt) : tapR;
+    _activeCharRegs.p28[6] = tapL;  _activeCharRegs.p28[10] = tapL;   // wet L
+    _activeCharRegs.p29[2] = tapL;  _activeCharRegs.p29[6]  = tapL;
+    _activeCharRegs.p28[7] = tapR;  _activeCharRegs.p28[11] = tapR;   // wet R
+    _activeCharRegs.p29[3] = tapR;  _activeCharRegs.p29[7]  = tapR;
+    _activeCharRegs.p29[8] = tapR;                 // Feedback tap (damp B)
+  }
 }
+
+
+void Reverb::_set_pre_lpf(int preLPF)
+{
+  _preLPF = preLPF;
+
+  int k = std::clamp(preLPF, 0, 4);        // PreLPF level 0-7, but capped at 4
+
+  _preLpfA = (8 * k) / 64.0f;
+  _preLpfB = (0x3f - 8 * k) / 64.0f;
+}
+
+
+void Reverb::_set_delay_feedback(int delayFeedback)
+{
+  _delayFeedback = delayFeedback;
+
+  if (_character == 6 || _character == 7)
+    _gLoop = fbToTarget(delayFeedback) / 128.0f;
+}
+
+
+void Reverb::_set_level(int level)
+{
+  _outGain = std::clamp(level, 0, 127) / 32.0f;
+}
+
+
+}  // namespace EmuSC

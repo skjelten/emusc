@@ -3,16 +3,10 @@ cmake_minimum_required(VERSION 3.8...3.30)
 configure_file(config.h.in config.h)
 
 add_library(emusc
-  allpass_filter.cc
-  allpass_filter.h
   chorus.cc
   chorus.h
-  comb_filter.cc
-  comb_filter.h
   control_rom.cc
   control_rom.h
-  delay.cc
-  delay.h
   envelope.cc
   envelope.h
   lowpass_filter1.cc

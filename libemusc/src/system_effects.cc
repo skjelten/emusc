@@ -78,8 +78,7 @@ int SystemEffects::apply(std::array<std::array<float, 256>, 2> &chorusBus,
     // Apply reverb if active
     if (_reverbLevel) {
       float rSample[2] = { 0, 0 };
-      float rInput[2];
-      rInput[0] = rInput[1] = ((reverbBus[0][i] + reverbBus[1][i]) / 2) +
+      float rInput = ((reverbBus[0][i] + reverbBus[1][i]) / 2) +
 	((chorusBus[0][i] + chorusBus[1][i]) / 2) *
 	(float) _chorusSendLevelToReverb / 128.0;
 
@@ -104,6 +103,8 @@ void SystemEffects::update(void)
   _chorusSendLevelToReverb=_settings->get_param(PatchParam::ChorusSendToReverb);
 
   _reverbLevel = _settings->get_param(PatchParam::ReverbLevel);
+
+  _reverb->update();
 }
 
 }
