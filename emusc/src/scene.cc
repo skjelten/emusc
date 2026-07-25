@@ -27,6 +27,7 @@
 #include <QMessageBox>
 #include <QSettings>
 #include <QToolButton>
+#include <QGraphicsColorizeEffect>
 
 #include "scene.h"
 
@@ -106,13 +107,18 @@ Scene::Scene(QWidget *parent)
   gradient.setColorAt(0.97, Qt::black);
   gradient.setColorAt(1.0, Qt::transparent);
   blackBackground->setBrush(QBrush(gradient));
-
   addItem(blackBackground);
 
-//    QGraphicsTextItem *logoText = new QGraphicsTextItem;
-//    logoText->setHtml("<html><head><body style=\" white-space: pre-wrap; font-family:Sans Serif; font-style:normal; text-decoration:none;\"><font style=\"font-size:18pt; font-weight:bold; color: #bbbbbb\">EmuSC</font>");
-//    logoText->setPos(QPointF(500, -35));
-//    addItem(logoText);
+  QGraphicsSvgItem *emuscLogo = new QGraphicsSvgItem(":/images/emusc_logo.svg");
+  emuscLogo->setScale(0.08);
+  emuscLogo->setPos(105, 187);
+  emuscLogo->setOpacity(0.85);
+  addItem(emuscLogo);
+
+  QGraphicsColorizeEffect* emuscLogoColorEffect = new QGraphicsColorizeEffect();
+  emuscLogoColorEffect->setColor(QColor(0xbb, 0xbb, 0xbb, 0xff));
+  emuscLogoColorEffect->setStrength(1.0);
+  emuscLogo->setGraphicsEffect(emuscLogoColorEffect);
 
   // Note: This stays hidden and is turned on if mk2 ROM is selected on power on
   _sc55mk2Text = new QGraphicsSvgItem(":/text/sc-55mkII.svg");

@@ -4,6 +4,7 @@
     </qresource>
 
     <qresource>
+        <file alias="icon-128.png">icons/128x128/emusc.png</file>
         <file alias="icon-256.png">icons/256x256/emusc.png</file>
     </qresource>
 
@@ -12,6 +13,7 @@
     </qresource>
 
     <qresource>
+        <file>images/emusc_logo.svg</file>
         <file>images/gm_logo.svg</file>
         <file>images/gs_logo.svg</file>
         <file>images/synth_bkg.png</file>

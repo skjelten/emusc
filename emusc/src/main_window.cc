@@ -44,6 +44,7 @@
 #include <QStatusBar>
 #include <QString>
 #include <QStringList>
+#include <QSvgWidget>
 #include <QTextEdit>
 
 #include "config.h"
@@ -503,18 +504,62 @@ void MainWindow::_display_control_rom_info(void)
 
 void MainWindow::_display_about_dialog()
 {
-  QString libemuscVersion(EmuSC::Synth::version().c_str());
+  QDialog dialog(this);
+  dialog.setWindowTitle(QObject::tr("About EmuSC"));
+  dialog.setMinimumWidth(400);
 
-  QMessageBox::about(this, tr("About EmuSC"),
-		     QString("EmuSC is a Roland Sound Canvas emulator\n"
-			     "\n"
-			     "EmuSC version " VERSION "\n"
-			     "libEmuSC version " + libemuscVersion + "\n"
-			     "libQT version " QT_VERSION_STR "\n"
-			     "\n"
-			     "Copyright (C) 2026 Håkon Skjelten\n"
-			     "\n"
-			     "Licensed under GPL v3 or any later version"));
+  QVBoxLayout *mainLayout = new QVBoxLayout(&dialog);
+  mainLayout->setSpacing(16);
+
+  QSvgWidget *logoWidget = new QSvgWidget(":/images/emusc_logo.svg", &dialog);
+  QSize originalSize = logoWidget->renderer()->defaultSize();
+  int logoWidth = 250;
+  int logoHeight = (originalSize.height() * logoWidth) / originalSize.width();
+  logoWidget->setFixedSize(logoWidth, logoHeight);
+  mainLayout->addWidget(logoWidget, 0, Qt::AlignCenter);
+  mainLayout->addSpacing(16);
+
+  QHBoxLayout *contentLayout = new QHBoxLayout();
+  QLabel *logoLabel = new QLabel(&dialog);
+
+  QPixmap pm(":/icon-128.png");
+  QPixmap scaledPixmap = pm.scaled(64, 64, Qt::KeepAspectRatio,
+                                   Qt::SmoothTransformation);
+  logoLabel->setPixmap(scaledPixmap);
+  logoLabel->setAlignment(Qt::AlignCenter);
+  contentLayout->addWidget(logoLabel, 0, Qt::AlignTop);
+
+  QLabel *bodyLabel = new QLabel(&dialog);
+  QString tempString = ("EmuSC is a Roland Sound Canvas emulator<br><br>"
+                        "EmuSC version %1<br>"
+                        "libEmuSC version %2<br>"
+                        "libQT version %3<br><br>"
+                        "Copyright © 2026 Håkon Skjelten<br><br>"
+                        "Licensed under GPL v3 or any later version<br><br>"
+                        "Website: <a href='https://github.com/skjelten/emusc'>github.com/skjelten/emusc</a>");
+  QString bodyString = tempString
+    .arg(VERSION)
+    .arg(EmuSC::Synth::version().c_str())
+    .arg(QT_VERSION_STR);
+
+  bodyLabel->setText(QObject::tr(bodyString.toStdString().c_str()));
+  bodyLabel->setOpenExternalLinks(true);
+  bodyLabel->setWordWrap(true);
+  contentLayout->addWidget(bodyLabel, 1);
+
+  mainLayout->addLayout(contentLayout);
+
+  QHBoxLayout *buttonLayout = new QHBoxLayout();
+  buttonLayout->addStretch();
+
+  QPushButton *closeButton = new QPushButton(QObject::tr("Close"), &dialog);
+  closeButton->setDefault(true);
+
+  QObject::connect(closeButton, &QPushButton::clicked, &dialog, &QDialog::accept);
+  buttonLayout->addWidget(closeButton);
+  mainLayout->addSpacing(10);
+  mainLayout->addLayout(buttonLayout);
+  dialog.exec();
 }
 
 
