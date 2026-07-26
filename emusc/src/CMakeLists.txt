@@ -93,7 +93,7 @@ endif()
 
 target_link_libraries (emusc-client ${EXTERNAL_LIBRARIES})
 
-target_compile_features(emusc-client PUBLIC cxx_std_11)
+target_compile_features(emusc-client PUBLIC cxx_std_17)
 target_include_directories(emusc-client PUBLIC "${CMAKE_CURRENT_BINARY_DIR}")
 set_target_properties(emusc-client PROPERTIES CXX_EXTENSIONS OFF)
 
