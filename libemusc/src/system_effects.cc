@@ -28,7 +28,6 @@
 
 #include <algorithm>
 #include <cmath>
-#include <iostream>
 
 
 namespace EmuSC {
@@ -59,38 +58,22 @@ int SystemEffects::apply(std::array<std::array<float, 256>, 2> &chorusBus,
 			 std::array<std::array<float, 256>, 2> &chorusOut,
 			 std::array<std::array<float, 256>, 2> &reverbOut)
 {
+  float cReverbSend;
+
   for (int i = 0; i < 256; i ++) {
-    // Apply chorus if active
-    if (_chorusLevel) {
-      float cSample[2] = { 0, 0 };
-      float cInput = ((chorusBus[0][i] + chorusBus[1][i]) / 2);
+    float cSample[2] = { 0, 0 };
+    float cInput = 0.5f * (chorusBus[0][i] + chorusBus[1][i]);
+    _chorus->process_sample(cInput, cSample, &cReverbSend);
 
-      _chorus->process_sample(cInput, cSample);
+    chorusOut[0][i] = cSample[0];
+    chorusOut[1][i] = cSample[1];
 
-      chorusOut[0][i] = cSample[0] * (_chorusLevel / 128.0);
-      chorusOut[1][i] = cSample[1] * (_chorusLevel / 128.0);
+    float rSample[2] = { 0, 0 };
+    float rInput = 0.5f * (reverbBus[0][i] + reverbBus[1][i]) + cReverbSend;
+    _reverb->process_sample(rInput, rSample);
 
-    } else {
-      chorusOut[0][i] = 0.0;
-      chorusOut[1][i] = 0.0;
-    }
-
-    // Apply reverb if active
-    if (_reverbLevel) {
-      float rSample[2] = { 0, 0 };
-      float rInput = ((reverbBus[0][i] + reverbBus[1][i]) / 2) +
-	((chorusBus[0][i] + chorusBus[1][i]) / 2) *
-	(float) _chorusSendLevelToReverb / 128.0;
-
-      _reverb->process_sample(rInput, rSample);
-
-      reverbOut[0][i] = rSample[0] * (_reverbLevel / 128.0);
-      reverbOut[1][i] = rSample[1] * (_reverbLevel / 128.0);
-
-    } else {
-      reverbOut[0][i] = 0.0;
-      reverbOut[1][i] = 0.0;
-    }
+    reverbOut[0][i] = rSample[0];
+    reverbOut[1][i] = rSample[1];
   }
 
   return 0;
@@ -99,12 +82,8 @@ int SystemEffects::apply(std::array<std::array<float, 256>, 2> &chorusBus,
 
 void SystemEffects::update(void)
 {
-  _chorusLevel = _settings->get_param(PatchParam::ChorusLevel);
-  _chorusSendLevelToReverb=_settings->get_param(PatchParam::ChorusSendToReverb);
-
-  _reverbLevel = _settings->get_param(PatchParam::ReverbLevel);
-
+  _chorus->update();
   _reverb->update();
 }
 
-}
+} //  namespace EmuSC

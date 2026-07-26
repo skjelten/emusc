@@ -9,8 +9,6 @@ add_library(emusc
   control_rom.h
   envelope.cc
   envelope.h
-  lowpass_filter1.cc
-  lowpass_filter1.h
   note.cc
   note.h
   params.h

@@ -47,15 +47,11 @@ private:
   Settings *_settings;
 
   Chorus *_chorus;
-  uint8_t _chorusLevel;
-  uint8_t _chorusSendLevelToReverb;
-
   Reverb *_reverb;
-  uint8_t _reverbLevel;
 
   SystemEffects();
 };
 
-}
+}  // namespace EmuSC
 
 #endif  // __SYSTEM_EFFECTS_H__

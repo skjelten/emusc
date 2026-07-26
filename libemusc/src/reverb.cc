@@ -235,7 +235,7 @@ void Reverb::_set_delay_feedback(int delayFeedback)
 
 void Reverb::_set_level(int level)
 {
-  _outGain = std::clamp(level, 0, 127) / 32.0f;
+  _outGain = std::clamp(level, 0, 127) / 64.0f;
 }
 
 
