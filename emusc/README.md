@@ -9,7 +9,7 @@ Note that this project is in no way endorsed by or affiliated with Roland Corp.
 
 ## Dependencies
 
-EmuSC depends on C++11 and libQT (version 5 or 6) in addition to platform dependent APIs for MIDI and audio. In addition you will need the original control ROM and PCM ROMs.
+EmuSC depends on C++17 and libQT (version 5 or 6) in addition to platform dependent APIs for MIDI and audio. In addition you will need the original control ROM and PCM ROMs.
 
 > [!IMPORTANT]  
 > All modern versions of Windows are supported for both MIDI input and audio output. Windows has however no default MIDI sequencer, so you will need to have either a hardware MIDI port with appropriate device driver, or a "virtual loopback MIDI cable" program. There is unfortunately no free software alternative for the latter alternative today, but for example [LoopBe1](https://www.nerds.de/en/loopbe1.html) and [loopMIDI](https://www.nerds.de/en/loopbe1.html) are freely available for non-commercial use.
