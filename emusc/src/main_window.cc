@@ -566,8 +566,7 @@ void MainWindow::_display_about_dialog()
 // state < 0 => toggle, state == 0 => turn off, state > 0 => turn on
 void MainWindow::power_switch(int newPowerState)
 {
-  if ((newPowerState > 0 && _powerState == 0) ||
-      (newPowerState < 0 && _powerState == 0)) {
+  if (newPowerState != 0 && _powerState == 0) {
     try {
       _emulator->start();
     } catch (QString errorMsg) {
@@ -583,6 +582,7 @@ void MainWindow::power_switch(int newPowerState)
     _viewCtrlRomDataAct->setEnabled(true);
     _turnOnOffAct->setText("Turn off");
     _synthModeMenu->setEnabled(false);
+    _partListAct->setEnabled(true);
 
 #ifdef __USE_QTCHARTS__
     _viewLFOsChartAct->setEnabled(true);
@@ -591,19 +591,29 @@ void MainWindow::power_switch(int newPowerState)
 
     _powerState = 1;
 
-  } else if ((newPowerState == 0 && _powerState == 1) ||
-	     (newPowerState < 0 && _powerState == 1)) {
+  } else if (newPowerState <= 0 && _powerState == 1) {
     _powerState = 0;
 
     _emulator->stop();
 
-    // TODO: Force close synth settings dialog
+    // Close modeless dialogs
+    if (!_synthDialog.isNull())
+      delete _synthDialog;
+    if (!_partListDialog.isNull())
+      delete _partListDialog;
+#ifdef __USE_QTCHARTS__
+    if (!_lfoDialog.isNull())
+      delete _lfoDialog;
+    if (!_envelopeDialog.isNull())
+      delete _envelopeDialog;
+#endif
 
     _panicAct->setDisabled(true);
     _synthSettingsAct->setDisabled(true);
     _viewCtrlRomDataAct->setDisabled(true);
     _turnOnOffAct->setText("Turn on");
     _synthModeMenu->setDisabled(false);
+    _partListAct->setDisabled(true);
 
 #ifdef __USE_QTCHARTS__
     _viewLFOsChartAct->setDisabled(true);
@@ -619,8 +629,10 @@ void MainWindow::_dump_demo_songs(void)
     return;
   
   QString path = QFileDialog::getExistingDirectory(this);
-  int numSongs = _emulator->dump_demo_songs(path);
+  if (path == "")
+    return;
 
+  int numSongs = _emulator->dump_demo_songs(path);
   if (numSongs)
     QMessageBox::information(this,
 			     tr("Demo songs"),
