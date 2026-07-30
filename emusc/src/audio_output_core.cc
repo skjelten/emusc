@@ -31,7 +31,7 @@ const QString CoreDefaultDevice = "System Sound Output Device";
 
 
 AudioOutputCore::AudioOutputCore(EmuSC::Synth *synth)
-  : _synth(synth),
+  : AudioOutput(synth),
     _channels(2),
     _sampleRate(44100)
 {
@@ -125,18 +125,13 @@ OSStatus AudioOutputCore::_callback(AudioUnitRenderActionFlags *ioActionFalgs,
 int AudioOutputCore::_fill_buffer(AudioBufferList *data, UInt32 frames)
 {
   int i = 0;
-  int16_t sample[_channels];
 
   Float32 *left = (Float32 *) data->mBuffers[0].mData;
   Float32 *right = (Float32 *) data->mBuffers[1].mData;
 	  
   for (unsigned int frame = 0; frame < frames; frame++) {
-    _synth->get_next_sample(sample);
-    *left = (Float32) sample[0] / (1 << 15) * _volume;
-    *right = (Float32) sample[1] / (1 << 15) * _volume;
-
-    left++;
-    right++;
+    _get_frame(*left, *right);
+    left++; right++;
     i ++;
   }
 

@@ -26,8 +26,6 @@
 
 #include "audio_output.h"
 
-#include "emusc/synth.h"
-
 #include <thread>
 
 #include <QStringList>
@@ -40,8 +38,6 @@
 class AudioOutputWin32: public AudioOutput
 {
 private:
-  EmuSC::Synth *_synth;
-
   std::thread *_audioOutputThread;
 
   HANDLE _eHandle;

@@ -19,7 +19,6 @@
 
 #ifdef __QT_AUDIO__
 
-
 #ifndef AUDIO_OUTPUT_QT_H
 #define AUDIO_OUTPUT_QT_H
 
@@ -58,6 +57,8 @@ public:
 
   static QStringList get_available_devices(void);
 
+  inline void forward_frame(float &l, float &r) { _get_frame(l, r); };
+
 private:
 #if QT_VERSION < QT_VERSION_CHECK(6,0,0)
   QScopedPointer<QAudioOutput> _audioOutput;
@@ -78,10 +79,18 @@ class SynthGen : public QIODevice
   Q_OBJECT
 
 public:
-  SynthGen(const QAudioFormat &format, EmuSC::Synth *synth);
+  SynthGen(const QAudioFormat &format, AudioOutputQt *ao);
 
   void start();
   void stop();
+
+  bool isSequential(void) const override { return true; }
+
+  // Endless stream: always claim at least a period's worth is ready
+  qint64 bytesAvailable(void) const override
+  { return _bytesAvailable + QIODevice::bytesAvailable(); }
+
+  void set_bytes_available(int bufferSize);
 
   qint64 readData(char *data, qint64 maxlen) override;
   qint64 writeData(const char *data, qint64 len) override;
@@ -90,7 +99,9 @@ private:
   int _sampleRate;
   int _channels;
 
-  EmuSC::Synth *_synth;
+  int _bytesAvailable;
+
+  AudioOutputQt *_ao;
 
   SynthGen();
 };

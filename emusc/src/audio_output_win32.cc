@@ -30,7 +30,7 @@
 
 
 AudioOutputWin32::AudioOutputWin32(EmuSC::Synth *synth)
-  : _synth(synth),
+  : AudioOutput(synth),
     _channels(2)
 {
   QSettings settings;
@@ -189,18 +189,23 @@ void AudioOutputWin32::stop(void)
 int AudioOutputWin32::_fill_buffer(char *audioBuffer)
 {
   int i = 0;
-  int16_t sample[_channels];
+  float fsample[2];
+  int16_t isample[_channels];
 
   int frames = _bufferSize / (2 * _channels);
   
   for (unsigned int frame = 0; frame < frames; frame++) {
-    _synth->get_next_sample(sample);
-    
-    for (int channel=0; channel < _channels; channel++) {
-      int16_t* dest = (int16_t*) &audioBuffer[(frame * 4) + (2 * channel)];
-      *dest = sample[channel] * _volume;
-      i += 2;
-    }
+     _get_frame(fsample[0], fsample[1]);
+
+     // Convert to 16 bit and update sample data in audio output driver
+     isample[0] = (int16_t) (fsample[0] * 32767.0f);
+     isample[1] = (int16_t) (fsample[1] * 32767.0f);
+
+     for (int channel=0; channel < _channels; channel++) {
+       int16_t* dest = (int16_t*) &audioBuffer[(frame * 4) + (2 * channel)];
+       *dest = isample[channel];
+       i += 2;
+     }
   }
 
   return i;
@@ -221,7 +226,6 @@ QStringList AudioOutputWin32::get_available_devices(void)
 
   return deviceList;
 }
-
 
 
 #endif  // __WIN32_AUDIO__

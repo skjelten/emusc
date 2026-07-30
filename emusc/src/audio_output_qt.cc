@@ -29,6 +29,7 @@
 
 
 AudioOutputQt::AudioOutputQt(EmuSC::Synth *synth)
+  : AudioOutput(synth)
 {
   QSettings settings;
   QString deviceName = settings.value("Audio/device").toString();
@@ -52,7 +53,7 @@ AudioOutputQt::AudioOutputQt(EmuSC::Synth *synth)
       if (!deviceInfo.isFormatSupported(format))
 	throw (QString("Raw audio format not supported by backend"));
 
-      _audioOutput.reset(new QAudioOutput(deviceInfo, format, this));
+      _audioOutput.reset(new QAudioOutput(deviceInfo, format));
       break;
     }
   }
@@ -73,10 +74,11 @@ AudioOutputQt::AudioOutputQt(EmuSC::Synth *synth)
   }
 #endif
 
-  float msFrac = bufferTime / 1000;
+  float msFrac = bufferTime / 1000.0f;
   int bufferSize = msFrac * 2 * channels * sampleRate / 1000;
   _audioOutput.data()->setBufferSize(bufferSize);
-  _synthGen.reset(new SynthGen(format, synth));
+  _synthGen.reset(new SynthGen(format, this));
+  _synthGen->set_bytes_available(bufferSize);
 
   synth->set_audio_format(sampleRate, channels);
 
@@ -126,16 +128,15 @@ QStringList AudioOutputQt::get_available_devices(void)
 
 
 // Synth Generator class (QIODevice):
-// Requests samples from libemusc and copies to audio buffer
-SynthGen::SynthGen(const QAudioFormat &format, EmuSC::Synth *synth)
+SynthGen::SynthGen(const QAudioFormat &format, AudioOutputQt *ao)
   : _sampleRate(format.sampleRate()),
     _channels(format.channelCount()),
-    _synth(synth)
+    _ao(ao)
 {}
 
 void SynthGen::start()
 {
-  open(QIODevice::ReadOnly);
+  open(QIODevice::ReadOnly | QIODevice::Unbuffered);
 }
 
 void SynthGen::stop()
@@ -143,15 +144,26 @@ void SynthGen::stop()
   close();
 }
 
+
+void SynthGen::set_bytes_available(int bufferSize)
+{
+  _bytesAvailable = bufferSize;
+}
+
+
 qint64 SynthGen::readData(char *data, qint64 length)
 {
   int i = 0;
+  float fsample[2];
   int16_t sample[_channels];
 
   int frames = length / 4;
 
   for (unsigned int frame = 0; frame < frames; frame++) {
-    _synth->get_next_sample(sample);
+    _ao->forward_frame(fsample[0], fsample[1]);
+
+    sample[0] = (int16_t) (fsample[0] * 32767.0f);
+    sample[1] = (int16_t) (fsample[1] * 32767.0f);
 
     for (int channel = 0; channel < _channels; channel++) {
       int16_t* dest = (int16_t *) &data[(frame * 4) + (2 * channel)];

@@ -26,8 +26,6 @@
 
 #include "audio_output.h"
 
-#include "emusc/synth.h"
-
 #include <QString>
 #include <QStringList>
 
@@ -39,8 +37,6 @@ class AudioOutputJack: public AudioOutput
 private:
   jack_port_t *_port[2];
   jack_client_t *_client;
-
-  EmuSC::Synth *_synth;
 
   int _channels;
   unsigned int _sampleRate;

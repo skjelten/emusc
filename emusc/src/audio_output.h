@@ -21,23 +21,55 @@
 #define AUDIO_OUTPUT_H
 
 
+#include "emusc/synth.h"
+
+#include <algorithm>
+#include <atomic>
+#include <cmath>
+
+
 class AudioOutput
 {
 public:
-  AudioOutput();
+  AudioOutput(EmuSC::Synth *synth);
   virtual ~AudioOutput() = 0;
 
   virtual void start(void) = 0;
   virtual void stop(void) = 0;
 
-  float volume(void) { return _volume; }
-  void set_volume(float value) { _volume = value; }
+  float volume(void) { return _volume.load(std::memory_order_relaxed); }
+  void set_volume(float value) { _volume.store(value,
+                                               std::memory_order_relaxed); }
 
 protected:
   bool _quit;
-  float _volume;              // [0 - 1] Default 1
+
+  inline void _get_frame(float &lOut, float &rOut)
+  {
+    _synth->get_next_frame(lOut, rOut);
+
+    // Apply volume attenuation (volume knob in GUI)
+    const float volume = _volume.load(std::memory_order_relaxed);
+    lOut  *= volume;
+    rOut *= volume;
+
+    // Store accumulated output for statistics (volume meter)
+    _accLeft += lOut * lOut;
+    _accRight += rOut * rOut;
+    _accPeakLeft = std::max(_accPeakLeft, std::fabs(lOut));
+    _accPeakRight = std::max(_accPeakRight, std::fabs(rOut));
+  }
 
 private:
+  EmuSC::Synth *_synth;
+
+  std::atomic<float> _volume;              // [0 - 1] Default 1
+
+  float _accLeft, _accRight;
+  float _accPeakLeft, _accPeakRight;
+  int _accNum;
+
+  AudioOutput();
 
 };
 

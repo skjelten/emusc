@@ -30,7 +30,7 @@
 
 
 AudioOutputAlsa::AudioOutputAlsa(EmuSC::Synth *synth)
-  : _synth(synth),
+  : AudioOutput(synth),
     _bufferTime(75000),
     _periodTime(25000),
     _sampleRate(44100),
@@ -188,13 +188,17 @@ void AudioOutputAlsa::_set_swparams()
 // Only 16 bit supported
 int AudioOutputAlsa::_fill_buffer(const snd_pcm_channel_area_t *areas,
 				  snd_pcm_uframes_t offset,
-				  snd_pcm_uframes_t frames,
-				  EmuSC::Synth *synth)
+				  snd_pcm_uframes_t frames)
 {
-  int16_t sample[_channels];
+  float fsample[2];
+  int16_t isample[_channels];
 
   for (unsigned int frame = 0; frame < frames; frame++) {
-    synth->get_next_sample(sample);   // FIXME: Assumes 16 bit, 44.1 kHz, 2 ch
+    _get_frame(fsample[0], fsample[1]);
+
+    // Convert to 16 bit integer values
+    isample[0] = (int16_t) (fsample[0] * 32767.0f);
+    isample[1] = (int16_t) (fsample[1] * 32767.0f);
 
     for (int channel=0; channel < _channels; channel++) {
       int16_t* dest =
@@ -202,7 +206,7 @@ int AudioOutputAlsa::_fill_buffer(const snd_pcm_channel_area_t *areas,
 		     + (areas[channel].first >> 3)
 		     + ( (areas[channel].step >> 3) * (offset + frame) ) );
 
-      *dest = sample[channel] * _volume;
+      *dest = isample[channel];
     }
   }
 
@@ -246,7 +250,7 @@ void AudioOutputAlsa::run(void)
   int err, cptr;
  
   while (!_quit) {
-    _fill_buffer(areas, 0, _periodSize, _synth);
+    _fill_buffer(areas, 0, _periodSize);
 
     ptr = samples;
     cptr = _periodSize;

@@ -32,7 +32,8 @@
 
 
 AudioOutputPulse::AudioOutputPulse(EmuSC::Synth *synth)
-  : _synth(synth),
+  : AudioOutput(synth),
+    _synth(synth),
     _sampleRate(44100),
     _channels(2),
     _volume(PA_VOLUME_NORM),
@@ -181,7 +182,7 @@ int AudioOutputPulse::_fill_buffer(int8_t *data, size_t length)
   int frames = length / 4;
   
   for (unsigned int frame = 0; frame < frames; frame++) {
-    _synth->get_next_sample(sample);  // FIXME: Assumes 16 bit, 44.1 kHz, 2 ch
+//    _synth->get_next_sample(sample);  // FIXME: Assumes 16 bit, 44.1 kHz, 2 ch
 
     for (int channel=0; channel < _channels; channel++) {
       int16_t* dest = (int16_t *) &data[(frame * 4) + (2 * channel)];

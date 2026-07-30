@@ -26,8 +26,6 @@
 
 #include "audio_output.h"
 
-#include "emusc/synth.h"
-
 #include <string>
 #include <thread>
 
@@ -41,8 +39,6 @@ class AudioOutputAlsa: public AudioOutput
 {
 private:
   snd_pcm_t *_pcmHandle;
-
-  EmuSC::Synth *_synth;
 
   std::thread *_audioOutputThread;
   
@@ -62,8 +58,7 @@ private:
   
   int _fill_buffer(const snd_pcm_channel_area_t *areas,
 		   snd_pcm_uframes_t offset,
-		   snd_pcm_uframes_t frames,
-		   EmuSC::Synth *synth);
+		   snd_pcm_uframes_t frames);
 
   AudioOutputAlsa();
 

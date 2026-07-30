@@ -41,7 +41,7 @@
 
 
 AudioOutputWav::AudioOutputWav(EmuSC::Synth *synth)
-  : _synth(synth),
+  : AudioOutput(synth),
     _sampleRate(44100),
     _channels(2)
 {
@@ -72,12 +72,18 @@ AudioOutputWav::~AudioOutputWav()
 int AudioOutputWav::_fill_buffer(int8_t *data, size_t length)
 {
   int i = 0;
+  float fsample[2];
   int16_t sample[_channels];
 
   int frames = length / 4;
   
   for (unsigned int frame = 0; frame < frames; frame++) {
-    _synth->get_next_sample(sample);
+    _get_frame(fsample[0], fsample[1]);
+    //    _synth->get_next_sample(sample);
+
+    // Convert to 16 bit and update sample data in audio output driver
+    sample[0] = (int16_t) (fsample[0] * 32767.0f);
+    sample[1] = (int16_t) (fsample[1] * 32767.0f);
 
     for (int channel = 0; channel < _channels; channel++) {
       int16_t* dest = (int16_t *) &data[(frame * 4) + (2 * channel)];

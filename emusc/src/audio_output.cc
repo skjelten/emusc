@@ -20,9 +20,15 @@
 #include "audio_output.h"
 
 
-AudioOutput::AudioOutput()
+AudioOutput::AudioOutput(EmuSC::Synth *synth)
   : _quit(false),
-    _volume(1)
+    _synth(synth),
+    _volume(1.0f),
+    _accLeft(0),
+    _accRight(0),
+    _accPeakLeft(0),
+    _accPeakRight(0),
+    _accNum(0)
 {}
 
 

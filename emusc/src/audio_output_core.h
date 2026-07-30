@@ -25,8 +25,6 @@
 
 #include "audio_output.h"
 
-#include "emusc/synth.h"
-
 #include <QStringList>
 
 #include <CoreAudio/CoreAudio.h>
@@ -40,7 +38,6 @@ class AudioOutputCore: public AudioOutput
 private:
   AudioUnit _audioUnit;
 
-  EmuSC::Synth *_synth;
   uint8_t _channels;
   uint32_t _sampleRate;
   

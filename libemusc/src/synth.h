@@ -28,6 +28,7 @@
 #include "wave_rom.h"
 
 #include <array>
+#include <atomic>
 #include <functional>
 #include <mutex>
 #include <string>
@@ -45,7 +46,7 @@
  * MIDI events is sent to the emulator via the midi_input() method using the
  * three bytes from raw MIDI events.
  * 
- * Audio samples are extracted by calling the get_next_sample() method. This
+ * Audio samples are extracted by calling the get_next_frame() method. This
  * is typically done from a callback function triggered by the OS audio
  * driver when the audio buffer is running low.
  *
@@ -76,7 +77,8 @@ public:
   void midi_input(uint8_t status, uint8_t data1, uint8_t data2);
   void midi_input_sysex(uint8_t *data, uint16_t length);
 
-  int get_next_sample(int16_t *sample);
+  int get_next_frame(float &lOut, float &rOut);
+  uint32_t get_num_clipped_samples(bool reset = true);
   std::array<int, 16> get_parts_last_peak_sample(void);
 
   // Setting audio properties (default is 44100, 2)
@@ -141,6 +143,8 @@ private:
   uint32_t _sampleRate;
   uint8_t _channels;
 
+  std::atomic<uint32_t> _numClippedSamples;
+
   std::mutex midiMutex;
 
   struct std::vector<Part> _parts;
@@ -150,9 +154,9 @@ private:
   ControlRom &_ctrlRom;
   WaveRom &_waveRom;
 
-  float _phase;              // fractional SC-55 sample position
-  float _phaseIncrement;     // SC-55 samples per host sample
-  int   _updateCounter;      // counts SC-55 samples, fires at 256
+  float _phase;               // Fractional SC-55 sample position
+  float _phaseIncrement;      // SC-55 samples per host sample
+  int   _updateCounter;       // Counts SC-55 samples, fires at 256
 
   std::vector<float> _hostSampleBufL;
   std::vector<float> _hostSampleBufR;

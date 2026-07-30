@@ -42,6 +42,7 @@ namespace EmuSC {
 Synth::Synth(ControlRom &controlRom, WaveRom &waveRom, SoundMap map)
   : _sampleRate(0),
     _channels(0),
+    _numClippedSamples(0),
     _ctrlRom(controlRom),
     _waveRom(waveRom),
     _phase(0.0),
@@ -295,13 +296,11 @@ void Synth::midi_input_sysex(uint8_t *data, uint16_t length)
 }
 
 
-int Synth::get_next_sample(int16_t *sampleOut)
+int Synth::get_next_frame(float &lOut, float &rOut)
 {
   // If samplerate is not set, just return silence
   if (_sampleRate == 0) {
-    sampleOut[0] = 0;
-    sampleOut[1] = 0;
-
+    lOut = rOut = 0;
     return 0;
   }
 
@@ -312,25 +311,28 @@ int Synth::get_next_sample(int16_t *sampleOut)
   }
 
   // Check if sound is too loud => clipping
-  if (_hostSampleBufL[_hostSampleBufRIndex] > 1 ||
-      _hostSampleBufL[_hostSampleBufRIndex] < -1) {
-    std::cout << "EmuSC: Warning - audio clipped (too loud)" << std::endl;
-    _hostSampleBufL[_hostSampleBufRIndex] =
-      (_hostSampleBufL[_hostSampleBufRIndex] > 1) ? 0.9 : -0.9;
-  }
-  if (_hostSampleBufR[_hostSampleBufRIndex] > 1 ||
-      _hostSampleBufR[_hostSampleBufRIndex] < -1) {
-    std::cout << "EmuSC: Warning - audio clipped (too loud)" << std::endl;
-    _hostSampleBufR[_hostSampleBufRIndex] =
-      (_hostSampleBufR[_hostSampleBufRIndex] > 1) ? 0.9 : -0.9;
-  }
+  if (_hostSampleBufL[_hostSampleBufRIndex] > 1.0f ||
+      _hostSampleBufL[_hostSampleBufRIndex] < -1.0f)
+    _numClippedSamples.fetch_add(1, std::memory_order_relaxed);
 
-  // Convert to 16 bit and update sample data in audio output driver
-  sampleOut[0] = (int16_t) (_hostSampleBufL[_hostSampleBufRIndex] * 0xffff);
-  sampleOut[1] = (int16_t) (_hostSampleBufR[_hostSampleBufRIndex] * 0xffff);
+  if (_hostSampleBufR[_hostSampleBufRIndex] > 1.0f ||
+      _hostSampleBufR[_hostSampleBufRIndex] < -1.0f)
+    _numClippedSamples.fetch_add(1, std::memory_order_relaxed);
+
+  lOut = std::clamp(_hostSampleBufL[_hostSampleBufRIndex], -1.0f, 1.0f);
+  rOut = std::clamp(_hostSampleBufR[_hostSampleBufRIndex], -1.0f, 1.0f);
   _hostSampleBufRIndex++;
 
   return 0;
+}
+
+
+uint32_t Synth::get_num_clipped_samples(bool reset)
+{
+  if (reset)
+    return _numClippedSamples.exchange(0, std::memory_order_relaxed);
+
+  return _numClippedSamples.load(std::memory_order_relaxed);
 }
 
 

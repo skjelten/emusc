@@ -27,7 +27,7 @@
 
 
 AudioOutputJack::AudioOutputJack(EmuSC::Synth *synth)
-  : _synth(synth),
+  : AudioOutput(synth),
     _sampleRate(44100),
     _channels(2)
 {
@@ -87,11 +87,10 @@ int AudioOutputJack::callback(jack_nframes_t nframes, void *arg)
 }
 
 
-// TODO: Add support for float directly from synth->get_next_sample() to avoid
-//       unnecessary conversion float -> int16 -> float
+// TODO: Assumes JACK defaults to 32 bit float samples
 int AudioOutputJack::_fill_buffer(jack_nframes_t nframes)
 {
-  int16_t sample[_channels];
+  float fsample[2];
 
   jack_default_audio_sample_t *out[_channels];
   for (int i = 0; i < _channels; i ++)
@@ -99,11 +98,11 @@ int AudioOutputJack::_fill_buffer(jack_nframes_t nframes)
 								  nframes);
 
   for (unsigned int frame = 0; frame < nframes; frame++) {
-    _synth->get_next_sample(sample);
+    _get_frame(fsample[0], fsample[1]);
 
     for (int i = 0; i < _channels; i ++) {      
       float *o = (float *) (out[i] + frame);
-      *o =  (float) sample[i] / (1 << 15) * _volume;
+      *o =  (float) fsample[i];
     }
   }
 
