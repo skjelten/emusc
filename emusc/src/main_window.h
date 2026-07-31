@@ -94,8 +94,17 @@ private:
 
   bool _hasMovedEvent;
 
+  static constexpr int _MainWindowWidth = 1000;
+  static constexpr int _MainWindowHeight = 240;
+  static constexpr float _NormalAspectRatio = 1000 / 240.0f;
+  static constexpr float _CompactAspectRatio = 585 / 240.0f;
+
   void _create_actions(void);
   void _create_menus(void);
+
+  // A workaround for poor Wayland support in QT where open popups messes up
+  // the Main Window geometry
+  void _wayland_resize(int width, int height);
 
 public:
   MainWindow(QWidget *parent = nullptr);

@@ -56,7 +56,8 @@ MainWindow::MainWindow(QWidget *parent)
     _emulator(nullptr),
     _scene(nullptr),
     _resizeTimer(nullptr),
-    _aspectRatio(1000/240.0f),
+    _useNormalLayout(true),
+    _aspectRatio(_NormalAspectRatio),
     _hasMovedEvent(false)
 {
   // TODO: Update minumum size based on *bars and compact mode state
@@ -110,7 +111,7 @@ MainWindow::MainWindow(QWidget *parent)
     restoreGeometry(settings.value("geometry").toByteArray());
   } else {
     statusBar()->hide();
-    resize(1150, 250 + menuBar()->height());
+    resize(_MainWindowWidth,_MainWindowHeight + menuBar()->sizeHint().height());
   }
 
   QStringList arguments = QCoreApplication::arguments();
@@ -209,6 +210,7 @@ void MainWindow::_create_actions(void)
   }
 
   _viewStatusbarAct = new QAction("Status bar", this);
+  _viewStatusbarAct->setShortcut(tr("CTRL+T"));
   _viewStatusbarAct->setCheckable(true);
   connect(_viewStatusbarAct, &QAction::triggered,
 	  this, &MainWindow::_show_statusbar_clicked);
@@ -686,48 +688,87 @@ void MainWindow::_show_menubar_clicked(bool state)
   if (state) {
     menuBar()->show();
     resize(size().width(), size().height() + menuBar()->height());
+
   } else {
-    resize(size().width(), size().height() - menuBar()->height());
     menuBar()->hide();
+
+#ifdef Q_OS_LINUX
+    _wayland_resize(size().width(), size().height() - menuBar()->height() + 1);
+#else
+    resize(size().width(), size().height() - menuBar()->height() + 1);
+#endif
+
   }
 }
 
 
 void MainWindow::_show_statusbar_clicked(bool state)
 {
-//  qDebug() << "_show_statusbar_clickded: " << state;
+  setUpdatesEnabled(false);
+
   if (state) {
-    resize(size().width(), size().height() + statusBar()->height());
     statusBar()->show();
+
+#ifdef Q_OS_LINUX
+    _wayland_resize(size().width(), size().height() + statusBar()->height());
+#else
+    resize(size().width(), size().height() + statusBar()->height());
+#endif
+
   } else {
-    resize(size().width(), size().height() - statusBar()->height());
     statusBar()->hide();
+
+#ifdef Q_OS_LINUX
+    _wayland_resize(size().width(), size().height() - statusBar()->height());
+#else
+    resize(size().width(), size().height() - statusBar()->height());
+#endif
+
   }
 
-  //  resize_timeout();  Breaks on state == 1 on Linux(X11)
+  setUpdatesEnabled(true);
 }
 
 
 void MainWindow::_set_normal_layout(void)
 {
-  int newWidth = width() * (float) (1150 / 660.0);
+  if (_useNormalLayout)
+    return;
+
+  // We want to keep the height from previous layout, but extend the width
+  _aspectRatio = _NormalAspectRatio;
+  int newWidth = std::round(width() * (_NormalAspectRatio / _CompactAspectRatio));
+
+#ifdef Q_OS_LINUX
+  _wayland_resize(newWidth, height());
+#else
   resize(newWidth, height());
+#endif
 
   _scene->setSceneRect(-8, -10, 1072, 200);
-  _aspectRatio = 1000 / 240.0f;
   resize_timeout();
 
   _normalLayoutAct->setChecked(true);
+  _useNormalLayout = true;
 }
 
 
 void MainWindow::_set_compact_layout(void)
 {
-  _scene->setSceneRect(0, -10, 605, 200);
-  _aspectRatio = 660 / 258.0;
+  if (!_useNormalLayout)
+    return;
+
+#ifdef Q_OS_LINUX
+  int newWidth = std::round(width() * (_CompactAspectRatio / _NormalAspectRatio));
+  _wayland_resize(newWidth, height());
+#endif
+
+  _scene->setSceneRect(-9, -10, 605, 200);
+  _aspectRatio = _CompactAspectRatio;
   resize_timeout();
 
   _compactLayoutAct->setChecked(true);
+  _useNormalLayout = false;
 }
 
 
@@ -749,20 +790,25 @@ void MainWindow::_fullscreen_toggle(void)
 
 void MainWindow::_show_default_view(void)
 {
-  // FIXME: This method does not work on Linux (wayland) if clicked with mouse,
-  // but works if initiated with shortcut. On other systems is seems to work
-  // as expected both by mouse click and shortcut.
-
   if (isFullScreen())
     _fullscreen_toggle();
 
-  if (_compactLayoutAct->isChecked())
-    _set_normal_layout();
+  _aspectRatio = _NormalAspectRatio;
+  _scene->setSceneRect(-8, -10, 1072, 200);
+
+  _normalLayoutAct->setChecked(true);
+  _useNormalLayout = true;
 
   _viewStatusbarAct->setChecked(false);
   _show_statusbar_clicked(false);
 
-  resize(1150, 280);
+#ifdef Q_OS_LINUX
+  _wayland_resize(_MainWindowWidth,
+                  _MainWindowHeight + menuBar()->sizeHint().height());
+#else
+  resize(_MainWindowWidth, _MainWindowHeight);
+#endif
+
   resize_timeout();
 }
 
@@ -823,4 +869,11 @@ void MainWindow::keyPressEvent(QKeyEvent *keyEvent)
   if  ((keyEvent->key() == Qt::Key_Escape || keyEvent->key() == Qt::Key_F11) &&
        isFullScreen())
     _fullscreen_toggle();
+}
+
+
+void MainWindow::_wayland_resize(int width, int height)
+{
+  QTimer::singleShot(1, this, [this, width, height]()
+  { resize(width, height); });
 }
