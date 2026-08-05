@@ -488,6 +488,10 @@ void Scene::display_on(void)
   _lcdKshiftTextBkg->show();
   _lcdMidichTextBkg->show();
 
+  // Activate ALL and MUTE button
+  _allButton->setCheckable(true);
+  _muteButton->setCheckable(true);
+
   // Update volume (TODO: Find a better place to do this)
   emit volume_changed(_volumeDial->value());
 }
@@ -540,9 +544,11 @@ void Scene::display_off(void)
   // Finally turn off backlight
   _lcdBackground->setBrush(_lcdOffBackgroundColor);
 
-  // And turn off check buttons
+  // Turn off and disable the ALL and MUTE buttons
   _allButton->setChecked(false);
   _muteButton->setChecked(false);
+  _allButton->setCheckable(false);
+  _muteButton->setCheckable(false);
 }
 
 
@@ -563,6 +569,7 @@ void Scene::update_all_button(bool status)
 {
   _allButton->setChecked(status);
 }
+
 
 void Scene::update_mute_button(bool status)
 {
