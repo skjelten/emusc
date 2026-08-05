@@ -37,7 +37,6 @@
 #include <QComboBox>
 #include <QListWidget>
 #include <QListWidgetItem>
-#include <QRadioButton>
 #include <QStackedWidget>
 #include <QStandardItemModel>
 #include <QTableView>
@@ -86,9 +85,8 @@ private:
   QCheckBox *_rememberLayoutCB;
   QCheckBox *_enableKbdMidi;
 
-  QRadioButton *_emuscAnim;
-  QRadioButton *_romAnim;
-  QRadioButton *_noAnim;
+  QComboBox *_midiActCB;
+  QComboBox *_emuscAnimCB;
 
   QPushButton *_lcdBkgColorPickB;
   QPushButton *_lcdActiveColorPickB;
@@ -113,9 +111,8 @@ private slots:
   void _lcd_bkg_colorpick_clicked(void);
   void _lcd_active_colorpick_clicked(void);
   void _lcd_inactive_colorpick_clicked(void);
-  void _emuscAnim_toggled(bool checked);
-  void _romAnim_toggled(bool checked);
-  void _noAnim_toggled(bool checked);
+  void _midiAct_changed(int index);
+  void _emuscAnim_changed(int index);
 };
 
 

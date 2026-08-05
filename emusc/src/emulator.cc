@@ -187,6 +187,12 @@ void Emulator::start(void)
   connect(_midiInput, SIGNAL(new_midi_message(bool, int)),
 	  _scene, SLOT(update_midi_activity_led(bool, int)));
 
+  // Also relay signals for new MIDI messages for status bar
+  connect(_midiInput, SIGNAL(new_midi_message(bool, int)),
+          this, SIGNAL(new_midi_message(bool, int)));
+
+  emit midi_port_changed(_midiInput->get_port_name());
+
   _lcdDisplay->turn_on(control_rom_changed(),
 		       settings.value("Synth/startup_animations").toString());
 
@@ -207,6 +213,7 @@ void Emulator::stop(void)
 
   _lcdDisplay->turn_off();
 
+  emit midi_port_changed(QString());
   if (_midiInput)
     delete _midiInput, _midiInput = NULL;
 
@@ -471,6 +478,9 @@ void Emulator::_start_audio_subsystem(void)
     throw(QString("Failed to initialize audio system (%1)\nError message: %2")
 	  .arg(audioSystem).arg(errorMsg));
   }
+
+  _levelMeter.reset();
+  _audioOutput->set_level_meter(&_levelMeter);
 
   _audioOutput->start();
 }

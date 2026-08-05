@@ -36,6 +36,7 @@
 #include "lfo_dialog.h"
 #include "part_list_dialog.h"
 #include "scene.h"
+#include "status_bar.h"
 #include "synth_dialog.h"
 
 
@@ -92,7 +93,11 @@ private:
   bool _useNormalLayout;
   float _aspectRatio;
 
-  bool _hasMovedEvent;
+  StatusBar *_statusBar;
+  SBMidiPortMsg *_midiPortMsg;
+  SBMidiActLed *_midiActLed;
+  SBVolumeMeter *_volumeMeter;
+  QTimer *_meterTimer;
 
   static constexpr int _MainWindowWidth = 1000;
   static constexpr int _MainWindowHeight = 240;
@@ -105,6 +110,9 @@ private:
   // A workaround for poor Wayland support in QT where open popups messes up
   // the Main Window geometry
   void _wayland_resize(int width, int height);
+
+  void _update_meter_timer(void);
+  void _update_volume_meter(void);
 
 public:
   MainWindow(QWidget *parent = nullptr);

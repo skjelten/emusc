@@ -181,16 +181,23 @@ GeneralSettings::GeneralSettings(MainWindow *mainWindow, Emulator *emulator,
   _rememberLayoutCB = new QCheckBox("Remember window layout", this);
   _enableKbdMidi = new QCheckBox("Enable keyboard MIDI input", this);
 
-  QGroupBox *animGroupBox = new QGroupBox("LCD animations on startup");
-  _emuscAnim = new QRadioButton("Show EmuSC and model animations", this);
-  _romAnim = new QRadioButton("Show only animations from ROM", this);
-  _noAnim = new QRadioButton("Do not show animations", this);
+  QHBoxLayout *actLayout = new QHBoxLayout();
+  actLayout->addWidget(new QLabel("Show MIDI activity LED"));
+  _midiActCB = new QComboBox();
+  _midiActCB->addItem("Always", "always");
+  _midiActCB->addItem("When statusbar is hidden", "statusbar");
+  _midiActCB->addItem("Never", "never");
+  actLayout->addWidget(_midiActCB);
+  actLayout->addStretch();
 
-  QVBoxLayout *animVbox = new QVBoxLayout();
-  animVbox->addWidget(_emuscAnim);
-  animVbox->addWidget(_romAnim);
-  animVbox->addWidget(_noAnim);
-  animGroupBox->setLayout(animVbox);
+  QHBoxLayout *animLayout = new QHBoxLayout();
+  animLayout->addWidget(new QLabel("Show LCD animations on startup"));
+  _emuscAnimCB = new QComboBox();
+  _emuscAnimCB->addItem("Always", "always");
+  _emuscAnimCB->addItem("Only from ROM", "rom");
+  _emuscAnimCB->addItem("Never", "never");
+  animLayout->addWidget(_emuscAnimCB);
+  animLayout->addStretch();
 
   QGroupBox *colorGroupBox = new QGroupBox("LCD colors");
   _lcdBkgColorPickB = new QPushButton();
@@ -230,13 +237,15 @@ GeneralSettings::GeneralSettings(MainWindow *mainWindow, Emulator *emulator,
   _rememberLayoutCB->setChecked(settings.value("remember_layout").toBool());
   _enableKbdMidi->setChecked(settings.value("kbd_midi_input").toBool());
 
+  QString midiActSetting = settings.value("Synth/show_midi_activity").toString();
+  int indeks = _midiActCB->findData(midiActSetting);
+  if (indeks != -1)
+    _midiActCB->setCurrentIndex(indeks);
+
   QString animSetting = settings.value("Synth/startup_animations").toString();
-  if (animSetting == "only_rom")
-    _romAnim->setChecked(true);
-  else if (animSetting == "none")
-    _noAnim->setChecked(true);
-  else
-    _emuscAnim->setChecked(true);
+  indeks = _emuscAnimCB->findData(animSetting);
+  if (indeks != -1)
+    _emuscAnimCB->setCurrentIndex(indeks);
   
   connect(_autoPowerOnCB, SIGNAL(toggled(bool)),
 	  this, SLOT(_autoPowerOn_toggled(bool)));
@@ -250,18 +259,17 @@ GeneralSettings::GeneralSettings(MainWindow *mainWindow, Emulator *emulator,
 	  this, SLOT(_lcd_active_colorpick_clicked(void)));
   connect(_lcdInactiveColorPickB, SIGNAL(clicked(void)),
 	  this, SLOT(_lcd_inactive_colorpick_clicked(void)));
-  connect(_emuscAnim, SIGNAL(toggled(bool)),
-	  this, SLOT(_emuscAnim_toggled(bool)));
-  connect(_romAnim, SIGNAL(toggled(bool)),
-	  this, SLOT(_romAnim_toggled(bool)));
-  connect(_noAnim, SIGNAL(toggled(bool)),
-	  this, SLOT(_noAnim_toggled(bool)));
+  connect(_midiActCB, SIGNAL(currentIndexChanged(int)),
+          this, SLOT(_midiAct_changed(int)));
+  connect(_emuscAnimCB, SIGNAL(currentIndexChanged(int)),
+	  this, SLOT(_emuscAnim_changed(int)));
 
   vboxLayout->addWidget(_autoPowerOnCB);
   vboxLayout->addWidget(_rememberLayoutCB);
   vboxLayout->addWidget(_enableKbdMidi);
-  vboxLayout->addSpacing(15);
-  vboxLayout->addWidget(animGroupBox);
+
+  vboxLayout->addLayout(actLayout);
+  vboxLayout->addLayout(animLayout);
   vboxLayout->addSpacing(15);
   vboxLayout->addWidget(colorGroupBox);
   vboxLayout->insertSpacing(1, 15);
@@ -275,7 +283,8 @@ void GeneralSettings::reset(void)
 {
   _autoPowerOnCB->setChecked(true);
   _rememberLayoutCB->setChecked(false);
-  _emuscAnim->setChecked(true);
+  _midiActCB->setCurrentIndex(0);
+  _emuscAnimCB->setCurrentIndex(0);
 
   QColor bkgColor = _scene->get_lcd_bkg_on_color_reset();
   QColor activeColor = _scene->get_lcd_active_on_color_reset();
@@ -292,7 +301,8 @@ void GeneralSettings::reset(void)
   QSettings settings;
   settings.setValue("Synth/auto_power_on", true);
   settings.setValue("Synth/show_statusbar", false);
-  settings.setValue("Synth/startup_animations", "all");
+  settings.setValue("Synth/show_midi_activity", "always");
+  settings.setValue("Synth/startup_animations", "always");
   settings.setValue("Synth/lcd_bkg_color", bkgColor.name());
   settings.setValue("Synth/lcd_active_color", activeColor.name());
   settings.setValue("Synth/lcd_inactive_color", inactiveColor.name());  
@@ -369,30 +379,32 @@ void GeneralSettings::_lcd_inactive_colorpick_clicked(void)
 }
 
 
-void GeneralSettings::_emuscAnim_toggled(bool checked)
+void GeneralSettings::_midiAct_changed(int index)
 {
-  if (checked) {
-    QSettings settings;
-    settings.setValue("Synth/startup_animations", "all");
+  QString data = _midiActCB->itemData(index).toString();
+
+  QSettings settings;
+  settings.setValue("Synth/show_midi_activity", data);
+
+  if (!data.compare("always", Qt::CaseInsensitive)) {
+    _scene->show_midi_activity_led();
+  } else if (!data.compare("never", Qt::CaseInsensitive)) {
+    _scene->hide_midi_activity_led();
+  } else if (!data.compare("statusbar", Qt::CaseInsensitive)) {
+    if (_mainWindow->statusBar()->isHidden())
+      _scene->show_midi_activity_led();
+    else
+      _scene->hide_midi_activity_led();
   }
 }
 
 
-void GeneralSettings::_romAnim_toggled(bool checked)
+void GeneralSettings::_emuscAnim_changed(int index)
 {
-  if (checked) {
-    QSettings settings;
-    settings.setValue("Synth/startup_animations", "only_rom");
-  }
-}
+  QString data = _emuscAnimCB->itemData(index).toString();
 
-
-void GeneralSettings::_noAnim_toggled(bool checked)
-{
-  if (checked) {
-    QSettings settings;
-    settings.setValue("Synth/startup_animations", "none");
-  }
+  QSettings settings;
+  settings.setValue("Synth/startup_animations", data);
 }
 
 

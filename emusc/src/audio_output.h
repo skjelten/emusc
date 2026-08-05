@@ -23,6 +23,8 @@
 
 #include "emusc/synth.h"
 
+#include "level_meter.h"
+
 #include <algorithm>
 #include <atomic>
 #include <cmath>
@@ -41,6 +43,8 @@ public:
   void set_volume(float value) { _volume.store(value,
                                                std::memory_order_relaxed); }
 
+  void set_level_meter(LevelMeter *meter) { _meter = meter; }
+
 protected:
   bool _quit;
 
@@ -58,16 +62,24 @@ protected:
     _accRight += rOut * rOut;
     _accPeakLeft = std::max(_accPeakLeft, std::fabs(lOut));
     _accPeakRight = std::max(_accPeakRight, std::fabs(rOut));
+
+    //  TODO: Calculate correct block size on samplerate
+    if (++_accNum >= 512)
+      _publish_levels();
   }
 
 private:
   EmuSC::Synth *_synth;
+
+  LevelMeter *_meter;
 
   std::atomic<float> _volume;              // [0 - 1] Default 1
 
   float _accLeft, _accRight;
   float _accPeakLeft, _accPeakRight;
   int _accNum;
+
+  void _publish_levels(void);
 
   AudioOutput();
 

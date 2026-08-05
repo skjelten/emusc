@@ -68,11 +68,11 @@ void BarDisplay::stop(void)
 
 void BarDisplay::play_intro_animations(QString startupAnimSetting)
 {
-  if (startupAnimSetting == "rom") {
+  if (!startupAnimSetting.compare("rom", Qt::CaseInsensitive)) {
     _animationList.push_back(BarDisplay::Animation::ROM);
     _playAnimation = true;
 
-  } else if (startupAnimSetting == "all") {
+  } else if (!startupAnimSetting.compare("always", Qt::CaseInsensitive)) {
     _animationList.push_back(BarDisplay::Animation::EMUSC);
 
     if ((*_emuscControlRom)->intro_anim_available()) {

@@ -39,6 +39,8 @@ protected:
   //  void run(void(EmuSC::Synth::*midi_input)(EmuSC::Synth::MidiEvent))
   EmuSC::Synth *_synth;
 
+  QString _portName;
+
 public:
   MidiInput();
   virtual ~MidiInput() = 0;
@@ -51,6 +53,8 @@ public:
 
   virtual bool connect_port(QString portName, bool state);
   virtual QStringList list_subscribers(void);
+
+  QString get_port_name(void) { return _portName; }
 
   //  virtual static QStringList get_available_devices(void);
 

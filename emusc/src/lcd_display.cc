@@ -51,8 +51,9 @@ void LcdDisplay::turn_on(bool newRom, QString startupAnimSetting)
   _scene->display_on();
 
   if (!newRom ||
-      (startupAnimSetting != "rom" && startupAnimSetting != "all") ||
-      (startupAnimSetting == "rom" && (*_emuscControlRom)->intro_anim_available())) {
+      !startupAnimSetting.compare("never", Qt::CaseInsensitive) ||
+      (!startupAnimSetting.compare("rom", Qt::CaseInsensitive) &&
+       !(*_emuscControlRom)->intro_anim_available())) {
     _barDisplay->start();
     emit init_complete();
     return;

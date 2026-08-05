@@ -57,8 +57,7 @@ MainWindow::MainWindow(QWidget *parent)
     _scene(nullptr),
     _resizeTimer(nullptr),
     _useNormalLayout(true),
-    _aspectRatio(_NormalAspectRatio),
-    _hasMovedEvent(false)
+    _aspectRatio(_NormalAspectRatio)
 {
   // TODO: Update minumum size based on *bars and compact mode state
   setMinimumSize(300, 100);
@@ -70,6 +69,30 @@ MainWindow::MainWindow(QWidget *parent)
   _scene->setSceneRect(-8, -10, 1072, 200);
 
   _emulator = new Emulator(_scene);
+
+  _statusBar = new StatusBar(_emulator, this);
+  setStatusBar(_statusBar);
+
+#ifdef __ALSA_MIDI__
+  _midiPortMsg = new SBMidiPortMsg(_emulator, this);
+  _statusBar->addPermanentWidget(_midiPortMsg, 0);
+  _statusBar->addPermanentSeparator();
+#endif
+  _midiActLed = new SBMidiActLed(_emulator, this);
+  _statusBar->addPermanentWidget(_midiActLed, 0);
+  _statusBar->addPermanentSeparator();
+  _volumeMeter = new SBVolumeMeter(this);
+  _statusBar->addPermanentSeparator();
+  _statusBar->addPermanentWidget(_volumeMeter, 1);
+  _volumeMeter->set_available_width(width());
+
+  _meterTimer = new QTimer(this);
+  _meterTimer->setTimerType(Qt::CoarseTimer);
+  _meterTimer->setInterval(SBVolumeMeter::updateIntervalMs);
+
+  connect(_meterTimer, &QTimer::timeout, this, &MainWindow::_update_volume_meter);
+  connect(_emulator, &Emulator::started, this, &MainWindow::_update_meter_timer);
+  connect(_emulator, &Emulator::stopped, this, &MainWindow::_update_meter_timer);
 
   _synthView = new QGraphicsView(this);
   _synthView->setFrameShape(QFrame::NoFrame);
@@ -96,10 +119,10 @@ MainWindow::MainWindow(QWidget *parent)
   QSettings settings;
   if (settings.value("remember_layout").toBool()) {
     if (settings.value("show_statusbar").toBool()) {
-      statusBar()->show();
+      _statusBar->show();
       _viewStatusbarAct->setChecked(true);
     } else {
-      statusBar()->hide();
+      _statusBar->hide();
       _viewStatusbarAct->setChecked(false);
     }
 
@@ -110,9 +133,15 @@ MainWindow::MainWindow(QWidget *parent)
 
     restoreGeometry(settings.value("geometry").toByteArray());
   } else {
-    statusBar()->hide();
+    _statusBar->hide();
     resize(_MainWindowWidth,_MainWindowHeight + menuBar()->sizeHint().height());
   }
+
+  QString midiActSetting = settings.value("Synth/show_midi_activity").toString();
+  if (!midiActSetting.compare("always", Qt::CaseInsensitive) ||
+      (!midiActSetting.compare("statusbar", Qt::CaseInsensitive) &&
+       statusBar()->isHidden()))
+    _scene->show_midi_activity_led();
 
   QStringList arguments = QCoreApplication::arguments();
   QString powerArg;
@@ -629,7 +658,7 @@ void MainWindow::_dump_demo_songs(void)
 {
   if (!_emulator)
     return;
-  
+
   QString path = QFileDialog::getExistingDirectory(this);
   if (path == "")
     return;
@@ -708,6 +737,7 @@ void MainWindow::_show_statusbar_clicked(bool state)
 
   if (state) {
     statusBar()->show();
+    _update_meter_timer();                        // Starts volume meter
 
 #ifdef Q_OS_LINUX
     _wayland_resize(size().width(), size().height() + statusBar()->height());
@@ -717,6 +747,7 @@ void MainWindow::_show_statusbar_clicked(bool state)
 
   } else {
     statusBar()->hide();
+    _update_meter_timer();                        // Stops volume meter
 
 #ifdef Q_OS_LINUX
     _wayland_resize(size().width(), size().height() - statusBar()->height());
@@ -727,6 +758,15 @@ void MainWindow::_show_statusbar_clicked(bool state)
   }
 
   setUpdatesEnabled(true);
+
+  QSettings settings;
+  QString midiActSetting = settings.value("Synth/show_midi_activity").toString();
+  if (!midiActSetting.compare("statusbar", Qt::CaseInsensitive)) {
+    if (state)
+      _scene->hide_midi_activity_led();
+    else
+      _scene->show_midi_activity_led();
+  }
 }
 
 
@@ -824,6 +864,9 @@ void MainWindow::resizeEvent(QResizeEvent *event)
 			_scene->sceneRect().height() + 50,
 			Qt::KeepAspectRatio);
 
+  if (_volumeMeter)
+    _volumeMeter->set_available_width(event->size().width());
+
   QMainWindow::resizeEvent(event);
 
   // Resize events coming from the underlying window system must be followed up
@@ -876,4 +919,21 @@ void MainWindow::_wayland_resize(int width, int height)
 {
   QTimer::singleShot(1, this, [this, width, height]()
   { resize(width, height); });
+}
+
+
+void MainWindow::_update_meter_timer(void)
+{
+  if (_emulator && _emulator->running() && !statusBar()->isHidden()) {
+    _meterTimer->start();
+  } else {
+    _meterTimer->stop();
+    _volumeMeter->reset();
+  }
+}
+
+
+void MainWindow::_update_volume_meter(void)
+{
+  _volumeMeter->push_levels(_emulator->get_levels());
 }

@@ -65,8 +65,10 @@ void MidiInputAlsa::start(EmuSC::Synth *synth, QString device)
   if (_seqPort < 0)
     throw(QString("Error creating ALSA sequencer port"));
 
+  _portName = QString("%1:%2").arg(snd_seq_client_id(_seqHandle)).arg(_seqPort);
+
   std::cout << "EmuSC: MIDI sequencer [ALSA] client started at address "
-        << snd_seq_client_id(_seqHandle) << std::endl;
+            << _portName.toStdString() << std::endl;
 
   // Start separate thread for polling ALSA for new MIDI events
   _eventInputThread = new std::thread(&MidiInputAlsa::run, this);

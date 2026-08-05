@@ -34,3 +34,17 @@ AudioOutput::AudioOutput(EmuSC::Synth *synth)
 
 AudioOutput::~AudioOutput()
 {}
+
+
+void AudioOutput::_publish_levels(void)
+{
+  if (_meter && _accNum > 0)
+    _meter->publish(_accLeft / _accNum, _accRight / _accNum,
+                    _accPeakLeft, _accPeakRight,
+                    _synth->get_num_clipped_samples() > 0,
+                    _accNum);
+
+  _accLeft = _accRight = 0;
+  _accPeakLeft = _accPeakRight = 0;
+  _accNum = 0;
+}

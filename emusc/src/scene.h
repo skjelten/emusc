@@ -31,6 +31,7 @@
 #include <QGraphicsTextItem>
 #include <QGraphicsEllipseItem>
 #include <QKeyEvent>
+#include <QLabel>
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPaintEvent>
@@ -38,6 +39,7 @@
 #include <QRadialGradient>
 #include <QSvgRenderer>
 #include <QTimer>
+#include <QVariantAnimation>
 #include <QVector>
 
 #if QT_VERSION < QT_VERSION_CHECK(6,0,0)
@@ -49,6 +51,7 @@
 
 class VolumeDial;
 class SynthButton;
+class MidiActLed;
 
 
 class Scene : public QGraphicsScene
@@ -110,10 +113,8 @@ private:
   SynthButton *_keyshiftRButton;
   SynthButton *_keyshiftLButton;
 
-  QGraphicsRectItem *_midiActLed;
-  QTimer *_midiActTimer;
-  QRadialGradient *_ledOnGradient;
-  QRadialGradient *_ledOffGradient;
+  MidiActLed *_midiActLed;
+  bool _midiActLedActive;
 
   QColor _lcdOnBackgroundColor;
   QColor _lcdOffBackgroundColor;
@@ -170,6 +171,9 @@ public:
 
   void set_midi_kbd_enable(bool state) { _midiKbdInput = state; }
 
+  void show_midi_activity_led(void);
+  void hide_midi_activity_led(void);
+
 public slots:
   void display_on(void);
   void display_off(void);
@@ -180,7 +184,6 @@ public slots:
   void update_mute_button(bool status);
 
   void update_midi_activity_led(bool sysex, int length);
-  void update_midi_activity_timeout(void);
 
   void update_lcd_instrument_text(QString text);
   void update_lcd_part_text(QString text);
@@ -286,6 +289,31 @@ protected:
 
 private:
   QSvgRenderer *_knob;
+};
+
+
+class MidiActLed : public QLabel
+{
+  Q_OBJECT
+
+public:
+  MidiActLed(QWidget *parent = nullptr);
+  ~MidiActLed() {}
+
+  void set_state(bool state);
+  void new_activity(bool sysEx, int length);
+
+private slots:
+  void _activity_timeout(void);
+  void _update_anim_color(const QVariant &value);
+
+private:
+  QString _ledOff;
+  QString _ledOn;
+
+  QTimer *_actTimer;
+
+  QVariantAnimation *_anim;
 };
 
 

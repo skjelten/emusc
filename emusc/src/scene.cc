@@ -36,7 +36,8 @@
 
 
 Scene::Scene(QWidget *parent)
-  : _lcdOnBackgroundColorReset(225, 145, 15),
+  : _midiActLedActive(false),
+    _lcdOnBackgroundColorReset(225, 145, 15),
     _lcdOnActiveColorReset(94, 37, 28),
     _lcdOnInactiveColorReset(215, 135, 10),
     _lcdOffBackgroundColor(140, 160, 140),
@@ -372,25 +373,11 @@ Scene::Scene(QWidget *parent)
   gsLogo->setPos(695, 177);
   addItem(gsLogo);
 
-  // Add LED button
-  _ledOnGradient = new QRadialGradient(35, 190, 20);
-  _ledOnGradient->setColorAt(.0, 0x2fafff);
-  _ledOnGradient->setColorAt(.6, 0x0000ff);
-
-  _ledOffGradient = new QRadialGradient(35, 190, 20);
-  _ledOffGradient->setColorAt(.0, 0x000090);
-  _ledOffGradient->setColorAt(.9, Qt::black);
-
-  _midiActLed = new QGraphicsRectItem(25, 190, 20, 8);
-  _midiActLed->setPen(QColor(40, 40, 40));
-  _midiActLed->setBrush(*_ledOffGradient);
-  addItem(_midiActLed);
-
-  _midiActTimer = new QTimer();
-  _midiActTimer->setSingleShot(true);
-  _midiActTimer->setTimerType(Qt::CoarseTimer);
-  connect(_midiActTimer, SIGNAL(timeout()),
-	  this, SLOT(update_midi_activity_timeout()));
+  // Add MIDI activity LED indicator
+  _midiActLed = new MidiActLed();
+  _midiActLed->hide();
+  QGraphicsProxyWidget* midiActLedProxy = addWidget(_midiActLed);
+  midiActLedProxy->setPos(25, 195);
 
   _connect_signals();
 }
@@ -400,6 +387,20 @@ Scene::~Scene()
 {
   QSettings settings;
   settings.setValue("Audio/volume", _volumeDial->value());
+}
+
+
+void Scene::show_midi_activity_led(void)
+{
+  _midiActLedActive = true;
+  _midiActLed->show();
+}
+
+
+void Scene::hide_midi_activity_led(void)
+{
+  _midiActLedActive = false;
+  _midiActLed->hide();
 }
 
 
@@ -618,15 +619,10 @@ void Scene::update_lcd_midich_text(QString text)
 
 void Scene::update_midi_activity_led(bool sysex, int length)
 {
-  _midiActLed->setBrush(*_ledOnGradient);
-  _midiActTimer->start(300);
+  if (_midiActLedActive)
+    _midiActLed->new_activity(false, 0);
 }
 
-
-void Scene::update_midi_activity_timeout(void)
-{
-  _midiActLed->setBrush(*_ledOffGradient);
-}
 
 void Scene::set_lcd_bkg_on_color(QColor color, bool update)
 {
@@ -1166,4 +1162,85 @@ void VolumeDial::paintEvent(QPaintEvent *event)
   painter.fillPath(clip, sh);
 
   painter.restore();
+}
+
+
+MidiActLed::MidiActLed(QWidget *parent)
+  : QLabel(parent)
+{
+  setFixedSize(20, 10);
+
+  _actTimer = new QTimer();
+  _actTimer->setSingleShot(true);
+  _actTimer->setTimerType(Qt::CoarseTimer);
+
+  connect(_actTimer, SIGNAL(timeout()), this, SLOT(_activity_timeout()));
+
+  _ledOff = "QLabel { border: 1px solid #001122; border-color: black;"
+            "background-color: qradialgradient(cx:0.5, cy:0.5, radius:0.5, fx:0.5, fy:0.5,"
+            "stop:0 #113388, stop:1 #051a44);}";
+
+  _ledOn  = "QLabel {border: 1px solid #0088cc; border-color: black;"
+            "background-color: qradialgradient(cx:0.5, cy:0.5, radius:0.6, fx:0.5, fy:0.5,"
+            "stop:0 #00e5ff, stop:0.4 #00aaff, stop:1 #0033aa);}";
+
+  _anim = new QVariantAnimation(this);
+  _anim->setStartValue(QColor("#113388"));
+  _anim->setEndValue(QColor("#00e5ff"));
+
+  connect(_anim, &QVariantAnimation::valueChanged, this,
+          &MidiActLed::_update_anim_color);
+
+  setStyleSheet(_ledOff);
+
+  setToolTip("MIDI activity");
+}
+
+
+void MidiActLed::_update_anim_color(const QVariant &value)
+{
+  QColor centerColor = value.value<QColor>();
+
+  if (centerColor == QColor("#113388")) {
+    setStyleSheet(_ledOff);
+  } else {
+    QString currentStyle = QString("QLabel {border: 1px solid #0088cc; "
+                                   "border-color: black;"
+                                   "background-color: qradialgradient(cx:0.5, cy:0.5, radius:0.6, fx:0.5, fy:0.5, "
+                                   "stop:0 %1, stop:0.5 #0055cc, stop:1 #051a44);}"
+                                   ).arg(centerColor.name());
+
+    setStyleSheet(currentStyle);
+  }
+}
+
+
+void MidiActLed::set_state(bool state)
+{
+  if (state) {
+    _actTimer->stop();
+
+    _anim->stop();
+    setStyleSheet(_ledOn);
+
+    _actTimer->start(150);
+
+  } else {
+    _anim->setDuration(300);
+    _anim->setDirection(QAbstractAnimation::Backward);
+    _anim->start();
+  }
+}
+
+
+void MidiActLed::new_activity(bool sysEx, int length)
+{
+  Q_UNUSED(sysEx); Q_UNUSED(length);
+  set_state(true);
+}
+
+
+void MidiActLed::_activity_timeout(void)
+{
+  set_state(false);
 }

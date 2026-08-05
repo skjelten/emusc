@@ -44,6 +44,7 @@ add_executable(emusc-client
   control_rom_info_dialog.h
   lcd_display.cc
   lcd_display.h
+  level_meter.h
   lfo_dialog.cc
   lfo_dialog.h
   main_window.cc
@@ -64,6 +65,8 @@ add_executable(emusc-client
   rom_info.h
   scene.cc
   scene.h
+  status_bar.cc
+  status_bar.h
   synth_dialog.cc
   synth_dialog.h
   ../res/emusc.qrc)

@@ -49,6 +49,8 @@ public:
   Emulator(Scene *scene);
   virtual ~Emulator();
 
+  LevelMeter::Levels get_levels(void) { return _levelMeter.get_and_reset(); }
+
   void start(void);
   void stop(void);
 
@@ -149,7 +151,10 @@ signals:
 
   void part_changed(int part);
 
-public slots:
+  void new_midi_message(bool sysEx, int length);
+  void midi_port_changed(QString port);
+
+  public slots:
   void select_all(bool state);
   void select_mute(bool mute);
 
@@ -216,6 +221,8 @@ private:
   bool _running;
 
   EmuSC::Synth::SoundMap _soundMap;
+
+  LevelMeter _levelMeter;
 
   Emulator();
 
