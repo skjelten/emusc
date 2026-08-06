@@ -184,19 +184,19 @@ void PartListDialog::update_part(int partId)
   }
 
   _volumeS[partId]->blockSignals(true);
-  _volumeS[partId]->setValue(_emulator->get_param(EmuSC::PatchParam::PartLevel, partId));
+  _volumeSB[partId]->setValue(_emulator->get_param(EmuSC::PatchParam::PartLevel, partId));
   _volumeS[partId]->blockSignals(false);
 
   _panS[partId]->blockSignals(true);
-  _panS[partId]->setValue(_emulator->get_param(EmuSC::PatchParam::PartPanpot, partId) - 0x40);
+  _panSB[partId]->setValue(_emulator->get_param(EmuSC::PatchParam::PartPanpot, partId) - 0x40);
   _panS[partId]->blockSignals(false);
 
   _reverbS[partId]->blockSignals(true);
-  _reverbS[partId]->setValue(_emulator->get_param(EmuSC::PatchParam::ReverbSendLevel, partId));
+  _reverbSB[partId]->setValue(_emulator->get_param(EmuSC::PatchParam::ReverbSendLevel, partId));
   _reverbS[partId]->blockSignals(false);
 
   _chorusS[partId]->blockSignals(true);
-  _chorusS[partId]->setValue(_emulator->get_param(EmuSC::PatchParam::ChorusSendLevel, partId));
+  _chorusSB[partId]->setValue(_emulator->get_param(EmuSC::PatchParam::ChorusSendLevel, partId));
   _chorusS[partId]->blockSignals(false);
 }
 

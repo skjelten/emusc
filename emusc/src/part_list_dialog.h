@@ -62,7 +62,7 @@ private:
   QSlider *_reverbS[16];
   QSlider *_chorusS[16];
 
-  void _set_instrument(int partId, int drumSet, int bank, int index);
+  void _set_instrument(int partId, int drumSet, int index, int bank);
   void _set_level(int partId, int value);
   void _set_pan(int partId, int value);
   void _set_reverb(int partId, int value);
@@ -79,5 +79,6 @@ public slots:
 
   void update_part(int partId);
 };
+
 
 #endif // PART_LIST_DIALOG_H
