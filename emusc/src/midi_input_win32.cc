@@ -144,7 +144,7 @@ void MidiInputWin32::start(EmuSC::Synth *synth, QString device)
     throw (QString("Failed to open win32 MIDI input device"));
 
   _header.lpData = &_data[0];
-  _header.dwBufferLength = sizeof(&_data[0]);
+  _header.dwBufferLength = sizeof(_data);
   _header.dwFlags = 0;
   res = midiInPrepareHeader(_handle, &_header, sizeof(MIDIHDR));
   if (res != MMSYSERR_NOERROR)

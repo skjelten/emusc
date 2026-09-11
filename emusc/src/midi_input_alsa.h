@@ -29,6 +29,7 @@
 
 #include <alsa/asoundlib.h>
 
+#include <atomic>
 #include <thread>
 
 
@@ -38,7 +39,7 @@ private:
   snd_seq_t *_seqHandle;
   int _seqPort;
 
-  bool _stop;
+  std::atomic<bool> _stop;
   std::thread *_eventInputThread;
 
 public:
