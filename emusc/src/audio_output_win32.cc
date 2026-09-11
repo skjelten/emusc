@@ -31,6 +31,7 @@
 
 AudioOutputWin32::AudioOutputWin32(EmuSC::Synth *synth)
   : AudioOutput(synth),
+    _audioOutputThread(NULL),
     _channels(2)
 {
   QSettings settings;
@@ -180,7 +181,7 @@ void AudioOutputWin32::stop(void)
   // Wait for poll in thread to return
   if (_audioOutputThread) {
     _audioOutputThread->join();
-    delete _audioOutputThread;
+    delete (_audioOutputThread), _audioOutputThread = NULL;
   }
 }
 

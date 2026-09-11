@@ -34,6 +34,7 @@
 AudioOutputPulse::AudioOutputPulse(EmuSC::Synth *synth)
   : AudioOutput(synth),
     _synth(synth),
+    _audioOutputThread(NULL),
     _sampleRate(44100),
     _channels(2),
     _volume(PA_VOLUME_NORM),

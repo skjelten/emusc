@@ -140,7 +140,7 @@ void AudioOutputJack::start(void)
       std::cerr << "EmuSC ERROR [JACK Audio]: cannot connect output ports"
 		<< std::endl;
 
-  delete ports;
+  jack_free(ports);
 }
 
 

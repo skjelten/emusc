@@ -46,7 +46,7 @@ public:
   void set_level_meter(LevelMeter *meter) { _meter = meter; }
 
 protected:
-  bool _quit;
+  std::atomic<bool> _quit;
 
   inline void _get_frame(float &lOut, float &rOut)
   {

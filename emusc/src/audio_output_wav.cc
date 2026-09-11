@@ -42,8 +42,9 @@
 
 AudioOutputWav::AudioOutputWav(EmuSC::Synth *synth)
   : AudioOutput(synth),
-    _sampleRate(44100),
-    _channels(2)
+    _audioOutputThread(NULL),
+    _channels(2),
+    _sampleRate(44100)
 {
   QSettings settings;
   QString filePath = settings.value("Audio/wav_file_path").toString();
