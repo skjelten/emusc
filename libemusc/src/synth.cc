@@ -489,12 +489,6 @@ uint8_t Synth::get_param(enum SystemParam sp)
 }
 
 
-uint8_t* Synth::get_param_ptr(enum SystemParam sp)
-{
-  return _settings->get_param_ptr(sp);
-}
-
-
 uint16_t Synth::get_param_32nib(enum SystemParam sp)
 {
   return _settings->get_param_32nib(sp);
@@ -504,12 +498,6 @@ uint16_t Synth::get_param_32nib(enum SystemParam sp)
 uint8_t  Synth::get_param(enum PatchParam pp, int8_t part)
 {
   return _settings->get_param(pp, part);
-}
-
-
-uint8_t* Synth::get_param_ptr(enum PatchParam pp, int8_t part)
-{
-  return _settings->get_param_ptr(pp, part);
 }
 
 
@@ -537,9 +525,9 @@ uint8_t Synth::get_param(enum DrumParam dp, uint8_t map, uint8_t key)
 }
 
 
-int8_t* Synth::get_param_ptr(enum DrumParam dp, uint8_t map)
+std::string Synth::get_drum_map_name(int map)
 {
-  return _settings->get_param_ptr(dp, map);
+  return _settings->get_drum_map_name(map);
 }
 
 

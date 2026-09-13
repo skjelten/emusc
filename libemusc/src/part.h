@@ -88,6 +88,8 @@ private:
   uint16_t _instrument;       // [0-127] -> variation table
   int8_t _drumSet;            // [0-13] drumSet (SC-55)
 
+  uint8_t _bankSelect;        // Latched bank select (CC0)
+
   uint8_t _partialReserve;    // [0-24] Default 2
 
   float _lastPeakSample;

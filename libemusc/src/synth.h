@@ -111,15 +111,13 @@ public:
 
   // EmuSC clients methods for getting synth paramters
   uint8_t  get_param(enum SystemParam sp);
-  uint8_t* get_param_ptr(enum SystemParam sp);
   uint16_t get_param_32nib(enum SystemParam sp);
   uint8_t  get_param(enum PatchParam pp, int8_t part = -1);
-  uint8_t* get_param_ptr(enum PatchParam pp, int8_t part = -1);
   uint16_t get_param_uint14(enum PatchParam pp, int8_t part = -1);
   uint8_t  get_param_nib16(enum PatchParam pp, int8_t part = -1);
   uint8_t  get_patch_param(uint16_t address, int8_t part = -1);
   uint8_t  get_param(enum DrumParam, uint8_t map, uint8_t key);
-  int8_t* get_param_ptr(enum DrumParam, uint8_t map);
+  std::string get_drum_map_name(int map);
 
   // EmuSC clients methods for setting synth paramters
   void set_param(enum SystemParam sp, uint8_t value);

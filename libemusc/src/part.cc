@@ -29,6 +29,7 @@ namespace EmuSC {
 Part::Part(uint8_t id, Settings *settings, ControlRom &ctrlRom, WaveRom &waveRom)
   : _id(id),
     _settings(settings),
+    _bankSelect(0),
     _lastPeakSample(0),
     _ctrlRom(ctrlRom),
     _waveRom(waveRom),
@@ -53,7 +54,7 @@ int Part::get_sample_set(std::array<std::array<float, 256>, 2> &dryBus,
 			 std::array<std::array<float, 256>, 2> &chorusBus,
 			 std::array<std::array<float, 256>, 2> &reverbBus)
 {
-  _notesMutex->lock();
+  const std::scoped_lock lock(*_notesMutex);
 
   // Only process notes if we have any
   if (_notes.size() > 0) {
@@ -117,14 +118,14 @@ int Part::get_sample_set(std::array<std::array<float, 256>, 2> &dryBus,
       _lfoCallback(0, 0, 0);
   }
 
-  _notesMutex->unlock();
-
   return 0;
 }
 
 
 void Part::update(void)
 {
+  const std::scoped_lock lock(*_notesMutex);
+
   for (auto &n : _notes)
     n->update();
 }
@@ -149,12 +150,12 @@ int Part::get_last_peak_sample(void)
   scale >>= 8;
 
   int tvaMax = 0;
-  _notesMutex->lock();
 
-  for (auto &n: _notes)
-    tvaMax = std::max({tvaMax, n->get_current_tva(0), n->get_current_tva(1)});
-
-  _notesMutex->unlock();
+  {
+    const std::scoped_lock lock(*_notesMutex);
+    for (auto &n: _notes)
+      tvaMax = std::max({tvaMax, n->get_current_tva(0), n->get_current_tva(1)});
+  }
 
   if (0)
     std::cout << "PartScale=" << std::hex << scale
@@ -168,6 +169,8 @@ int Part::get_last_peak_sample(void)
 
 int Part::get_num_partials(void)
 {
+  const std::scoped_lock lock(*_notesMutex);
+
   if (_notes.size() == 0)
     return 0;
 
@@ -219,15 +222,14 @@ int Part::add_note(uint8_t key, uint8_t keyVelocity)
       _settings->get_param(PatchParam::UseForRhythm, _id) == mode_Norm)
     delete_all_notes();
 
-  _notesMutex->lock();
+  {
+    const std::scoped_lock lock(*_notesMutex);
+    Note *n = new Note(key, velocity, _ctrlRom, _waveRom, _settings, _id);
+    _notes.push_back(n);
 
-  Note *n = new Note(key, velocity, _ctrlRom, _waveRom, _settings, _id);
-  _notes.push_back(n);
-
-  _notesMutex->unlock();
-
-  if (_settings->get_param(PatchParam::Hold1, _id))
+    if (_settings->get_param(PatchParam::Hold1, _id))
       n->sustain(true);
+  }
 
   if (0)
     std::cout << "EmuSC: New note [ part=" << (int) _id
@@ -241,6 +243,8 @@ int Part::add_note(uint8_t key, uint8_t keyVelocity)
 
 int Part::stop_note(uint8_t key)
 {
+  const std::scoped_lock lock(*_notesMutex);
+
   for (auto &n : _notes)
     n->stop(key);
 
@@ -250,6 +254,8 @@ int Part::stop_note(uint8_t key)
 
 int Part::stop_all_notes(void)
 {
+  const std::scoped_lock lock(*_notesMutex);
+
   int i = _notes.size();
   for (auto n : _notes)
     n->stop();
@@ -260,15 +266,13 @@ int Part::stop_all_notes(void)
 
 int Part::delete_all_notes(void)
 {
-  _notesMutex->lock();
+  const std::scoped_lock lock(*_notesMutex);
 
   int i = _notes.size();
   for (auto n : _notes)
     delete n;
 
   _notes.clear();
-
-  _notesMutex->unlock();
 
   return i;
 }
@@ -285,7 +289,8 @@ int Part::control_change(uint8_t msgId, uint8_t value)
   if (msgId == 0) {                                    // Bank select
     // TODO: This check is only available for SC-55mkII+
     if (_settings->get_param(PatchParam::RxBankSelect, _id))
-      _settings->set_param(PatchParam::ToneNumber, value, _id);
+      // This value is latched until next program change
+      _bankSelect = value;
 
   } else if (msgId == 1) {                             // Modulation
     if (_settings->get_param(PatchParam::RxModulation, _id))
@@ -374,10 +379,11 @@ int Part::control_change(uint8_t msgId, uint8_t value)
       } else {
 	_settings->set_param(PatchParam::Hold1, (uint8_t) 1, _id);
       }
-
-      for (auto &n : _notes)
-	n->sustain(_settings->get_param(PatchParam::Hold1, _id));
-
+      {
+        const std::scoped_lock lock(*_notesMutex);
+        for (auto &n : _notes)
+          n->sustain(_settings->get_param(PatchParam::Hold1, _id));
+      }
     } // Note: SC-88 Pro seems to use full 7 bit value for Hold1
 
   } else if (msgId == 65) {                            // Portamento
@@ -394,9 +400,11 @@ int Part::control_change(uint8_t msgId, uint8_t value)
 	_settings->set_param(PatchParam::Sostenuto, (uint8_t)0,_id);
       else
 	_settings->set_param(PatchParam::Sostenuto, (uint8_t)1,_id);
-
-      for (auto &n : _notes)
-	n->sustain(_settings->get_param(PatchParam::Sostenuto, _id));
+      {
+        const std::scoped_lock lock(*_notesMutex);
+        for (auto &n : _notes)
+          n->sustain(_settings->get_param(PatchParam::Sostenuto, _id));
+      }
     }
 
   } else if (msgId == 67) {                            // Soft
@@ -527,6 +535,7 @@ void Part::reset(void)
 {
   delete_all_notes();
 
+  _bankSelect = 0;
   _partialReserve = 2;
 
   _lastPeakSample = 0;
@@ -542,7 +551,7 @@ int Part::set_program(uint8_t index, int8_t bank, bool ignRxFlags)
     return -1;
 
   if (bank < 0)
-    bank = _settings->get_param(PatchParam::ToneNumber, _id);
+    bank = _bankSelect;
 
   _settings->set_param(PatchParam::ToneNumber2, index, _id);
 

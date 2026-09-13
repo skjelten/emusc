@@ -2759,7 +2759,7 @@ void DrumSettings::update_all_widgets(void)
   _instrument = _instrumentC->currentIndex();
   _map = _mapC->currentIndex();
   
-  std::string name((const char *) _emulator->get_param_ptr(EmuSC::DrumParam::DrumsMapName, _map), 12);
+  std::string name = _emulator->get_drum_map_name(_map);
   _nameLE->setText(QString::fromStdString(name));
 
   _volumeS->setValue(_emulator->get_param(EmuSC::DrumParam::Level,

@@ -74,6 +74,7 @@ public:
   std::array<uint8_t, 128> get_drumsets_LUT(void);
 
   int dump_demo_songs(QString path);
+  const std::vector<EmuSC::ControlRom::DemoSong> &get_demo_songs(void);
   bool control_rom_changed(void);
 
   void panic(void);
@@ -93,15 +94,13 @@ public:
 
   // libEmuSC Synth API for get & set paramters
   uint8_t  get_param(enum EmuSC::SystemParam sp);
-  uint8_t* get_param_ptr(enum EmuSC::SystemParam sp);
   uint16_t get_param_32nib(enum EmuSC::SystemParam sp);
   uint8_t  get_param(enum EmuSC::PatchParam pp, int8_t part = -1);
-  uint8_t* get_param_ptr(enum EmuSC::PatchParam pp, int8_t part = -1);
   uint8_t  get_param_nib16(enum EmuSC::PatchParam pp, int8_t part = -1);
   uint16_t get_param_uint14(enum EmuSC::PatchParam pp, int8_t part = -1);
   uint8_t get_patch_param(uint16_t address, int8_t part);
   uint8_t  get_param(enum EmuSC::DrumParam, uint8_t map, uint8_t key);
-  int8_t* get_param_ptr(enum EmuSC::DrumParam, uint8_t map);
+  std::string  get_drum_map_name(uint8_t map);
 
   void set_param(enum EmuSC::SystemParam sp, uint8_t value);
   void set_param(enum EmuSC::SystemParam sp, uint8_t *data, uint8_t size = 1);
@@ -130,6 +129,9 @@ public:
   int get_lfo_rate_LUT(int index);
   int get_lfo_delay_fade_LUT(int index);
 
+  void midi_input(uint8_t status, uint8_t data1, uint8_t data2);
+  void midi_input_sysex(uint8_t *data, uint16_t length);
+
 signals:
   void bar_display_update(QVector<bool>*);
 
@@ -150,6 +152,7 @@ signals:
   void mute_button_changed(bool state);
 
   void part_changed(int part);
+  void part_mod_received(int part);
 
   void new_midi_message(bool sysEx, int length);
   void midi_port_changed(QString port);
@@ -194,6 +197,8 @@ signals:
 
   void lcd_display_init_complete(void);
 
+  void handle_part_mod(int part);
+
 private:
   Scene *_scene;
 
@@ -219,6 +224,7 @@ private:
   bool _allMode;
 
   bool _running;
+  bool _lcdReady;
 
   EmuSC::Synth::SoundMap _soundMap;
 

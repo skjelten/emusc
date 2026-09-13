@@ -382,16 +382,14 @@ void EnvelopeDialog::_part_changed(int partId)
   uint8_t rhythm =
     _emulator->get_param(EmuSC::PatchParam::UseForRhythm, _selectedPart);
   if (!rhythm) {
-    uint8_t *tone =
-      _emulator->get_param_ptr(EmuSC::PatchParam::ToneNumber, _selectedPart);
-    EmuSC::ControlRom::Instrument &iRom =
-      _emulator->get_instrument_rom(tone[0], tone[1]);
+    int t1 = _emulator->get_param(EmuSC::PatchParam::ToneNumber, _selectedPart);
+    int t2 = _emulator->get_param(EmuSC::PatchParam::ToneNumber2, _selectedPart);
+    EmuSC::ControlRom::Instrument &iRom = _emulator->get_instrument_rom(t1, t2);
 
     _instrumentTitle->setText(QString::fromStdString(iRom.name));
 
   } else {  // Drumset
-    std::string name((char *) _emulator->get_param_ptr(EmuSC::DrumParam::DrumsMapName,
-                                                       rhythm - 1), 12);
+    std::string name = _emulator->get_drum_map_name(rhythm -1);
     _instrumentTitle->setText(QString::fromStdString("Drumset: " + name));
   }
 }

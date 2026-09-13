@@ -55,7 +55,8 @@ Emulator::Emulator(Scene *scene)
     _updateROMs(false),
     _selectedPart(0),
     _allMode(false),
-    _running(false)
+    _running(false),
+    _lcdReady(false)
 {
   _lcdDisplay = new LcdDisplay(scene, &_emuscSynth, &_emuscControlRom);
 
@@ -137,7 +138,9 @@ void Emulator::_connect_signals(void)
 	  _scene, SLOT(update_lcd_midich_text(QString)));
 
   connect(this, SIGNAL(part_changed(int)),
-          this, SLOT(update_active_part_LCD_display(int)));
+          this, SLOT(update_active_part_LCD_display(int)),Qt::QueuedConnection);
+  connect(this, SIGNAL(part_mod_received(int)),
+          this, SLOT(handle_part_mod(int)), Qt::QueuedConnection);
 }
 
 
@@ -199,6 +202,9 @@ void Emulator::start(void)
   _emuscSynth->add_part_change_callback(std::bind(&Emulator::_part_change_callback,
                                                   this,
                                                   std::placeholders::_1));
+  _emuscSynth->add_part_midi_mod_callback(std::bind(&Emulator::_part_mod_callback,
+						    this,
+						    std::placeholders::_1));
 
   _running = true;
   emit(started());
@@ -302,9 +308,7 @@ void Emulator::_load_wave_roms(QStringList romPaths)
 void Emulator::lcd_display_init_complete(void)
 {
   _set_part(_selectedPart = 0);
-  _emuscSynth->add_part_midi_mod_callback(std::bind(&Emulator::_part_mod_callback,
-						    this,
-						    std::placeholders::_1));
+  _lcdReady = true;
 }
 
 
@@ -352,6 +356,15 @@ void Emulator::clear_lfo_callback(int partId)
 
 
 void Emulator::_part_mod_callback(const int partId)
+{
+  if (!_lcdReady)
+    return;
+
+  emit part_mod_received(partId);
+}
+
+
+void Emulator::handle_part_mod(int partId)
 {
   if (partId == _selectedPart && !_allMode)
     _set_part(partId);
@@ -657,6 +670,11 @@ int Emulator::dump_demo_songs(QString path)
   return _emuscControlRom->dump_demo_songs(path.toStdString());
 }
 
+const std::vector<EmuSC::ControlRom::DemoSong> &Emulator::get_demo_songs(void)
+{
+  return _emuscControlRom->get_demo_songs();
+}
+
 
 void Emulator::panic(void)
 {
@@ -760,10 +778,9 @@ void Emulator::_set_part(uint8_t value)
   QString str = QStringLiteral("%1").arg(value + 1, 2, 10, QLatin1Char('0'));
   str.prepend(' ');
   _lcdDisplay->set_part(str);
-
-  uint8_t *toneNumber =
-    _emuscSynth->get_param_ptr(EmuSC::PatchParam::ToneNumber, value);
-  _set_instrument(toneNumber[1], toneNumber[0], false);
+  _set_instrument(_emuscSynth->get_param(EmuSC::PatchParam::ToneNumber2, value),
+                  _emuscSynth->get_param(EmuSC::PatchParam::ToneNumber, value),
+                  false);
   _set_level(_emuscSynth->get_param(EmuSC::PatchParam::PartLevel, value),false);
   _set_pan(_emuscSynth->get_param(EmuSC::PatchParam::PartPanpot, value), false);
   _set_reverb(_emuscSynth->get_param(EmuSC::PatchParam::ReverbSendLevel, value),
@@ -788,10 +805,10 @@ void Emulator::select_prev_instrument()
   if (!_emuscSynth || _allMode)
     return;
 
-  uint8_t *toneNumber =
-    _emuscSynth->get_param_ptr(EmuSC::PatchParam::ToneNumber, _selectedPart);
-  uint8_t bank = toneNumber[0];
-  uint8_t index = toneNumber[1];
+  uint8_t bank = _emuscSynth->get_param(EmuSC::PatchParam::ToneNumber,
+                                        _selectedPart);
+  uint8_t index = _emuscSynth->get_param(EmuSC::PatchParam::ToneNumber2,
+                                         _selectedPart);
   _set_instrument(index, bank, false);
 
   // Instrument
@@ -823,10 +840,10 @@ void Emulator::select_next_instrument()
   if (!_emuscSynth || _allMode)
     return;
 
-  uint8_t *toneNumber =
-    _emuscSynth->get_param_ptr(EmuSC::PatchParam::ToneNumber, _selectedPart);
-  uint8_t bank = toneNumber[0];
-  uint8_t index = toneNumber[1];
+  uint8_t bank = _emuscSynth->get_param(EmuSC::PatchParam::ToneNumber,
+                                        _selectedPart);
+  uint8_t index = _emuscSynth->get_param(EmuSC::PatchParam::ToneNumber2,
+                                         _selectedPart);
   _set_instrument(index, bank, false);
 
   // Instrument
@@ -858,10 +875,10 @@ void Emulator::select_next_instrument_variant()
   if (!_emuscSynth || _allMode)
     return;
 
-  uint8_t *toneNumber =
-    _emuscSynth->get_param_ptr(EmuSC::PatchParam::ToneNumber, _selectedPart);
-  uint8_t bank = toneNumber[0];
-  uint8_t index = toneNumber[1];
+  uint8_t bank = _emuscSynth->get_param(EmuSC::PatchParam::ToneNumber,
+                                        _selectedPart);
+  uint8_t index = _emuscSynth->get_param(EmuSC::PatchParam::ToneNumber2,
+                                         _selectedPart);
 
   // Only relevant for instrument, not drums
   if (!_emuscSynth->get_param(EmuSC::PatchParam::UseForRhythm, _selectedPart)) {
@@ -881,10 +898,10 @@ void Emulator::select_prev_instrument_variant()
   if (!_emuscSynth || _allMode)
     return;
 
-  uint8_t *toneNumber =
-    _emuscSynth->get_param_ptr(EmuSC::PatchParam::ToneNumber, _selectedPart);
-  uint8_t bank = toneNumber[0];
-  uint8_t index = toneNumber[1];
+  uint8_t bank = _emuscSynth->get_param(EmuSC::PatchParam::ToneNumber,
+                                        _selectedPart);
+  uint8_t index = _emuscSynth->get_param(EmuSC::PatchParam::ToneNumber2,
+                                         _selectedPart);
 
   // Only relevant for instrument, not drums
   if (!_emuscSynth->get_param(EmuSC::PatchParam::UseForRhythm, _selectedPart)) {
@@ -926,8 +943,7 @@ void Emulator::_set_instrument(uint8_t index, uint8_t bank, bool update)
     if (update)
       _emuscSynth->set_part_instrument(_selectedPart, index, bank);
 
-    std::string name((char *) get_param_ptr(EmuSC::DrumParam::DrumsMapName,
-					    rhythm - 1), 12);
+    std::string name = get_drum_map_name(rhythm - 1);
     str = QStringLiteral("%1*").arg(index + 1, 3, 10, QLatin1Char('0'));
     str.append(QString(name.c_str()));
   }
@@ -1281,11 +1297,6 @@ uint8_t Emulator::get_param(enum EmuSC::SystemParam sp)
   return _emuscSynth->get_param(sp);
 }
 
-uint8_t* Emulator::get_param_ptr(enum EmuSC::SystemParam sp)
-{
-  return _emuscSynth->get_param_ptr(sp);
-}
-
 
 uint16_t Emulator::get_param_32nib(enum EmuSC::SystemParam sp)
 {
@@ -1296,12 +1307,6 @@ uint16_t Emulator::get_param_32nib(enum EmuSC::SystemParam sp)
 uint8_t Emulator::get_param(enum EmuSC::PatchParam pp, int8_t part)
 {
   return _emuscSynth->get_param(pp, part);
-}
-
-
-uint8_t* Emulator::get_param_ptr(enum EmuSC::PatchParam pp, int8_t part)
-{
-  return _emuscSynth->get_param_ptr(pp, part);
 }
 
 
@@ -1329,9 +1334,9 @@ uint8_t Emulator::get_param(enum EmuSC::DrumParam dp, uint8_t map, uint8_t key)
 }
 
 
-int8_t* Emulator::get_param_ptr(enum EmuSC::DrumParam dp, uint8_t map)
+std::string Emulator::get_drum_map_name(uint8_t map)
 {
-  return _emuscSynth->get_param_ptr(dp, map);
+  return _emuscSynth->get_drum_map_name(map);
 }
 
 
@@ -1513,6 +1518,20 @@ int Emulator::get_lfo_delay_fade_LUT(int index)
     throw (QString("Internal error: LFO Delay / Fade lookup out of range!"));
 
   return _emuscControlRom->lookupTables.LFODelayTime[index];
+}
+
+
+void Emulator::midi_input(uint8_t status, uint8_t data1, uint8_t data2)
+{
+  if (_emuscSynth)
+    _emuscSynth->midi_input(status, data1, data2);
+}
+
+
+void Emulator::midi_input_sysex(uint8_t *data, uint16_t length)
+{
+  if (_emuscSynth)
+    _emuscSynth->midi_input_sysex(data, length);
 }
 
 

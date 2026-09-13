@@ -31,9 +31,11 @@
 #include <QTimer>
 
 #include "control_rom_info_dialog.h"
+#include "demo_songs_dialog.h"
 #include "emulator.h"
 #include "envelope_dialog.h"
 #include "lfo_dialog.h"
+#include "midi_player_dialog.h"
 #include "part_list_dialog.h"
 #include "scene.h"
 #include "status_bar.h"
@@ -64,7 +66,8 @@ private:
   QAction *_viewStatusbarAct;
   QAction *_fullScreenAct;
   QAction *_resetWindowAct;
-  QAction *_dumpSongsAct;
+  QAction *_playDemoSongsAct;
+  QAction *_playMidiFileAct;
   QAction *_viewCtrlRomDataAct;
   QAction *_viewLFOsChartAct;
   QAction *_viewEnvelopesChartAct;
@@ -78,8 +81,10 @@ private:
   QAction *_aboutAct;
 
   QPointer<ControlRomInfoDialog> _controlRomInfoDialog;
+  QPointer<DemoSongsDialog> _demoSongsDialog;
   QPointer<EnvelopeDialog> _envelopeDialog;
   QPointer<LFODialog> _lfoDialog;
+  QPointer<MidiPlayerDialog> _midiPlayerDialog;
   QPointer<PartListDialog> _partListDialog;
   QPointer<SynthDialog> _synthDialog;
 
@@ -140,8 +145,9 @@ private slots:
   void _display_synth_dialog(void);
   void _display_part_list_dialog(void);
   void _display_about_dialog(void);
+  void _display_demo_songs_dialog(void);
+  void _display_midi_player_dialog(void);
 
-  void _dump_demo_songs(void);
   void _display_control_rom_info(void);
   void _turn_on_off(void);
   void _panic(void);

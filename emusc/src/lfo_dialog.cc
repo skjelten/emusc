@@ -335,11 +335,9 @@ void LFODialog::_update_instrument_info(void)
   uint8_t rhythm =
     _emulator->get_param(EmuSC::PatchParam::UseForRhythm, _selectedPart);
   if (!rhythm) {
-    uint8_t *tone =
-      _emulator->get_param_ptr(EmuSC::PatchParam::ToneNumber, _selectedPart);
-    EmuSC::ControlRom::Instrument &iRom =
-      _emulator->get_instrument_rom(tone[0], tone[1]);
-
+    int t1 = _emulator->get_param(EmuSC::PatchParam::ToneNumber, _selectedPart);
+    int t2 = _emulator->get_param(EmuSC::PatchParam::ToneNumber2, _selectedPart);
+    EmuSC::ControlRom::Instrument &iRom = _emulator->get_instrument_rom(t1, t2);
     _chart->setTitle(QString::fromStdString(iRom.name));
 
     // LFO1
@@ -422,9 +420,7 @@ void LFODialog::_update_instrument_info(void)
     }
 
   } else {  // Drumset
-    std::string name((char *) _emulator->get_param_ptr(EmuSC::DrumParam::DrumsMapName,
-                                                       rhythm - 1), 12);
-
+    std::string name = _emulator->get_drum_map_name(rhythm -1);
     QString title("Drumset: " + QString(name.c_str()));
     _chart->setTitle(title);
 

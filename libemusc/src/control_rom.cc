@@ -73,6 +73,7 @@ ControlRom::ControlRom(std::string romPath, std::string cpuRomPath)
   _read_samples(romFile);
   _read_variations(romFile);
   _read_drum_sets(romFile);
+  _read_midi_songs(romFile);
   _read_lookup_tables_progrom(romFile);
 
   romFile.close();
@@ -550,6 +551,54 @@ int ControlRom::_read_drum_sets(std::ifstream &romFile)
   }
 
   return _drumSets.size();
+}
+
+
+// TODO: Move demo MIDI song indexes to an array in header definition
+int ControlRom::_read_midi_songs(std::ifstream &romFile)
+{
+  if (_synthModel == sm_SC55) {
+    if (_version == "1.21") {
+      std::vector<uint8_t> midiData(18632);
+      romFile.seekg(0x088ac);
+      romFile.read(reinterpret_cast<char *>(midiData.data()), midiData.size());
+      _demoSongs.push_back({std::move(midiData), "", false});
+
+      midiData.resize(8715);
+      romFile.seekg(0x0d174);
+      romFile.read(reinterpret_cast<char *>(midiData.data()), midiData.size());
+      _demoSongs.push_back({std::move(midiData), "Leya's Song", false});
+
+      return 1;
+    }
+
+  } else if (_synthModel == sm_SC55mkII) {
+    if (_version == "1.01") {
+      std::vector<uint8_t> midiData(24537);
+      romFile.seekg(0x40000);
+      romFile.read(reinterpret_cast<char *>(midiData.data()), midiData.size());
+      _demoSongs.push_back({std::move(midiData), "Moonlight Picnic", true});
+
+      midiData.resize(16382);
+      romFile.seekg(0x45fda);
+      romFile.read(reinterpret_cast<char *>(midiData.data()), midiData.size());
+      _demoSongs.push_back({std::move(midiData), "Low Flying", true});
+
+      midiData.resize(34645);
+      romFile.seekg(0x50000);
+      romFile.read(reinterpret_cast<char *>(midiData.data()), midiData.size());
+      _demoSongs.push_back({std::move(midiData), "Suplex Hold", true});
+
+      midiData.resize(27888);
+      romFile.seekg(0x58756);
+      romFile.read(reinterpret_cast<char *>(midiData.data()), midiData.size());
+      _demoSongs.push_back({std::move(midiData), "Monopoly", true});
+
+      return 2;
+    }
+  }
+
+  return 0;
 }
 
 

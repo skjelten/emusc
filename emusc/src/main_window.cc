@@ -273,9 +273,13 @@ void MainWindow::_create_actions(void)
   connect(_resetWindowAct, &QAction::triggered,
 	  this, &MainWindow::_show_default_view);
 
-  _dumpSongsAct = new QAction("&Dump MIDI files to disk", this);
-  connect(_dumpSongsAct, &QAction::triggered,
-	  this, &MainWindow::_dump_demo_songs);
+  _playDemoSongsAct = new QAction("Play demo songs...", this);
+  connect(_playDemoSongsAct, &QAction::triggered,
+	  this, &MainWindow::_display_demo_songs_dialog);
+
+  _playMidiFileAct = new QAction("Play MIDI file...", this);
+  connect(_playMidiFileAct, &QAction::triggered,
+	  this, &MainWindow::_display_midi_player_dialog);
 
   _viewCtrlRomDataAct = new QAction("&View control ROM data", this);
   connect(_viewCtrlRomDataAct, &QAction::triggered,
@@ -370,7 +374,9 @@ void MainWindow::_create_menus(void)
 #endif
 
   _toolsMenu = menuBar()->addMenu("&Tools");
-  _toolsMenu->addAction(_dumpSongsAct);
+  _toolsMenu->addAction(_playDemoSongsAct);
+  _toolsMenu->addAction(_playMidiFileAct);
+  _toolsMenu->addSeparator();
   _toolsMenu->addAction(_viewCtrlRomDataAct);
 #ifdef __USE_QTCHARTS__
   _toolsMenu->addSeparator();
@@ -654,30 +660,6 @@ void MainWindow::power_switch(int newPowerState)
 }
 
 
-void MainWindow::_dump_demo_songs(void)
-{
-  if (!_emulator)
-    return;
-
-  QString path = QFileDialog::getExistingDirectory(this);
-  if (path == "")
-    return;
-
-  int numSongs = _emulator->dump_demo_songs(path);
-  if (numSongs)
-    QMessageBox::information(this,
-			     tr("Demo songs"),
-			     QString::number(numSongs) +
-			     " demo songs extracted from controROM",
-			     QMessageBox::Close);
-  else
-    QMessageBox::warning(this,
-			 tr("Demo songs"),
-			 tr("No demo songs found in control ROM"),
-			 QMessageBox::Close);
-}
-
-
 void MainWindow::_turn_on_off(void)
 {
   power_switch(-1);
@@ -936,4 +918,32 @@ void MainWindow::_update_meter_timer(void)
 void MainWindow::_update_volume_meter(void)
 {
   _volumeMeter->push_levels(_emulator->get_levels());
+}
+
+
+void MainWindow::_display_demo_songs_dialog(void)
+{
+  if (_demoSongsDialog.isNull()) {
+    _demoSongsDialog = new DemoSongsDialog(_emulator, this);
+    _demoSongsDialog->setModal(false);
+    _demoSongsDialog->setAttribute(Qt::WA_DeleteOnClose);
+    _demoSongsDialog->show();
+  } else {
+    _demoSongsDialog->raise();
+    _demoSongsDialog->activateWindow();
+  }
+}
+
+
+void MainWindow::_display_midi_player_dialog(void)
+{
+  if (_partListDialog.isNull()) {
+    _midiPlayerDialog = new MidiPlayerDialog(_emulator, this);
+    _midiPlayerDialog->setModal(false);
+    _midiPlayerDialog->setAttribute(Qt::WA_DeleteOnClose);
+    _midiPlayerDialog->show();
+  } else {
+    _midiPlayerDialog->raise();
+    _midiPlayerDialog->activateWindow();
+  }
 }

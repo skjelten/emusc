@@ -42,6 +42,8 @@ add_executable(emusc-client
   envelope_dialog.h
   control_rom_info_dialog.cc
   control_rom_info_dialog.h
+  demo_songs_dialog.cc
+  demo_songs_dialog.h
   lcd_display.cc
   lcd_display.h
   level_meter.h
@@ -49,6 +51,8 @@ add_executable(emusc-client
   lfo_dialog.h
   main_window.cc
   main_window.h
+  midi_file.cc
+  midi_file.h
   midi_input.cc
   midi_input.h
   midi_input_alsa.cc
@@ -57,6 +61,10 @@ add_executable(emusc-client
   midi_input_core.h
   midi_input_win32.cc
   midi_input_win32.h
+  midi_player.cc
+  midi_player.h
+  midi_player_dialog.cc
+  midi_player_dialog.h
   part_list_dialog.cc
   part_list_dialog.h
   preferences_dialog.cc

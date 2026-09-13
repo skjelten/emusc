@@ -174,12 +174,13 @@ void PartListDialog::update_part(int partId)
   // Find instrument names
   uint8_t rhythm = _emulator->get_param(EmuSC::PatchParam::UseForRhythm,partId);
   if (!rhythm) {
-    uint8_t *tone = _emulator->get_param_ptr(EmuSC::PatchParam::ToneNumber, partId);
-    EmuSC::ControlRom::Instrument &iRom = _emulator->get_instrument_rom(tone[0], tone[1]);
+    int t1 = _emulator->get_param(EmuSC::PatchParam::ToneNumber, partId);
+    int t2 = _emulator->get_param(EmuSC::PatchParam::ToneNumber2, partId);
+    EmuSC::ControlRom::Instrument &iRom = _emulator->get_instrument_rom(t1, t2);
     _instNameQTB[partId]->setText(QString(iRom.name.c_str()).leftJustified(12));
 
   } else {
-    std::string name((char *) _emulator->get_param_ptr(EmuSC::DrumParam::DrumsMapName, rhythm - 1), 12);
+    std::string name = _emulator->get_drum_map_name(rhythm - 1);
     _instNameQTB[partId]->setText(name.c_str());
   }
 

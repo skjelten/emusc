@@ -28,6 +28,7 @@
 
 #include <algorithm>
 #include <array>
+#include <atomic>
 #include <functional>
 #include <string>
 
@@ -74,17 +75,16 @@ public:
 
   // Retrieve settings from Config paramters
   uint8_t  get_param(enum SystemParam sp);
-  uint8_t* get_param_ptr(enum SystemParam sp);
   uint32_t get_param_uint32(enum SystemParam sp);
   uint16_t get_param_32nib(enum SystemParam sp);
   uint8_t  get_param(enum PatchParam pp, int8_t part = -1);
-  uint8_t* get_param_ptr(enum PatchParam pp, int8_t part = -1);
   uint16_t get_param_uint14(enum PatchParam pp, int8_t part = -1);
   uint16_t get_param_uint16(enum PatchParam pp, int8_t part = -1);
   uint8_t  get_param_nib16(enum PatchParam pp, int8_t part = -1);
   uint8_t  get_patch_param(uint16_t address, int8_t part = -1);
   uint8_t  get_param(enum DrumParam, uint8_t map, uint8_t key);
-  int8_t* get_param_ptr(enum DrumParam, uint8_t map);
+
+  std::string get_drum_map_name(uint8_t map);
 
   // Set settings from Config paramters
   void set_param(enum SystemParam sp, uint8_t value);
@@ -130,20 +130,20 @@ public:
 
   int get_acc_control_param(enum ControllerParam cp, int part)
   { part = std::clamp(part, 0, 15);
-    return _accControlParams[part][static_cast<int>(cp)]; }
+    return _accControlParams[part][static_cast<int>(cp)].load(std::memory_order_relaxed); }
 
   void set_part_callback(std::function<void(const int)> cb);
   void clear_part_callback(void);
 
 private:
-  std::array<uint8_t, 0x0100> _systemParams;  // Both SysEx and non-SysEx data
-  std::array<uint8_t, 0x4000> _patchParams;
-  std::array<uint8_t, 0x2000> _drumParams;
+  std::array<std::atomic<uint8_t>, 0x0100> _systemParams{};
+  std::array<std::atomic<uint8_t>, 0x4000> _patchParams{};
+  std::array<std::atomic<uint8_t>, 0x2000> _drumParams{};
 
   // Controller paramter values generated when controllers change - all parts
   std::array<std::array<std::array<int, 6>, 11>, 16> _controlParams{{{}}};
   // Accumulated controller parameter values per value category - all parts
-  std::array<std::array<int16_t, 11>, 16> _accControlParams{{}};
+  std::array<std::array<std::atomic<int16_t>, 11>, 16> _accControlParams{{}};
 
   ControlRom &_ctrlRom;
 
@@ -159,10 +159,10 @@ private:
 
   // BE / LE conversion
   inline bool _le_native(void) { uint16_t n = 1; return (*(uint8_t *) & n); }
-  uint8_t  _to_native_endian_nib16(uint8_t *ptr);
-  uint16_t _to_native_endian_uint14(uint8_t *ptr);
-  uint16_t _to_native_endian_uint16(uint8_t *ptr);
-  uint32_t _to_native_endian_uint32(uint8_t *ptr);
+  uint8_t  _to_native_endian_nib16(const std::atomic<uint8_t> *ptr);
+  uint16_t _to_native_endian_uint14(const std::atomic<uint8_t> *ptr);
+  uint16_t _to_native_endian_uint16(const std::atomic<uint8_t> *ptr);
+  uint32_t _to_native_endian_uint32(const std::atomic<uint8_t> *ptr);
 
   // Macros for certain settings
   void _run_macro_chorus(uint8_t value);

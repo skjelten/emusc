@@ -61,12 +61,6 @@ uint8_t Settings::get_param(enum SystemParam sp)
   return (uint8_t) _systemParams[(int) sp];
 }
 
-  
-uint8_t* Settings::get_param_ptr(enum SystemParam sp)
-{
-  return (uint8_t *) &_systemParams[(int) sp];
-}
-
 
 uint32_t Settings::get_param_uint32(enum SystemParam sp)
 {
@@ -76,36 +70,29 @@ uint32_t Settings::get_param_uint32(enum SystemParam sp)
 
 uint16_t Settings::get_param_32nib(enum SystemParam sp)
 {
-  uint8_t *vPtr = &_systemParams[(int) sp];
+  const std::atomic<uint8_t> *vPtr = &_systemParams[(int) sp];
+
+  const uint8_t v0 = vPtr[0].load(std::memory_order_relaxed);
+  const uint8_t v1 = vPtr[1].load(std::memory_order_relaxed);
+  const uint8_t v2 = vPtr[2].load(std::memory_order_relaxed);
+  const uint8_t v3 = vPtr[3].load(std::memory_order_relaxed);
 
   if (_le_native())
-    return (uint16_t) vPtr[3] | vPtr[2] << 4 | vPtr[1] << 8 | vPtr[0] << 12;
+    return (uint16_t) v3 | v2 << 4 | v1 << 8 | v0 << 12;
 
-  return (uint16_t) vPtr[0] | vPtr[1] << 4 | vPtr[2] << 8 | vPtr[3] << 12;
+  return (uint16_t) v0 | v1 << 4 | v2 << 8 | v3 << 12;
 }
 
 
 uint8_t Settings::get_param(enum PatchParam pp, int8_t part)
 {
   if (part < 0 || part > 15)
-    return (uint8_t) _patchParams[(int) pp];
+    return _patchParams[(int) pp].load(std::memory_order_relaxed);
 
   int8_t rolandPart = _convert_to_roland_part_id_LUT[part];
 
-  return (uint8_t) _patchParams[(((int) pp) | (rolandPart << 8))];
-}
-
-
-uint8_t* Settings::get_param_ptr(enum PatchParam pp, int8_t part)
-{
-  int address = (int) pp;
-
-  if (part < 0 || part > 15)
-    return  &_patchParams[address];
-
-  int8_t rolandPart = _convert_to_roland_part_id_LUT[part];
-
-  return &_patchParams[(address | (rolandPart << 8))];
+  return _patchParams[(((int) pp) |
+                       (rolandPart << 8))].load(std::memory_order_relaxed);
 }
 
 
@@ -166,9 +153,15 @@ uint8_t Settings::get_param(enum DrumParam dp, uint8_t map, uint8_t key)
 }
 
 
-int8_t* Settings::get_param_ptr(enum DrumParam dp, uint8_t map)
+std::string Settings::get_drum_map_name(uint8_t map)
 {
-  return (int8_t *) &_drumParams[(int) dp | (map << 12)];
+  std::string name;
+  const int base = (int) DrumParam::DrumsMapName | (map << 12);
+
+  for (int i = 0; i < 12; i++)
+    name += (char) _drumParams[base + i].load(std::memory_order_relaxed);
+
+  return name;
 }
 
 
@@ -775,39 +768,53 @@ void Settings::reset(void)
 }
 
 
-uint8_t Settings::_to_native_endian_nib16(uint8_t *ptr)
+uint8_t Settings::_to_native_endian_nib16(const std::atomic<uint8_t> *ptr)
 {
-  if (_le_native())
-    return ((ptr[0] << 4) | (ptr[1] & 0x0f));
+  const uint8_t b0 = ptr[0].load(std::memory_order_relaxed);
+  const uint8_t b1 = ptr[1].load(std::memory_order_relaxed);
 
-  return (ptr[1] << 4 | (ptr[0] & 0x0f));
+  if (_le_native())
+    return ((b0 << 4) | (b1 & 0x0f));
+
+  return ((b1 << 4) | (b0 & 0x0f));
 }
 
 
-uint16_t Settings::_to_native_endian_uint14(uint8_t *ptr)
+uint16_t Settings::_to_native_endian_uint14(const std::atomic<uint8_t> *ptr)
 {
-  if (_le_native())
-    return ((ptr[0] & 0x7f) << 7 | ptr[1]);
+  const uint8_t b0 = ptr[0].load(std::memory_order_relaxed);
+  const uint8_t b1 = ptr[1].load(std::memory_order_relaxed);
 
-  return ((ptr[1] & 0x7f) << 7 | ptr[0]);
+  if (_le_native())
+    return ((b0 & 0x7f) << 7 | b1);
+
+  return ((b1 & 0x7f) << 7 | b0);
 }
 
 
-uint16_t Settings::_to_native_endian_uint16(uint8_t *ptr)
+uint16_t Settings::_to_native_endian_uint16(const std::atomic<uint8_t> *ptr)
 {
-  if (_le_native())
-    return (ptr[0] << 8 | ptr[1]);
+  const uint8_t b0 = ptr[0].load(std::memory_order_relaxed);
+  const uint8_t b1 = ptr[1].load(std::memory_order_relaxed);
 
-  return (ptr[1] << 8 | ptr[0]);
+  if (_le_native())
+    return ((b0 << 8) | b1);
+
+  return ((b1 << 8) | b0);
 }
 
 
-uint32_t Settings::_to_native_endian_uint32(uint8_t *ptr)
+uint32_t Settings::_to_native_endian_uint32(const std::atomic<uint8_t> *ptr)
 {
-  if (_le_native())
-    return (ptr[0] << 24 | ptr[1] << 16 | ptr [2] << 8 | ptr[3]);
+  const uint8_t b0 = ptr[0].load(std::memory_order_relaxed);
+  const uint8_t b1 = ptr[1].load(std::memory_order_relaxed);
+  const uint8_t b2 = ptr[2].load(std::memory_order_relaxed);
+  const uint8_t b3 = ptr[3].load(std::memory_order_relaxed);
 
-  return (ptr[3] << 24 | ptr[2] << 16 | ptr[1] << 8 | ptr[0]);
+  if (_le_native())
+    return (b0 << 24 | b1 << 16 | b2 << 8 | b3);
+
+  return (b3 << 24 | b2 << 16 | b1 << 8 | b0);
 }
 
 

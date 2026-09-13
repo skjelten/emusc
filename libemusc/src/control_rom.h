@@ -180,6 +180,12 @@ public:
     std::string name;       // 12 chars
   };
 
+  struct DemoSong {
+    std::vector<uint8_t> data;
+    std::string name;
+    bool MkIIFormat;
+  };
+
   struct LookupTables {
     // PROGROM
     std::vector<uint8_t> VelocityCurves;
@@ -229,6 +235,7 @@ public:
   };
 
   int dump_demo_songs(std::string path);
+  const std::vector<DemoSong> &get_demo_songs() const { return _demoSongs; }
   bool intro_anim_available(void);
   std::vector<uint8_t> get_intro_anim(int animIndex = 0);
 
@@ -262,6 +269,8 @@ private:
   std::string _model;
   std::string _version;
   std::string _date;
+
+  std::vector<DemoSong> _demoSongs;
 
   enum SynthModel {
     sm_SC55,              // Original Sound Canvas
@@ -365,6 +374,7 @@ private:
   int _read_variations(std::ifstream &romFile);
   int _read_samples(std::ifstream &romFile);
   int _read_drum_sets(std::ifstream &romFile);
+  int _read_midi_songs(std::ifstream &romFile);
 
   std::array<uint8_t, 128> _drumSetsLUT;
 
